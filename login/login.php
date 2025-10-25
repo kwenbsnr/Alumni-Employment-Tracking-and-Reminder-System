@@ -112,6 +112,13 @@ include("../connect.php");
                     </div>
                 </div>
 
+                <?php if (isset($_SESSION['login_error'])): ?>
+                    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 text-center">
+                        <?php echo htmlspecialchars($_SESSION['login_error']); ?>
+                    </div>
+                    <?php unset($_SESSION['login_error']); ?>
+                <?php endif; ?>
+
                 <form id="loginForm" method="POST" action="auth.php" class="space-y-6">
                     <input type="hidden" name="role" id="selectedRole" value="">
 
