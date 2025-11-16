@@ -153,63 +153,108 @@ ob_start();
 <?php endif; ?>
 
 <div class="space-y-6 mt-3 mb-5">
-<!-- Update Profile Box -->
-<div id="updateProfileBtn" class="<?php echo $can_update ? 'bg-white' : 'bg-yellow-50'; ?> p-4 rounded-lg shadow flex flex-col justify-start hover:shadow-md transition duration-200 border-t-4 h-28 <?php echo $can_update ? 'border-green-500 cursor-pointer' : 'border-yellow-500 cursor-not-allowed'; ?>">
+<div class="space-y-6 mt-3 mb-5">
+
+<!-- Status Card - Unified approach -->
+<div id="updateProfileBtn" class="
+    <?php 
+    if ($is_profile_rejected && !empty($profile['first_name'])) {
+        echo 'bg-yellow-50 border-yellow-500 cursor-pointer';
+    } elseif ($is_profile_approved) {
+        echo 'bg-blue-50 border-blue-500 cursor-not-allowed';
+    } elseif ($is_profile_pending) {
+        echo 'bg-yellow-50 border-yellow-500 cursor-not-allowed';
+    } elseif ($can_update) {
+        echo 'bg-white border-green-500 cursor-pointer';
+    } else {
+        echo 'bg-yellow-50 border-yellow-500 cursor-not-allowed';
+    }
+    ?> 
+    p-4 rounded-lg shadow flex flex-col justify-start hover:shadow-md transition duration-200 border-t-4 h-28">
     <div class="flex items-center justify-between mb-2">
         <div class="flex items-center space-x-3">
-            <?php if (!$can_update): ?>
-                <i class="fas fa-exclamation-triangle text-yellow-600 text-xl"></i>
+            <?php if (!$can_update || $is_profile_rejected): ?>
+                <i class="fas 
+                    <?php 
+                    if ($is_profile_rejected) echo 'fa-exclamation-triangle text-yellow-600';
+                    elseif ($is_profile_approved) echo 'fa-check-circle text-blue-600';
+                    elseif ($is_profile_pending) echo 'fa-clock text-yellow-600';
+                    else echo 'fa-lock text-yellow-600';
+                    ?> 
+                    text-xl"></i>
             <?php endif; ?>
-            <h3 class="text-xl font-bold <?php echo $can_update ? 'text-gray-700' : 'text-yellow-900'; ?>">
-                <?php echo $can_update ? 'Update Profile' : 'Profile Editing Locked'; ?>
+            <h3 class="text-xl font-bold 
+                <?php 
+                if ($is_profile_rejected) echo 'text-yellow-900';
+                elseif ($is_profile_approved) echo 'text-blue-900';
+                elseif ($is_profile_pending) echo 'text-yellow-900';
+                else echo 'text-gray-700';
+                ?>">
+                <?php 
+                if ($is_profile_rejected && !empty($profile['first_name'])) {
+                    echo 'Profile Rejected';
+                } elseif ($is_profile_approved) {
+                    echo 'Profile Approved';
+                } elseif ($is_profile_pending) {
+                    echo 'Profile Pending Review';
+                } elseif ($can_update) {
+                    echo 'Update Profile';
+                } else {
+                    echo 'Profile Editing Locked';
+                }
+                ?>
             </h3>
         </div>
-        <i class="fas <?php echo $can_update ? 'fa-user-edit text-green-600' : 'fa-lock text-yellow-600'; ?> text-xl"></i>
+        <i class="fas 
+            <?php 
+            if ($is_profile_rejected && !empty($profile['first_name'])) echo 'fa-exclamation-triangle text-yellow-600';
+            elseif ($is_profile_approved) echo 'fa-check-circle text-blue-600';
+            elseif ($is_profile_pending) echo 'fa-clock text-yellow-600';
+            elseif ($can_update) echo 'fa-user-edit text-green-600';
+            else echo 'fa-lock text-yellow-600';
+            ?> 
+            text-xl"></i>
     </div>
-    <p class="text-base <?php echo $can_update ? 'text-gray-600' : 'text-yellow-800'; ?> leading-tight font-medium">
+    <p class="text-base leading-tight font-medium
+        <?php 
+        if ($is_profile_rejected) echo 'text-yellow-800';
+        elseif ($is_profile_approved) echo 'text-blue-800';
+        elseif ($is_profile_pending) echo 'text-yellow-800';
+        elseif ($can_update) echo 'text-gray-600';
+        else echo 'text-yellow-800';
+        ?>">
     <?php
-   if ($can_update) {
-    if ($is_profile_rejected) {
-        echo 'Your profile was rejected. Please update and resubmit for approval.';
-    } elseif ($is_profile_new) {
-        echo 'Click to create your alumni profile and submit for approval.';
-    } else {
-        echo 'Click to edit your personal, employment, and educational details.';
-    }
-} else {
-    if ($is_profile_approved) {
-        $last_update = $profile['last_profile_update'] ?? null;
-        if ($last_update) {
-            $formatted_date = date('M j, Y', strtotime($last_update));
-            $next_update = date('M j, Y', strtotime($last_update . ' +6 months'));
-            echo "Your profile has been approved. <strong>Last updated: $formatted_date</strong>. You can update again after <strong>$next_update</strong>.";
-        } else {
-            echo 'Your profile has been approved. You can update again after 6 months from your last update.';
+    if ($is_profile_rejected && !empty($profile['first_name'])) {
+        echo 'Your profile was rejected. ';
+        if (!empty($profile['rejection_reason'])) {
+            echo '<strong>Reason:</strong> ' . htmlspecialchars($profile['rejection_reason']) . '. ';
         }
-    } elseif ($is_profile_pending) {
-        echo 'Your profile is currently under review. Please wait for administrator approval.';
+        echo 'Please update your profile and resubmit for approval.';
+    } elseif ($can_update) {
+        if ($is_profile_new) {
+            echo 'Click to create your alumni profile and submit for approval.';
+        } else {
+            echo 'Click to edit your personal, employment, and educational details.';
+        }
     } else {
-        echo 'Profile update is not available at this time.';
+        if ($is_profile_approved) {
+            $last_update = $profile['last_profile_update'] ?? null;
+            if ($last_update) {
+                $formatted_date = date('M j, Y', strtotime($last_update));
+                $next_update = date('M j, Y', strtotime($last_update . ' +6 months'));
+                echo "Your profile has been approved. <strong>Last updated: $formatted_date</strong>. You can update again after <strong>$next_update</strong>.";
+            } else {
+                echo 'Your profile has been approved. You can update again after 6 months from your last update.';
+            }
+        } elseif ($is_profile_pending) {
+            echo 'Your profile is currently under review. Please wait for administrator approval.';
+        } else {
+            echo 'Profile update is not available at this time.';
+        }
     }
-}
-?>
+    ?>
     </p>
 </div>
-<!-- Rejection Notification Card - MOVED HERE -->
-<?php if (!empty($profile) && ($profile['submission_status'] ?? '') === 'Rejected' && !empty($profile['first_name'])): ?>
-    <div class="bg-yellow-100 p-6 rounded-xl shadow-lg border-l-4 border-yellow-600">
-        <div class="flex items-center space-x-3">
-            <i class="fas fa-exclamation-triangle text-yellow-600 text-xl"></i>
-            <div>
-                <h3 class="text-lg font-semibold text-yellow-800">Profile Submission Rejected</h3>
-                <p class="text-yellow-700">Your previous submission was rejected. Please update your profile and resubmit using the "Update Profile" button above.</p>
-                <?php if (!empty($profile['rejection_reason'])): ?>
-                    <p class="text-yellow-700 mt-2"><strong>Reason:</strong> <?php echo htmlspecialchars($profile['rejection_reason']); ?></p>
-                <?php endif; ?>
-            </div>
-        </div>
-    </div>
-<?php endif; ?>
 
       <?php if (!empty($profile) || true): ?>
         <!-- Always show profile cards -->
