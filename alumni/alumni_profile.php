@@ -263,12 +263,13 @@ ob_start();
 
 <!-- Container for Employment/Academic Details and Documents -->
 <div class="flex flex-col md:flex-row md:space-x-6">
-  <!-- Employment/Academic Details Card -->
-<div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-purple-500 flex-1 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-purple-50">
-    <div class="flex items-center space-x-3 mb-4 pb-2 border-b border-gray-100">
+    
+<!-- Employment/Academic Details Card -->
+<div class="bg-white p-4 rounded-xl shadow-lg border-l-4 border-purple-500 flex-1 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-purple-50">
+    <div class="flex items-center space-x-3 mb-3 pb-2 border-b border-gray-100">
         <h3 class="text-xl font-bold text-gray-800">Employment/Academic Details</h3>
     </div>
-    <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <dl class="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div class="flex flex-col">
             <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Employment Status</dt>
             <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['employment_status'] ?? 'Not Set'); ?></dd>
@@ -328,19 +329,19 @@ ob_start();
 </div>
 
 <!-- Documents Card -->
-<div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-orange-500 flex-1 flex flex-col transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-orange-50">
-    <div class="flex items-center space-x-3 mb-4 pb-2 border-b border-gray-100">
+<div class="bg-white p-4 rounded-xl shadow-lg border-l-4 border-orange-500 flex-1 flex flex-col transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-orange-50">
+    <div class="flex items-center space-x-3 mb-3 pb-2 border-b border-gray-100">
         <h3 class="text-xl font-bold text-gray-800">Documents</h3>
     </div>
     
     <?php if (empty($docs)): ?>
-        <div class="flex-1 flex flex-col items-center justify-center py-8">
-            <i class="fas fa-folder-open text-gray-300 text-5xl mb-4"></i>
+        <div class="flex-1 flex flex-col items-center justify-center py-6">
+            <i class="fas fa-folder-open text-gray-300 text-5xl mb-3"></i>
             <p class="text-sm text-gray-500" style="font-size: 13px;">No documents uploaded.</p>
         </div>
     <?php else: ?>
         <!-- Uploaded Documents List - Takes full available height -->
-        <div class="flex-1 space-y-4">
+        <div class="flex-1 space-y-3">
             <?php
             foreach ($docs as $doc):
                 $doc_type_name = $doc['document_type'] === 'COE' ? 'Certificate of Employment' :
@@ -358,10 +359,10 @@ ob_start();
             ?>
             <div class="bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition duration-150">
                 <!-- Top Section: Document Info -->
-                <div class="flex items-center justify-between p-4">
-                    <div class="flex items-center space-x-4 flex-1">
+                <div class="flex items-center justify-between p-3">
+                    <div class="flex items-center space-x-3 flex-1">
                         <div class="flex-shrink-0">
-                            <i class="fas <?php echo $doc_icon; ?> <?php echo $doc_color; ?> text-2xl"></i>
+                            <i class="fas <?php echo $doc_icon; ?> <?php echo $doc_color; ?> text-xl"></i>
                         </div>
                         <div class="flex-1 min-w-0">
                             <span class="font-semibold text-gray-800 text-base"><?php echo htmlspecialchars($doc_type_name); ?></span>
@@ -371,24 +372,24 @@ ob_start();
                     <!-- File Details - Right Side -->
                     <div class="flex flex-col items-end space-y-1">
                         <span class="text-gray-500 text-sm flex items-center">
-                            <i class="fas fa-file-alt mr-2"></i><?php echo htmlspecialchars($file_name); ?>
+                            <i class="fas fa-file-alt mr-1"></i><?php echo htmlspecialchars($file_name); ?>
                         </span>
                         <span class="text-gray-500 text-sm flex items-center">
-                            <i class="fas fa-weight-hanging mr-2"></i><?php echo $file_size; ?>
+                            <i class="fas fa-weight-hanging mr-1"></i><?php echo $file_size; ?>
                         </span>
                     </div>
                 </div>
                 
                 <!-- Bottom Section: Action Buttons - Centered -->
-                <div class="border-t border-gray-200 px-4 py-3 bg-white rounded-b-lg">
-                    <div class="flex justify-center space-x-3">
+                <div class="border-t border-gray-200 px-3 py-2 bg-white rounded-b-lg">
+                    <div class="flex justify-center space-x-2">
                         <a href="<?php echo $file_path; ?>" target="_blank" 
-                           class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition duration-150 flex items-center space-x-2 shadow-sm">
+                           class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-lg text-sm font-medium transition duration-150 flex items-center space-x-1 shadow-sm">
                             <i class="fas fa-eye"></i>
                             <span>View</span>
                         </a>
                         <a href="<?php echo $file_path; ?>" download 
-                           class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition duration-150 flex items-center space-x-2 shadow-sm">
+                           class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-lg text-sm font-medium transition duration-150 flex items-center space-x-1 shadow-sm">
                             <i class="fas fa-download"></i>
                             <span>Download</span>
                         </a>
@@ -399,9 +400,9 @@ ob_start();
         </div>
     <?php endif; ?>
 </div>
-
-        <?php endif; ?>
 </div>
+
+      <?php endif; ?>
 
 <!-- Profile Update Modal (Hidden by default) -->
 <div id="profileUpdateModal" class="hidden fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50 transition-opacity duration-300">
@@ -427,96 +428,54 @@ ob_start();
                     <input type="file" id="profilePictureInput" name="profile_photo" accept="image/jpeg,image/png" class="hidden">
                 </div>
 
-                <!-- Personal Information -->
-                <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg">
-                    <h3 class="text-lg font-semibold text-gray-600 mb-4">Personal Information</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">First Name
-                                <input type="text" name="first_name" autocomplete="given-name" value="<?php echo !empty($profile['first_name']) ? htmlspecialchars($profile['first_name']) : ''; ?>" class="w-full border rounded-lg p-2" required <?php echo $can_update ? '' : 'disabled'; ?>>
-                            </label>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Middle Name
-                                <input type="text" name="middle_name" autocomplete="additional-name" value="<?php echo !empty($profile['middle_name']) ? htmlspecialchars($profile['middle_name']) : ''; ?>" class="w-full border rounded-lg p-2" <?php echo $can_update ? '' : 'disabled'; ?>>
-                            </label>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Last Name
-                                <input type="text" name="last_name" autocomplete="family-name" value="<?php echo !empty($profile['last_name']) ? htmlspecialchars($profile['last_name']) : ''; ?>" class="w-full border rounded-lg p-2" required <?php echo $can_update ? '' : 'disabled'; ?>>
-                            </label>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Contact Number
-                                <input type="tel" name="contact_number" autocomplete="tel" value="<?php echo !empty($profile['contact_number']) ? htmlspecialchars($profile['contact_number']) : ''; ?>" class="w-full border rounded-lg p-2" required pattern="[0-9]{10,11}" title="Contact number must be 11 digits" <?php echo $can_update ? '' : 'disabled'; ?>>
-                            </label>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Year Graduated
-                                <select name="year_graduated" class="w-full border rounded-lg p-2" required <?php echo $can_update ? '' : 'disabled'; ?>>
-                                    <option value="">Select Year</option>
-                                    <?php
-                                    $currentYear = date('Y');
-                                    for ($y = $currentYear; $y >= 2000; $y--) {
-                                        echo "<option value=\"$y\" " . (($profile['year_graduated'] ?? '') == $y ? 'selected' : '') . ">$y</option>";
-                                    }
-                                    ?>
-                                </select>
-                            </label>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Employment Status
-                                <select id="employmentStatusSelect" name="employment_status" class="w-full border rounded-lg p-2" required <?php echo $can_update ? '' : 'disabled'; ?>>
-                                    <option value="">Select Status</option>
-                                    <option value="Employed" <?php echo ($profile['employment_status'] ?? '') === 'Employed' ? 'selected' : ''; ?>>Employed</option>
-                                    <option value="Self-Employed" <?php echo ($profile['employment_status'] ?? '') === 'Self-Employed' ? 'selected' : ''; ?>>Self-Employed</option>
-                                    <option value="Unemployed" <?php echo ($profile['employment_status'] ?? '') === 'Unemployed' ? 'selected' : ''; ?>>Unemployed</option>
-                                    <option value="Student" <?php echo ($profile['employment_status'] ?? '') === 'Student' ? 'selected' : ''; ?>>Student</option>
-                                    <option value="Employed & Student" <?php echo ($profile['employment_status'] ?? '') === 'Employed & Student' ? 'selected' : ''; ?>>Employed & Student</option>
-                                </select>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Address Section -->
-            <?php if ($can_update): ?>
-                <div class="bg-white p-6 rounded-xl shadow-lg">
-                    <h3 class="text-lg font-semibold text-gray-600 mb-4">Address</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Region
-                                <select id="regionSelect" name="region_id" class="w-full border rounded-lg p-2" <?php if (!$can_update) echo 'disabled'; ?>>
-                                    <option value="">Select Region</option>
-                                </select>
-                            </label>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Province
-                                <select id="provinceSelect" name="province_id" class="w-full border rounded-lg p-2" <?php if (!$can_update) echo 'disabled'; ?>>
-                                    <option value="">Select Province</option>
-                                </select>
-                            </label>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Municipality
-                                <select id="municipalitySelect" name="municipality_id" class="w-full border rounded-lg p-2" <?php if (!$can_update) echo 'disabled'; ?>>
-                                    <option value="">Select Municipality</option>
-                                </select>
-                            </label>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Barangay
-                                <select id="barangaySelect" name="barangay_id" class="w-full border rounded-lg p-2" <?php if (!$can_update) echo 'disabled'; ?>>
-                                    <option value="">Select Barangay</option>
-                                </select>
-
-                            </label>
-                        </div>
-                    </div>
-                </div>
-            <?php endif; ?>
+   <!-- Personal Information Card -->
+<div class="bg-white p-4 rounded-xl shadow-lg border-l-4 border-blue-500 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-blue-50">
+    <div class="flex items-center space-x-3 mb-3 pb-2 border-b border-gray-100">
+        <h3 class="text-xl font-bold text-gray-800">Personal Information</h3>
+    </div>
+    <dl class="grid grid-cols-2 gap-x-4 gap-y-2">
+        <div class="flex flex-col">
+            <dt class="font-medium text-gray-500 text-sm" style="font-size: 13px;">Full Name</dt>
+            <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($full_name); ?></dd>
+        </div>
+        <div class="flex flex-col">
+            <dt class="font-medium text-gray-500 text-sm" style="font-size: 13px;">Email</dt>
+            <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['email'] ?? 'N/A'); ?></dd>
+        </div>
+        <div class="flex flex-col">
+            <dt class="font-medium text-gray-500 text-sm" style="font-size: 13px;">Contact Number</dt>
+            <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['contact_number'] ?? 'N/A'); ?></dd>
+        </div>
+        <div class="flex flex-col">
+            <dt class="font-medium text-gray-500 text-sm" style="font-size: 13px;">Year Graduated</dt>
+            <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['year_graduated'] ?? 'N/A'); ?></dd>
+        </div>
+    </dl>
+</div>
+<!-- Address Card -->
+<div class="bg-white p-4 rounded-xl shadow-lg border-l-4 border-green-500 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-green-50">
+    <div class="flex items-center space-x-3 mb-3 pb-2 border-b border-gray-100">
+        <h3 class="text-xl font-bold text-gray-800">Address</h3>
+    </div>
+    <dl class="grid grid-cols-2 gap-x-4 gap-y-2">
+        <div class="flex flex-col">
+            <dt class="font-medium text-gray-500 text-sm" style="font-size: 13px;">Barangay</dt>
+            <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['barangay_name'] ?? 'N/A'); ?></dd>
+        </div>
+        <div class="flex flex-col">
+            <dt class="font-medium text-gray-500 text-sm" style="font-size: 13px;">Municipality/City</dt>
+            <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['municipality_name'] ?? 'N/A'); ?></dd>
+        </div>
+        <div class="flex flex-col">
+            <dt class="font-medium text-gray-500 text-sm" style="font-size: 13px;">Province</dt>
+            <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['province_name'] ?? 'N/A'); ?></dd>
+        </div>
+        <div class="flex flex-col">
+            <dt class="font-medium text-gray-500 text-sm" style="font-size: 13px;">Region</dt>
+            <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['region_name'] ?? 'N/A'); ?></dd>
+        </div>
+    </dl>
+</div>
 
             <!-- Employment Details Section -->
             <?php if ($can_update): ?>
