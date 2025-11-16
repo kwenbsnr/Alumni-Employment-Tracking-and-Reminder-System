@@ -311,7 +311,8 @@ ob_start();
             <i class="fas fa-arrow-right text-sm transform group-hover:translate-x-1 transition-transform"></i>
         </a>
     </div>
-</div><!-- CARD 2: Employment -->
+</div>
+<!-- CARD 2: Employment -->
 <div class="h-full flex flex-col">
     <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border <?php
         echo !empty($profile_info['employment_status']) && $profile_info['employment_status'] !== 'Not Set'
@@ -371,29 +372,18 @@ ob_start();
             </div>
 
             <?php
-            // ---- DYNAMIC “Visible on Network” MESSAGE (WITH REAL NAMES) ----
+            // ---- DYNAMIC “Visible on Network” MESSAGE (no extra DB fields) ----
             $msg = '';
-            $status = $profile_info['employment_status'] ?? 'Not Set';
-            $company = trim($profile_info['company_name'] ?? '');
-            $school  = trim($profile_info['school_name'] ?? '');
+            $status = $profile_info['employment_status'] ?? '';
 
             if ($status === 'Unemployed') {
                 $msg = 'No documents required — you are currently unemployed.';
-            }
-            elseif ($status === 'Employed' && $company !== '') {
-                $msg = "Works at <strong>" . htmlspecialchars($company) . "</strong>.";
-            }
-            elseif ($status === 'Student' && $school !== '') {
-                $msg = "Studies at <strong>" . htmlspecialchars($school) . "</strong>.";
-            }
-            elseif ($status === 'Employed,Student' && $company !== '' && $school !== '') {
-                $msg = "Works at <strong>" . htmlspecialchars($company) . "</strong> and studies at <strong>" . htmlspecialchars($school) . "</strong>.";
-            }
-            elseif ($status === 'Employed' && $company === '') {
-                $msg = 'Employed — no company name provided.';
-            }
-            elseif ($status === 'Student' && $school === '') {
-                $msg = 'Student — no school name provided.';
+            } elseif ($status === 'Employed') {
+                $msg = 'Works at the company entered.';
+            } elseif ($status === 'Student') {
+                $msg = 'Studies at the school entered.';
+            } elseif ($status === 'Employed' && $status === 'Student') {   // both selected in profile form
+                $msg = 'Works at the company entered and studies at the school entered.';
             }
 
             if ($msg !== '' && $status !== 'Not Set'):
