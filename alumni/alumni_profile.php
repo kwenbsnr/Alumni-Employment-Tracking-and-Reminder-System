@@ -153,20 +153,20 @@ ob_start();
 <?php endif; ?>
 
 <div class="space-y-6 mt-3 mb-5">
- <!-- Update Profile Box -->
-<div id="updateProfileBtn" class="<?php echo $can_update ? 'bg-white' : 'bg-yellow-50'; ?> p-3 rounded-lg shadow flex flex-col justify-start hover:shadow-md transition duration-200 border-t-4 h-27 <?php echo $can_update ? 'border-green-500 cursor-pointer' : 'border-yellow-500 cursor-not-allowed'; ?>">
-    <div class="flex items-center justify-between">
-        <div class="flex items-center space-x-2">
+<!-- Update Profile Box -->
+<div id="updateProfileBtn" class="<?php echo $can_update ? 'bg-white' : 'bg-yellow-50'; ?> p-4 rounded-lg shadow flex flex-col justify-start hover:shadow-md transition duration-200 border-t-4 h-28 <?php echo $can_update ? 'border-green-500 cursor-pointer' : 'border-yellow-500 cursor-not-allowed'; ?>">
+    <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center space-x-3">
             <?php if (!$can_update): ?>
-                <i class="fas fa-exclamation-triangle text-yellow-600 text-base"></i>
+                <i class="fas fa-exclamation-triangle text-yellow-600 text-xl"></i>
             <?php endif; ?>
-            <h3 class="text-sm font-semibold <?php echo $can_update ? 'text-gray-600' : 'text-yellow-800'; ?>">
+            <h3 class="text-xl font-bold <?php echo $can_update ? 'text-gray-700' : 'text-yellow-900'; ?>">
                 <?php echo $can_update ? 'Update Profile' : 'Profile Editing Locked'; ?>
             </h3>
         </div>
-        <i class="fas <?php echo $can_update ? 'fa-user-edit text-green-500' : 'fa-lock text-yellow-500'; ?> text-base"></i>
+        <i class="fas <?php echo $can_update ? 'fa-user-edit text-green-600' : 'fa-lock text-yellow-600'; ?> text-xl"></i>
     </div>
-   <p class="text-xs <?php echo $can_update ? 'text-gray-500' : 'text-yellow-700'; ?> leading-snug mt-1">
+    <p class="text-base <?php echo $can_update ? 'text-gray-600' : 'text-yellow-800'; ?> leading-tight font-medium">
     <?php
    if ($can_update) {
     if ($is_profile_rejected) {
@@ -195,7 +195,6 @@ ob_start();
 ?>
     </p>
 </div>
-
 <!-- Rejection Notification Card - MOVED HERE -->
 <?php if (!empty($profile) && ($profile['submission_status'] ?? '') === 'Rejected' && !empty($profile['first_name'])): ?>
     <div class="bg-yellow-100 p-6 rounded-xl shadow-lg border-l-4 border-yellow-600">
