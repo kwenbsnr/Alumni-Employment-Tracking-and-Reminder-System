@@ -56,13 +56,13 @@ If profile is rejected, completion card must display 0% instead of 100%.
 🟢 Low Priority 
 ______________________
 
-1. Successful submission display issue:
+1. **[FIXED]** Successful submission display issue:
 Successful submission must appear on the dashboard like the “Complete Your Profile” card, but the color should be green.
 
 2. Start & end year display:
 If "Student" or "Employed & Student" is selected, start & end year values must display correctly in the Employment/Academic Details card after successful submission. 
 
-3. **[FIXED]** Apostrophe handling:
+3. Apostrophe handling:
 Employment/Academic Details display cards after successful submission have issues with apostrophe rendering. 
 
 4. **[FIXED]** Header bar scroll issue: The header bar must remain fixed and not be scrollable. 
