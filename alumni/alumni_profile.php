@@ -153,40 +153,46 @@ ob_start();
 <?php endif; ?>
 
 <div class="space-y-6 mt-3 mb-5">
-
-<!-- Update Profile Box -->
-<div id="updateProfileBtn" class="bg-white p-3 rounded-lg shadow flex flex-col justify-start hover:shadow-md transition duration-200 border-t-4 h-27 <?php echo $can_update ? 'border-green-500 cursor-pointer' : 'border-yellow-500 cursor-not-allowed'; ?>">
+ <!-- Update Profile Box -->
+<div id="updateProfileBtn" class="<?php echo $can_update ? 'bg-white' : 'bg-yellow-50'; ?> p-3 rounded-lg shadow flex flex-col justify-start hover:shadow-md transition duration-200 border-t-4 h-27 <?php echo $can_update ? 'border-green-500 cursor-pointer' : 'border-yellow-500 cursor-not-allowed'; ?>">
     <div class="flex items-center justify-between">
-        <div class="flex items-center space-x-1">
+        <div class="flex items-center space-x-2">
             <?php if (!$can_update): ?>
-                
+                <i class="fas fa-exclamation-triangle text-yellow-600 text-base"></i>
             <?php endif; ?>
             <h3 class="text-sm font-semibold <?php echo $can_update ? 'text-gray-600' : 'text-yellow-800'; ?>">
-                <?php echo $can_update ? 'Update Profile' : 'Profile Update Not Available'; ?>
+                <?php echo $can_update ? 'Update Profile' : 'Profile Editing Locked'; ?>
             </h3>
         </div>
-        <i class="fas <?php echo $can_update ? 'fa-user-edit text-green-500' : 'fa-info-circle text-yellow-500'; ?> text-base"></i>
+        <i class="fas <?php echo $can_update ? 'fa-user-edit text-green-500' : 'fa-lock text-yellow-500'; ?> text-base"></i>
     </div>
-    <p class="text-xs <?php echo $can_update ? 'text-gray-500' : 'text-yellow-700'; ?> leading-snug mt-1">
-        <?php 
-        if ($can_update) {
-            if ($is_profile_rejected) {
-                echo 'Your profile was rejected. Please update and resubmit for approval.';
-            } elseif ($is_profile_new) {
-                echo 'Click to create your alumni profile and submit for approval.';
-            } else {
-                echo 'Click to edit your personal, employment, and educational details.';
-            }
+   <p class="text-xs <?php echo $can_update ? 'text-gray-500' : 'text-yellow-700'; ?> leading-snug mt-1">
+    <?php
+   if ($can_update) {
+    if ($is_profile_rejected) {
+        echo 'Your profile was rejected. Please update and resubmit for approval.';
+    } elseif ($is_profile_new) {
+        echo 'Click to create your alumni profile and submit for approval.';
+    } else {
+        echo 'Click to edit your personal, employment, and educational details.';
+    }
+} else {
+    if ($is_profile_approved) {
+        $last_update = $profile['last_profile_update'] ?? null;
+        if ($last_update) {
+            $formatted_date = date('M j, Y', strtotime($last_update));
+            $next_update = date('M j, Y', strtotime($last_update . ' +6 months'));
+            echo "Your profile has been approved. <strong>Last updated: $formatted_date</strong>. You can update again after <strong>$next_update</strong>.";
         } else {
-            if ($is_profile_approved) {
-                echo 'Your profile has been approved. You can update again after one year from your last update.';
-            } elseif ($is_profile_pending) {
-                echo 'Your profile is currently under review. Please wait for administrator approval.';
-            } else {
-                echo 'Profile update is not available at this time.';
-            }
+            echo 'Your profile has been approved. You can update again after 6 months from your last update.';
         }
-        ?>
+    } elseif ($is_profile_pending) {
+        echo 'Your profile is currently under review. Please wait for administrator approval.';
+    } else {
+        echo 'Profile update is not available at this time.';
+    }
+}
+?>
     </p>
 </div>
 
