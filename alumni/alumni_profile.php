@@ -157,7 +157,7 @@ ob_start();
 <div id="updateProfileBtn" class="
     <?php 
     if ($is_profile_rejected && !empty($profile['first_name'])) {
-        echo 'bg-yellow-50 border-yellow-500 cursor-pointer';
+        echo 'bg-white border-green-500 cursor-pointer'; // Green button even when rejected
     } elseif ($is_profile_approved) {
         echo 'bg-blue-50 border-blue-500 cursor-not-allowed';
     } elseif ($is_profile_pending) {
@@ -168,7 +168,7 @@ ob_start();
         echo 'bg-yellow-50 border-yellow-500 cursor-not-allowed';
     }
     ?> 
-    p-4 rounded-lg shadow flex flex-col justify-start hover:shadow-md transition duration-200 border-t-4 h-28">
+    p-4 rounded-lg shadow flex flex-col justify-start hover:shadow-md transition duration-200 border-t-4 h-auto min-h-28">
     <div class="flex items-center justify-between mb-2">
         <div class="flex items-center space-x-3">
             <?php if (!$can_update || $is_profile_rejected): ?>
@@ -183,14 +183,14 @@ ob_start();
             <?php endif; ?>
             <h3 class="text-xl font-bold 
                 <?php 
-                if ($is_profile_rejected) echo 'text-yellow-900';
+                if ($is_profile_rejected) echo 'text-green-900'; // Match green button theme
                 elseif ($is_profile_approved) echo 'text-blue-900';
                 elseif ($is_profile_pending) echo 'text-yellow-900';
                 else echo 'text-gray-700';
                 ?>">
                 <?php 
                 if ($is_profile_rejected && !empty($profile['first_name'])) {
-                    echo 'Profile Rejected';
+                    echo 'Update Profile'; // Keep action text
                 } elseif ($is_profile_approved) {
                     echo 'Profile Approved';
                 } elseif ($is_profile_pending) {
@@ -205,7 +205,7 @@ ob_start();
         </div>
         <i class="fas 
             <?php 
-            if ($is_profile_rejected && !empty($profile['first_name'])) echo 'fa-exclamation-triangle text-yellow-600';
+            if ($is_profile_rejected && !empty($profile['first_name'])) echo 'fa-user-edit text-green-600'; // Green edit icon
             elseif ($is_profile_approved) echo 'fa-check-circle text-blue-600';
             elseif ($is_profile_pending) echo 'fa-clock text-yellow-600';
             elseif ($can_update) echo 'fa-user-edit text-green-600';
@@ -213,9 +213,29 @@ ob_start();
             ?> 
             text-xl"></i>
     </div>
+
+    <!-- Rejection Message (Yellow Container) - Only show when rejected -->
+    <?php if ($is_profile_rejected && !empty($profile['first_name'])): ?>
+        <div class="mb-3 p-3 bg-yellow-50 border border-yellow-300 rounded-md text-sm">
+            <div class="flex items-start space-x-2">
+                <i class="fas fa-exclamation-triangle text-yellow-700 mt-0.5"></i>
+                <div>
+                    <p class="font-semibold text-yellow-900">Profile Rejected</p>
+                    <?php if (!empty($profile['rejection_reason'])): ?>
+                        <p class="text-yellow-800 mt-1">
+                            <strong>Reason:</strong> <?php echo htmlspecialchars($profile['rejection_reason']); ?>
+                        </p>
+                    <?php endif; ?>
+                    <p class="text-yellow-800 mt-1">Please review and update your information below, then resubmit for approval.</p>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
+
+    <!-- Main Description -->
     <p class="text-base leading-tight font-medium
         <?php 
-        if ($is_profile_rejected) echo 'text-yellow-800';
+        if ($is_profile_rejected) echo 'text-gray-600'; // Neutral text to match green button
         elseif ($is_profile_approved) echo 'text-blue-800';
         elseif ($is_profile_pending) echo 'text-yellow-800';
         elseif ($can_update) echo 'text-gray-600';
@@ -223,11 +243,11 @@ ob_start();
         ?>">
     <?php
     if ($is_profile_rejected && !empty($profile['first_name'])) {
-        echo 'Your profile was rejected. ';
-        if (!empty($profile['rejection_reason'])) {
-            echo '<strong>Reason:</strong> ' . htmlspecialchars($profile['rejection_reason']) . '. ';
+        if ($is_profile_new) {
+            echo 'Click to create your alumni profile and submit for approval.';
+        } else {
+            echo 'Click to edit your personal, employment, and educational details.';
         }
-        echo 'Please update your profile and resubmit for approval.';
     } elseif ($can_update) {
         if ($is_profile_new) {
             echo 'Click to create your alumni profile and submit for approval.';
