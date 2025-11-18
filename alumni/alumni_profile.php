@@ -13,7 +13,7 @@ $user_id = $_SESSION['user_id'];
 $page_title = "Profile Management";
 $active_page = "profile";
 
-// Fetch profile data - WITH REJECTION REFRESH
+// Fetch profile data
 $stmt = $conn->prepare("
     SELECT ap.*, u.email, 
            tb.barangay_name, tm.municipality_name, tp.province_name, tr.region_name,
@@ -32,25 +32,6 @@ $stmt->execute();
 $result = $stmt->get_result();
 $profile = $result->fetch_assoc() ?: [];
 $stmt->close();
-
-// CRITICAL FIX: If profile was rejected and data is cleared, reset all related arrays
-$is_profile_rejected = !empty($profile) && ($profile['submission_status'] ?? '') === 'Rejected';
-if ($is_profile_rejected) {
-    // Check if personal data was actually cleared (NULL values)
-    $personal_data_cleared = empty($profile['first_name']) && empty($profile['last_name']);
-    
-    if ($personal_data_cleared) {
-        // Reset all related data arrays to empty since DB data was cleared
-        $profile = []; // This ensures form shows empty
-        $employment = [];
-        $education = [];
-        $docs = [];
-        
-        // Force the modal to show as empty form
-        $auto_open_modal = true;
-        $_SESSION['profile_rejected'] = true;
-    }
-}
 
 // Fetch employment info
 $stmt = $conn->prepare("SELECT ei.*, jt.title AS job_title, ei.business_type FROM employment_info ei LEFT JOIN job_titles jt ON ei.job_title_id = jt.job_title_id WHERE ei.user_id = ?");
@@ -84,7 +65,7 @@ $result = $stmt->get_result();
 $docs = $result->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
 
-// Update permissions logic - ENHANCED
+// FIXED: Profile permissions logic
 $submission_status = $profile['submission_status'] ?? null;
 $last_profile_update = $profile['last_profile_update'] ?? null;
 
@@ -94,11 +75,8 @@ $is_profile_rejected = !empty($profile) && $submission_status === 'Rejected';
 $is_profile_approved = !empty($profile) && $submission_status === 'Approved';
 $is_profile_pending = !empty($profile) && $submission_status === 'Pending';
 
-// CRITICAL FIX: If profile was rejected and personal data is cleared, treat as new profile
-if ($is_profile_rejected && empty($profile['first_name']) && empty($profile['last_name'])) {
-    $is_profile_new = true;
-    $is_profile_rejected = false; // Don't show rejection message since data is cleared
-}
+// FIX: Check if profile has personal data for display
+$has_personal_data = !empty($profile) && !empty($profile['first_name']) && !empty($profile['last_name']);
 
 // Yearly update logic - only if profile was previously approved
 $can_update_yearly = $is_profile_new || 
@@ -110,24 +88,10 @@ $can_reupload = $is_profile_rejected;
 // User can update if: new profile, yearly update allowed, or profile was rejected
 $can_update = $is_profile_new || $can_update_yearly || $can_reupload;
 
-// Enhanced debug permission logic
-error_log("=== ALUMNI_PROFILE PERMISSIONS DEBUG ===");
-error_log("User ID: " . $user_id);
-error_log("Profile exists: " . (!empty($profile) ? 'YES' : 'NO'));
-error_log("Submission Status: " . ($submission_status ?? 'NULL/EMPTY'));
-error_log("Last Profile Update: " . ($last_profile_update ?? 'NEVER'));
-error_log("Is Profile New: " . ($is_profile_new ? 'YES' : 'NO'));
-error_log("Is Profile Rejected: " . ($is_profile_rejected ? 'YES' : 'NO'));
-error_log("Is Profile Approved: " . ($is_profile_approved ? 'YES' : 'NO'));
-error_log("Is Profile Pending: " . ($is_profile_pending ? 'YES' : 'NO'));
-error_log("Can Update Yearly: " . ($can_update_yearly ? 'YES' : 'NO'));
-error_log("Can Reupload: " . ($can_reupload ? 'YES' : 'NO'));
-error_log("Can Update: " . ($can_update ? 'YES' : 'NO'));
-
-// Auto-modal opening only when coming from rejection
-$auto_open_modal = isset($_SESSION['profile_rejected']) && $_SESSION['profile_rejected'];
+// FIXED: Auto-modal opening logic - only open when there's data to edit
+$auto_open_modal = isset($_SESSION['profile_rejected']) && $_SESSION['profile_rejected'] && $has_personal_data;
 if ($auto_open_modal) {
-    unset($_SESSION['profile_rejected']); // Clear the flag after use
+    unset($_SESSION['profile_rejected']);
 }
 
 $full_name = 'N/A';
@@ -153,10 +117,10 @@ ob_start();
 <?php endif; ?>
 
 <div class="space-y-6 mt-3 mb-5">
- <!-- Status Card - Unified approach (Improved for Rejected State Clarity) -->
+ <!-- Status Card - FIXED: Show for all rejected profiles -->
 <div id="updateProfileBtn" class="
     <?php 
-    if ($is_profile_rejected && !empty($profile['first_name'])) {
+    if ($is_profile_rejected) {
         echo 'bg-white border-green-500 cursor-pointer'; // Green = actionable
     } elseif ($is_profile_approved) {
         echo 'bg-blue-50 border-blue-500 cursor-not-allowed';
@@ -192,7 +156,7 @@ ob_start();
                 else echo 'text-gray-700';
                 ?>">
                 <?php 
-                if ($is_profile_rejected && !empty($profile['first_name'])) {
+                if ($is_profile_rejected) {
                     echo 'Profile Rejected';
                 } elseif ($is_profile_approved) {
                     echo 'Profile Approved';
@@ -208,13 +172,13 @@ ob_start();
         </div>
 
         <!-- Action Icon (only show if clickable) -->
-        <?php if (($is_profile_rejected && !empty($profile['first_name'])) || $can_update): ?>
+        <?php if ($is_profile_rejected || $can_update): ?>
             <i class="fas fa-user-edit text-green-600 text-xl"></i>
         <?php endif; ?>
     </div>
 
     <!-- Rejection Alert Box - Prominent & Clear -->
-    <?php if ($is_profile_rejected && !empty($profile['first_name'])): ?>
+    <?php if ($is_profile_rejected): ?>
         <div class="mb-4 p-4 bg-red-50 border-l-4 border-red-500 rounded-r-md">
             <div class="flex items-start space-x-3">
                 <i class="fas fa-exclamation-circle text-red-600 text-lg mt-0.5 flex-shrink-0"></i>
@@ -236,7 +200,7 @@ ob_start();
     <?php endif; ?>
 
     <!-- Call-to-Action Button (Green, Clickable, Only for Rejected or Can Update) -->
-    <?php if (($is_profile_rejected && !empty($profile['first_name'])) || $can_update): ?>
+    <?php if ($is_profile_rejected || $can_update): ?>
         <div class="mt-auto">
             <button type="button" 
                     class="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-3 px-4 rounded-md 
@@ -244,7 +208,7 @@ ob_start();
                            shadow-sm hover:shadow">
                 <i class="fas fa-edit"></i>
                 <span>
-                    <?php echo ($is_profile_rejected && !empty($profile['first_name'])) 
+                    <?php echo $is_profile_rejected 
                         ? 'Edit & Resubmit Profile' 
                         : ($is_profile_new ? 'Create Profile' : 'Update Profile'); ?>
                 </span>
@@ -289,7 +253,9 @@ ob_start();
         </p>
     <?php endif; ?>
 </div>
-      <?php if (!empty($profile) || true): ?>
+
+      <!-- FIXED: Show profile cards only when personal data exists -->
+      <?php if ($has_personal_data): ?>
         <!-- Always show profile cards -->
 
    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -483,6 +449,25 @@ ob_start();
     <?php endif; ?>
 </div>
 
+        <?php else: ?>
+        <!-- Show empty state when no personal data exists -->
+        <div class="bg-white p-8 rounded-xl shadow-lg border-2 border-dashed border-gray-300 text-center">
+            <i class="fas fa-user-circle text-gray-400 text-6xl mb-4"></i>
+            <h3 class="text-xl font-bold text-gray-600 mb-2">No Profile Information</h3>
+            <p class="text-gray-500 mb-4">Your profile information will appear here once you complete and submit it.</p>
+            
+            <?php if ($is_profile_rejected): ?>
+                <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-md text-left max-w-md mx-auto">
+                    <div class="flex items-start space-x-3">
+                        <i class="fas fa-exclamation-circle text-red-600 text-lg mt-0.5 flex-shrink-0"></i>
+                        <div class="flex-1">
+                            <p class="font-bold text-red-900 text-base">Your previous profile was rejected</p>
+                            <p class="text-red-700 mt-1 text-sm">Please complete your profile again and resubmit for approval.</p>
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
+        </div>
         <?php endif; ?>
 </div>
 
@@ -786,10 +771,9 @@ ob_start();
     }
 <?php endif; ?>
 
+// FIXED: Auto-open modal for rejected profiles with existing data
+<?php if ($auto_open_modal): ?>
 document.addEventListener('DOMContentLoaded', () => {
-
-    <?php if ($auto_open_modal): ?>
-    // Auto-open modal only when specifically triggered by rejection
     const modal = document.getElementById('profileUpdateModal');
     if (modal) {
         // Small delay to ensure page is fully loaded
@@ -799,7 +783,10 @@ document.addEventListener('DOMContentLoaded', () => {
             loadAddressData();
         }, 100);
     }
-    <?php endif; ?>
+});
+<?php endif; ?>
+
+document.addEventListener('DOMContentLoaded', () => {
 
     // Modal and form elements
     const updateProfileBtn = document.getElementById('updateProfileBtn');

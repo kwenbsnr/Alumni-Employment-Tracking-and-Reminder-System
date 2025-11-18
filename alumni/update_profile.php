@@ -525,19 +525,22 @@ $user_id = $_SESSION['user_id'];
         error_log("Successfully processed document: {$code}");
     }
 
-    $conn->commit();
+ $conn->commit();
 
-    // Clear any rejection session flags
-    if (isset($_SESSION['profile_rejected'])) {
-        unset($_SESSION['profile_rejected']);
-    }
+// Clear any rejection session flags
+if (isset($_SESSION['profile_rejected'])) {
+    unset($_SESSION['profile_rejected']);
+}
 
-    // Set session flag to indicate successful submission
-    $_SESSION['form_submitted'] = true;
+// Set success flag for dashboard
+$_SESSION['profile_submission_success'] = true;
 
-    // Redirect after successful submission
-    header("Location: alumni_profile.php?success=Profile updated successfully!");
-    exit;
+// Set session flag to indicate successful submission
+$_SESSION['form_submitted'] = true;
+
+// Redirect after successful submission
+header("Location: alumni_profile.php?success=Profile updated successfully!");
+exit;
 
 } catch (Exception $e) {
     $conn->rollback();

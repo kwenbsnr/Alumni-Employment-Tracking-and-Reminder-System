@@ -109,16 +109,17 @@ $document = [
     'submission_status' => $profile_info['submission_status'] ?? 'No Profile',
     'document_count' => $profile_info['document_count'] ?? 0
 ];
-
-// Enhanced document status
+// Enhanced document status - FIXED for consistent rejection display
 if (!empty($profile_info)) {
-    if ($profile_info['submission_status'] === 'Approved') {
+    $submission_status = $profile_info['submission_status'] ?? '';
+    
+    if ($submission_status === 'Approved') {
         $document['submission_status'] = 'Approved';
         $document['message'] = 'All documents approved';
-    } elseif ($profile_info['submission_status'] === 'Rejected') {
+    } elseif ($submission_status === 'Rejected') {
         $document['submission_status'] = 'Rejected';
         $document['message'] = 'Needs resubmission';
-    } elseif ($profile_info['submission_status'] === 'Pending') {
+    } elseif ($submission_status === 'Pending') {
         $document['submission_status'] = 'Under Review';
         $document['message'] = 'Awaiting administrator review';
     } elseif ($document['document_count'] > 0) {
