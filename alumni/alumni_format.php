@@ -135,22 +135,26 @@ $page_title = $page_title ?? "Alumni Page";
                 <div class="sidebar-profile pb-6 mb-6">
                     <div class="flex flex-col items-center text-center space-y-4">
                         <div class="sidebar-profile-avatar">
-                            <?php
-                            if ($photo_path && file_exists("../" . $photo_path)) {
-                                echo '<img src="../' . htmlspecialchars($photo_path) . '" alt="Profile" class="w-full h-full object-cover">';
-                            } else {
-                                $initials = 'AL';
-                                if ($full_name !== 'Alumni') {
-                                    $parts = array_filter(explode(' ', $full_name));
-                                    $initials = '';
-                                    foreach ($parts as $part) {
-                                        $initials .= strtoupper(substr(trim($part), 0, 1));
-                                    }
-                                    $initials = substr($initials, 0, 2);
-                                }
-                                echo htmlspecialchars($initials);
-                            }
-                            ?>
+                          <?php
+if ($photo_path && file_exists("../" . $photo_path)) {
+    $photo_url = "../" . htmlspecialchars($photo_path);
+    // Add timestamp to prevent browser caching
+    $photo_url .= '?v=' . filemtime("../" . $photo_path);
+    echo '<img src="' . $photo_url . '" alt="Profile" class="w-full h-full object-cover">';
+} else {
+    // Show initials as before
+    $initials = 'AL';
+    if ($full_name !== 'Alumni') {
+        $parts = array_filter(explode(' ', $full_name));
+        $initials = '';
+        foreach ($parts as $part) {
+            $initials .= strtoupper(substr(trim($part), 0, 1));
+        }
+        $initials = substr($initials, 0, 2);
+    }
+    echo '<div class="w-full h-full flex items-center justify-center text-5xl font-bold text-white">' . htmlspecialchars($initials) . '</div>';
+}
+?>
                         </div>
                         <div class="w-full">
                             <h3 class="font-bold text-lg truncate"><?php echo htmlspecialchars($full_name); ?></h3>

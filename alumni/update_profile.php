@@ -295,27 +295,45 @@ $user_id = $_SESSION['user_id'];
     // ---- 6.3 Photo – REQUIRED IN ALL CASES (Requirement #1) ---------------
     $photo_path = $profile['photo_path'] ?? null;
 
-    // Check if photo is being uploaded
-    if (isset($_FILES['profile_photo']) && $_FILES['profile_photo']['error'] === UPLOAD_ERR_OK) {
-        // Process new photo upload
-        $new_photo = upload_file('profile_photo', '../uploads/photos/', $last, 'profile', ['image/jpeg','image/png']);
-        if (!$new_photo) {
-            throw new Exception("Photo upload failed. JPG/PNG only, max 2MB.");
-        }
+ // Check if photo is being uploaded
+if (isset($_FILES['profile_photo']) && $_FILES['profile_photo']['error'] === UPLOAD_ERR_OK) {
+    $file = $_FILES['profile_photo'];
 
-        // Delete old photo if exists and different from new one
-        if ($photo_path && $photo_path !== $new_photo && file_exists('../' . $photo_path)) {
-            unlink('../' . $photo_path);
-        }
-        $photo_path = $new_photo;
-    } else {
-        // No new photo uploaded - only require photo if no existing photo
-        if (empty($photo_path)) {
-            throw new Exception("Profile photo is required.");
-        }
-        // Keep existing photo
-        $new_photo = $photo_path;
+    // Allow up to 20MB (20 * 1024 * 1024 = 20971520 bytes)
+    $max_size = 20 * 1024 * 1024;
+
+    if ($file['size'] > $max_size) {
+        throw new Exception("Photo is too large. Maximum allowed is 20MB.");
     }
+
+    if (!in_array($file['type'], ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'])) {
+        throw new Exception("Invalid file type. Only JPG, PNG, GIF, and WebP are allowed.");
+    }
+
+    // Process new photo upload (your existing function)
+    $new_photo = upload_file('profile_photo', '../uploads/photos/', $last, 'profile', 
+        ['image/jpeg','image/jpg','image/png','image/gif','image/webp']);
+
+    if (!$new_photo) {
+        throw new Exception("Photo upload failed. Please try again.");
+    }
+
+    // Delete old photo if exists and different
+    if ($photo_path && $photo_path !== $new_photo && file_exists('../' . $photo_path)) {
+        @unlink('../' . $photo_path);
+    }
+
+    $photo_path = $new_photo;
+
+    // Optional: Show success message
+    $_SESSION['success'] = "Profile photo updated successfully!";
+    
+} else {
+    // No new photo uploaded
+    if (empty($photo_path)) {
+        throw new Exception("Profile photo is required.");
+    }
+}
 
     // ---- 6.4 Address Handling ---------------------------------------------
     $address_id = $existing_address_id;
