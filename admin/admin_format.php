@@ -200,27 +200,39 @@ document.addEventListener("DOMContentLoaded", () => {
             
         </nav>
 
-        <!-- Main Content -->
-        <div class="flex-1 flex flex-col min-w-0">
-            <!-- Top Bar -->
-            <header class="bg-white header-shadow z-10">
-                <div class="flex items-center justify-between p-4">
-                    <!-- Page Title and Breadcrumb -->
-                    <div>
-                        <h1 class="text-3xl font-bold text-gray-800">
-                            <?php echo $page_title ?? "Admin Dashboard"; ?>
-                        </h1>
-                        <nav class="flex text-base text-gray-500 mt-1">
-                            <a href="admin_dashboard.php" class="hover:text-blue-600">Welcome back! Here's what's happening today.</a>
-                            <?php if (isset($breadcrumb) && !empty($breadcrumb)): ?>
-                                <?php foreach($breadcrumb as $item): ?>
-                                    <span class="mx-2">/</span>
-                                    <a href="<?php echo $item['url'] ?? '#'; ?>" class="hover:text-blue-600"><?php echo $item['name']; ?></a>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
-                        </nav>
-                    </div>
+      <!-- Main Content -->
+<div class="flex-1 flex flex-col min-w-0">
+    <!-- Top Bar -->
+    <header class="bg-white header-shadow z-10">
+        <div class="flex items-center justify-between p-4">
+            <!-- Page Title and Breadcrumb -->
+            <div>
+                <h1 class="text-3xl font-bold text-gray-800">
+                    <?php echo $page_title ?? "Admin Dashboard"; ?>
+                </h1>
+                <nav class="flex text-base text-gray-500 mt-1">
+                    <?php
+                    $active_page = $active_page ?? 'dashboard';
+                    $welcome_text = "Welcome back! Here's what's happening today.";
                     
+                    if ($active_page === 'alumni_management') {
+                        $welcome_text = "Manage and view all alumni records in the system.";
+                    } elseif ($active_page === 'dashboard') {
+                        $welcome_text = "Welcome back! Here's what's happening today.";
+                    }
+                    // Add more conditions for other pages as needed
+                    ?>
+                    
+                    <span class="text-gray-500"><?php echo $welcome_text; ?></span>
+                    
+                    <?php if (isset($breadcrumb) && !empty($breadcrumb)): ?>
+                        <?php foreach($breadcrumb as $item): ?>
+                            <span class="mx-2">/</span>
+                            <a href="<?php echo $item['url'] ?? '#'; ?>" class="hover:text-blue-600"><?php echo $item['name']; ?></a>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </nav>
+            </div>
                     <!-- Right Side Actions -->
                     <div class="flex items-center space-x-4">
                        
