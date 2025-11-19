@@ -31,7 +31,7 @@ if (!isset($_SESSION["user_id"]) || $_SESSION["role"] !== "admin") {
         }
         
         .admin-gradient-bg {
-            background: linear-gradient(180deg, var(--primary-blue) 0%, var(--primary-blue-dark) 100%);
+            background: linear-gradient(180deg, var(--primary-blue-dark) 50%, var(--primary-blue-dark) 100%);
         }
         
         .admin-sidebar-item {
@@ -77,10 +77,11 @@ if (!isset($_SESSION["user_id"]) || $_SESSION["role"] !== "admin") {
             border: 2px solid white;
         }
         
-        .header-shadow {
-            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-        }
-        
+        /* In the <style> section, add this rule */
+    .header-shadow {
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    border-bottom: 2px solid var(--primary-blue);
+    }
         #customToast {
             opacity: 0;
             transform: translateY(20px);
