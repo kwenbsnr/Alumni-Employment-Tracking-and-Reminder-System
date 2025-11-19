@@ -176,22 +176,22 @@ ob_start();
 <div class="space-y-8">
    
 
-    <!-- Statistics Cards - Enhanced Design -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <!-- Statistics Cards - Smaller but same design -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         <!-- Total Alumni Card -->
         <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #3b82f6;">
-            <div class="p-6">
+            <div class="p-5"> <!-- Reduced from p-6 to p-5 -->
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Total Alumni</p>
-                        <p class="text-3xl font-bold text-gray-900 mt-2"><?php echo $stats['total_alumni']; ?></p>
+                        <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Total Alumni</p>
+                        <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['total_alumni']; ?></p> <!-- 3xl → 2xl -->
                         <p class="text-xs text-gray-500 mt-1">All registered alumni users</p>
                     </div>
-                    <div class="p-4 rounded-xl bg-blue-50 card-icon">
-                        <i class="fas fa-users text-2xl text-blue-500"></i>
+                    <div class="p-3 rounded-xl bg-blue-50 card-icon"> <!-- Reduced padding -->
+                        <i class="fas fa-users text-xl text-blue-500"></i> <!-- Icon slightly smaller -->
                     </div>
                 </div>
-                <div class="mt-4 flex items-center text-sm text-blue-600">
+                <div class="mt-3 flex items-center text-xs text-blue-600"> <!-- Reduced margin -->
                     <i class="fas fa-database mr-1"></i>
                     <span>Complete database</span>
                 </div>
@@ -200,18 +200,18 @@ ob_start();
 
         <!-- Approved Profiles Card -->
         <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #10b981;">
-            <div class="p-6">
+            <div class="p-5">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Approved Profiles</p>
-                        <p class="text-3xl font-bold text-gray-900 mt-2"><?php echo $stats['approved_profiles']; ?></p>
+                        <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Approved Profiles</p>
+                        <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['approved_profiles']; ?></p>
                         <p class="text-xs text-gray-500 mt-1">Verified alumni profiles</p>
                     </div>
-                    <div class="p-4 rounded-xl bg-green-50 card-icon">
-                        <i class="fas fa-check-circle text-2xl text-green-500"></i>
+                    <div class="p-3 rounded-xl bg-green-50 card-icon">
+                        <i class="fas fa-check-circle text-xl text-green-500"></i>
                     </div>
                 </div>
-                <div class="mt-4 flex items-center text-sm text-green-600">
+                <div class="mt-3 flex items-center text-xs text-green-600">
                     <i class="fas fa-shield-check mr-1"></i>
                     <span>Verified & approved</span>
                 </div>
@@ -220,25 +220,24 @@ ob_start();
 
         <!-- Pending Reviews Card -->
         <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #f59e0b;">
-            <div class="p-6">
+            <div class="p-5">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Pending Reviews</p>
-                        <p class="text-3xl font-bold text-gray-900 mt-2"><?php echo $stats['pending_profiles']; ?></p>
+                        <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Pending Reviews</p>
+                        <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['pending_profiles']; ?></p>
                         <p class="text-xs text-gray-500 mt-1">Awaiting approval</p>
                     </div>
-                    <div class="p-4 rounded-xl bg-yellow-50 card-icon">
-                        <i class="fas fa-clock text-2xl text-yellow-500"></i>
+                    <div class="p-3 rounded-xl bg-yellow-50 card-icon">
+                        <i class="fas fa-clock text-xl text-yellow-500"></i>
                     </div>
                 </div>
-                <div class="mt-4 flex items-center text-sm text-yellow-600">
+                <div class="mt-3 flex items-center text-xs text-yellow-600">
                     <i class="fas fa-hourglass-half mr-1"></i>
                     <span>Requires attention</span>
                 </div>
             </div>
         </div>
     </div>
-
     <!-- Analytics Overview Section -->
     <div class="analytics-section">
         <div class="mb-6">
