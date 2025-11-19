@@ -78,15 +78,18 @@ $is_profile_pending = !empty($profile) && $submission_status === 'Pending';
 // FIX: Check if profile has personal data for display
 $has_personal_data = !empty($profile) && !empty($profile['first_name']) && !empty($profile['last_name']);
 
-// Yearly update logic - only if profile was previously approved
-$can_update_yearly = $is_profile_new || 
-                    ($is_profile_approved && ($last_profile_update === null || 
-                     strtotime($last_profile_update . ' +1 year') <= time()));
-
-$can_reupload = $is_profile_rejected;
-
-// User can update if: new profile, yearly update allowed, or profile was rejected
-$can_update = $is_profile_new || $can_update_yearly || $can_reupload;
+// NEW LOGIC: Allow edit if:
+// - Profile doesn't exist (new)
+// - Profile is Rejected
+// - Profile is Pending (allow editing while under review)
+// - Profile is Approved AND 1 year has passed
+$can_update = $is_profile_new 
+           || $is_profile_rejected 
+           || $is_profile_pending
+           || ($is_profile_approved && (
+               $last_profile_update === null || 
+               strtotime($last_profile_update . ' +1 year') <= time()
+           ));
 
 // FIXED: Auto-modal opening logic - only open when there's data to edit
 $auto_open_modal = isset($_SESSION['profile_rejected']) && $_SESSION['profile_rejected'] && $has_personal_data;
