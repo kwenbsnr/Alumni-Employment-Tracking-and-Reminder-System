@@ -12,19 +12,14 @@ $active_page = "alumni_management";
 // Get search parameter for global search
 $search = $_GET['search'] ?? '';
 
-// Fetch distinct batch years with employment status counts
+// Fetch distinct batch years with total counts
 $batchQuery = "SELECT 
                 year_graduated,
-                COUNT(*) as total_count,
-                SUM(CASE WHEN employment_status = 'Unemployed' THEN 1 ELSE 0 END) as unemployed_count,
-                SUM(CASE WHEN employment_status = 'Self-Employed' THEN 1 ELSE 0 END) as self_employed_count,
-                SUM(CASE WHEN employment_status = 'Employed' THEN 1 ELSE 0 END) as employed_count,
-                SUM(CASE WHEN employment_status = 'Student' THEN 1 ELSE 0 END) as student_count,
-                SUM(CASE WHEN employment_status = 'Employed & Student' THEN 1 ELSE 0 END) as employed_student_count
-               FROM alumni_profile 
-               WHERE year_graduated IS NOT NULL 
-               GROUP BY year_graduated 
-               ORDER BY year_graduated DESC";
+                COUNT(*) as total_count
+                FROM alumni_profile 
+                WHERE year_graduated IS NOT NULL 
+                GROUP BY year_graduated 
+                ORDER BY year_graduated DESC";
 $batchResult = $conn->query($batchQuery);
 
 ob_start();
@@ -32,36 +27,36 @@ ob_start();
 
 <div class="space-y-6">
     <!-- Global Search Bar -->
-    <div class="bg-white p-6 rounded-xl shadow-lg">
-        <h3 class="text-lg font-bold text-gray-800 mb-4">Search Alumni Across All Batches</h3>
-        <form method="GET" action="" class="flex gap-4">
+    <div class="bg-white p-4 rounded-xl shadow-lg">
+        <h3 class="text-lg font-bold text-gray-800 mb-3">Search Alumni Across All Batches</h3>
+        <form method="GET" action="" class="flex gap-3">
             <div class="flex-1">
                 <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>" 
-                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                       placeholder="Search by alumni name...">
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500" 
+                        placeholder="Search by alumni name...">
             </div>
-            <button type="submit" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap">
+            <button type="submit" class="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap">
                 <i class="fas fa-search mr-2"></i>Search
             </button>
             <?php if (!empty($search)): ?>
-                <a href="alumni_management.php" class="bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition-colors whitespace-nowrap">
+                <a href="alumni_management.php" class="bg-gray-500 text-white px-5 py-2 rounded-lg hover:bg-gray-600 transition-colors whitespace-nowrap">
                     Clear
                 </a>
             <?php endif; ?>
         </form>
     </div>
 
-    <!-- Batch Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    <!-- Batch Cards - 4 Column Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <?php 
         $filteredBatchResult = $batchResult;
         if (!empty($search)) {
             // If search is active, filter batches that have matching alumni
             $searchQuery = "SELECT DISTINCT year_graduated 
-                           FROM alumni_profile 
-                           WHERE year_graduated IS NOT NULL 
-                           AND (first_name LIKE ? OR middle_name LIKE ? OR last_name LIKE ?)
-                           ORDER BY year_graduated DESC";
+                            FROM alumni_profile 
+                            WHERE year_graduated IS NOT NULL 
+                            AND (first_name LIKE ? OR middle_name LIKE ? OR last_name LIKE ?)
+                            ORDER BY year_graduated DESC";
             $searchStmt = $conn->prepare($searchQuery);
             $searchTerm = "%$search%";
             $searchStmt->bind_param('sss', $searchTerm, $searchTerm, $searchTerm);
@@ -83,46 +78,33 @@ ob_start();
             $batch_stats = !empty($search) ? $batchData[$batch_year] : $batch;
         ?>
             <a href="batch_alumni.php?batch=<?php echo $batch_year; ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>" 
-               class="bg-white p-6 rounded-xl shadow-lg stats-card card-hover border-l-4 border-blue-500 transform hover:scale-105 transition-all duration-200">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="flex items-center">
-                        <div class="p-3 rounded-full bg-blue-100 text-blue-500 mr-4">
-                            <i class="fas fa-graduation-cap text-xl"></i>
-                        </div>
-                        <div>
-                            <p class="text-2xl font-bold text-gray-800"><?php echo $batch_year; ?></p>
-                            <p class="text-sm font-medium text-gray-600">Graduation Year</p>
+                class="bg-gradient-to-br from-amber-50 to-white p-4 rounded-xl shadow-md hover:shadow-lg border-2 border-amber-200 transform hover:scale-105 hover:border-amber-400 transition-all duration-200 group cursor-pointer">
+                <div class="text-center">
+                    <!-- Folder Icon -->
+                    <div class="mb-3">
+                        <div class="inline-flex items-center justify-center w-14 h-14 bg-amber-100 text-[#76520e] rounded-lg mb-2 group-hover:bg-amber-200 transition-colors">
+                            <i class="fas fa-folder text-4x2"></i>
                         </div>
                     </div>
-                    <i class="fas fa-chevron-right text-gray-400"></i>
-                </div>
-                
-                <!-- Total Count -->
-                <div class="mb-4 p-3 bg-gray-50 rounded-lg">
-                    <p class="text-lg font-bold text-gray-800 text-center"><?php echo $batch_stats['total_count']; ?> Total Alumni</p>
-                </div>
-                
-                <!-- Employment Status Breakdown -->
-                <div class="space-y-2">
-                    <div class="flex justify-between items-center">
-                        <span class="text-sm text-gray-600">Unemployed</span>
-                        <span class="px-2 py-1 bg-red-100 text-red-800 text-xs font-semibold rounded"><?php echo $batch_stats['unemployed_count']; ?></span>
+                    
+                    <!-- Batch Label and Year -->
+                    <div class="space-y-1 mb-3">
+                        <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Batch</p>
+                        <p class="text-xl font-bold text-gray-800"><?php echo $batch_year; ?></p>
                     </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-sm text-gray-600">Self-Employed</span>
-                        <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded"><?php echo $batch_stats['self_employed_count']; ?></span>
+                    
+                    <!-- Alumni Count -->
+                    <div class="bg-white rounded-lg p-2 border border-gray-200 group-hover:border-amber-300 transition-colors mb-3">
+                        <p class="text-lg font-bold text-[#ffaa00]"><?php echo $batch_stats['total_count']; ?></p>
+                        <p class="text-xs text-gray-600 font-medium">Alumni Records</p>
                     </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-sm text-gray-600">Employed</span>
-                        <span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded"><?php echo $batch_stats['employed_count']; ?></span>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-sm text-gray-600">Student</span>
-                        <span class="px-2 py-1 bg-purple-100 text-purple-800 text-xs font-semibold rounded"><?php echo $batch_stats['student_count']; ?></span>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-sm text-gray-600">Student & Employed</span>
-                        <span class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-semibold rounded"><?php echo $batch_stats['employed_student_count']; ?></span>
+                    
+                    <!-- View Button -->
+                    <div class="mt-2">
+                        <div class="bg-[#372b2b] text-white py-2 px-3 rounded-lg text-sm font-medium group-hover:bg-[#e69900] transition-colors inline-flex items-center gap-2">
+                            <i class="fas fa-eye text-xs"></i>
+                            <span>View Files</span>
+                        </div>
                     </div>
                 </div>
             </a>
@@ -131,15 +113,15 @@ ob_start();
 
     <!-- Empty State -->
     <?php if ($displayResult->num_rows === 0): ?>
-    <div class="bg-white p-12 rounded-xl shadow-lg text-center">
-        <i class="fas fa-graduation-cap text-6xl text-gray-300 mb-4"></i>
-        <h3 class="text-xl font-bold text-gray-600 mb-2">
+    <div class="bg-white p-8 rounded-xl shadow-lg text-center">
+        <i class="fas fa-folder-open text-5xl text-gray-300 mb-3"></i>
+        <h3 class="text-lg font-bold text-gray-600 mb-2">
             <?php echo !empty($search) ? 'No Batches Found' : 'No Alumni Batches Found'; ?>
         </h3>
-        <p class="text-gray-500">
+        <p class="text-gray-500 text-sm">
             <?php echo !empty($search) 
                 ? 'No batches found matching your search criteria.' 
-                : 'There are no graduation years with alumni records yet.'; ?>
+                : 'There are no graduation batches with alumni records yet.'; ?>
         </p>
     </div>
     <?php endif; ?>
