@@ -21,27 +21,22 @@ $user_id = $_SESSION['user_id'];
     $profile = $stmt->get_result()->fetch_assoc() ?: [];
     $stmt->close();
 
-    // ---- 2. Profile Permissions --------------------------------------------------------
-    $is_profile_rejected = !empty($profile) && ($profile['submission_status'] ?? '') === 'Rejected';
-    $can_update_yearly = empty($profile) || 
-                        ($profile && ($profile['last_profile_update'] === null || 
-                        strtotime($profile['last_profile_update'] . ' +1 year') <= time()));
-// FIXED: Allow updates for Pending, Rejected, New, and Approved (after 1 year)
-$can_update = empty($profile) 
-           || ($profile['submission_status'] ?? '') === 'Rejected'
-           || ($profile['submission_status'] ?? '') === 'Pending'
-           || ($profile['submission_status'] === 'Approved' && (
-               $profile['last_profile_update'] === null || 
-               strtotime($profile['last_profile_update'] . ' +1 year') <= time()
-           ));
+   // ---- 2. Profile Permissions --------------------------------------------------------
+$is_profile_rejected = !empty($profile) && ($profile['submission_status'] ?? '') === 'Rejected';
+$is_profile_pending = !empty($profile) && ($profile['submission_status'] ?? '') === 'Pending';
+$can_update_yearly = empty($profile) || 
+                    ($profile && ($profile['last_profile_update'] === null || 
+                    strtotime($profile['last_profile_update'] . ' +1 year') <= time()));
 
-// Block only if Approved and less than 1 year since last update
-if (!$can_update) {
-    header("consumption: alumni_profile.php?error=" . urlencode(
-        "Your profile is approved. You can only update once per year."
-    ));
-    exit();
-}
+$can_update = $can_update_yearly || $is_profile_rejected || $is_profile_pending;
+
+    // PERMISSION CHECK - PREVENT UNAUTHORIZED UPDATES
+    if (!$can_update) {
+        header("Location: alumni_profile.php?error=" . urlencode(
+            "You can only update once per year unless your submission was rejected."
+        ));
+        exit;
+    }
 
     /*
     // If profile was rejected, clean up old data before new submission
