@@ -9,7 +9,7 @@ include("../connect.php");
 $page_title = "Dashboard";
 $active_page = "dashboard";
 
-// Debug: Check what's in the alumni_profile table
+// Debug: Check what's in the alumni_profile table (kept for original context)
 $debugQuery = "SELECT submission_status, employment_status, year_graduated, COUNT(*) as count 
                FROM alumni_profile 
                GROUP BY submission_status, employment_status, year_graduated 
@@ -18,10 +18,10 @@ $debugResult = $conn->query($debugQuery);
 
 // Fetch employment status distribution (ALL alumni, not just approved)
 $careerQuery = "SELECT employment_status, COUNT(*) as total 
-                FROM alumni_profile 
-                WHERE employment_status IS NOT NULL 
-                AND employment_status != ''
-                GROUP BY employment_status";
+                 FROM alumni_profile 
+                 WHERE employment_status IS NOT NULL 
+                 AND employment_status != ''
+                 GROUP BY employment_status";
 $result = $conn->query($careerQuery);
 
 if (!$result) {
@@ -119,6 +119,7 @@ ob_start();
     border: 1px solid #e5e7eb;
     position: relative;
     overflow: hidden;
+    /* Tighter card padding/content */
 }
 
 .stats-card::before {
@@ -144,10 +145,12 @@ ob_start();
     transition: transform 0.3s ease;
 }
 
-.analytics-section {
-    background: #fafafa;
+/* Chart container improvements - removed .analytics-section for tighter layout */
+.chart-container {
+    background: white;
     border-radius: 12px;
-    padding: 24px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     border: 1px solid #f1f1f1;
 }
 
@@ -161,27 +164,20 @@ ob_start();
     background: #f8fafc;
 }
 
-/* Chart container improvements */
-.chart-container {
-    background: white;
-    border-radius: 12px;
-    padding: 20px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    border: 1px solid #f1f1f1;
-}
-
-/* New layout styles */
+/* New layout styles - Tighter grid for max space */
 .dashboard-grid {
     display: grid;
-    grid-template-columns: 1fr 400px;
-    gap: 24px;
+    /* Adjusted sidebar width slightly for more main content space */
+    grid-template-columns: 1fr 360px; 
+    gap: 20px; /* Reduced gap */
     align-items: start;
+    margin-top: -8px; /* Pull content up slightly */
 }
 
 .main-content {
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: 20px; /* Reduced gap */
 }
 
 .recent-activity-sidebar {
@@ -192,7 +188,7 @@ ob_start();
     overflow: hidden;
     height: fit-content;
     position: sticky;
-    top: 24px;
+    top: 20px; /* Adjusted sticky top */
 }
 
 @media (max-width: 1024px) {
@@ -206,175 +202,154 @@ ob_start();
 }
 </style>
 
-<div class="space-y-8">
-   
-    <!-- Main Dashboard Grid -->
-    <div class="dashboard-grid">
-        <!-- Left Column: Stats Cards and Analytics -->
-        <div class="main-content">
-            <!-- Statistics Cards - Smaller but same design -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                <!-- Total Alumni Card -->
-                <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #3b82f6;">
-                    <div class="p-5"> <!-- Reduced from p-6 to p-5 -->
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Total Alumni</p>
-                                <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['total_alumni']; ?></p> <!-- 3xl → 2xl -->
-                                <p class="text-xs text-gray-500 mt-1">All registered alumni users</p>
-                            </div>
-                            <div class="p-3 rounded-xl bg-blue-50 card-icon"> <!-- Reduced padding -->
-                                <i class="fas fa-users text-xl text-blue-500"></i> <!-- Icon slightly smaller -->
-                            </div>
+<div class="dashboard-grid">
+    <div class="main-content">
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4"> <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #3b82f6;">
+                <div class="p-4"> <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Total Alumni</p>
+                            <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['total_alumni']; ?></p>
+                            <p class="text-xs text-gray-500 mt-1">All registered alumni users</p>
                         </div>
-                        <div class="mt-3 flex items-center text-xs text-blue-600"> <!-- Reduced margin -->
-                            <i class="fas fa-database mr-1"></i>
-                            <span>Complete database</span>
+                        <div class="p-3 rounded-xl bg-blue-50 card-icon">
+                            <i class="fas fa-users text-xl text-blue-500"></i>
                         </div>
                     </div>
-                </div>
-
-                <!-- Approved Profiles Card -->
-                <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #10b981;">
-                    <div class="p-5">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Approved Profiles</p>
-                                <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['approved_profiles']; ?></p>
-                                <p class="text-xs text-gray-500 mt-1">Verified alumni profiles</p>
-                            </div>
-                            <div class="p-3 rounded-xl bg-green-50 card-icon">
-                                <i class="fas fa-check-circle text-xl text-green-500"></i>
-                            </div>
-                        </div>
-                        <div class="mt-3 flex items-center text-xs text-green-600">
-                            <i class="fas fa-shield-check mr-1"></i>
-                            <span>Verified & approved</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Pending Reviews Card -->
-                <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #f59e0b;">
-                    <div class="p-5">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Pending Reviews</p>
-                                <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['pending_profiles']; ?></p>
-                                <p class="text-xs text-gray-500 mt-1">Awaiting approval</p>
-                            </div>
-                            <div class="p-3 rounded-xl bg-yellow-50 card-icon">
-                                <i class="fas fa-clock text-xl text-yellow-500"></i>
-                            </div>
-                        </div>
-                        <div class="mt-3 flex items-center text-xs text-yellow-600">
-                            <i class="fas fa-hourglass-half mr-1"></i>
-                            <span>Requires attention</span>
-                        </div>
+                    <div class="mt-2 flex items-center text-xs text-blue-600"> <i class="fas fa-database mr-1"></i>
+                        <span>Complete database</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Compact Analytics Overview -->
-            <div class="bg-gray-50 rounded-xl p-5 border border-gray-200">
-                <div class="mb-4">
-                    <h2 class="text-lg font-bold text-gray-900">Analytics Overview</h2>
-                    <p class="text-sm text-gray-600">Key alumni metrics at a glance</p>
-                </div>
-
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <!-- Employment Distribution -->
-                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                        <h3 class="text-base font-semibold text-gray-800 mb-3">Employment Status</h3>
-                        <?php if (array_sum($careerData) > 0): ?>
-                            <div class="h-64">
-                                <canvas id="employmentChart"></canvas>
-                            </div>
-                        <?php else: ?>
-                            <div class="flex flex-col items-center justify-center h-64 text-gray-400">
-                                <i class="fas fa-chart-pie text-4xl mb-2"></i>
-                                <p class="text-sm">No employment data yet</p>
-                            </div>
-                        <?php endif; ?>
+            <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #10b981;">
+                <div class="p-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Approved Profiles</p>
+                            <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['approved_profiles']; ?></p>
+                            <p class="text-xs text-gray-500 mt-1">Verified alumni profiles</p>
+                        </div>
+                        <div class="p-3 rounded-xl bg-green-50 card-icon">
+                            <i class="fas fa-check-circle text-xl text-green-500"></i>
+                        </div>
                     </div>
+                    <div class="mt-2 flex items-center text-xs text-green-600">
+                        <i class="fas fa-shield-check mr-1"></i>
+                        <span>Verified & approved</span>
+                    </div>
+                </div>
+            </div>
 
-                    <!-- Graduation Trends -->
-                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-                        <h3 class="text-base font-semibold text-gray-800 mb-3">Graduates by Year</h3>
-                        <?php if (!empty($gradYears) && array_sum($gradCounts) > 0): ?>
-                            <div class="h-64">
-                                <canvas id="graduationChart"></canvas>
-                            </div>
-                        <?php else: ?>
-                            <div class="flex flex-col items-center justify-center h-64 text-gray-400">
-                                <i class="fas fa-chart-line text-4xl mb-2"></i>
-                                <p class="text-sm">No graduation data yet</p>
-                            </div>
-                        <?php endif; ?>
+            <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #f59e0b;">
+                <div class="p-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Pending Reviews</p>
+                            <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['pending_profiles']; ?></p>
+                            <p class="text-xs text-gray-500 mt-1">Awaiting approval</p>
+                        </div>
+                        <div class="p-3 rounded-xl bg-yellow-50 card-icon">
+                            <i class="fas fa-clock text-xl text-yellow-500"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2 flex items-center text-xs text-yellow-600">
+                        <i class="fas fa-hourglass-half mr-1"></i>
+                        <span>Requires attention</span>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Right Column: Recent Activity Sidebar -->
-        <div class="recent-activity-sidebar">
-            <div class="p-6 border-b border-gray-200">
-                <div class="flex justify-between items-center">
-                    <div>
-                        <h3 class="text-lg font-semibold text-gray-900">Recent Activity</h3>
-                        <p class="text-sm text-gray-600 mt-1">Latest updates and changes</p>
-                    </div>
-                    <a href="activity_log.php" class="inline-flex items-center px-3 py-1.5 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors font-medium text-xs">
-                        View All
-                        <i class="fas fa-arrow-right ml-1 text-xs"></i>
-                    </a>
+        <div class="bg-white rounded-xl p-5 border border-gray-200 shadow-sm"> <div class="mb-4">
+                <h2 class="text-lg font-bold text-gray-900">Alumni Analytics</h2>
+                <p class="text-sm text-gray-600">Key alumni metrics at a glance</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-5"> <div class="rounded-lg border border-gray-200 p-4"> <h3 class="text-base font-semibold text-gray-800 mb-3">Employment Status Distribution</h3>
+                    <?php if (array_sum($careerData) > 0): ?>
+                        <div class="h-64">
+                            <canvas id="employmentChart"></canvas>
+                        </div>
+                    <?php else: ?>
+                        <div class="flex flex-col items-center justify-center h-64 text-gray-400">
+                            <i class="fas fa-chart-pie text-4xl mb-2"></i>
+                            <p class="text-sm">No employment data yet</p>
+                        </div>
+                    <?php endif; ?>
+                </div>
+
+                <div class="rounded-lg border border-gray-200 p-4"> <h3 class="text-base font-semibold text-gray-800 mb-3">Graduates by Year Trend</h3>
+                    <?php if (!empty($gradYears) && array_sum($gradCounts) > 0): ?>
+                        <div class="h-64">
+                            <canvas id="graduationChart"></canvas>
+                        </div>
+                    <?php else: ?>
+                        <div class="flex flex-col items-center justify-center h-64 text-gray-400">
+                            <i class="fas fa-chart-line text-4xl mb-2"></i>
+                            <p class="text-sm">No graduation data yet</p>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
-            <div class="p-4 space-y-4 max-h-[calc(100vh-200px)] overflow-y-auto">
-                <?php if ($recentActivityResult->num_rows > 0): ?>
-                    <?php while ($activity = $recentActivityResult->fetch_assoc()): ?>
-                        <div class="activity-item p-3 bg-white rounded-lg border border-gray-100 hover:shadow-sm transition-all" 
-                             style="--activity-color: <?php echo getActivityHexColor($activity['update_type']); ?>">
-                            <div class="flex items-start space-x-3">
-                                <div class="flex-shrink-0">
-                                    <div class="p-2 rounded-lg <?php echo getActivityColor($activity['update_type']); ?>">
-                                        <i class="fas fa-<?php echo getActivityIcon($activity['update_type']); ?> text-sm"></i>
-                                    </div>
-                                </div>
-                                <div class="flex-1 min-w-0">
-                                    <p class="text-sm font-medium text-gray-900 truncate">
-                                        <?php echo getEnhancedActivityText($activity); ?>
-                                    </p>
-                                    <div class="flex items-center mt-1 space-x-3 text-xs text-gray-500">
-                                        <span class="flex items-center truncate">
-                                            <i class="fas fa-user-shield mr-1"></i>
-                                            <?php echo htmlspecialchars($activity['admin_name']); ?>
-                                        </span>
-                                        <span class="flex items-center">
-                                            <i class="far fa-clock mr-1"></i>
-                                            <?php echo time_elapsed_string($activity['updated_at']); ?>
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="mt-2">
-                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium <?php echo getActivityBadgeColor($activity['update_type']); ?>">
-                                    <i class="fas fa-<?php echo getActivityIcon($activity['update_type']); ?> mr-1 text-xs"></i>
-                                    <?php echo ucfirst($activity['update_type']); ?>
-                                </span>
-                            </div>
-                        </div>
-                    <?php endwhile; ?>
-                <?php else: ?>
-                    <div class="text-center py-8 text-gray-500">
-                        <div class="inline-flex items-center justify-center w-12 h-12 bg-gray-100 rounded-full mb-3">
-                            <i class="fas fa-inbox text-lg text-gray-400"></i>
-                        </div>
-                        <p class="text-sm font-medium text-gray-400">No recent activity</p>
-                        <p class="text-xs text-gray-400 mt-1">System updates will appear here</p>
-                    </div>
-                <?php endif; ?>
+        </div>
+    </div>
+
+    <div class="recent-activity-sidebar">
+        <div class="p-5 border-b border-gray-200"> <div class="flex justify-between items-center">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900">Recent Activity</h3>
+                    <p class="text-sm text-gray-600 mt-1">Latest 10 updates and changes</p>
+                </div>
+                <a href="activity_log.php" class="inline-flex items-center px-3 py-1.5 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors font-medium text-xs">
+                    View All
+                    <i class="fas fa-arrow-right ml-1 text-xs"></i>
+                </a>
             </div>
+        </div>
+        <div class="p-4 space-y-3 max-h-[calc(100vh-140px)] overflow-y-auto"> <?php if ($recentActivityResult->num_rows > 0): ?>
+                <?php while ($activity = $recentActivityResult->fetch_assoc()): ?>
+                    <div class="activity-item p-3 bg-white rounded-lg border border-gray-100 hover:shadow-sm transition-all" 
+                          style="--activity-color: <?php echo getActivityHexColor($activity['update_type']); ?>">
+                        <div class="flex items-start space-x-3">
+                            <div class="flex-shrink-0">
+                                <div class="p-2 rounded-lg <?php echo getActivityColor($activity['update_type']); ?>">
+                                    <i class="fas fa-<?php echo getActivityIcon($activity['update_type']); ?> text-sm"></i>
+                                </div>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-gray-900 truncate">
+                                    <?php echo getEnhancedActivityText($activity); ?>
+                                </p>
+                                <div class="flex items-center mt-1 space-x-3 text-xs text-gray-500">
+                                    <span class="flex items-center truncate">
+                                        <i class="fas fa-user-shield mr-1"></i>
+                                        <?php echo htmlspecialchars($activity['admin_name']); ?>
+                                    </span>
+                                    <span class="flex items-center">
+                                        <i class="far fa-clock mr-1"></i>
+                                        <?php echo time_elapsed_string($activity['updated_at']); ?>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium <?php echo getActivityBadgeColor($activity['update_type']); ?>">
+                                <i class="fas fa-<?php echo getActivityIcon($activity['update_type']); ?> mr-1 text-xs"></i>
+                                <?php echo ucfirst($activity['update_type']); ?>
+                            </span>
+                        </div>
+                    </div>
+                <?php endwhile; ?>
+            <?php else: ?>
+                <div class="text-center py-8 text-gray-500">
+                    <div class="inline-flex items-center justify-center w-12 h-12 bg-gray-100 rounded-full mb-3">
+                        <i class="fas fa-inbox text-lg text-gray-400"></i>
+                    </div>
+                    <p class="text-sm font-medium text-gray-400">No recent activity</p>
+                    <p class="text-xs text-gray-400 mt-1">System updates will appear here</p>
+                </div>
+            <?php endif; ?>
         </div>
     </div>
 </div>
@@ -392,12 +367,12 @@ new Chart(employmentCtx, {
             data: <?php echo json_encode($careerData); ?>,
             backgroundColor: [
                 '#4A90E2', // Soft Blue
-                '#7ED321', // Soft Green  
+                '#7ED321', // Soft Green  
                 '#F5A623', // Soft Orange
                 '#D0021B', // Soft Red
                 '#9B51E0', // Soft Purple
                 '#06b6d4', // Cyan
-                '#84cc16'  // Lime
+                '#84cc16'  // Lime
             ],
             borderWidth: 3,
             borderColor: '#fff',
@@ -412,7 +387,7 @@ new Chart(employmentCtx, {
             legend: { 
                 position: 'bottom',
                 labels: {
-                    padding: 25,
+                    padding: 20, /* Reduced padding */
                     usePointStyle: true,
                     font: {
                         size: 12,
@@ -462,17 +437,17 @@ new Chart(graduationCtx, {
             data: <?php echo json_encode($gradCounts); ?>,
             borderColor: '#8b5cf6',
             backgroundColor: gradient,
-            borderWidth: 4,
+            borderWidth: 3, /* Reduced line thickness */
             fill: true,
             tension: 0.4,
             pointBackgroundColor: '#8b5cf6',
             pointBorderColor: '#fff',
-            pointBorderWidth: 3,
-            pointRadius: 6,
-            pointHoverRadius: 8,
+            pointBorderWidth: 2, /* Reduced point border */
+            pointRadius: 5, /* Reduced point radius */
+            pointHoverRadius: 7, /* Reduced hover radius */
             pointHoverBackgroundColor: '#8b5cf6',
             pointHoverBorderColor: '#fff',
-            pointHoverBorderWidth: 3
+            pointHoverBorderWidth: 2
         }]
     },
     options: {
@@ -541,9 +516,14 @@ document.addEventListener('DOMContentLoaded', function() {
 document.addEventListener("DOMContentLoaded", () => {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.has('success')) {
-        showToast(urlParams.get('success'), 'success');
+        // Assuming showToast is a defined function in admin_format.php or another included file
+        if (typeof showToast === 'function') {
+            showToast(urlParams.get('success'), 'success');
+        }
     } else if (urlParams.has('error')) {
-        showToast(urlParams.get('error'), 'error');
+        if (typeof showToast === 'function') {
+            showToast(urlParams.get('error'), 'error');
+        }
     }
 });
 </script>
@@ -587,13 +567,12 @@ function getActivityBadgeColor($update_type) {
 
 function getEnhancedActivityText($activity) {
     $name = '';
-    $details = '';
     
     // Get the affected user's name
     if (!empty($activity['first_name']) && !empty($activity['last_name'])) {
-        $name = $activity['first_name'] . ' ' . $activity['last_name'];
+        $name = htmlspecialchars($activity['first_name'] . ' ' . $activity['last_name']);
     } else {
-        $name = "Alumni";
+        $name = "an Alumni";
     }
     
     $actions = [
@@ -629,7 +608,7 @@ function time_elapsed_string($datetime, $full = false) {
         }
     }
 
-    if (!$full) $string = array_slice($string, 0, 1);
+    if (!$full) $string = array_slice($string, 0, 1); 
     return $string ? implode(', ', $string) . ' ago' : 'just now';
 }
 
