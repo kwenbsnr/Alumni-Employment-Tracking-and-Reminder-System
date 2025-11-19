@@ -263,64 +263,79 @@ ob_start();
 
    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
     
-   <!-- Personal Information Card -->
-    <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-blue-500 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-blue-50">
-        <div class="flex items-center space-x-3 mb-4 pb-2 border-b border-gray-100">
-            <h3 class="text-xl font-bold text-gray-800">Personal Information</h3>
-        </div>
-        <dl class="grid grid-cols-2 gap-4">
-            <div class="flex flex-col">
-                <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Full Name</dt>
-                <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($full_name); ?></dd>
-            </div>
-            <div class="flex flex-col">
-                <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Email</dt>
-                <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['email'] ?? 'N/A'); ?></dd>
-            </div>
-            <div class="flex flex-col">
-                <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Contact Number</dt>
-                <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['contact_number'] ?? 'N/A'); ?></dd>
-            </div>
-            <div class="flex flex-col">
-                <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Year Graduated</dt>
-                <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['year_graduated'] ?? 'N/A'); ?></dd>
-            </div>
-        </dl>
+ <!-- Personal Information Card -->
+<div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-blue-500 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-blue-50 relative">
+    <div class="flex items-center justify-between mb-4 pb-2 border-b border-gray-100">
+        <h3 class="text-xl font-bold text-gray-800">Personal Information</h3>
+        <?php if ($can_update): ?>
+            <button type="button" onclick="openSection('personal')" class="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center space-x-1">
+                <i class="fas fa-edit"></i><span>Edit</span>
+            </button>
+        <?php endif; ?>
     </div>
-    <!-- Address Card -->
-    <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-green-500 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-green-50">
-        <div class="flex items-center space-x-3 mb-4 pb-2 border-b border-gray-100">
-            <h3 class="text-xl font-bold text-gray-800">Address</h3>
+    <dl class="grid grid-cols-2 gap-4">
+        <!-- Same content as before -->
+        <div class="flex flex-col">
+            <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Full Name</dt>
+            <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($full_name); ?></dd>
         </div>
-        <dl class="grid grid-cols-2 gap-4">
-            <div class="flex flex-col">
-                <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Barangay</dt>
-                <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['barangay_name'] ?? 'N/A'); ?></dd>
-            </div>
-            <div class="flex flex-col">
-                <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Municipality/City</dt>
-                <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['municipality_name'] ?? 'N/A'); ?></dd>
-            </div>
-            <div class="flex flex-col">
-                <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Province</dt>
-                <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['province_name'] ?? 'N/A'); ?></dd>
-            </div>
-            <div class="flex flex-col">
-                <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Region</dt>
-                <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['region_name'] ?? 'N/A'); ?></dd>
-            </div>
-        </dl>
-    </div>
+        <div class="flex flex-col">
+            <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Email</dt>
+            <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['email'] ?? 'N/A'); ?></dd>
+        </div>
+        <div class="flex flex-col">
+            <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Contact Number</dt>
+            <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['contact_number'] ?? 'N/A'); ?></dd>
+        </div>
+        <div class="flex flex-col">
+            <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Year Graduated</dt>
+            <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['year_graduated'] ?? 'N/A'); ?></dd>
+        </div>
+    </dl>
 </div>
 
-<!-- Container for Employment/Academic Details and Documents -->
-<div class="flex flex-col md:flex-row md:space-x-6">
-  <!-- Employment/Academic Details Card -->
-<div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-purple-500 flex-1 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-purple-50">
-    <div class="flex items-center space-x-3 mb-4 pb-2 border-b border-gray-100">
+<!-- Address Card -->
+<div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-green-500 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-green-50 relative">
+    <div class="flex items-center justify-between mb-4 pb-2 border-b border-gray-100">
+        <h3 class="text-xl font-bold text-gray-800">Address</h3>
+        <?php if ($can_update): ?>
+            <button type="button" onclick="openSection('address')" class="text-green-600 hover:text-green-800 text-sm font-medium flex items-center space-x-1">
+                <i class="fas fa-edit"></i><span>Edit</span>
+            </button>
+        <?php endif; ?>
+    </div>
+    <dl class="grid grid-cols-2 gap-4">
+        <div class="flex flex-col">
+            <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Barangay</dt>
+            <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['barangay_name'] ?? 'N/A'); ?></dd>
+        </div>
+        <div class="flex flex-col">
+            <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Municipality/City</dt>
+            <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['municipality_name'] ?? 'N/A'); ?></dd>
+        </div>
+        <div class="flex flex-col">
+            <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Province</dt>
+            <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['province_name'] ?? 'N/A'); ?></dd>
+        </div>
+        <div class="flex flex-col">
+            <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Region</dt>
+            <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['region_name'] ?? 'N/A'); ?></dd>
+        </div>
+    </dl>
+</div>
+
+<!-- Employment/Academic Details Card -->
+<div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-purple-500 flex-1 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-purple-50 relative">
+    <div class="flex items-center justify-between mb-4 pb-2 border-b border-gray-100">
         <h3 class="text-xl font-bold text-gray-800">Employment/Academic Details</h3>
+        <?php if ($can_update): ?>
+            <button type="button" onclick="openSection('employment')" class="text-purple-600 hover:text-purple-800 text-sm font-medium flex items-center space-x-1 transition">
+                <i class="fas fa-edit"></i><span>Edit</span>
+            </button>
+        <?php endif; ?>
     </div>
     <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Your existing <dt>/<dd> content stays exactly the same -->
         <div class="flex flex-col">
             <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Employment Status</dt>
             <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['employment_status'] ?? 'Not Set'); ?></dd>
@@ -347,13 +362,15 @@ ob_start();
             <?php if (($profile['employment_status'] ?? '') === 'Self-Employed'): ?>
                 <div class="flex flex-col">
                     <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Business Type</dt>
-                    <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php
+                    <dd class="font-semibold text-gray-700" style="font-size: 15px;">
+                        <?php
                         $display_business_type = $employment['business_type'] ?? 'N/A';
                         if (strpos($display_business_type, 'Others: ') === 0) {
                             $display_business_type = 'Others: ' . substr($display_business_type, 8);
                         }
                         echo htmlspecialchars($display_business_type);
-                    ?></dd>
+                        ?>
+                    </dd>
                 </div>
                 <div class="flex flex-col">
                     <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Monthly Income Range</dt>
@@ -378,12 +395,16 @@ ob_start();
         <?php endif; ?>
     </dl>
 </div>
-
 <!-- Documents Card -->
 <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-orange-500 flex-1 flex flex-col transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-orange-50">
-    <div class="flex items-center space-x-3 mb-4 pb-2 border-b border-gray-100">
-        <h3 class="text-xl font-bold text-gray-800">Documents</h3>
-    </div>
+   <div class="flex items-center justify-between mb-4 pb-2 border-b border-gray-100">
+    <h3 class="text-xl font-bold text-gray-800">Documents</h3>
+    <?php if ($can_update): ?>
+        <button type="button" onclick="openSection('documents')" class="text-orange-600 hover:text-orange-800 text-sm font-medium flex items-center space-x-1 transition">
+            <i class="fas fa-edit"></i><span>Edit</span>
+        </button>
+    <?php endif; ?>
+</div>
     
     <?php if (empty($docs)): ?>
         <div class="flex-1 flex flex-col items-center justify-center py-8">
@@ -478,7 +499,9 @@ ob_start();
 <div id="profileUpdateModal" class="hidden fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50 transition-opacity duration-300">
     <div class="bg-white p-8 rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <div class="flex justify-between items-center mb-6">
-            <h3 class="text-2xl font-bold text-gray-800">Update Your Profile</h3>
+            <h3 class="text-2xl font-bold text-gray-800">
+    <span id="modalTitle">Update Your Profile</span>
+</h3>
             <button id="closeProfileModal" class="text-gray-600 hover:text-red-600">
                 <i class="fas fa-times text-xl"></i>
             </button>
@@ -763,10 +786,9 @@ ob_start();
 </div>
 
 <script>
-
 // Auto-close modal if form was just submitted
 <?php if (isset($_SESSION['form_submitted']) && $_SESSION['form_submitted']): ?>
-    <?php unset($_SESSION['form_submitted']); // Clear the flag ?>
+    <?php unset($_SESSION['form_submitted']); ?>
     const modal = document.getElementById('profileUpdateModal');
     if (modal) {
         modal.classList.add('hidden');
@@ -774,12 +796,11 @@ ob_start();
     }
 <?php endif; ?>
 
-// FIXED: Auto-open modal for rejected profiles with existing data
+// Auto-open modal for rejected profiles with existing data
 <?php if ($auto_open_modal): ?>
 document.addEventListener('DOMContentLoaded', () => {
     const modal = document.getElementById('profileUpdateModal');
     if (modal) {
-        // Small delay to ensure page is fully loaded
         setTimeout(() => {
             modal.classList.remove('hidden');
             modal.classList.add('show', 'flex');
@@ -790,8 +811,6 @@ document.addEventListener('DOMContentLoaded', () => {
 <?php endif; ?>
 
 document.addEventListener('DOMContentLoaded', () => {
-
-    // Modal and form elements
     const updateProfileBtn = document.getElementById('updateProfileBtn');
     const updateProfileModal = document.getElementById('profileUpdateModal');
     const closeModalBtn = document.getElementById('closeProfileModal');
@@ -816,54 +835,88 @@ document.addEventListener('DOMContentLoaded', () => {
     const barangaySelect = document.getElementById('barangaySelect');
     const companyAddressField = document.getElementById('companyAddressField');
     const salaryField = document.getElementById('salaryField');
+    const uploadBtn = document.getElementById("uploadPictureBtn");
+    const fileInput = document.getElementById("profilePictureInput");
+    const previewImg = document.getElementById("profilePreview");
 
-    // Track loading state
     let isAddressLoading = false;
     let addressDataLoaded = false;
 
-    // Modal toggle - ONLY if user can update
+    window.openSection = function(section) {
+        const modal = document.getElementById('profileUpdateModal');
+        if (!modal || !<?php echo $can_update ? 'true' : 'false'; ?>) return;
+
+        modal.classList.remove('hidden');
+        modal.classList.add('flex', 'show');
+
+        if (!addressDataLoaded && (section === 'address' || section === 'personal')) {
+            loadAddressData();
+        }
+
+        const titles = {
+            personal: 'Edit Personal Information',
+            address: 'Edit Address',
+            employment: 'Edit Employment & Academic Details',
+            documents: 'Edit Supporting Documents'
+        };
+        const titleEl = document.getElementById('modalTitle');
+        if (titleEl) titleEl.textContent = titles[section] || 'Update Your Profile';
+
+        setTimeout(() => {
+            let target = null;
+            switch(section) {
+                case 'personal':
+                    target = document.querySelector('#alumniProfileForm');
+                    break;
+                case 'address':
+                    target = document.querySelector('[name="region_id"]')?.closest('.bg-white');
+                    break;
+                case 'employment':
+                    target = document.getElementById('employmentDetailsSection');
+                    if (target && target.classList.contains('hidden')) {
+                        const status = employmentStatusSelect?.value || 'Employed';
+                        toggleEmploymentSections(status);
+                    }
+                    break;
+                case 'documents':
+                    target = document.getElementById('supportingDocumentsSection');
+                    if (target && target.classList.contains('hidden')) {
+                        const status = employmentStatusSelect?.value || 'Employed';
+                        toggleEmploymentSections(status);
+                    }
+                    break;
+            }
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }, 300);
+    };
+
     if (updateProfileBtn) {
         const canUpdate = <?php echo $can_update ? 'true' : 'false'; ?>;
-        
-            if (canUpdate) {
-                updateProfileBtn.addEventListener('click', () => {
-                    if (updateProfileModal) {
-                        updateProfileModal.classList.remove('hidden');
-                        updateProfileModal.classList.add('show', 'flex');
-                        loadAddressData(); // Always load
-                    }
-                });
-            } else {
-            // Make it visually clear the button is disabled
+        if (canUpdate) {
+            updateProfileBtn.addEventListener('click', () => {
+                if (updateProfileModal) {
+                    updateProfileModal.classList.remove('hidden');
+                    updateProfileModal.classList.add('show', 'flex');
+                    loadAddressData();
+                }
+            });
+        } else {
             updateProfileBtn.style.cursor = 'not-allowed';
             updateProfileBtn.style.opacity = '0.6';
-            
             updateProfileBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                
-                if (!empty(<?php echo !empty($profile) ? 'true' : 'false'; ?>)) {
-                    const status = '<?php echo $profile['submission_status'] ?? ''; ?>';
-                    if (status === 'Approved') {
-                        alert('Your profile has been approved. You can update again after one year from your last update.');
-                    } else if (status === 'Pending') {
-                        alert('Your profile is currently under review. Please wait for administrator approval.');
-                    } else {
-                        alert('Profile update is not available at this time.');
-                    }
-                } else {
-                    alert('Profile update is not available at this time.');
-                }
+                alert('Profile update is not available at this time.');
             });
         }
     }
 
     if (closeModalBtn) {
         closeModalBtn.addEventListener('click', () => {
-            if (updateProfileModal) {
-                updateProfileModal.classList.add('hidden');
-                updateProfileModal.classList.remove('show', 'flex');
-            }
+            updateProfileModal.classList.add('hidden');
+            updateProfileModal.classList.remove('show', 'flex');
         });
     }
 
@@ -876,11 +929,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Profile picture upload and preview
-    const uploadBtn = document.getElementById("uploadPictureBtn");
-    const fileInput = document.getElementById("profilePictureInput");
-    const previewImg = document.getElementById("profilePreview");
-
     if (uploadBtn && fileInput) {
         uploadBtn.addEventListener("click", () => {
             fileInput.click();
@@ -891,23 +939,17 @@ document.addEventListener('DOMContentLoaded', () => {
         fileInput.addEventListener("change", function () {
             const file = this.files[0];
             if (!file) return;
-
-            // Validate type
             const validTypes = ["image/jpeg", "image/png"];
             if (!validTypes.includes(file.type)) {
                 alert("Only JPG and PNG files are allowed.");
                 this.value = "";
                 return;
             }
-
-            // Validate size (≤ 2MB)
             if (file.size > 2 * 1024 * 1024) {
                 alert("File size exceeds 2MB.");
                 this.value = "";
                 return;
             }
-
-            // Live preview
             const reader = new FileReader();
             reader.onload = e => {
                 previewImg.src = e.target.result;
@@ -916,31 +958,23 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Job title toggle for "Other"
     if (jobTitleSelect && otherJobTitleDiv) {
         jobTitleSelect.addEventListener('change', () => {
             otherJobTitleDiv.style.display = jobTitleSelect.value === 'Other' ? 'block' : 'none';
         });
     }
 
-    // Business type toggle
     if (businessTypeSelect && businessTypeOtherDiv) {
         businessTypeSelect.addEventListener('change', () => {
             businessTypeOtherDiv.style.display = businessTypeSelect.value === 'Others (Please specify)' ? 'block' : 'none';
         });
     }
 
-    // Employment status toggle - COMPLETELY FIXED LOGIC
     function toggleEmploymentSections(status) {
-        console.log('Toggling employment sections for:', status);
-        
-        // Hide all sections first
         if (employmentDetailsSection) employmentDetailsSection.classList.add('hidden');
         if (unemployedSection) unemployedSection.classList.add('hidden');
         if (studentDetailsSection) studentDetailsSection.classList.add('hidden');
         if (supportingDocumentsSection) supportingDocumentsSection.classList.add('hidden');
-        
-        // Hide individual fields
         if (jobTitleField) jobTitleField.classList.add('hidden');
         if (companyField) companyField.classList.add('hidden');
         if (companyAddressField) companyAddressField.classList.add('hidden');
@@ -950,7 +984,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (businessCertField) businessCertField.classList.add('hidden');
         if (corField) corField.classList.add('hidden');
 
-        // Show relevant sections based on status
         switch(status) {
             case 'Employed':
                 if (employmentDetailsSection) employmentDetailsSection.classList.remove('hidden');
@@ -961,7 +994,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (salaryField) salaryField.classList.remove('hidden');
                 if (coeField) coeField.classList.remove('hidden');
                 break;
-                
             case 'Self-Employed':
                 if (employmentDetailsSection) employmentDetailsSection.classList.remove('hidden');
                 if (supportingDocumentsSection) supportingDocumentsSection.classList.remove('hidden');
@@ -969,17 +1001,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (salaryField) salaryField.classList.remove('hidden');
                 if (businessCertField) businessCertField.classList.remove('hidden');
                 break;
-                
             case 'Unemployed':
                 if (unemployedSection) unemployedSection.classList.remove('hidden');
                 break;
-                
             case 'Student':
                 if (studentDetailsSection) studentDetailsSection.classList.remove('hidden');
                 if (supportingDocumentsSection) supportingDocumentsSection.classList.remove('hidden');
                 if (corField) corField.classList.remove('hidden');
                 break;
-                
             case 'Employed & Student':
                 if (employmentDetailsSection) employmentDetailsSection.classList.remove('hidden');
                 if (studentDetailsSection) studentDetailsSection.classList.remove('hidden');
@@ -991,51 +1020,35 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (coeField) coeField.classList.remove('hidden');
                 if (corField) corField.classList.remove('hidden');
                 break;
-                
-            default:
-                // Hide everything for unknown status
-                break;
         }
     }
 
-    // Initialize employment sections
     if (employmentStatusSelect) {
         toggleEmploymentSections(employmentStatusSelect.value);
-        
         employmentStatusSelect.addEventListener('change', () => {
             toggleEmploymentSections(employmentStatusSelect.value);
         });
     }
 
-        // NEW: Dynamic filtering for years based on graduation year and current year
     function updateStudentYearOptions() {
         const graduationYearSelect = document.querySelector('[name="year_graduated"]');
         const startYearSelect = document.querySelector('[name="start_year"]');
         const endYearSelect = document.querySelector('[name="end_year"]');
         const status = employmentStatusSelect ? employmentStatusSelect.value : '';
-        
         if (graduationYearSelect && startYearSelect && endYearSelect && ['Student', 'Employed & Student'].includes(status)) {
             const graduationYear = parseInt(graduationYearSelect.value);
             const currentYear = new Date().getFullYear();
-            
             if (graduationYear) {
-                // Store current selections
                 const currentStartYear = startYearSelect.value;
                 const currentEndYear = endYearSelect.value;
-                
-                // Update Start Year dropdown: graduation year to current year
                 startYearSelect.innerHTML = '<option value="">Select Start Year</option>';
                 for (let y = graduationYear; y <= currentYear; y++) {
                     const option = document.createElement('option');
                     option.value = y;
                     option.textContent = y;
-                    if (currentStartYear && y === parseInt(currentStartYear)) {
-                        option.selected = true;
-                    }
+                    if (currentStartYear && y === parseInt(currentStartYear)) option.selected = true;
                     startYearSelect.appendChild(option);
                 }
-                
-                // Update End Year dropdown based on selected start year
                 updateEndYearOptions();
             }
         }
@@ -1045,51 +1058,40 @@ document.addEventListener('DOMContentLoaded', () => {
         const startYearSelect = document.querySelector('[name="start_year"]');
         const endYearSelect = document.querySelector('[name="end_year"]');
         const currentYear = new Date().getFullYear();
-        
         if (startYearSelect && endYearSelect && startYearSelect.value) {
             const startYear = parseInt(startYearSelect.value);
             const currentEndYear = endYearSelect.value;
-            
-            // End Year: start year + 1 to current year + 5 (max 5 years in future)
             endYearSelect.innerHTML = '<option value="">Select End Year</option>';
             for (let y = startYear + 1; y <= currentYear + 5; y++) {
                 const option = document.createElement('option');
                 option.value = y;
                 option.textContent = y;
-                if (currentEndYear && y === parseInt(currentEndYear)) {
-                    option.selected = true;
-                }
+                if (currentEndYear && y === parseInt(currentEndYear)) option.selected = true;
                 endYearSelect.appendChild(option);
             }
         }
     }
 
-    // Event listeners for dynamic year filtering
     if (employmentStatusSelect) {
         employmentStatusSelect.addEventListener('change', updateStudentYearOptions);
     }
-
     const graduationYearSelect = document.querySelector('[name="year_graduated"]');
     if (graduationYearSelect) {
         graduationYearSelect.addEventListener('change', updateStudentYearOptions);
     }
-
     const startYearSelect = document.querySelector('[name="start_year"]');
     if (startYearSelect) {
         startYearSelect.addEventListener('change', updateEndYearOptions);
     }
 
-    // Address dropdown population 
     let regionsData;
     async function loadAddressData() {
         if (isAddressLoading) return;
         isAddressLoading = true;
-        
         try {
             const regionsResponse = await fetch('../api/get_regions.php');
             if (!regionsResponse.ok) throw new Error('Failed to load regions: ' + regionsResponse.status);
             regionsData = await regionsResponse.json();
-            console.log('Regions loaded:', regionsData);
             populateRegions();
             addressDataLoaded = true;
         } catch (e) {
@@ -1122,7 +1124,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (barangaySelect) barangaySelect.innerHTML = '<option value="">Select Barangay</option>';
         const regionCode = regionSelect ? regionSelect.value : '';
         if (!regionCode) return;
-
         isAddressLoading = true;
         try {
             const response = await fetch(`../api/get_provinces.php?region_id=${encodeURIComponent(regionCode)}`);
@@ -1151,7 +1152,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (barangaySelect) barangaySelect.innerHTML = '<option value="">Select Barangay</option>';
         const provinceCode = provinceSelect ? provinceSelect.value : '';
         if (!provinceCode) return;
-
         isAddressLoading = true;
         try {
             const response = await fetch(`../api/get_municipalities.php?province_id=${encodeURIComponent(provinceCode)}`);
@@ -1179,7 +1179,6 @@ document.addEventListener('DOMContentLoaded', () => {
         barangaySelect.innerHTML = '<option value="">Select Barangay</option>';
         const municipalityCode = municipalitySelect ? municipalitySelect.value : '';
         if (!municipalityCode) return;
-
         isAddressLoading = true;
         try {
             const response = await fetch(`../api/get_barangays.php?municipality_id=${encodeURIComponent(municipalityCode)}`);
@@ -1202,47 +1201,32 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Event listeners for cascading dropdowns
     if (regionSelect) regionSelect.addEventListener('change', filterProvinces);
     if (provinceSelect) provinceSelect.addEventListener('change', filterMunicipalities);
     if (municipalitySelect) municipalitySelect.addEventListener('change', filterBarangays);
 
-    // SIMPLIFIED Form validation - FIXED VERSION
     const alumniProfileForm = document.getElementById('alumniProfileForm');
     if (alumniProfileForm) {
         alumniProfileForm.addEventListener('submit', function(event) {
-            // Prevent address loading interference
             if (isAddressLoading) {
                 alert('Address data is still loading. Please wait.');
                 event.preventDefault();
                 return;
             }
-           
-            // Check student years (end year > start year)
+
             if (!validateStudentYears()) {
                 event.preventDefault();
                 return;
             }
-            
-            /* // Basic permission check
-            <?php if (!$can_update): ?>
-            alert('You are not allowed to update your profile at this time. You can only update once per year unless your submission was rejected.');
-            event.preventDefault();
-            return;
-            <?php endif; ?> */
 
-            // Profile photo validation - FIXED
             const profilePhotoInput = document.getElementById('profilePictureInput');
             const hasExistingPhoto = '<?php echo !empty($profile['photo_path']) ? 'true' : 'false'; ?>';
-
-            // Only require photo if no existing photo
             if (!profilePhotoInput.files.length && hasExistingPhoto === 'false') {
                 alert('Please upload your profile picture before submitting.');
                 event.preventDefault();
                 return;
             }
 
-            // Basic required field validation
             const requiredFields = [
                 { field: 'first_name', message: 'First Name is required.' },
                 { field: 'last_name', message: 'Last Name is required.' },
@@ -1250,9 +1234,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 { field: 'year_graduated', message: 'Year Graduated is required.' },
                 { field: 'employment_status', message: 'Employment Status is required.' }
             ];
-
             let isValid = true;
-
             for (const { field, message } of requiredFields) {
                 const element = document.querySelector(`[name="${field}"]`);
                 if (element && !element.value.trim()) {
@@ -1261,34 +1243,28 @@ document.addEventListener('DOMContentLoaded', () => {
                     break;
                 }
             }
-
             if (!isValid) {
                 event.preventDefault();
                 return;
             }
 
-            // Address validation
             const addressFieldIds = ['regionSelect', 'provinceSelect', 'municipalitySelect', 'barangaySelect'];
-                        const addressMessages = ['Region', 'Province', 'Municipality', 'Barangay'];
+            const addressMessages = ['Region', 'Province', 'Municipality', 'Barangay'];
+            let addressValid = true;
+            for (let i = 0; i < addressFieldIds.length; i++) {
+                const el = document.getElementById(addressFieldIds[i]);
+                if (el && !el.value.trim()) {
+                    alert(addressMessages[i] + ' is required.');
+                    addressValid = false;
+                    break;
+                }
+            }
+            if (!addressValid) {
+                event.preventDefault();
+                return;
+            }
 
-                        let addressValid = true;
-                        for (let i = 0; i < addressFieldIds.length; i++) {
-                            const el = document.getElementById(addressFieldIds[i]);
-                            if (el && !el.value.trim()) {
-                                alert(addressMessages[i] + ' is required.');
-                                addressValid = false;
-                                break;
-                            }
-                        }
-
-                        if (!addressValid) {
-                            event.preventDefault();
-                            return;
-                        }
-
-            // Employment-specific validation
             const status = employmentStatusSelect ? employmentStatusSelect.value : '';
-            
             if (['Employed', 'Employed & Student'].includes(status)) {
                 if (jobTitleSelect && !jobTitleSelect.value) {
                     alert('Job Title is required for this employment status.');
@@ -1300,13 +1276,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         isValid = false;
                     }
                 }
-                
                 const companyName = document.querySelector('[name="company_name"]');
                 if (companyName && !companyName.value.trim()) {
                     alert('Company Name is required for this employment status.');
                     isValid = false;
                 }
-                
                 const companyAddress = document.querySelector('[name="company_address"]');
                 if (companyAddress && !companyAddress.value.trim()) {
                     alert('Company Address is required for this employment status.');
@@ -1314,7 +1288,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // Self-Employed validation
             if (status === 'Self-Employed') {
                 if (businessTypeSelect && !businessTypeSelect.value) {
                     alert('Business Type is required for Self-Employed status.');
@@ -1328,7 +1301,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // Student validation
             if (['Student', 'Employed & Student'].includes(status)) {
                 const studentFields = [
                     { field: 'school_name', message: 'School Name is required for student status.' },
@@ -1336,7 +1308,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     { field: 'start_year', message: 'Start Year is required for student status.' },
                     { field: 'end_year', message: 'End Year is required for student status.' }
                 ];
-
                 for (const { field, message } of studentFields) {
                     const element = document.querySelector(`[name="${field}"]`);
                     if (element && !element.value.trim()) {
@@ -1347,7 +1318,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // Salary validation for employment statuses
             if (['Employed', 'Self-Employed', 'Employed & Student'].includes(status)) {
                 const salaryElement = document.querySelector('[name="salary_range"]');
                 if (salaryElement && !salaryElement.value.trim()) {
@@ -1361,70 +1331,47 @@ document.addEventListener('DOMContentLoaded', () => {
                 event.preventDefault();
                 return;
             }
-
-            console.log('Form validation passed, submitting...');
         });
     }
 
-    // Handle empty form state after rejection
     function initializeFormState() {
         const firstName = document.querySelector('[name="first_name"]');
         const lastName = document.querySelector('[name="last_name"]');
-        
-        // If both first and last name are empty, this is a fresh form after rejection
         if (firstName && lastName && !firstName.value && !lastName.value) {
-            console.log('Fresh form detected after rejection - resetting all fields');
-            
-            // Reset employment status to default
             if (employmentStatusSelect) {
                 employmentStatusSelect.value = '';
                 toggleEmploymentSections('');
             }
-            
-            // Reset address fields
             if (regionSelect) regionSelect.value = '';
             if (provinceSelect) provinceSelect.innerHTML = '<option value="">Select Province</option>';
             if (municipalitySelect) municipalitySelect.innerHTML = '<option value="">Select Municipality</option>';
             if (barangaySelect) barangaySelect.innerHTML = '<option value="">Select Barangay</option>';
-            
-            // Reset photo preview to default - FORCE reset for rejected profiles
             if (previewImg) {
                 previewImg.src = 'https://placehold.co/128x128/eeeeee/333333?text=Profile';
             }
-            
-            // Clear file input
             if (fileInput) {
                 fileInput.value = '';
             }
         }
     }
 
-    // Student year validation function - ENHANCED
     function validateStudentYears() {
         const status = employmentStatusSelect ? employmentStatusSelect.value : '';
-        
-        // Only validate for student statuses
         if (['Student', 'Employed & Student'].includes(status)) {
             const startYear = document.querySelector('[name="start_year"]');
             const endYear = document.querySelector('[name="end_year"]');
             const graduationYear = document.querySelector('[name="year_graduated"]');
-            
-            // Validate end year > start year
             if (startYear && endYear && startYear.value && endYear.value) {
                 const start = parseInt(startYear.value);
                 const end = parseInt(endYear.value);
-                
                 if (end <= start) {
                     alert('End Year (Expected Graduation) must be later than Start Year.');
                     return false;
                 }
             }
-            
-            // NEW VALIDATION: Start year must be >= graduation year
             if (graduationYear && startYear && graduationYear.value && startYear.value) {
                 const graduation = parseInt(graduationYear.value);
                 const start = parseInt(startYear.value);
-                
                 if (start < graduation) {
                     alert('Academic Start Year must be the same as or later than your Graduation Year (' + graduation + ').');
                     return false;
@@ -1434,25 +1381,21 @@ document.addEventListener('DOMContentLoaded', () => {
         return true;
     }
 
-    // Call this when modal opens
     if (updateProfileBtn) {
         const canUpdate = <?php echo $can_update ? 'true' : 'false'; ?>;
-        
         if (canUpdate) {
             updateProfileBtn.addEventListener('click', () => {
                 if (updateProfileModal) {
                     updateProfileModal.classList.remove('hidden');
                     updateProfileModal.classList.add('show', 'flex');
                     loadAddressData();
-                    initializeFormState(); // Initialize form state
-                    // NEW: Initialize student year options if needed
+                    initializeFormState();
                     setTimeout(updateStudentYearOptions, 100);
                 }
             });
         }
     }
 
-    // Also call when auto-opening modal
     <?php if ($auto_open_modal): ?>
     setTimeout(() => {
         initializeFormState();
