@@ -87,66 +87,56 @@ ob_start();
 <!-- MODERN ACTIVITY LOG HEADER -->
 <div class="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
 
-    <!-- Left: Back Button -->
-    <a href="admin_dashboard.php"
-        class="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-purple-600 to-purple-500
+    <!-- Left: Filters (Compact Version) -->
+    <div class="flex-1 md:flex md:justify-end">
+        <div class="rounded-2xl bg-gradient-to-r from-purple-50 to-white p-4 shadow-lg border border-purple-100">
+            <form method="GET" class="flex items-center justify-between gap-3">
+                <!-- Filter Title -->
+                <div class="flex items-center gap-2 flex-shrink-0">
+                    <i class="fas fa-sliders-h"></i>
+                </div>
+
+                <div class="flex items-center gap-3 flex-1 justify-end">
+                    <!-- Action Type -->
+                    <div class="flex-1 min-w-[144px] max-w-[144px]">
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Filter Action</label>
+                        <select name="type" class="w-full px-2 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-purple-500 transition text-sm">
+                            <option value="">All Actions</option>
+                            <option value="update" <?= $filter_type === 'update' ? 'selected' : '' ?>>Update</option>
+                            <option value="approve" <?= $filter_type === 'approve' ? 'selected' : '' ?>>Approve</option>
+                            <option value="reject" <?= $filter_type === 'reject' ? 'selected' : '' ?>>Reject</option>
+                        </select>
+                    </div>
+
+                    <!-- Date -->
+                    <div class="flex-1 min-w-[144px] max-w-[144px]">
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Date</label>
+                        <input type="date" name="date" value="<?= $filter_date ?>" class="w-full px-2 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-purple-500 transition text-sm">
+                    </div>
+
+                    <!-- Buttons -->
+                    <div class="flex gap-3 flex-shrink-0">
+                        <button type="submit" class="px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-500 text-white rounded-2xl shadow-lg hover:scale-105 hover:brightness-110 transition-all duration-200 text-sm font-semibold flex items-center gap-2">
+                            <i class="fas fa-filter"></i> Apply Filter
+                        </button>
+                        <a href="activity_log.php" class="px-6 py-3 bg-gray-100 text-gray-800 rounded-2xl shadow hover:scale-105 hover:bg-gray-200 transition-all duration-200 text-sm font-semibold flex items-center gap-2">
+                            <i class="fas fa-sync-alt"></i> Reset
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Right: Back Button -->
+    <a href="admin_dashboard.php" class="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-purple-600 to-purple-500
         text-white font-medium rounded-xl shadow-lg hover:brightness-110 transition-all duration-200">
         <i class="fas fa-arrow-left"></i>
         Back to Dashboard
     </a>
 
-    <!-- Right: Filters (Compact Version) -->
-    <div class="flex-1">
-        <div class="rounded-2xl bg-gradient-to-r from-purple-50 to-white p-4 shadow-lg border border-purple-200">
-            <form method="GET" class="flex flex-wrap items-center gap-3">
-
-                <!-- Filter Title -->
-                <div class="flex items-center gap-2 flex-shrink-0">
-                    <h3 class="text-lg font-semibold text-purple-800 flex items-center gap-2 whitespace-nowrap">
-                        <i class="fas fa-sliders-h"></i>
-                        Activity Log Filters
-                    </h3>
-                </div>
-
-              <!-- Action Type -->
-<div class="flex-1 min-w-[144px]">
-    <label class="block text-xs font-medium text-gray-700 mb-1">Action</label>
-    <select name="type"
-        class="w-[144px] px-2 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-purple-500 transition text-sm">
-        <option value="">All Actions</option>
-        <option value="update" <?= $filter_type === 'update' ? 'selected' : '' ?>>Update</option>
-        <option value="approve" <?= $filter_type === 'approve' ? 'selected' : '' ?>>Approve</option>
-        <option value="reject" <?= $filter_type === 'reject' ? 'selected' : '' ?>>Reject</option>
-    </select>
 </div>
 
-<!-- Date -->
-<div class="flex-1 min-w-[144px]">
-    <label class="block text-xs font-medium text-gray-700 mb-1">Date</label>
-    <input type="date" name="date" value="<?= $filter_date ?>"
-        class="w-[144px] px-2 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-purple-500 transition text-sm">
-</div>
-
-               <!-- Buttons -->
-<div class="flex gap-3 flex-shrink-0">
-    <!-- Apply Filter Button -->
-    <button type="submit"
-        class="px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-500 text-white rounded-2xl shadow-lg hover:scale-105 hover:brightness-110 transition-all duration-200 text-sm font-semibold flex items-center gap-2">
-        <i class="fas fa-filter"></i> Apply Filter
-    </button>
-
-    <!-- Reset Button -->
-    <a href="activity_log.php"
-        class="px-6 py-3 bg-gray-100 text-gray-800 rounded-2xl shadow hover:scale-105 hover:bg-gray-200 transition-all duration-200 text-sm font-semibold flex items-center gap-2">
-        <i class="fas fa-sync-alt"></i> Reset
-    </a>
-</div>
-
-            </form>
-        </div>
-    </div>
-
-</div>
 
 <!-- RECENT ACTIVITIES TABLE -->
 <div class="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
