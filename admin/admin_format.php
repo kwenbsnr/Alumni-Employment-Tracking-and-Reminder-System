@@ -19,20 +19,21 @@ if (!isset($_SESSION["user_id"]) || $_SESSION["role"] !== "admin") {
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         /* Custom CSS for modern design */
-        :root {
-            --primary-blue: #072ac8;
-            --primary-blue-light: #1e40e3;
-            --primary-blue-dark: #051a9c;
-        }
-        
-        /* Increase base font size for admin panel */
-        body {
-            font-size: 16px;
-        }
-        
-        .admin-gradient-bg {
-            background: linear-gradient(180deg, var(--primary-blue-dark) 50%, var(--primary-blue-dark) 100%);
-        }
+       :root {
+    --primary-blue: #3b404aff; /* Change from #072ac8 to gray */
+    --primary-blue-light: #9ca3af; /* Change from #1e40e3 to lighter gray */
+    --primary-blue-dark: #22262cff; /* Change from #051a9c to darker gray */
+}
+
+.header-shadow {
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    border-bottom: 2px solid var(--primary-blue); /* This will now use the gray color */
+}
+
+.admin-gradient-bg {
+    background: linear-gradient(180deg, var(--primary-blue-dark) 50%, var(--primary-blue-dark) 100%);
+}
+
         
         .admin-sidebar-item {
             transition: all 0.3s ease;
