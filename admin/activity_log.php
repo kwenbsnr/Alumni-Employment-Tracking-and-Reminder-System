@@ -83,19 +83,15 @@ $activityResult = $activityStmt->get_result();
 
 ob_start();
 // ... rest of the code ...
-?><div class="space-y-8">
+?><div class="space-y-1">
 <!-- MODERN ACTIVITY LOG HEADER -->
-<div class="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+<div class="mb-3 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
 
     <!-- Left: Filters (Compact Version) -->
     <div class="flex-1 md:flex md:justify-start">
         <div class="rounded-2xl bg-gradient-to-r from-purple-50 to-white p-4 shadow-lg border border-purple-100">
             <form method="GET" class="flex items-center gap-3">
-                
-                <!-- Filter Icon -->
-                <div class="flex items-center gap-2 flex-shrink-0">
-                    <i class="fas fa-sliders-h"></i>
-                </div>
+              
 
                 <div class="flex items-center gap-3 flex-1">
                     <!-- Action Type -->
@@ -202,10 +198,6 @@ ob_start();
                                 <div class="max-w-xs">
                                     <p class="font-medium text-gray-900 text-sm leading-6">
                                         <?= getEnhancedActivityText($activity) ?>
-                                    </p>
-                                    <p class="text-xs text-gray-500 mt-1 flex items-center">
-                                        <i class="fas fa-id-card mr-1.5 opacity-60"></i>
-                                        ID: <?= $activity['updated_id'] ?>
                                     </p>
                                 </div>
                             </td>
