@@ -85,7 +85,7 @@ ob_start();
 // ... rest of the code ...
 ?><div class="space-y-8">
 <!-- MODERN ACTIVITY LOG HEADER -->
-<div class="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+<div class="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
 
     <!-- Left: Filters (Compact Version) -->
     <div class="flex-1 md:flex md:justify-start">
@@ -116,14 +116,15 @@ ob_start();
                     </div>
 
                     <!-- Buttons -->
-                    <div class="flex gap-3 flex-shrink-0">
-                        <button type="submit" class="px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-500 text-white rounded-2xl shadow-lg hover:scale-105 hover:brightness-110 transition-all duration-200 text-sm font-semibold flex items-center gap-2">
-                            <i class="fas fa-filter"></i> Apply Filter
-                        </button>
-                        <a href="activity_log.php" class="px-6 py-3 bg-gray-100 text-gray-800 rounded-2xl shadow hover:scale-105 hover:bg-gray-200 transition-all duration-200 text-sm font-semibold flex items-center gap-2">
-                            <i class="fas fa-sync-alt"></i> Reset
-                        </a>
-                    </div>
+<div class="flex gap-3 flex-shrink-0">
+    <button type="submit" class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-2xl shadow-lg hover:scale-105 hover:brightness-110 transition-all duration-200 text-sm font-semibold flex items-center gap-2">
+        <i class="fas fa-filter"></i> Apply Filter
+    </button>
+    <a href="activity_log.php" class="px-6 py-3 bg-gray-100 text-gray-800 rounded-2xl shadow hover:scale-105 hover:bg-gray-200 transition-all duration-200 text-sm font-semibold flex items-center gap-2">
+        <i class="fas fa-sync-alt"></i> Reset
+    </a>
+</div>
+
                 </div>
 
             </form>
@@ -131,44 +132,43 @@ ob_start();
     </div>
 
     <!-- Right: Back Button -->
-    <a href="admin_dashboard.php" class="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-purple-600 to-purple-500 text-white font-medium rounded-xl shadow-lg hover:brightness-110 transition-all duration-200">
-        <i class="fas fa-arrow-left"></i>
-        Back to Dashboard
-    </a>
+<a href="admin_dashboard.php" 
+   class="inline-flex items-center gap-2 px-5 py-3 bg-gray-600 text-white font-medium rounded-xl shadow-lg 
+          hover:bg-black transition-all duration-200">
+    <i class="fas fa-arrow-left"></i>
+    Back to Dashboard
+</a>
 
 </div>
 
-<!-- RECENT ACTIVITIES TABLE -->
-<div class="rounded-2xl bg-gradient-to-r from-purple-50 to-white p-4 shadow-lg border border-purple-100 overflow-hidden"> <!-- updated -->
-
-    <!-- Table Header -->
-    <div class="px-6 py-5 border-b border-purple-200 bg-gradient-to-r from-purple-50 to-white"> <!-- updated -->
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-            <div>
-                <h3 class="text-xl font-bold text-gray-900">Recent Activities</h3>
-                <p class="text-gray-600 mt-1">All system actions and modifications</p>
-            </div>
-            <div class="mt-2 sm:mt-0">
-                <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-                    <i class="fas fa-database mr-1.5"></i>
-                    Total <?= $totalRows ?> records
-                </span>
-            </div>
+<!-- Table Header -->
+<div class="px-2 py-1 border-b border-blue-200 bg-gradient-to-r from-blue-500 to-blue-300 text-white -mt-"> <!-- updated -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+        <div>
+            <h3 class="text-xl font-bold">Recent Activities</h3>
+            <p class="mt-0">All system actions and modifications</p>
+        </div>
+        <div class="mt-2 sm:mt-0">
+            <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                <i class="fas fa-database mr-1.5"></i>
+                Total <?= $totalRows ?> records
+            </span>
         </div>
     </div>
-
+</div>
 
     <!-- Table Content -->
     <div class="overflow-x-auto">
         <table class="w-full">
-            <thead class="bg-gray-50/80 backdrop-blur-sm sticky top-0 border-b border-gray-200">
-                <tr class="text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">
-                    <th class="pl-6 pr-3 py-4">Activity</th>
-                    <th class="px-3 py-4">Details</th>
-                    <th class="px-3 py-4">Admin</th>
-                    <th class="pl-3 pr-6 py-4">Timestamp</th>
-                </tr>
-            </thead>
+          <thead class="bg-gray-300 sticky top-0 border-b border-gray-300">
+    <tr class="text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">
+        <th class="pl-6 pr-3 py-4">Activity</th>
+        <th class="px-3 py-4">Details</th>
+        <th class="px-3 py-4">Admin</th>
+        <th class="pl-3 pr-6 py-4">Timestamp</th>
+    </tr>
+</thead>
+
 
             <tbody class="divide-y divide-gray-200/60">
                 <?php if ($activityResult->num_rows > 0): ?>
