@@ -143,24 +143,29 @@ ob_start();
 .card-icon {
     transition: transform 0.3s ease;
 }
-
-/* Set grid row height for analytics + recent activity */
-.dashboard-grid {
-    display: grid;
-    grid-template-columns: 1fr 360px;
-    gap: 20px;
-    align-items: start;
-    /* Removed fixed height to allow content to dictate height */
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden; /* Prevents page scroll */
 }
 
-/* Make main content stretch */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 360px; /* Main content + sidebar */
+    gap: 20px;
+    height: 100vh; /* Full viewport height */
+    padding: 10px;
+    box-sizing: border-box;
+}
 .main-content {
     display: flex;
     flex-direction: column;
     gap: 20px;
-    height: 100%;
-    /* Removed fixed height */
+    height: 100%; /* Fill the grid height */
+    overflow: hidden;
 }
+
 /* Recent Activity sidebar */
 .recent-activity-sidebar {
     background: white;
@@ -289,7 +294,10 @@ ob_start();
     </div>
     </div>
     <div class="recent-activity-sidebar">
-       <div class="p-5 border-b" style="background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 50%, #93c5fd 100%); border-bottom: 1px solid #93c5fd;">
+<div class="p-5 border-b" 
+     style="background: linear-gradient(135deg, #e0f2fe 0%, #bfdbfe 50%, #93c5fd 100%);
+            border-bottom: 1px solid #d1d5db;">
+
     <div class="flex justify-between items-center">
         <div>
             <h3 class="text-lg font-semibold text-blue-900">Recent Activity</h3>
@@ -348,67 +356,57 @@ ob_start();
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
 <script>
 // Employment Distribution Chart with improved colors
 <?php if (array_sum($careerData) > 0): ?>
 const employmentCtx = document.getElementById('employmentChart').getContext('2d');
 new Chart(employmentCtx, {
-    type: 'pie',
+    type: 'doughnut',
     data: {
         labels: <?php echo json_encode($careerLabels); ?>,
         datasets: [{
             data: <?php echo json_encode($careerData); ?>,
             backgroundColor: [
-                '#4A90E2', // Soft Blue
-                '#7ED321', // Soft Green  
-                '#F5A623', // Soft Orange
-                '#D0021B', // Soft Red
-                '#9B51E0', // Soft Purple
-                '#06b6d4', // Cyan
-                '#84cc16'  // Lime
+                '#4A90E2', '#7ED321', '#F5A623', '#D0021B', '#9B51E0'
             ],
-            borderWidth: 3,
+            borderWidth: 2,
             borderColor: '#fff',
-            hoverBorderWidth: 4,
-            hoverBorderColor: '#fff'
+            hoverOffset: 10
         }]
     },
     options: {
         responsive: true,
         maintainAspectRatio: false,
+        cutout: '65%',
         plugins: {
-            legend: { 
+            legend: {
                 position: 'bottom',
                 labels: {
-                    padding: 20, /* Reduced padding */
                     usePointStyle: true,
-                    font: {
-                        size: 12,
-                        family: "'Inter', sans-serif"
-                    }
+                    padding: 15,
+                    font: { size: 13, family: "'Inter', sans-serif" }
                 }
             },
             tooltip: {
-                backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                titleColor: '#1f2937',
-                bodyColor: '#4b5563',
-                borderColor: '#e5e7eb',
-                borderWidth: 1,
-                cornerRadius: 8,
-                usePointStyle: true,
                 callbacks: {
                     label: function(context) {
                         const label = context.label || '';
                         const value = context.raw || 0;
                         const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                        const percentage = Math.round((value / total) * 100);
+                        const percentage = ((value / total) * 100).toFixed(1);
                         return `${label}: ${value} (${percentage}%)`;
                     }
-                }
+                },
+                backgroundColor: 'rgba(255,255,255,0.95)',
+                titleColor: '#1f2937',
+                bodyColor: '#4b5563',
+                borderColor: '#e5e7eb',
+                borderWidth: 1,
+                cornerRadius: 8
             }
-        },
-        cutout: '0%'
+        }
     }
 });
 <?php endif; ?>
