@@ -268,7 +268,8 @@ html, body {
             <p class="text-sm text-gray-500 mt-1">Visual data for career status and graduation trends.</p>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6"> <div class="rounded-xl border border-gray-200 p-5 shadow-sm transition duration-300 hover:shadow-md"> <h3 class="text-lg font-semibold text-gray-800 mb-4 border-b pb-2">Employment Status Distribution</h3>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6"> <div class="rounded-xl border border-gray-200 p-3 shadow-sm transition duration-300 hover:shadow-md"> 
+            <h3 class="text-lg font-bold text-gray-800 mb-2 border-b pb-2">Employment Status Distribution</h3>
                 <?php if (array_sum($careerData) > 0): ?>
                     <div class="h-80"> <canvas id="employmentChart"></canvas>
                     </div>
@@ -280,7 +281,8 @@ html, body {
                 <?php endif; ?>
             </div>
 
-            <div class="rounded-xl border border-gray-200 p-5 shadow-sm transition duration-300 hover:shadow-md"> <h3 class="text-lg font-semibold text-gray-800 mb-4 border-b pb-2">Graduates by Year Trend</h3>
+            <div class="rounded-xl border border-gray-200 p-3 shadow-sm transition duration-300 hover:shadow-md"> 
+                <h3 class="text-lg font-bold text-gray-800 mb-2 border-b pb-2">Graduates per Year</h3>
                 <?php if (!empty($gradYears) && array_sum($gradCounts) > 0): ?>
                     <div class="h-80"> <canvas id="graduationChart"></canvas>
                     </div>
