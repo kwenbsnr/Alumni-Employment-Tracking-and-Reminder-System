@@ -153,15 +153,22 @@ ob_start();
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     border: 1px solid #f1f1f1;
 }
-
-.activity-item {
-    transition: all 0.2s ease;
-    border-left: 3px solid transparent;
-}
-
 .activity-item:hover {
     border-left-color: var(--activity-color);
-    background: #f8fafc;
+    background-color: rgba(0, 0, 0, 0.03); /* subtle hover bg */
+}
+
+/* Optional: more prominent color based on status */
+.activity-item:hover.approve {
+    background-color: rgba(16, 185, 129, 0.1); /* green hover */
+}
+
+.activity-item:hover.reject {
+    background-color: rgba(239, 68, 68, 0.1); /* red hover */
+}
+
+.activity-item:hover.update {
+    background-color: rgba(59, 130, 246, 0.1); /* blue hover */
 }
 
 /* New layout styles - Tighter grid for max space */
@@ -300,21 +307,23 @@ ob_start();
     </div>
 
     <div class="recent-activity-sidebar">
-        <div class="p-5 border-b border-gray-200"> <div class="flex justify-between items-center">
-                <div>
-                    <h3 class="text-lg font-semibold text-gray-900">Recent Activity</h3>
-                    <p class="text-sm text-gray-600 mt-1">Latest 10 updates and changes</p>
-                </div>
-                <a href="activity_log.php" class="inline-flex items-center px-3 py-1.5 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors font-medium text-xs">
-                    View All
-                    <i class="fas fa-arrow-right ml-1 text-xs"></i>
-                </a>
-            </div>
+       <div class="p-5 border-b" style="background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 50%, #93c5fd 100%); border-bottom: 1px solid #93c5fd;">
+    <div class="flex justify-between items-center">
+        <div>
+            <h3 class="text-lg font-semibold text-blue-900">Recent Activity</h3>
+            <p class="text-sm text-blue-700 mt-1">Latest 10 updates and changes</p>
         </div>
+        <a href="activity_log.php" class="inline-flex items-center px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors font-medium text-xs border border-blue-200">
+            View All
+            <i class="fas fa-arrow-right ml-1 text-xs"></i>
+        </a>
+    </div>
+</div>
         <div class="p-4 space-y-3 overflow-y-auto"> <?php if ($recentActivityResult->num_rows > 0): ?>
                 <?php while ($activity = $recentActivityResult->fetch_assoc()): ?>
-                    <div class="activity-item p-3 bg-white rounded-lg border border-gray-100 hover:shadow-sm transition-all" 
-                          style="--activity-color: <?php echo getActivityHexColor($activity['update_type']); ?>">
+                   <div class="activity-item p-3 bg-white rounded-lg border border-gray-100 hover:shadow-sm transition-all <?php echo $activity['update_type']; ?>" 
+      style="--activity-color: <?php echo getActivityHexColor($activity['update_type']); ?>">
+
                         <div class="flex items-start space-x-3">
                             <div class="flex-shrink-0">
                                 <div class="p-2 rounded-lg <?php echo getActivityColor($activity['update_type']); ?>">
