@@ -218,20 +218,14 @@ document.addEventListener("DOMContentLoaded", () => {
                     
                     if ($active_page === 'alumni_management') {
                         $welcome_text = "Manage and view all alumni records in the system.";
-                    } elseif ($active_page === 'dashboard') {
-                        $welcome_text = "Welcome back! Here's what's happening today.";
+                    } elseif ($active_page === 'activity_log') {
+                        $welcome_text = "Track updates, approvals, rejections, and other admin activities.";
                     }
                     // Add more conditions for other pages as needed
                     ?>
                     
                     <span class="text-gray-500"><?php echo $welcome_text; ?></span>
-                    
-                    <?php if (isset($breadcrumb) && !empty($breadcrumb)): ?>
-                        <?php foreach($breadcrumb as $item): ?>
-                            <span class="mx-2">/</span>
-                            <a href="<?php echo $item['url'] ?? '#'; ?>" class="hover:text-blue-600"><?php echo $item['name']; ?></a>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
+                
                 </nav>
             </div>
                     <!-- Right Side Actions -->
