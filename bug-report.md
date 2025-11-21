@@ -1,29 +1,3 @@
-```
-📁 Annotated Directory Structure
-
-├─ admin/                                 # Admin module
-│  ├─ admin_dashboard.php          # Admin dashboard
-│  ├─ alumni_management.php        # Batch cards display with search/filter features
-│  ├─ edit_alumni.php              # Future dev; frontend for editing alumni details
-│  ├─ get_documents.php            # For admin document viewing
-│  ├─ update_alumni.php            # Backend logic for edit_alumni.php
-│  ├─ update_status.php            # Backend logic; handles the approval/rejection and notif
-│  ├─ admin_format.php             # Admin header and sidebar layout
-│  ├─ batch_alumni.php             # Alumni list for a given batch and management actions
-│  ├─ get_alumni_details.php       # Hover preview of alumni details
-│  ├─ activity_log.php             # Tracks admin actions and activity history
-│  ├─ check_paths.php              # Temp debugging utility 
-│  └─ admin_format.css             # Admin header and sidebar styles
-│
-├─ alumni/                               # Alumni module
-│  ├─ alumni_dashboard.php        # Alumni dashboard
-│  ├─ alumni_format.php           # Alumni header and sidebar layout
-│  ├─ alumni_profile.php          # Profile management page
-│  ├─ update_profile.php          # Backend logic
-│  └─ alumni_format.css           # Alumni header and sidebar styles
-```
-
-
 **Alumni Module Bug Report**
 
 🔴 Critical
@@ -41,22 +15,25 @@ ______________________
 1. **[FIXED]** Start year vs. graduation year logic:
 If a user is a "Student" or “Employed & Student,” check that start year is later than graduation year. Additionally, the graduation year must be later than the start year.
  
-2. **[FIXED]** Yellow rejection card display:
+2. Yellow rejection card display:
 Rejection cards must appear in the dashboard, not only in the proceeding tab. It should match the style of the “Complete Your Profile” card.
 
 🟡 Medium Priority 
 ______________________
 
-1. **[FIXED]** Alumni data display:
+1. Alumni data display:
 After a successful submission, the Employment/Academic Details cards must be displayed on the dashboard using the same UI style as existing cards, positioned below the existing cards for consistency. Currently, these cards are displayed only in the Profile Management tab.
 
-2. **[FIXED]** Profile completion card display logic:
-If profile is rejected, completion card must display 0% instead of 100%. 
+2. Profile completion card display logic:
+If a submission is rejected, the completion card should display 0% instead of 100%.
+
+3. Submission display cards behavior:
+Better if no empty display cards appear before the alumnus submits their information. The cards should only be shown after a submission has been made.
 
 🟢 Low Priority 
 ______________________
 
-1. **[FIXED]** Successful submission display issue:
+1. Successful submission display issue:
 Successful submission must appear on the dashboard like the “Complete Your Profile” card, but the color should be green.
 
 2. Start & end year display:
@@ -86,4 +63,4 @@ ______________________
 
 4. ang admin inig human approve/reject, dapat stay lng sa page & d mu redirect sa batch display page.
 
-5. if mag approve ang admin dapat naay "undo approve" instead of directly showing the "reject" button.  
+5. if mag approve ang admin dapat naay "undo approve" instead of directly showing the "reject" button. 

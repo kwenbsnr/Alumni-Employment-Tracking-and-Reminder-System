@@ -65,32 +65,36 @@ $result = $stmt->get_result();
 $docs = $result->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
 
-// Update permissions logic
-$is_profile_rejected = !empty($profile) && ($profile['submission_status'] ?? '') === 'Rejected';
-$can_update_yearly = empty($profile) || 
-                     ($profile && ($profile['last_profile_update'] === null || 
-                      strtotime($profile['last_profile_update'] . ' +1 year') <= time()));
+// FIXED: Profile permissions logic
+$submission_status = $profile['submission_status'] ?? null;
+$last_profile_update = $profile['last_profile_update'] ?? null;
+
+// Enhanced permission logic
+$is_profile_new = empty($profile) || $submission_status === null;
+$is_profile_rejected = !empty($profile) && $submission_status === 'Rejected';
+$is_profile_approved = !empty($profile) && $submission_status === 'Approved';
+$is_profile_pending = !empty($profile) && $submission_status === 'Pending';
+
+// FIX: Check if profile has personal data for display
+$has_personal_data = !empty($profile) && !empty($profile['first_name']) && !empty($profile['last_name']);
+
+// Yearly update logic - only if profile was previously approved
+$can_update_yearly = $is_profile_new || 
+                    ($is_profile_approved && ($last_profile_update === null || 
+                     strtotime($last_profile_update . ' +1 year') <= time()));
+
 $can_reupload = $is_profile_rejected;
-$can_update = empty($profile) || $can_update_yearly || $can_reupload;
 
-// Debug permission logic
-error_log("=== PROFILE PERMISSIONS DEBUG ===");
-error_log("User ID: " . $user_id);
-error_log("Profile exists: " . (!empty($profile) ? 'YES' : 'NO'));
-error_log("Submission Status: " . ($profile['submission_status'] ?? 'NONE'));
-error_log("Last Profile Update: " . ($profile['last_profile_update'] ?? 'NEVER'));
-error_log("Is Profile Rejected: " . ($is_profile_rejected ? 'YES' : 'NO'));
-error_log("Can Update Yearly: " . ($can_update_yearly ? 'YES' : 'NO'));
-error_log("Can Reupload: " . ($can_reupload ? 'YES' : 'NO'));
-error_log("Can Update: " . ($can_update ? 'YES' : 'NO'));
+// User can update if: new profile, pending review, yearly update allowed, or profile was rejected
+$can_update = $is_profile_new || $is_profile_pending || $can_update_yearly || $can_reupload;
 
-// Auto-modal opening only when coming from rejection
-$auto_open_modal = isset($_SESSION['profile_rejected']) && $_SESSION['profile_rejected'];
+// FIXED: Auto-modal opening logic - only open when there's data to edit
+$auto_open_modal = isset($_SESSION['profile_rejected']) && $_SESSION['profile_rejected'] && $has_personal_data;
 if ($auto_open_modal) {
-    unset($_SESSION['profile_rejected']); // Clear the flag after use
+    unset($_SESSION['profile_rejected']);
 }
 
-$full_name = 'Alumni';
+$full_name = 'N/A';
 if (!empty($profile)) {
     $full_name = trim(
         ($profile['first_name'] ?? '') . ' ' .
@@ -98,7 +102,7 @@ if (!empty($profile)) {
         ($profile['last_name'] ?? '')
     );
     if (empty($full_name)) {
-        $full_name = 'Alumni';
+        $full_name = 'N/A';
     }
 }
 
@@ -112,166 +116,359 @@ ob_start();
     <div class="bg-red-100 p-4 rounded mb-4"><?php echo htmlspecialchars($_GET['error']); ?></div>
 <?php endif; ?>
 
-<div class="space-y-6">
-    <!-- Update Profile Box -->
-    <div id="updateProfileBtn" class="bg-white p-6 rounded-xl shadow-lg flex flex-col justify-between hover:shadow-xl transition duration-200 border-t-4 <?php echo $can_update ? 'border-green-500 cursor-pointer' : 'border-gray-300 cursor-not-allowed'; ?>">
-        <div class="flex items-center justify-between mb-3">
-            <h3 class="text-lg font-semibold <?php echo $can_update ? 'text-gray-600' : 'text-gray-400'; ?>">
-                <?php echo $can_update ? 'Update Profile' : 'Profile Update Not Available'; ?>
-            </h3>
-            <i class="fas fa-user-edit text-xl <?php echo $can_update ? 'text-green-500' : 'text-gray-400'; ?>"></i>
-        </div>
-        <p class="text-sm <?php echo $can_update ? 'text-gray-500' : 'text-gray-400'; ?>">
-            <?php 
-            if ($can_update) {
-                echo 'Click to edit your personal, employment, and educational details.';
-            } else {
-                if (!empty($profile) && ($profile['submission_status'] ?? '') === 'Approved') {
-                    echo 'Your profile has been approved. You can update again after one year.';
+<div class="space-y-6 mt-3 mb-5">
+ <!-- Status Card - FIXED: Show for all rejected profiles -->
+<div id="updateProfileBtn" class="
+    <?php 
+    if ($is_profile_rejected) {
+        echo 'bg-white border-green-500 cursor-pointer'; // Green = actionable
+    } elseif ($is_profile_approved) {
+        echo 'bg-blue-50 border-blue-500 cursor-not-allowed';
+    } elseif ($is_profile_pending) {
+        echo 'bg-yellow-50 border-yellow-500 cursor-not-allowed';
+    } elseif ($can_update) {
+        echo 'bg-white border-green-500 cursor-pointer';
+    } else {
+        echo 'bg-yellow-50 border-yellow-500 cursor-not-allowed';
+    }
+    ?> 
+    p-4 rounded-lg shadow flex flex-col justify-start hover:shadow-md transition duration-200 border-t-4 h-auto min-h-32">
+    
+    <!-- Header: Status Title + Icon -->
+    <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center space-x-3">
+            <!-- Status Icon -->
+            <i class="fas 
+                <?php 
+                if ($is_profile_rejected) echo 'fa-exclamation-triangle text-red-600';
+                elseif ($is_profile_approved) echo 'fa-check-circle text-blue-600';
+                elseif ($is_profile_pending) echo 'fa-clock text-yellow-600';
+                else echo 'fa-lock text-yellow-600';
+                ?> 
+                text-xl"></i>
+            
+            <!-- Main Title -->
+            <h3 class="text-xl font-bold 
+                <?php 
+                if ($is_profile_rejected) echo 'text-red-900';
+                elseif ($is_profile_approved) echo 'text-blue-900';
+                elseif ($is_profile_pending) echo 'text-yellow-900';
+                else echo 'text-gray-700';
+                ?>">
+                <?php 
+                if ($is_profile_rejected) {
+                    echo 'Profile Rejected';
+                } elseif ($is_profile_approved) {
+                    echo 'Profile Approved';
+                } elseif ($is_profile_pending) {
+                    echo 'Profile Pending Review';
+                } elseif ($can_update) {
+                    echo 'Update Profile';
                 } else {
-                    echo 'Profile update is not available at this time.';
+                    echo 'Profile Editing Locked';
                 }
-            }
-            ?>
-        </p>
+                ?>
+            </h3>
+        </div>
+
+        <!-- Action Icon (only show if clickable) -->
+        <?php if ($is_profile_rejected || $can_update): ?>
+            <i class="fas fa-user-edit text-green-600 text-xl"></i>
+        <?php endif; ?>
     </div>
 
-    <?php if (!empty($profile) && ($profile['submission_status'] ?? '') !== 'Rejected'): ?>
-        <!-- Only show profile cards if not rejected -->
-        <!-- Personal Information Card -->
-        <div class="bg-white p-6 rounded-xl shadow-lg">
-            <h3 class="text-lg font-semibold text-gray-600 mb-4">Personal Information</h3>
-            <dl class="grid grid-cols-1 gap-4">
-                <div class="flex justify-between">
-                    <dt class="font-medium">Full Name</dt>
-                    <dd><?php echo htmlspecialchars($full_name); ?></dd>
-                </div>
-                <div class="flex justify-between">
-                    <dt class="font-medium">Email</dt>
-                    <dd><?php echo htmlspecialchars($profile['email'] ?? 'N/A'); ?></dd>
-                </div>
-                <div class="flex justify-between">
-                    <dt class="font-medium">Contact Number</dt>
-                    <dd><?php echo htmlspecialchars($profile['contact_number'] ?? 'N/A'); ?></dd>
-                </div>
-                <div class="flex justify-between">
-                    <dt class="font-medium">Year Graduated</dt>
-                    <dd><?php echo htmlspecialchars($profile['year_graduated'] ?? 'N/A'); ?></dd>
-                </div>
-            </dl>
-        </div>
-
-        <!-- Address Card -->
-        <div class="bg-white p-6 rounded-xl shadow-lg">
-            <h3 class="text-lg font-semibold text-gray-600 mb-4">Address</h3>
-            <dl class="grid grid-cols-1 gap-4">
-                <div class="flex justify-between">
-                    <dt class="font-medium">Address</dt>
-                    <dd><?php echo htmlspecialchars(
-                        ($profile['barangay_name'] ?? '') . ', ' .
-                        ($profile['municipality_name'] ?? '') . ', ' .
-                        ($profile['province_name'] ?? '') . ', ' .
-                        ($profile['region_name'] ?? '')
-                    ); ?></dd>
-                </div>
-            </dl>
-        </div>
-
-        <!-- Employment/Academic Details Card -->
-        <div class="bg-white p-6 rounded-xl shadow-lg">
-            <h3 class="text-lg font-semibold text-gray-600 mb-4">Employment/Academic Details</h3>
-            <dl class="grid grid-cols-1 gap-4">
-                <div class="flex justify-between">
-                    <dt class="font-medium">Employment Status</dt>
-                    <dd><?php echo htmlspecialchars($profile['employment_status'] ?? 'Not Set'); ?></dd>
-                </div>
-                <?php if (in_array($profile['employment_status'] ?? '', ['Employed', 'Self-Employed', 'Employed & Student'])): ?>
-                    <?php if (($profile['employment_status'] ?? '') !== 'Self-Employed'): ?>
-                        <div class="flex justify-between">
-                            <dt class="font-medium">Job Title</dt>
-                            <dd><?php echo htmlspecialchars($employment['job_title'] ?? 'N/A'); ?></dd>
-                        </div>
-                        <div class="flex justify-between">
-                            <dt class="font-medium">Company Name</dt>
-                            <dd><?php echo htmlspecialchars($employment['company_name'] ?? 'N/A'); ?></dd>
-                        </div>
-                        <div class="flex justify-between">
-                            <dt class="font-medium">Company Address</dt>
-                            <dd><?php echo htmlspecialchars($employment['company_address'] ?? 'N/A'); ?></dd>
-                        </div>
-                    <?php endif; ?>
-                    <?php if (($profile['employment_status'] ?? '') === 'Self-Employed'): ?>
-                        <div class="flex justify-between">
-                            <dt class="font-medium">Business Type</dt>
-                            <dd><?php 
-                                $display_business_type = $employment['business_type'] ?? 'N/A';
-                                // Properly handle "Others: " prefix for display
-                                if (strpos($display_business_type, 'Others: ') === 0) {
-                                    $display_business_type = 'Others: ' . substr($display_business_type, 8);
-                                }
-                                echo htmlspecialchars($display_business_type); 
-                            ?></dd>
-                        </div>
-                    <?php endif; ?>
-                    <div class="flex justify-between">
-                        <dt class="font-medium"><?php echo (($profile['employment_status'] ?? '') === 'Self-Employed') ? 'Monthly Income Range' : 'Salary Range'; ?></dt>
-                        <dd><?php echo htmlspecialchars($employment['salary_range'] ?? 'N/A'); ?></dd>
-                    </div>
-                <?php endif; ?>
-                <?php if (in_array($profile['employment_status'] ?? '', ['Student', 'Employed & Student'])): ?>
-                    <div class="flex justify-between">
-                        <dt class="font-medium">School Name</dt>
-                        <dd><?php echo htmlspecialchars($education['school_name'] ?? 'N/A'); ?></dd>
-                    </div>
-                    <div class="flex justify-between">
-                        <dt class="font-medium">Degree Pursued</dt>
-                        <dd><?php echo htmlspecialchars($education['degree_pursued'] ?? 'N/A'); ?></dd>
-                    </div>
-                <?php endif; ?>
-                <?php if (($profile['employment_status'] ?? '') === 'Unemployed'): ?>
-                    <dd>Currently Unemployed</dd>
-                <?php endif; ?>
-            </dl>
-        </div>
-
-        <!-- Documents Card -->
-        <div class="bg-white p-6 rounded-xl shadow-lg">
-            <h3 class="text-lg font-semibold text-gray-600 mb-4">Documents</h3>
-            <?php if (empty($docs)): ?>
-                <p class="text-sm text-gray-500">No documents uploaded.</p>
-            <?php else: ?>
-                <div class="space-y-4">
-                    <?php 
-                    // Debug: Log documents for troubleshooting
-                    error_log("Documents found: " . print_r($docs, true));
-                    foreach ($docs as $doc): 
-                        $doc_type_name = $doc['document_type'] === 'COE' ? 'Certificate of Employment' : 
-                                    ($doc['document_type'] === 'B_CERT' ? 'Business Certificate' : 
-                                    ($doc['document_type'] === 'COR' ? 'Certificate of Registration' : $doc['document_type']));
-                    ?>
-                        <div class="flex justify-between items-center border-b pb-2">
-                            <span class="font-medium"><?php echo htmlspecialchars($doc_type_name); ?></span>
-                            <a href="../<?php echo htmlspecialchars($doc['file_path']); ?>" target="_blank" class="text-blue-600 hover:underline">View</a>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-            <?php endif; ?>
-        </div>
-    <?php endif; ?>
-    <?php if (!empty($profile) && ($profile['submission_status'] ?? '') === 'Rejected'): ?>
-        <div class="bg-yellow-100 p-6 rounded-xl shadow-lg border-l-4 border-yellow-600">
-            <div class="flex items-center space-x-3">
-                <i class="fas fa-exclamation-triangle text-yellow-600 text-xl"></i>
-                <div>
-                    <h3 class="text-lg font-semibold text-yellow-800">Profile Submission Rejected</h3>
-                    <p class="text-yellow-700">Your previous submission was rejected. Please update your profile and resubmit using the "Update Profile" button above.</p>
+    <!-- Rejection Alert Box - Prominent & Clear -->
+    <?php if ($is_profile_rejected): ?>
+        <div class="mb-4 p-4 bg-red-50 border-l-4 border-red-500 rounded-r-md">
+            <div class="flex items-start space-x-3">
+                <i class="fas fa-exclamation-circle text-red-600 text-lg mt-0.5 flex-shrink-0"></i>
+                <div class="flex-1">
+                    <p class="font-bold text-red-900 text-base">Your profile was rejected</p>
+                    
                     <?php if (!empty($profile['rejection_reason'])): ?>
-                        <p class="text-yellow-700 mt-2"><strong>Reason:</strong> <?php echo htmlspecialchars($profile['rejection_reason']); ?></p>
+                        <p class="text-red-800 mt-1 text-sm">
+                            <span class="font-semibold">Reason:</span> <?php echo htmlspecialchars($profile['rejection_reason']); ?>
+                        </p>
                     <?php endif; ?>
+                    
+                    <p class="text-red-700 mt-2 text-sm font-medium">
+                        Please fix the issues and resubmit for approval.
+                    </p>
                 </div>
             </div>
         </div>
     <?php endif; ?>
+
+    <!-- Call-to-Action Button (Green, Clickable, Only for Rejected or Can Update) -->
+    <?php if ($is_profile_rejected || $can_update): ?>
+        <div class="mt-auto">
+            <button type="button" 
+                    class="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-3 px-4 rounded-md 
+                           transition duration-200 flex items-center justify-center space-x-2 
+                           shadow-sm hover:shadow">
+                <i class="fas fa-edit"></i>
+                <span>
+                    <?php echo $is_profile_rejected 
+                        ? 'Edit & Resubmit Profile' 
+                        : ($is_profile_new ? 'Create Profile' : 'Update Profile'); ?>
+                </span>
+            </button>
+            
+            <!-- Subtext below button -->
+            <p class="text-center text-xs text-gray-500 mt-2">
+                <?php 
+                if ($is_profile_rejected) {
+                    echo 'Click to make changes and resubmit for approval.';
+                } elseif ($is_profile_new) {
+                    echo 'Complete your alumni profile to get verified.';
+                } else {
+                    echo 'Update your personal, work, and education info.';
+                }
+                ?>
+            </p>
+        </div>
+    <?php else: ?>
+        <!-- Non-actionable description -->
+        <p class="text-sm leading-tight font-medium
+            <?php 
+            echo $is_profile_approved ? 'text-blue-800' : 
+                 ($is_profile_pending ? 'text-yellow-800' : 'text-yellow-800');
+            ?>">
+            <?php
+            if ($is_profile_approved) {
+                $last_update = $profile['last_profile_update'] ?? null;
+                if ($last_update) {
+                    $formatted_date = date('M j, Y', strtotime($last_update));
+                    $next_update = date('M j, Y', strtotime($last_update . ' +6 months'));
+                    echo "Approved on <strong>$formatted_date</strong>. Next update allowed after <strong>$next_update</strong>.";
+                } else {
+                    echo 'Your profile is approved. Updates allowed every 6 months.';
+                }
+            } elseif ($is_profile_pending) {
+                echo 'Your submission is under review. You will be notified once approved.';
+            } else {
+                echo 'Profile updates are currently locked.';
+            }
+            ?>
+        </p>
+    <?php endif; ?>
+</div>
+
+      <!-- FIXED: Show profile cards only when personal data exists -->
+      <?php if ($has_personal_data): ?>
+        <!-- Always show profile cards -->
+
+   <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    
+   <!-- Personal Information Card -->
+    <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-blue-500 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-blue-50">
+        <div class="flex items-center space-x-3 mb-4 pb-2 border-b border-gray-100">
+            <h3 class="text-xl font-bold text-gray-800">Personal Information</h3>
+        </div>
+        <dl class="grid grid-cols-2 gap-4">
+            <div class="flex flex-col">
+                <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Full Name</dt>
+                <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($full_name); ?></dd>
+            </div>
+            <div class="flex flex-col">
+                <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Email</dt>
+                <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['email'] ?? 'N/A'); ?></dd>
+            </div>
+            <div class="flex flex-col">
+                <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Contact Number</dt>
+                <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['contact_number'] ?? 'N/A'); ?></dd>
+            </div>
+            <div class="flex flex-col">
+                <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Year Graduated</dt>
+                <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['year_graduated'] ?? 'N/A'); ?></dd>
+            </div>
+        </dl>
+    </div>
+    <!-- Address Card -->
+    <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-green-500 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-green-50">
+        <div class="flex items-center space-x-3 mb-4 pb-2 border-b border-gray-100">
+            <h3 class="text-xl font-bold text-gray-800">Address</h3>
+        </div>
+        <dl class="grid grid-cols-2 gap-4">
+            <div class="flex flex-col">
+                <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Barangay</dt>
+                <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['barangay_name'] ?? 'N/A'); ?></dd>
+            </div>
+            <div class="flex flex-col">
+                <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Municipality/City</dt>
+                <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['municipality_name'] ?? 'N/A'); ?></dd>
+            </div>
+            <div class="flex flex-col">
+                <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Province</dt>
+                <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['province_name'] ?? 'N/A'); ?></dd>
+            </div>
+            <div class="flex flex-col">
+                <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Region</dt>
+                <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['region_name'] ?? 'N/A'); ?></dd>
+            </div>
+        </dl>
+    </div>
+</div>
+
+<!-- Container for Employment/Academic Details and Documents -->
+<div class="flex flex-col md:flex-row md:space-x-6">
+  <!-- Employment/Academic Details Card -->
+<div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-purple-500 flex-1 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-purple-50">
+    <div class="flex items-center space-x-3 mb-4 pb-2 border-b border-gray-100">
+        <h3 class="text-xl font-bold text-gray-800">Employment/Academic Details</h3>
+    </div>
+    <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="flex flex-col">
+            <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Employment Status</dt>
+            <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['employment_status'] ?? 'Not Set'); ?></dd>
+        </div>
+        <?php if (in_array($profile['employment_status'] ?? '', ['Employed', 'Self-Employed', 'Employed & Student'])): ?>
+            <?php if (($profile['employment_status'] ?? '') !== 'Self-Employed'): ?>
+                <div class="flex flex-col">
+                    <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Job Title</dt>
+                    <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($employment['job_title'] ?? 'N/A'); ?></dd>
+                </div>
+                <div class="flex flex-col">
+                    <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Company Name</dt>
+                    <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($employment['company_name'] ?? 'N/A'); ?></dd>
+                </div>
+                <div class="flex flex-col">
+                    <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;"><?php echo (($profile['employment_status'] ?? '') === 'Self-Employed') ? 'Monthly Income Range' : 'Salary Range'; ?></dt>
+                    <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($employment['salary_range'] ?? 'N/A'); ?></dd>
+                </div>
+                <div class="flex flex-col md:col-span-2">
+                    <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Company Address</dt>
+                    <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($employment['company_address'] ?? 'N/A'); ?></dd>
+                </div>
+            <?php endif; ?>
+            <?php if (($profile['employment_status'] ?? '') === 'Self-Employed'): ?>
+                <div class="flex flex-col">
+                    <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Business Type</dt>
+                    <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php
+                        $display_business_type = $employment['business_type'] ?? 'N/A';
+                        if (strpos($display_business_type, 'Others: ') === 0) {
+                            $display_business_type = 'Others: ' . substr($display_business_type, 8);
+                        }
+                        echo htmlspecialchars($display_business_type);
+                    ?></dd>
+                </div>
+                <div class="flex flex-col">
+                    <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Monthly Income Range</dt>
+                    <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($employment['salary_range'] ?? 'N/A'); ?></dd>
+                </div>
+            <?php endif; ?>
+        <?php endif; ?>
+        <?php if (in_array($profile['employment_status'] ?? '', ['Student', 'Employed & Student'])): ?>
+            <div class="flex flex-col">
+                <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">School Name</dt>
+                <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($education['school_name'] ?? 'N/A'); ?></dd>
+            </div>
+            <div class="flex flex-col">
+                <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Degree Pursued</dt>
+                <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($education['degree_pursued'] ?? 'N/A'); ?></dd>
+            </div>
+        <?php endif; ?>
+        <?php if (($profile['employment_status'] ?? '') === 'Unemployed'): ?>
+            <div class="flex flex-col md:col-span-2">
+                <dd class="font-semibold text-gray-700" style="font-size: 15px;">Currently Unemployed</dd>
+            </div>
+        <?php endif; ?>
+    </dl>
+</div>
+
+<!-- Documents Card -->
+<div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-orange-500 flex-1 flex flex-col transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-orange-50">
+    <div class="flex items-center space-x-3 mb-4 pb-2 border-b border-gray-100">
+        <h3 class="text-xl font-bold text-gray-800">Documents</h3>
+    </div>
+    
+    <?php if (empty($docs)): ?>
+        <div class="flex-1 flex flex-col items-center justify-center py-8">
+            <i class="fas fa-folder-open text-gray-300 text-5xl mb-4"></i>
+            <p class="text-sm text-gray-500" style="font-size: 13px;">No documents uploaded.</p>
+        </div>
+    <?php else: ?>
+        <!-- Uploaded Documents List - Takes full available height -->
+        <div class="flex-1 space-y-4">
+            <?php
+            foreach ($docs as $doc):
+                $doc_type_name = $doc['document_type'] === 'COE' ? 'Certificate of Employment' :
+                            ($doc['document_type'] === 'B_CERT' ? 'Business Certificate' :
+                            ($doc['document_type'] === 'COR' ? 'Certificate of Registration' : $doc['document_type']));
+                
+                // Document icons
+                $doc_icon = 'fa-file-pdf';
+                $doc_color = 'text-red-500';
+                
+                // File info
+                $file_path = '../' . htmlspecialchars($doc['file_path']);
+                $file_name = basename($doc['file_path']);
+                $file_size = file_exists($file_path) ? round(filesize($file_path) / 1024, 1) . ' KB' : 'Unknown size';
+            ?>
+            <div class="bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition duration-150">
+                <!-- Top Section: Document Info -->
+                <div class="flex items-center justify-between p-4">
+                    <div class="flex items-center space-x-4 flex-1">
+                        <div class="flex-shrink-0">
+                            <i class="fas <?php echo $doc_icon; ?> <?php echo $doc_color; ?> text-2xl"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <span class="font-semibold text-gray-800 text-base"><?php echo htmlspecialchars($doc_type_name); ?></span>
+                        </div>
+                    </div>
+                    
+                    <!-- File Details - Right Side -->
+                    <div class="flex flex-col items-end space-y-1">
+                        <span class="text-gray-500 text-sm flex items-center">
+                            <i class="fas fa-file-alt mr-2"></i><?php echo htmlspecialchars($file_name); ?>
+                        </span>
+                        <span class="text-gray-500 text-sm flex items-center">
+                            <i class="fas fa-weight-hanging mr-2"></i><?php echo $file_size; ?>
+                        </span>
+                    </div>
+                </div>
+                
+                <!-- Bottom Section: Action Buttons - Centered -->
+                <div class="border-t border-gray-200 px-4 py-3 bg-white rounded-b-lg">
+                    <div class="flex justify-center space-x-3">
+                        <a href="<?php echo $file_path; ?>" target="_blank" 
+                           class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition duration-150 flex items-center space-x-2 shadow-sm">
+                            <i class="fas fa-eye"></i>
+                            <span>View</span>
+                        </a>
+                        <a href="<?php echo $file_path; ?>" download 
+                           class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition duration-150 flex items-center space-x-2 shadow-sm">
+                            <i class="fas fa-download"></i>
+                            <span>Download</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
+</div>
+
+        <?php else: ?>
+        <!-- Show empty state when no personal data exists -->
+        <div class="bg-white p-8 rounded-xl shadow-lg border-2 border-dashed border-gray-300 text-center">
+            <i class="fas fa-user-circle text-gray-400 text-6xl mb-4"></i>
+            <h3 class="text-xl font-bold text-gray-600 mb-2">No Profile Information</h3>
+            <p class="text-gray-500 mb-4">Your profile information will appear here once you complete and submit it.</p>
+            
+            <?php if ($is_profile_rejected): ?>
+                <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-md text-left max-w-md mx-auto">
+                    <div class="flex items-start space-x-3">
+                        <i class="fas fa-exclamation-circle text-red-600 text-lg mt-0.5 flex-shrink-0"></i>
+                        <div class="flex-1">
+                            <p class="font-bold text-red-900 text-base">Your previous profile was rejected</p>
+                            <p class="text-red-700 mt-1 text-sm">Please complete your profile again and resubmit for approval.</p>
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
+        </div>
+        <?php endif; ?>
 </div>
 
 <!-- Profile Update Modal (Hidden by default) -->
@@ -304,22 +501,22 @@ ob_start();
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700">First Name
-                                <input type="text" name="first_name" autocomplete="given-name" value="<?php echo htmlspecialchars($profile['first_name'] ?? ''); ?>" class="w-full border rounded-lg p-2" required <?php echo $can_update ? '' : 'disabled'; ?>>
+                                <input type="text" name="first_name" autocomplete="given-name" value="<?php echo !empty($profile['first_name']) ? htmlspecialchars($profile['first_name']) : ''; ?>" class="w-full border rounded-lg p-2" required <?php echo $can_update ? '' : 'disabled'; ?>>
                             </label>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Middle Name
-                                <input type="text" name="middle_name" autocomplete="additional-name" value="<?php echo htmlspecialchars($profile['middle_name'] ?? ''); ?>" class="w-full border rounded-lg p-2" <?php echo $can_update ? '' : 'disabled'; ?>>
+                                <input type="text" name="middle_name" autocomplete="additional-name" value="<?php echo !empty($profile['middle_name']) ? htmlspecialchars($profile['middle_name']) : ''; ?>" class="w-full border rounded-lg p-2" <?php echo $can_update ? '' : 'disabled'; ?>>
                             </label>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Last Name
-                                <input type="text" name="last_name" autocomplete="family-name" value="<?php echo htmlspecialchars($profile['last_name'] ?? ''); ?>" class="w-full border rounded-lg p-2" required <?php echo $can_update ? '' : 'disabled'; ?>>
+                                <input type="text" name="last_name" autocomplete="family-name" value="<?php echo !empty($profile['last_name']) ? htmlspecialchars($profile['last_name']) : ''; ?>" class="w-full border rounded-lg p-2" required <?php echo $can_update ? '' : 'disabled'; ?>>
                             </label>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Contact Number
-                                <input type="tel" name="contact_number" autocomplete="tel" value="<?php echo htmlspecialchars($profile['contact_number'] ?? ''); ?>" class="w-full border rounded-lg p-2" required pattern="[0-9]{10,11}" title="Contact number must be 11 digits" <?php echo $can_update ? '' : 'disabled'; ?>>
+                                <input type="tel" name="contact_number" autocomplete="tel" value="<?php echo !empty($profile['contact_number']) ? htmlspecialchars($profile['contact_number']) : ''; ?>" class="w-full border rounded-lg p-2" required pattern="[0-9]{10,11}" title="Contact number must be 11 digits" <?php echo $can_update ? '' : 'disabled'; ?>>
                             </label>
                         </div>
                         <div>
@@ -421,12 +618,12 @@ ob_start();
                         </div>
                         <div id="companyField" class="hidden">
                             <label class="block text-sm font-medium text-gray-700">Company Name
-                                <input type="text" name="company_name" value="<?php echo htmlspecialchars($employment['company_name'] ?? ''); ?>" class="w-full border rounded-lg p-2" autocomplete="organization">
+                                <input type="text" name="company_name" value="<?php echo !empty($employment['company_name']) ? htmlspecialchars($employment['company_name']) : ''; ?>" class="w-full border rounded-lg p-2" autocomplete="organization">
                             </label>
                         </div>
                         <div id="companyAddressField" class="hidden">
                             <label class="block text-sm font-medium text-gray-700">Company Address
-                                <input type="text" name="company_address" value="<?php echo htmlspecialchars($employment['company_address'] ?? ''); ?>" class="w-full border rounded-lg p-2" autocomplete="street-address">
+                                <input type="text" name="company_address" value="<?php echo !empty($employment['company_address']) ? htmlspecialchars($employment['company_address']) : ''; ?>" class="w-full border rounded-lg p-2" autocomplete="street-address">
                             </label>
                         </div>
                         <div id="businessTypeField" class="hidden">
@@ -476,12 +673,12 @@ ob_start();
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700">School Name
-                                <input type="text" name="school_name" value="<?php echo htmlspecialchars($education['school_name'] ?? ''); ?>" class="w-full border rounded-lg p-2" autocomplete="organization">
+                                <input type="text" name="school_name" value="<?php echo !empty($education['school_name']) ? htmlspecialchars($education['school_name']) : ''; ?>" class="w-full border rounded-lg p-2" autocomplete="organization">
                             </label>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Degree Pursued
-                                <input type="text" name="degree_pursued" value="<?php echo htmlspecialchars($education['degree_pursued'] ?? ''); ?>" class="w-full border rounded-lg p-2" autocomplete="off">
+                                <input type="text" name="degree_pursued" value="<?php echo !empty($education['degree_pursued']) ? htmlspecialchars($education['degree_pursued']) : ''; ?>" class="w-full border rounded-lg p-2" autocomplete="off">
                             </label>
                         </div>
                         <div>
@@ -563,10 +760,20 @@ ob_start();
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', () => {
 
-    <?php if ($auto_open_modal): ?>
-    // Auto-open modal only when specifically triggered by rejection
+// Auto-close modal if form was just submitted
+<?php if (isset($_SESSION['form_submitted']) && $_SESSION['form_submitted']): ?>
+    <?php unset($_SESSION['form_submitted']); // Clear the flag ?>
+    const modal = document.getElementById('profileUpdateModal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('show', 'flex');
+    }
+<?php endif; ?>
+
+// FIXED: Auto-open modal for rejected profiles with existing data
+<?php if ($auto_open_modal): ?>
+document.addEventListener('DOMContentLoaded', () => {
     const modal = document.getElementById('profileUpdateModal');
     if (modal) {
         // Small delay to ensure page is fully loaded
@@ -576,7 +783,10 @@ document.addEventListener('DOMContentLoaded', () => {
             loadAddressData();
         }, 100);
     }
-    <?php endif; ?>
+});
+<?php endif; ?>
+
+document.addEventListener('DOMContentLoaded', () => {
 
     // Modal and form elements
     const updateProfileBtn = document.getElementById('updateProfileBtn');
@@ -794,6 +1004,78 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+        // NEW: Dynamic filtering for years based on graduation year and current year
+    function updateStudentYearOptions() {
+        const graduationYearSelect = document.querySelector('[name="year_graduated"]');
+        const startYearSelect = document.querySelector('[name="start_year"]');
+        const endYearSelect = document.querySelector('[name="end_year"]');
+        const status = employmentStatusSelect ? employmentStatusSelect.value : '';
+        
+        if (graduationYearSelect && startYearSelect && endYearSelect && ['Student', 'Employed & Student'].includes(status)) {
+            const graduationYear = parseInt(graduationYearSelect.value);
+            const currentYear = new Date().getFullYear();
+            
+            if (graduationYear) {
+                // Store current selections
+                const currentStartYear = startYearSelect.value;
+                const currentEndYear = endYearSelect.value;
+                
+                // Update Start Year dropdown: graduation year to current year
+                startYearSelect.innerHTML = '<option value="">Select Start Year</option>';
+                for (let y = graduationYear; y <= currentYear; y++) {
+                    const option = document.createElement('option');
+                    option.value = y;
+                    option.textContent = y;
+                    if (currentStartYear && y === parseInt(currentStartYear)) {
+                        option.selected = true;
+                    }
+                    startYearSelect.appendChild(option);
+                }
+                
+                // Update End Year dropdown based on selected start year
+                updateEndYearOptions();
+            }
+        }
+    }
+
+    function updateEndYearOptions() {
+        const startYearSelect = document.querySelector('[name="start_year"]');
+        const endYearSelect = document.querySelector('[name="end_year"]');
+        const currentYear = new Date().getFullYear();
+        
+        if (startYearSelect && endYearSelect && startYearSelect.value) {
+            const startYear = parseInt(startYearSelect.value);
+            const currentEndYear = endYearSelect.value;
+            
+            // End Year: start year + 1 to current year + 5 (max 5 years in future)
+            endYearSelect.innerHTML = '<option value="">Select End Year</option>';
+            for (let y = startYear + 1; y <= currentYear + 5; y++) {
+                const option = document.createElement('option');
+                option.value = y;
+                option.textContent = y;
+                if (currentEndYear && y === parseInt(currentEndYear)) {
+                    option.selected = true;
+                }
+                endYearSelect.appendChild(option);
+            }
+        }
+    }
+
+    // Event listeners for dynamic year filtering
+    if (employmentStatusSelect) {
+        employmentStatusSelect.addEventListener('change', updateStudentYearOptions);
+    }
+
+    const graduationYearSelect = document.querySelector('[name="year_graduated"]');
+    if (graduationYearSelect) {
+        graduationYearSelect.addEventListener('change', updateStudentYearOptions);
+    }
+
+    const startYearSelect = document.querySelector('[name="start_year"]');
+    if (startYearSelect) {
+        startYearSelect.addEventListener('change', updateEndYearOptions);
+    }
+
     // Address dropdown population 
     let regionsData;
     async function loadAddressData() {
@@ -932,7 +1214,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 event.preventDefault();
                 return;
             }
-
+           
+            // Check student years (end year > start year)
+            if (!validateStudentYears()) {
+                event.preventDefault();
+                return;
+            }
+            
             /* // Basic permission check
             <?php if (!$can_update): ?>
             alert('You are not allowed to update your profile at this time. You can only update once per year unless your submission was rejected.');
@@ -943,7 +1231,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // Profile photo validation - FIXED
             const profilePhotoInput = document.getElementById('profilePictureInput');
             const hasExistingPhoto = '<?php echo !empty($profile['photo_path']) ? 'true' : 'false'; ?>';
-            
+
+            // Only require photo if no existing photo
             if (!profilePhotoInput.files.length && hasExistingPhoto === 'false') {
                 alert('Please upload your profile picture before submitting.');
                 event.preventDefault();
@@ -1073,6 +1362,99 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('Form validation passed, submitting...');
         });
     }
+
+    // Handle empty form state after rejection
+    function initializeFormState() {
+        const firstName = document.querySelector('[name="first_name"]');
+        const lastName = document.querySelector('[name="last_name"]');
+        
+        // If both first and last name are empty, this is a fresh form after rejection
+        if (firstName && lastName && !firstName.value && !lastName.value) {
+            console.log('Fresh form detected after rejection - resetting all fields');
+            
+            // Reset employment status to default
+            if (employmentStatusSelect) {
+                employmentStatusSelect.value = '';
+                toggleEmploymentSections('');
+            }
+            
+            // Reset address fields
+            if (regionSelect) regionSelect.value = '';
+            if (provinceSelect) provinceSelect.innerHTML = '<option value="">Select Province</option>';
+            if (municipalitySelect) municipalitySelect.innerHTML = '<option value="">Select Municipality</option>';
+            if (barangaySelect) barangaySelect.innerHTML = '<option value="">Select Barangay</option>';
+            
+            // Reset photo preview to default - FORCE reset for rejected profiles
+            if (previewImg) {
+                previewImg.src = 'https://placehold.co/128x128/eeeeee/333333?text=Profile';
+            }
+            
+            // Clear file input
+            if (fileInput) {
+                fileInput.value = '';
+            }
+        }
+    }
+
+    // Student year validation function - ENHANCED
+    function validateStudentYears() {
+        const status = employmentStatusSelect ? employmentStatusSelect.value : '';
+        
+        // Only validate for student statuses
+        if (['Student', 'Employed & Student'].includes(status)) {
+            const startYear = document.querySelector('[name="start_year"]');
+            const endYear = document.querySelector('[name="end_year"]');
+            const graduationYear = document.querySelector('[name="year_graduated"]');
+            
+            // Validate end year > start year
+            if (startYear && endYear && startYear.value && endYear.value) {
+                const start = parseInt(startYear.value);
+                const end = parseInt(endYear.value);
+                
+                if (end <= start) {
+                    alert('End Year (Expected Graduation) must be later than Start Year.');
+                    return false;
+                }
+            }
+            
+            // NEW VALIDATION: Start year must be >= graduation year
+            if (graduationYear && startYear && graduationYear.value && startYear.value) {
+                const graduation = parseInt(graduationYear.value);
+                const start = parseInt(startYear.value);
+                
+                if (start < graduation) {
+                    alert('Academic Start Year must be the same as or later than your Graduation Year (' + graduation + ').');
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    // Call this when modal opens
+    if (updateProfileBtn) {
+        const canUpdate = <?php echo $can_update ? 'true' : 'false'; ?>;
+        
+        if (canUpdate) {
+            updateProfileBtn.addEventListener('click', () => {
+                if (updateProfileModal) {
+                    updateProfileModal.classList.remove('hidden');
+                    updateProfileModal.classList.add('show', 'flex');
+                    loadAddressData();
+                    initializeFormState(); // Initialize form state
+                    // NEW: Initialize student year options if needed
+                    setTimeout(updateStudentYearOptions, 100);
+                }
+            });
+        }
+    }
+
+    // Also call when auto-opening modal
+    <?php if ($auto_open_modal): ?>
+    setTimeout(() => {
+        initializeFormState();
+    }, 200);
+    <?php endif; ?>
 });
 </script>
 

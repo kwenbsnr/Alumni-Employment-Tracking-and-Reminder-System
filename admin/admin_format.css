@@ -29,15 +29,62 @@
 }
 
 .stats-card {
-    background-color: white;
-    transition: transform 0.3s, box-shadow 0.3s;
+    transition: all 0.3s ease;
+    border: 1px solid #e5e7eb;
+    position: relative;
+    overflow: hidden;
+    /* Tighter card padding/content */
 }
 
-.card-hover:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+.stats-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--card-color), transparent);
 }
 
+.stats-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Enhanced card icon styling for better visual balance */
+.card-icon {
+    transition: transform 0.3s ease;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+}
+
+.card-icon i {
+    font-size: 1.25rem; /* Increased icon size */
+}
+
+.stats-card:hover .card-icon {
+    transform: scale(1.15);
+}
+
+/* Subtle background tint variations */
+.stats-card:nth-child(1) {
+    --card-tint: rgba(59, 130, 246, 0.03);
+    background: linear-gradient(to bottom right, white, rgba(59, 130, 246, 0.03));
+}
+
+.stats-card:nth-child(2) {
+    --card-tint: rgba(16, 185, 129, 0.03);
+    background: linear-gradient(to bottom right, white, rgba(16, 185, 129, 0.03));
+}
+
+.stats-card:nth-child(3) {
+    --card-tint: rgba(245, 158, 11, 0.03);
+    background: linear-gradient(to bottom right, white, rgba(245, 158, 11, 0.03));
+}
 .admin-avatar {
     background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
 }

@@ -49,6 +49,7 @@ $totalRows = $totalResult->fetch_assoc()['total'];
 $totalPages = ceil($totalRows / $limit);
 
 // Fetch activity data
+// Fetch activity data
 $activityQuery = "
     SELECT 
         ul.log_id,
@@ -58,10 +59,12 @@ $activityQuery = "
         ul.updated_at,
         u.name as admin_name,
         ap.first_name,
-        ap.last_name
+        ap.last_name,
+        u_updated.name as user_name_fallback
     FROM update_log ul
     LEFT JOIN users u ON ul.updated_by = u.user_id
     LEFT JOIN alumni_profile ap ON ul.updated_id = ap.user_id
+    LEFT JOIN users u_updated ON ul.updated_id = u_updated.user_id
     $whereClause
     ORDER BY ul.updated_at DESC
     LIMIT ? OFFSET ?
@@ -79,148 +82,231 @@ $activityStmt->execute();
 $activityResult = $activityStmt->get_result();
 
 ob_start();
-?>
-<div class="space-y-6">
-    <!-- Page Header -->
-    <div class="flex justify-between items-center">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-800">Activity Log</h1>
-            <p class="text-gray-600">Track all system activities and changes</p>
-        </div>
-        <a href="admin_dashboard.php" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors">
-            <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
-        </a>
-    </div>
+// ... rest of the code ...
+?><div class="space-y-1">
+<!-- MODERN ACTIVITY LOG HEADER -->
+<div class="mb-3 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
 
-    <!-- Filters -->
-    <div class="bg-white p-6 rounded-xl shadow-lg">
-        <h3 class="text-lg font-bold text-gray-800 mb-4">Filters</h3>
-        <form method="GET" class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Action Type</label>
-                <select name="type" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500">
-                    <option value="">All Actions</option>
-                    <option value="update" <?php echo $filter_type === 'update' ? 'selected' : ''; ?>>Update</option>
-                    <option value="approve" <?php echo $filter_type === 'approve' ? 'selected' : ''; ?>>Approve</option>
-                    <option value="reject" <?php echo $filter_type === 'reject' ? 'selected' : ''; ?>>Reject</option>
-                </select>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                <input type="date" name="date" value="<?php echo $filter_date; ?>" 
-                       class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500">
-            </div>
-            <div class="flex items-end space-x-2">
-                <button type="submit" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors w-full">
-                    <i class="fas fa-filter mr-2"></i>Apply Filters
-                </button>
-                <a href="activity_log.php" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors">
-                    <i class="fas fa-redo mr-2"></i>Reset
-                </a>
-            </div>
-        </form>
-    </div>
+    <!-- Left: Filters (Compact Version) -->
+    <div class="flex-1 md:flex md:justify-start">
+        <div class="rounded-2xl bg-gradient-to-r from-purple-50 to-white p-4 shadow-lg border border-purple-100">
+            <form method="GET" class="flex items-center gap-3">
+              
 
-    <!-- Activity Log -->
-    <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-200">
-            <h3 class="text-lg font-bold text-gray-800">System Activities</h3>
-            <p class="text-sm text-gray-600">Total <?php echo $totalRows; ?> activities found</p>
-        </div>
-        
-        <div class="overflow-x-auto">
-            <table class="w-full">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Details</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Admin</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    <?php if ($activityResult->num_rows > 0): ?>
-                        <?php while ($activity = $activityResult->fetch_assoc()): ?>
-                            <tr class="hover:bg-gray-50 transition-colors">
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="flex items-center">
-                                        <div class="p-2 rounded-full <?php echo getActivityColor($activity['update_type']); ?> mr-3">
-                                            <i class="fas fa-<?php echo getActivityIcon($activity['update_type']); ?> text-sm"></i>
-                                        </div>
-                                        <div>
-                                            <span class="inline-block px-2 py-1 text-xs font-medium rounded-full <?php echo getActivityBadgeColor($activity['update_type']); ?>">
-                                                <?php echo ucfirst($activity['update_type']); ?>
-                                            </span>
-                                            <p class="text-xs text-gray-500 mt-1">
-                                                Alumni Profile
-                                            </p>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4">
-                                    <p class="text-sm font-medium text-gray-800">
-                                        <?php echo getEnhancedActivityText($activity); ?>
-                                    </p>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <p class="text-sm text-gray-800"><?php echo htmlspecialchars($activity['admin_name']); ?></p>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <p class="text-sm text-gray-800"><?php echo date('M j, Y g:i A', strtotime($activity['updated_at'])); ?></p>
-                                    <p class="text-xs text-gray-500"><?php echo time_elapsed_string($activity['updated_at']); ?></p>
-                                </td>
-                            </tr>
-                        <?php endwhile; ?>
-                    <?php else: ?>
-                        <tr>
-                            <td colspan="4" class="px-6 py-8 text-center text-gray-500">
-                                <i class="fas fa-inbox text-3xl mb-3"></i>
-                                <p class="text-lg">No activities found</p>
-                                <p class="text-sm mt-1">Try adjusting your filters</p>
-                            </td>
-                        </tr>
-                    <?php endif; ?>
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Pagination -->
-        <?php if ($totalPages > 1): ?>
-            <div class="px-6 py-4 border-t border-gray-200">
-                <div class="flex justify-between items-center">
-                    <p class="text-sm text-gray-700">
-                        Showing <?php echo ($offset + 1); ?> to <?php echo min($offset + $limit, $totalRows); ?> of <?php echo $totalRows; ?> results
-                    </p>
-                    <div class="flex space-x-2">
-                        <?php if ($page > 1): ?>
-                            <a href="?<?php echo http_build_query(array_merge($_GET, ['page' => $page - 1])); ?>" 
-                               class="bg-white border border-gray-300 px-3 py-1 rounded-lg hover:bg-gray-50 transition-colors">
-                                <i class="fas fa-chevron-left mr-1"></i>Previous
-                            </a>
-                        <?php endif; ?>
-                        
-                        <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                            <a href="?<?php echo http_build_query(array_merge($_GET, ['page' => $i])); ?>" 
-                               class="px-3 py-1 rounded-lg <?php echo $i == $page ? 'bg-purple-600 text-white' : 'bg-white border border-gray-300 hover:bg-gray-50'; ?> transition-colors">
-                                <?php echo $i; ?>
-                            </a>
-                        <?php endfor; ?>
-                        
-                        <?php if ($page < $totalPages): ?>
-                            <a href="?<?php echo http_build_query(array_merge($_GET, ['page' => $page + 1])); ?>" 
-                               class="bg-white border border-gray-300 px-3 py-1 rounded-lg hover:bg-gray-50 transition-colors">
-                                Next<i class="fas fa-chevron-right ml-1"></i>
-                            </a>
-                        <?php endif; ?>
+                <div class="flex items-center gap-3 flex-1">
+                    <!-- Action Type -->
+                    <div class="flex-1 min-w-[144px] max-w-[144px]">
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Filter Action</label>
+                        <select name="type" class="w-full px-2 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-purple-500 transition text-sm">
+                            <option value="">All Actions</option>
+                            <option value="update" <?= $filter_type === 'update' ? 'selected' : '' ?>>Update</option>
+                            <option value="approve" <?= $filter_type === 'approve' ? 'selected' : '' ?>>Approve</option>
+                            <option value="reject" <?= $filter_type === 'reject' ? 'selected' : '' ?>>Reject</option>
+                        </select>
                     </div>
+
+                    <!-- Date -->
+                    <div class="flex-1 min-w-[144px] max-w-[144px]">
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Date</label>
+                        <input type="date" name="date" value="<?= $filter_date ?>" class="w-full px-2 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-purple-500 transition text-sm">
+                    </div>
+
+                    <!-- Buttons -->
+<div class="flex gap-3 flex-shrink-0">
+    <button type="submit" class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-2xl shadow-lg hover:scale-105 hover:brightness-110 transition-all duration-200 text-sm font-semibold flex items-center gap-2">
+        <i class="fas fa-filter"></i> Apply Filter
+    </button>
+    <a href="activity_log.php" class="px-6 py-3 bg-gray-100 text-gray-800 rounded-2xl shadow hover:scale-105 hover:bg-gray-200 transition-all duration-200 text-sm font-semibold flex items-center gap-2">
+        <i class="fas fa-sync-alt"></i> Reset
+    </a>
+</div>
+
                 </div>
-            </div>
-        <?php endif; ?>
+
+            </form>
+        </div>
+    </div>
+
+    <!-- Right: Back Button -->
+<a href="admin_dashboard.php" 
+   class="inline-flex items-center gap-2 px-5 py-3 bg-gray-600 text-white font-medium rounded-xl shadow-lg 
+          hover:bg-black transition-all duration-200">
+    <i class="fas fa-arrow-left"></i>
+    Back to Dashboard
+</a>
+
+</div>
+
+<!-- Table Header -->
+<div class="px-2 py-1 border-b border-blue-200 bg-gradient-to-r from-blue-500 to-blue-300 text-white -mt-"> <!-- updated -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+        <div>
+            <h3 class="text-xl font-bold">Recent Activities</h3>
+            <p class="mt-0">All system actions and modifications</p>
+        </div>
+        <div class="mt-2 sm:mt-0">
+            <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                <i class="fas fa-database mr-1.5"></i>
+                Total <?= $totalRows ?> records
+            </span>
+        </div>
     </div>
 </div>
 
+    <!-- Table Content -->
+    <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead class="bg-gray-300 sticky top-0 border-b border-gray-300">
+    <tr class="text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">
+        <th class="pl-6 pr-3 py-4">Activity</th>
+        <th class="px-3 py-4">Details</th>
+        <th class="px-3 py-4">Admin</th>
+        <th class="pl-3 pr-6 py-4">Timestamp</th>
+    </tr>
+</thead>
+
+
+            <tbody class="divide-y divide-gray-200/60">
+                <?php if ($activityResult->num_rows > 0): ?>
+                    <?php while ($activity = $activityResult->fetch_assoc()): ?>
+                        <tr class="group hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-white transition-all duration-200">
+                            
+                            <!-- Action Column -->
+                            <td class="pl-6 pr-3 py-5 whitespace-nowrap">
+                                <div class="flex items-center gap-4">
+                                    <!-- Activity Icon -->
+                                    <div class="relative">
+                                        <div class="p-3 rounded-2xl <?= getActivityColor($activity['update_type']) ?> shadow-sm group-hover:scale-110 transition-transform duration-200">
+                                            <i class="text-lg fas fa-<?= getActivityIcon($activity['update_type']) ?>"></i>
+                                        </div>
+                                        <?php if ($activity['update_type'] === 'approve'): ?>
+                                            <div class="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+                                        <?php endif; ?>
+                                    </div>
+
+                                    <div class="min-w-0 flex-1">
+                                        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold <?= getActivityBadgeColor($activity['update_type']) ?>">
+                                            <?= ucfirst($activity['update_type']) ?>
+                                        </span>
+                                        <p class="text-xs text-gray-500 mt-1.5 truncate">Profile Modification</p>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <!-- Details Column -->
+                            <td class="px-3 py-5">
+                                <div class="max-w-xs">
+                                    <p class="font-medium text-gray-900 text-sm leading-6">
+                                        <?= getEnhancedActivityText($activity) ?>
+                                    </p>
+                                </div>
+                            </td>
+
+                          <!-- Admin Column -->
+<td class="px-3 py-5 whitespace-nowrap">
+    <div class="flex flex-col leading-tight">
+        <span class="font-semibold text-gray-900">
+            <?= htmlspecialchars($activity['admin_name']) ?>
+        </span>
+        <span class="text-xs text-gray-500">Administrator</span>
+    </div>
+</td>
+
+<td class="pl-3 pr-6 py-5 whitespace-nowrap">
+    <div class="text-left">
+        <div class="flex flex-col items-start">
+            <span class="font-medium text-gray-900 text-sm">
+                <?= date('M j, Y', strtotime($activity['updated_at'])) ?>
+            </span>
+            <span class="text-xs text-gray-500">
+                <?= date('g:i A', strtotime($activity['updated_at'])) ?>
+            </span>
+            <span class="text-xs text-blue-600 font-medium mt-1.5 flex items-center gap-1">
+                <i class="fas fa-clock opacity-60"></i>
+                <?= time_elapsed_string($activity['updated_at']) ?>
+            </span>
+        </div>
+    </div>
+</td>
+
+                     </tr>
+                    <?php endwhile; ?>
+                <?php else: ?>
+                    <tr>
+                        <td colspan="4" class="px-6 py-12 text-center">
+                            <div class="max-w-md mx-auto">
+                                <div class="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                                    <i class="fas fa-inbox text-2xl text-gray-400"></i>
+                                </div>
+                                <h3 class="text-lg font-semibold text-gray-900 mb-2">No activities found</h3>
+                                <p class="text-gray-500 mb-4">No activity records match your current filters.</p>
+                                <a href="activity_log.php" 
+                                    class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors duration-200 text-sm font-medium">
+                                    <i class="fas fa-refresh"></i>
+                                    Reset filters
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- PAGINATION -->
+    <?php if ($totalPages > 1): ?>
+        <div class="px-6 py-5 border-t border-gray-200 bg-gray-50/50">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                
+                <!-- Results Info -->
+                <p class="text-sm text-gray-700">
+                    Showing <span class="font-semibold"><?= ($offset + 1) ?></span>–<span class="font-semibold"><?= min($offset + $limit, $totalRows) ?></span> 
+                    of <span class="font-semibold"><?= $totalRows ?></span> results
+                </p>
+
+                <!-- Pagination Controls -->
+                <div class="flex items-center gap-2">
+
+                    <!-- Previous Button -->
+                    <a href="?<?= http_build_query(array_merge($_GET, ['page' => $page - 1])) ?>"
+                        class="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium <?= $page <= 1 ? 'opacity-50 cursor-not-allowed' : '' ?>">
+                        <i class="fas fa-chevron-left text-xs"></i>
+                        Previous
+                    </a>
+
+                    <!-- Page Numbers -->
+                    <div class="flex items-center gap-1">
+                        <?php 
+                        $startPage = max(1, $page - 2);
+                        $endPage = min($totalPages, $startPage + 4);
+                        $startPage = max(1, $endPage - 4);
+                        
+                        for ($i = $startPage; $i <= $endPage; $i++): 
+                        ?>
+                            <a href="?<?= http_build_query(array_merge($_GET, ['page' => $i])) ?>"
+                                class="min-w-[40px] h-10 flex items-center justify-center rounded-xl text-sm font-medium transition-all duration-200
+                                <?= $i == $page ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50' ?>">
+                                <?= $i ?>
+                            </a>
+                        <?php endfor; ?>
+                    </div>
+
+                    <!-- Next Button -->
+                    <a href="?<?= http_build_query(array_merge($_GET, ['page' => $page + 1])) ?>"
+                        class="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium <?= $page >= $totalPages ? 'opacity-50 cursor-not-allowed' : '' ?>">
+                        Next
+                        <i class="fas fa-chevron-right text-xs"></i>
+                    </a>
+
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
+
+</div>
+
 <?php
-// Include the same helper functions from dashboard
+// Helper functions required for the table
 function getActivityIcon($update_type) {
     switch ($update_type) {
         case 'approve': return 'check-circle';
@@ -232,10 +318,10 @@ function getActivityIcon($update_type) {
 
 function getActivityColor($update_type) {
     switch ($update_type) {
-        case 'approve': return 'bg-green-100 text-green-500';
-        case 'reject': return 'bg-red-100 text-red-500';
-        case 'update': return 'bg-blue-100 text-blue-500';
-        default: return 'bg-purple-100 text-purple-500';
+        case 'approve': return 'bg-green-100 text-green-600';
+        case 'reject': return 'bg-red-100 text-red-600';
+        case 'update': return 'bg-blue-100 text-blue-600';
+        default: return 'bg-purple-100 text-purple-600';
     }
 }
 
@@ -250,11 +336,11 @@ function getActivityBadgeColor($update_type) {
 
 function getEnhancedActivityText($activity) {
     $name = '';
-    $details = '';
     
-    // Get the affected user's name
     if (!empty($activity['first_name']) && !empty($activity['last_name'])) {
-        $name = $activity['first_name'] . ' ' . $activity['last_name'];
+        $name = htmlspecialchars($activity['first_name'] . ' ' . $activity['last_name']);
+    } else if (!empty($activity['user_name_fallback'])) {
+        $name = htmlspecialchars($activity['user_name_fallback']);
     } else {
         $name = "Alumni";
     }
@@ -271,13 +357,22 @@ function getEnhancedActivityText($activity) {
 }
 
 function time_elapsed_string($datetime, $full = false) {
-    $now = new DateTime;
-    $ago = new DateTime($datetime);
+    $now = new DateTime('now', new DateTimeZone('Asia/Manila'));
+    $ago = new DateTime($datetime, new DateTimeZone('Asia/Manila'));
+    
+    if ($ago->getTimezone()->getName() !== 'Asia/Manila') {
+        $ago->setTimezone(new DateTimeZone('Asia/Manila'));
+    }
+
     $diff = $now->diff($ago);
+
+    $diff->w = floor($diff->d / 7);
+    $diff->d -= $diff->w * 7;
 
     $string = [
         'y' => 'year',
         'm' => 'month',
+        'w' => 'week',
         'd' => 'day',
         'h' => 'hour',
         'i' => 'minute',
@@ -292,9 +387,13 @@ function time_elapsed_string($datetime, $full = false) {
         }
     }
 
-    if (!$full) $string = array_slice($string, 0, 1);
+    if (!$full) {
+        $string = array_slice($string, 0, 1);
+    }
+    
     return $string ? implode(', ', $string) . ' ago' : 'just now';
 }
+
 
 $page_content = ob_get_clean();
 include("admin_format.php");
