@@ -188,16 +188,20 @@ ob_start();
     overflow: hidden;
     height: fit-content;
     position: sticky;
-    top: 20px; /* Adjusted sticky top */
+    top: 20px;
+    max-height: calc(100vh - 100px); /* Prevents overflow on small screens */
 }
 
+/* New: Limit inner scrollable area to match analytics height */
+.recent-activity-sidebar .p-4.space-y-3 {
+    max-height: 480px; /* Adjust this value if analytics section grows */
+    overflow-y: auto;
+}
+
+/* Optional: Fine-tune for very small screens */
 @media (max-width: 1024px) {
-    .dashboard-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .recent-activity-sidebar {
-        position: static;
+    .recent-activity-sidebar .p-4.space-y-3 {
+        max-height: 400px;
     }
 }
 </style>
@@ -307,7 +311,7 @@ ob_start();
                 </a>
             </div>
         </div>
-        <div class="p-4 space-y-3 max-h-[calc(100vh-140px)] overflow-y-auto"> <?php if ($recentActivityResult->num_rows > 0): ?>
+        <div class="p-4 space-y-3 overflow-y-auto"> <?php if ($recentActivityResult->num_rows > 0): ?>
                 <?php while ($activity = $recentActivityResult->fetch_assoc()): ?>
                     <div class="activity-item p-3 bg-white rounded-lg border border-gray-100 hover:shadow-sm transition-all" 
                           style="--activity-color: <?php echo getActivityHexColor($activity['update_type']); ?>">
@@ -568,11 +572,28 @@ function getActivityBadgeColor($update_type) {
 function getEnhancedActivityText($activity) {
     $name = '';
     
-    // Get the affected user's name
-    if (!empty($activity['first_name']) && !empty($activity['last_name'])) {
-        $name = htmlspecialchars($activity['first_name'] . ' ' . $activity['last_name']);
-    } else {
-        $name = "an Alumni";
+    // Get the affected user's name - improved logic
+    if (!empty($activity['first_name']) || !empty($activity['last_name'])) {
+        $name = trim(htmlspecialchars(($activity['first_name'] ?? '') . ' ' . ($activity['last_name'] ?? '')));
+    }
+    
+    // If we still don't have a name, try to get it from the users table
+    if (empty($name)) {
+        global $conn;
+        $user_id = $activity['updated_id'];
+        $userQuery = "SELECT name FROM users WHERE user_id = ?";
+        $stmt = $conn->prepare($userQuery);
+        $stmt->bind_param("i", $user_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
+        if ($result->num_rows > 0) {
+            $userData = $result->fetch_assoc();
+            $name = htmlspecialchars($userData['name']);
+        } else {
+            $name = "Alumni (ID: {$user_id})";
+        }
+        $stmt->close();
     }
     
     $actions = [
@@ -585,15 +606,25 @@ function getEnhancedActivityText($activity) {
     
     return "{$action} {$name}'s profile";
 }
-
 function time_elapsed_string($datetime, $full = false) {
-    $now = new DateTime;
-    $ago = new DateTime($datetime);
+    // Ensure we work with DateTime in the correct timezone
+    $now = new DateTime('now', new DateTimeZone('Asia/Manila'));
+    $ago = new DateTime($datetime, new DateTimeZone('Asia/Manila'));
+    
+    // If datetime came from MySQL without timezone, adjust it
+    if ($ago->getTimezone()->getName() !== 'Asia/Manila') {
+        $ago->setTimezone(new DateTimeZone('Asia/Manila'));
+    }
+
     $diff = $now->diff($ago);
+
+    $diff->w = floor($diff->d / 7);
+    $diff->d -= $diff->w * 7;
 
     $string = [
         'y' => 'year',
         'm' => 'month',
+        'w' => 'week',
         'd' => 'day',
         'h' => 'hour',
         'i' => 'minute',
@@ -608,7 +639,10 @@ function time_elapsed_string($datetime, $full = false) {
         }
     }
 
-    if (!$full) $string = array_slice($string, 0, 1); 
+    if (!$full) {
+        $string = array_slice($string, 0, 1);
+    }
+    
     return $string ? implode(', ', $string) . ' ago' : 'just now';
 }
 
