@@ -165,10 +165,38 @@ ob_start();
         </form>
     </div>
 
-    <!-- Batch Cards Grid (unchanged from your original) -->
+    
+<!-- Batch Cards Grid with Title + ALL ALUMNI CARD -->
+<div class="space-y-4">
+    <div class="flex items-center gap-3 px-2">
+        <i class="fas fa-folder-open text-2xl text-amber-600"></i>
+        <h2 class="text-xl font-bold text-gray-800">Alumni Records Per Batch</h2>
+    </div>
+
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <!-- ====== ALL ALUMNI CARD (NEW) ====== -->
         <?php
-        // Logic for displaying filtered or all batches (same as your original code)
+        // Total alumni count (all batches)
+        $totalQuery = "SELECT COUNT(*) as total FROM alumni_profile";
+        $totalRes   = $conn->query($totalQuery);
+        $totalAll   = $totalRes->fetch_assoc()['total'];
+        ?>
+        <a href="all_alumni.php<?= !empty($search) ? '?search=' . urlencode($search) : '' ?>"
+           class="bg-gradient-to-br from-purple-50 to-white p-6 rounded-xl shadow-lg border-2 border-purple-300 hover:shadow-xl hover:border-purple-500 transform hover:scale-105 transition-all duration-300 group text-center">
+            <i class="fas fa-users text-4xl text-purple-600 mb-4"></i>
+            <p class="text-xs uppercase tracking-wider text-gray-500">All Batches Combined</p>
+            <p class="text-2xl font-bold text-gray-800">All Alumni</p>
+            <div class="mt-4 bg-white rounded-xl p-4 border border-purple-100">
+                <p class="text-3xl font-bold text-purple-600"><?= $totalAll ?></p>
+                <p class="text-xs uppercase text-gray-600">Total Records</p>
+            </div>
+            <div class="mt-4 bg-purple-700 text-white py-2 px-4 rounded-lg text-sm font-medium group-hover:bg-purple-600 transition">
+                View All Records →
+            </div>
+        </a>
+
+        <!-- Existing Batch Cards -->
+        <?php
         $displayResult = $batchResult;
         if (!empty($search)) {
             $stmt = $conn->prepare("SELECT DISTINCT year_graduated FROM alumni_profile WHERE year_graduated IS NOT NULL AND (first_name LIKE ? OR middle_name LIKE ? OR last_name LIKE ?)");
@@ -202,7 +230,7 @@ ob_start();
         ?>
             <div class="col-span-full text-center py-12 bg-amber-50 rounded-xl border-2 border-amber-200">
                 <i class="fas fa-folder-open text-6xl text-amber-400 mb-4"></i>
-                <h3 class="text-2xl font-bold text-gray-700">No Batches Found</h3>
+                <h3 class="text-2xl font-bold text-gray-700">No Alumni found.</h3>
                 <p class="text-gray-600 mt-2">
                     <?= !empty($search) ? 'No batches match your search.' : 'There are no alumni records yet.' ?>
                 </p>
@@ -210,7 +238,6 @@ ob_start();
         <?php endif; ?>
     </div>
 </div>
-
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const toggleBtn = document.getElementById('toggleReportForm');

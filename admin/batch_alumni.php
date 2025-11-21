@@ -254,7 +254,7 @@ ob_start();
                                                 $doc_types = [
                                                     'COR' => 'Certificate of Registration',
                                                     'COE' => 'Certificate of Employment', 
-                                                    'B_CERT' => 'Birth Certificate'
+                                                    'B_CERT' => 'Business Certificate'
                                                 ];
                                                 $doc_name = $doc_types[$doc['document_type']] ?? $doc['document_type'];
                                                 ?>
