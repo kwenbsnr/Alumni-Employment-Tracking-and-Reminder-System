@@ -176,14 +176,16 @@ html, body {
     height: 650px; /* Match analytics-section height */
     position: sticky;
     top: 2px;
+    display: flex;
+    flex-direction: column;
 }
 
 /* Inner scrollable area */
 .recent-activity-sidebar .p-4.space-y-3 {
-    max-height: 100%;
+    flex: 1;
     overflow-y: auto;
+    max-height: none;
 }
-
 
 /* Optional: Fine-tune for very small screens */
 @media (max-width: 1024px) {
