@@ -323,7 +323,6 @@ ob_start();
                 <?php while ($activity = $recentActivityResult->fetch_assoc()): ?>
                    <div class="activity-item p-3 bg-white rounded-lg border border-gray-100 hover:shadow-sm transition-all <?php echo $activity['update_type']; ?>" 
       style="--activity-color: <?php echo getActivityHexColor($activity['update_type']); ?>">
-
                         <div class="flex items-start space-x-3">
                             <div class="flex-shrink-0">
                                 <div class="p-2 rounded-lg <?php echo getActivityColor($activity['update_type']); ?>">
