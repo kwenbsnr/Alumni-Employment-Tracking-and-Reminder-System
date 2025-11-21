@@ -84,57 +84,59 @@ $activityResult = $activityStmt->get_result();
 ob_start();
 // ... rest of the code ...
 ?><div class="space-y-8">
+<!-- MODERN ACTIVITY LOG HEADER -->
+<div class="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
 
-  <!-- MODERN ACTIVITY LOG HEADER -->
-<div class="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-
-    <!-- Right: Back Button -->
+    <!-- Left: Back Button -->
     <a href="admin_dashboard.php"
-        class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-purple-600 to-purple-500 
-        text-white font-medium rounded-xl shadow hover:brightness-110 transition-all duration-200">
+        class="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-purple-600 to-purple-500 
+        text-white font-medium rounded-xl shadow-lg hover:brightness-110 transition-all duration-200">
         <i class="fas fa-arrow-left"></i>
         Back to Dashboard
     </a>
 
+    <!-- Right: Filters -->
+    <div class="flex-1">
+        <div class="rounded-2xl bg-gradient-to-r from-purple-50 to-white p-6 shadow-lg border border-purple-200">
+            <form method="GET" class="flex flex-wrap items-end gap-4">
+
+                <!-- Action Type -->
+                <div class="flex-1 min-w-[150px]">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Action</label>
+                    <select name="type"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-xl bg-white focus:ring-2 focus:ring-purple-500 transition text-sm">
+                        <option value="">All</option>
+                        <option value="update" <?= $filter_type === 'update' ? 'selected' : '' ?>>Update</option>
+                        <option value="approve" <?= $filter_type === 'approve' ? 'selected' : '' ?>>Approve</option>
+                        <option value="reject" <?= $filter_type === 'reject' ? 'selected' : '' ?>>Reject</option>
+                    </select>
+                </div>
+
+                <!-- Date -->
+                <div class="flex-1 min-w-[150px]">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                    <input type="date" name="date" value="<?= $filter_date ?>"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-xl bg-white focus:ring-2 focus:ring-purple-500 transition text-sm">
+                </div>
+
+                <!-- Buttons -->
+                <div class="flex gap-2">
+                    <button type="submit"
+                        class="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-500 text-white rounded-xl shadow hover:brightness-110 transition text-sm font-medium">
+                        <i class="fas fa-filter mr-1"></i> Apply
+                    </button>
+                    <a href="activity_log.php"
+                        class="px-4 py-2 bg-gray-100 text-gray-800 rounded-xl hover:bg-gray-200 transition text-sm font-medium">
+                        Reset
+                    </a>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
 </div>
 
-
-    <!-- FILTERS -->
-    <div class="rounded-2xl bg-white p-5 shadow-md shadow-black/5 border border-gray-100">
-        <h3 class="text-lg font-semibold text-gray-800 mb-4">Filters</h3>
-
-        <form method="GET" class="grid grid-cols-1 md:grid-cols-3 gap-5">
-
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Action Type</label>
-                <select name="type"
-                    class="w-full px-3 py-2.5 border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-purple-500 focus:bg-white transition">
-                    <option value="">All</option>
-                    <option value="update" <?= $filter_type === 'update' ? 'selected' : '' ?>>Update</option>
-                    <option value="approve" <?= $filter_type === 'approve' ? 'selected' : '' ?>>Approve</option>
-                    <option value="reject" <?= $filter_type === 'reject' ? 'selected' : '' ?>>Reject</option>
-                </select>
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                <input type="date" name="date" value="<?= $filter_date ?>"
-                    class="w-full px-3 py-2.5 border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-purple-500 focus:bg-white transition">
-            </div>
-
-            <div class="flex items-end gap-2">
-                <button type="submit"
-                    class="flex-1 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-purple-500 text-white rounded-xl shadow hover:brightness-110 transition">
-                    <i class="fas fa-filter mr-1"></i> Apply
-                </button>
-
-                <a href="activity_log.php"
-                    class="px-4 py-2.5 bg-gray-100 text-gray-800 rounded-xl hover:bg-gray-200 transition">
-                    Reset
-                </a>
-            </div>
-        </form>
-    </div>
 
 <!-- RECENT ACTIVITIES TABLE -->
 <div class="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
