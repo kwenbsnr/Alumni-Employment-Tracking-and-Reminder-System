@@ -198,6 +198,7 @@ html, body {
         grid-template-columns: 1fr; /* Stack main content and sidebar */
     }
 }
+
 </style>
 
 <div class="dashboard-grid">
@@ -376,38 +377,39 @@ new Chart(employmentCtx, {
             hoverOffset: 10
         }]
     },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        cutout: '65%',
-        plugins: {
-            legend: {
-                position: 'bottom',
-                labels: {
-                    usePointStyle: true,
-                    padding: 15,
-                    font: { size: 13, family: "'Inter', sans-serif" }
+options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '65%',
+    plugins: {
+        legend: {
+            position: 'right',  // <<====== MOVE LEGEND TO RIGHT SIDE
+            labels: {
+                usePointStyle: true,
+                padding: 15,
+                font: { size: 13, family: "'Inter', sans-serif" }
+            }
+        },
+        tooltip: {
+            callbacks: {
+                label: function(context) {
+                    const label = context.label || '';
+                    const value = context.raw || 0;
+                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                    const percentage = ((value / total) * 100).toFixed(1);
+                    return `${label}: ${value} (${percentage}%)`;
                 }
             },
-            tooltip: {
-                callbacks: {
-                    label: function(context) {
-                        const label = context.label || '';
-                        const value = context.raw || 0;
-                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                        const percentage = ((value / total) * 100).toFixed(1);
-                        return `${label}: ${value} (${percentage}%)`;
-                    }
-                },
-                backgroundColor: 'rgba(255,255,255,0.95)',
-                titleColor: '#1f2937',
-                bodyColor: '#4b5563',
-                borderColor: '#e5e7eb',
-                borderWidth: 1,
-                cornerRadius: 8
-            }
+            backgroundColor: 'rgba(255,255,255,0.95)',
+            titleColor: '#1f2937',
+            bodyColor: '#4b5563',
+            borderColor: '#e5e7eb',
+            borderWidth: 1,
+            cornerRadius: 8
         }
     }
+}
+
 });
 <?php endif; ?>
 
