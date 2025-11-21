@@ -89,8 +89,9 @@ rsort($batchYears);
 ob_start();
 ?>
 
-<div class="space-y-6">
-    <!-- Header with Back Button -->
+<div class="space-y-4">
+ <!-- Fixed Header -->
+<div class="bg-white p-3 rounded-xl shadow border sticky top-4 z-40 mb-5">
     <div class="flex items-center justify-between">
         <div class="flex items-center gap-4">
             <a href="alumni_management.php" class="bg-gray-500 text-white p-2 rounded-lg hover:bg-gray-600">
@@ -105,7 +106,7 @@ ob_start();
             Total Records: <?= $result->num_rows ?>
         </div>
     </div>
-
+</div>
     <!-- Search and Filters -->
     <div class="bg-white p-4 rounded-xl shadow border">
         <form method="GET" action="" class="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
@@ -214,18 +215,27 @@ ob_start();
                                             </div>
                                         </div>
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                            <?= getEmploymentStatusColor($alumni['employment_status']) ?>">
-                                            <?= $alumni['employment_status'] ?>
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                            <?= getSubmissionStatusColor($alumni['submission_status']) ?>">
-                                            <?= $alumni['submission_status'] ?>
-                                        </span>
-                                    </td>
+                                   <td class="px-6 py-4 whitespace-nowrap">
+    <div class="flex items-center">
+        <span class="px-3 py-1.5 inline-flex text-sm font-semibold rounded-full 
+            <?= getEmploymentStatusColor($alumni['employment_status']) ?> 
+            border <?= getEmploymentStatusBorder($alumni['employment_status']) ?>
+            shadow-sm">
+            <i class="<?= getEmploymentStatusIcon($alumni['employment_status']) ?> mr-2 mt-0.5"></i>
+            <?= $alumni['employment_status'] ?>
+        </span>
+    </div>
+</td><td class="px-6 py-4 whitespace-nowrap">
+    <div class="flex items-center">
+        <span class="px-3 py-1.5 inline-flex text-sm font-semibold rounded-full 
+            <?= getSubmissionStatusColor($alumni['submission_status']) ?> 
+            border <?= getSubmissionStatusBorder($alumni['submission_status']) ?>
+            shadow-sm">
+            <i class="<?= getSubmissionStatusIcon($alumni['submission_status']) ?> mr-2 mt-0.5"></i>
+            <?= $alumni['submission_status'] ?>
+        </span>
+    </div>
+</td>
                                     <td class="px-6 py-4 text-sm text-gray-500">
                                         <?php if (!empty($documents)): ?>
                                             <div class="space-y-1">
@@ -251,28 +261,27 @@ ob_start();
                                             <span class="text-gray-400 text-sm">No documents</span>
                                         <?php endif; ?>
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                        <?php if ($alumni['submission_status'] == 'Pending'): ?>
-                                            <button onclick="showApproveModal(<?= $alumni['user_id'] ?>, '<?= htmlspecialchars($alumni['first_name'] . ' ' . $alumni['last_name']) ?>')" 
-                                                    class="text-green-600 hover:text-green-900 mr-3">
-                                                <i class="fas fa-check"></i> Approve
-                                            </button>
-                                            <button onclick="showRejectModal(<?= $alumni['user_id'] ?>, '<?= htmlspecialchars($alumni['first_name'] . ' ' . $alumni['last_name']) ?>', '<?= $alumni['employment_status'] ?>')" 
-                                                    class="text-red-600 hover:text-red-900">
-                                                <i class="fas fa-times"></i> Reject
-                                            </button>
-                                        <?php elseif ($alumni['submission_status'] == 'Approved'): ?>
-                                            <button onclick="showRejectModal(<?= $alumni['user_id'] ?>, '<?= htmlspecialchars($alumni['first_name'] . ' ' . $alumni['last_name']) ?>', '<?= $alumni['employment_status'] ?>')" 
-                                                    class="text-red-600 hover:text-red-900">
-                                                <i class="fas fa-times"></i> Reject
-                                            </button>
-                                        <?php else: ?>
-                                            <button onclick="showApproveModal(<?= $alumni['user_id'] ?>, '<?= htmlspecialchars($alumni['first_name'] . ' ' . $alumni['last_name']) ?>')" 
-                                                    class="text-green-600 hover:text-green-900">
-                                                <i class="fas fa-check"></i> Approve
-                                            </button>
-                                        <?php endif; ?>
-                                    </td>
+<td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+    <?php if ($alumni['submission_status'] == 'Pending'): ?>
+        <div class="flex gap-2">
+            <button onclick="showApproveModal(<?= $alumni['user_id'] ?>, '<?= htmlspecialchars($alumni['first_name'] . ' ' . $alumni['last_name']) ?>')" 
+                    class="text-green-600 hover:text-green-900 px-3 py-1 border border-green-600 rounded-lg hover:bg-green-50 transition-colors">
+                <i class="fas fa-check mr-1"></i> Approve
+            </button>
+            <button onclick="showRejectModal(<?= $alumni['user_id'] ?>, '<?= htmlspecialchars($alumni['first_name'] . ' ' . $alumni['last_name']) ?>', '<?= $alumni['employment_status'] ?>')" 
+                    class="text-red-600 hover:text-red-900 px-3 py-1 border border-red-600 rounded-lg hover:bg-red-50 transition-colors">
+                <i class="fas fa-times mr-1"></i> Reject
+            </button>
+        </div>
+    <?php else: ?>
+        <div class="flex justify-left">
+            <button onclick="showRevertModal(<?= $alumni['user_id'] ?>, '<?= htmlspecialchars($alumni['first_name'] . ' ' . $alumni['last_name']) ?>')" 
+                    class="text-orange-600 hover:text-orange-900 px-3 py-1 border border-orange-600 rounded-lg hover:bg-orange-50 transition-colors">
+                <i class="fas fa-undo mr-1"></i> Revert to Pending
+            </button>
+        </div>
+    <?php endif; ?>
+</td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
@@ -360,6 +369,30 @@ ob_start();
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+<!-- Revert to Pending Modal -->
+<div id="revertModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div class="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4">
+        <div class="p-6">
+            <div class="flex items-center justify-center w-12 h-12 mx-auto bg-orange-100 rounded-full mb-4">
+                <i class="fas fa-undo text-orange-600 text-xl"></i>
+            </div>
+            <h3 class="text-lg font-bold text-gray-900 text-center mb-2">Revert to Pending Status</h3>
+            <p class="text-gray-600 text-center mb-6">
+                Are you sure you want to revert <span id="revertAlumniName" class="font-semibold"></span>'s profile back to pending status? This will require re-approval.
+            </p>
+            <div class="flex gap-3">
+                <button type="button" onclick="closeRevertModal()" 
+                        class="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400 transition-colors">
+                    Cancel
+                </button>
+                <button type="button" onclick="processRevert()" 
+                        class="flex-1 bg-orange-600 text-white py-2 px-4 rounded-lg hover:bg-orange-700 transition-colors">
+                    Confirm Revert
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -505,6 +538,25 @@ document.getElementById('rejectForm').addEventListener('submit', function(e) {
     }
 });
 
+// Revert Modal Functions
+function showRevertModal(userId, alumniName) {
+    currentUserId = userId;
+    document.getElementById('revertAlumniName').textContent = alumniName;
+    document.getElementById('revertModal').classList.remove('hidden');
+}
+
+function closeRevertModal() {
+    document.getElementById('revertModal').classList.add('hidden');
+    currentUserId = null;
+}
+
+function processRevert() {
+    if (currentUserId) {
+        // Send the status as 'Pending' to revert back to pending status
+        window.location.href = `update_status.php?user_id=${currentUserId}&status=Pending`;
+    }
+}
+
 // Alumni details hover functionality
 document.addEventListener('DOMContentLoaded', function() {
     const alumniNames = document.querySelectorAll('.alumni-name-hover');
@@ -567,17 +619,62 @@ function closeAlumniModal() {
     modal.classList.add('hidden');
     isModalHovered = false;
 }
+<?php
+// Enhanced helper functions for status styling
+function getEmploymentStatusBorder($status) {
+    switch ($status) {
+        case 'Unemployed': return 'border-red-200';
+        case 'Self-Employed': return 'border-blue-200';
+        case 'Employed': return 'border-green-200';
+        case 'Student': return 'border-purple-200';
+        case 'Employed & Student': return 'border-yellow-200';
+        default: return 'border-gray-200';
+    }
+}
 
+function getEmploymentStatusIcon($status) {
+    switch ($status) {
+        case 'Unemployed': return 'fas fa-user-slash text-red-600';
+        case 'Self-Employed': return 'fas fa-briefcase text-blue-600';
+        case 'Employed': return 'fas fa-building text-green-600';
+        case 'Student': return 'fas fa-graduation-cap text-purple-600';
+        case 'Employed & Student': return 'fas fa-user-graduate text-yellow-600';
+        default: return 'fas fa-question text-gray-600';
+    }
+}
+
+function getSubmissionStatusBorder($status) {
+    switch ($status) {
+        case 'Approved': return 'border-green-200';
+        case 'Pending': return 'border-yellow-200';
+        case 'Rejected': return 'border-red-200';
+        default: return 'border-gray-200';
+    }
+}
+
+function getSubmissionStatusIcon($status) {
+    switch ($status) {
+        case 'Approved': return 'fas fa-check-circle text-green-600';
+        case 'Pending': return 'fas fa-clock text-yellow-600';
+        case 'Rejected': return 'fas fa-times-circle text-red-600';
+        default: return 'fas fa-question text-gray-600';
+    }
+}
+?>
 // Close modals when clicking outside
 document.addEventListener('click', function(e) {
     const approveModal = document.getElementById('approveModal');
     const rejectModal = document.getElementById('rejectModal');
+    const revertModal = document.getElementById('revertModal');
     
     if (e.target === approveModal) {
         closeApproveModal();
     }
     if (e.target === rejectModal) {
         closeRejectModal();
+    }
+    if (e.target === revertModal) {
+        closeRevertModal();
     }
 });
 
@@ -586,6 +683,7 @@ document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
         closeApproveModal();
         closeRejectModal();
+        closeRevertModal();
     }
 });
 </script>
