@@ -41,25 +41,22 @@ ______________________
 1. **[FIXED]** Start year vs. graduation year logic:
 If a user is a "Student" or “Employed & Student,” check that start year is later than graduation year. Additionally, the graduation year must be later than the start year.
  
-2. Yellow rejection card display:
+2. **[FIXED]** Yellow rejection card display:
 Rejection cards must appear in the dashboard, not only in the proceeding tab. It should match the style of the “Complete Your Profile” card.
 
 🟡 Medium Priority 
 ______________________
 
-1. Alumni data display:
+1. **[FIXED]** Alumni data display:
 After a successful submission, the Employment/Academic Details cards must be displayed on the dashboard using the same UI style as existing cards, positioned below the existing cards for consistency. Currently, these cards are displayed only in the Profile Management tab.
 
-2. Profile completion card display logic:
-If a submission is rejected, the completion card should display 0% instead of 100%.
-
-3. Submission display cards behavior:
-Better if no empty display cards appear before the alumnus submits their information. The cards should only be shown after a submission has been made.
+2. **[FIXED]** Profile completion card display logic:
+If profile is rejected, completion card must display 0% instead of 100%. 
 
 🟢 Low Priority 
 ______________________
 
-1. Successful submission display issue:
+1. **[FIXED]** Successful submission display issue:
 Successful submission must appear on the dashboard like the “Complete Your Profile” card, but the color should be green.
 
 2. Start & end year display:
