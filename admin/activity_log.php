@@ -88,15 +88,16 @@ ob_start();
 <div class="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
 
     <!-- Left: Filters (Compact Version) -->
-    <div class="flex-1 md:flex md:justify-end">
+    <div class="flex-1 md:flex md:justify-start">
         <div class="rounded-2xl bg-gradient-to-r from-purple-50 to-white p-4 shadow-lg border border-purple-100">
-            <form method="GET" class="flex items-center justify-between gap-3">
-                <!-- Filter Title -->
+            <form method="GET" class="flex items-center gap-3">
+                
+                <!-- Filter Icon -->
                 <div class="flex items-center gap-2 flex-shrink-0">
                     <i class="fas fa-sliders-h"></i>
                 </div>
 
-                <div class="flex items-center gap-3 flex-1 justify-end">
+                <div class="flex items-center gap-3 flex-1">
                     <!-- Action Type -->
                     <div class="flex-1 min-w-[144px] max-w-[144px]">
                         <label class="block text-xs font-medium text-gray-700 mb-1">Filter Action</label>
@@ -124,25 +125,24 @@ ob_start();
                         </a>
                     </div>
                 </div>
+
             </form>
         </div>
     </div>
 
     <!-- Right: Back Button -->
-    <a href="admin_dashboard.php" class="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-purple-600 to-purple-500
-        text-white font-medium rounded-xl shadow-lg hover:brightness-110 transition-all duration-200">
+    <a href="admin_dashboard.php" class="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-purple-600 to-purple-500 text-white font-medium rounded-xl shadow-lg hover:brightness-110 transition-all duration-200">
         <i class="fas fa-arrow-left"></i>
         Back to Dashboard
     </a>
 
 </div>
 
-
 <!-- RECENT ACTIVITIES TABLE -->
-<div class="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+<div class="rounded-2xl bg-gradient-to-r from-purple-50 to-white p-4 shadow-lg border border-purple-100 overflow-hidden"> <!-- updated -->
 
     <!-- Table Header -->
-    <div class="px-6 py-5 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+    <div class="px-6 py-5 border-b border-purple-200 bg-gradient-to-r from-purple-50 to-white"> <!-- updated -->
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <h3 class="text-xl font-bold text-gray-900">Recent Activities</h3>
@@ -156,6 +156,7 @@ ob_start();
             </div>
         </div>
     </div>
+
 
     <!-- Table Content -->
     <div class="overflow-x-auto">
