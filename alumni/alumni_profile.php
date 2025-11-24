@@ -277,30 +277,30 @@ ob_start();
 
    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
     
-   <!-- Personal Information Card -->
-    <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-blue-500 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-blue-50">
-        <div class="flex items-center space-x-3 mb-4 pb-2 border-b border-gray-100">
-            <h3 class="text-xl font-bold text-gray-800">Personal Information</h3>
-        </div>
-        <dl class="grid grid-cols-2 gap-4">
-            <div class="flex flex-col">
-                <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Full Name</dt>
-                <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($full_name); ?></dd>
-            </div>
-            <div class="flex flex-col">
-                <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Email</dt>
-                <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['email'] ?? 'N/A'); ?></dd>
-            </div>
-            <div class="flex flex-col">
-                <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Contact Number</dt>
-                <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['contact_number'] ?? 'N/A'); ?></dd>
-            </div>
-            <div class="flex flex-col">
-                <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Year Graduated</dt>
-                <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['year_graduated'] ?? 'N/A'); ?></dd>
-            </div>
-        </dl>
+<!-- Personal Information Card -->
+<div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-blue-500 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-blue-50">
+    <div class="flex items-center space-x-3 mb-4 pb-2 border-b border-gray-100">
+        <h3 class="text-xl font-bold text-gray-800">Personal Information</h3>
     </div>
+    <dl class="grid grid-cols-2 gap-4">
+        <div class="flex flex-col">
+            <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Full Name</dt>
+            <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['official_name'] ?? 'N/A'); ?></dd>
+        </div>
+        <div class="flex flex-col">
+            <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Email</dt>
+            <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['email'] ?? 'N/A'); ?></dd>
+        </div>
+        <div class="flex flex-col">
+            <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Contact Number</dt>
+            <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['contact_number'] ?? 'N/A'); ?></dd>
+        </div>
+        <div class="flex flex-col">
+            <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Year Graduated</dt>
+            <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['batch_year'] ?? 'N/A'); ?></dd>
+        </div>
+    </dl>
+</div>
     <!-- Address Card -->
     <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-green-500 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-green-50">
         <div class="flex items-center space-x-3 mb-4 pb-2 border-b border-gray-100">
@@ -523,11 +523,11 @@ ob_start();
                 <input type="text" value="<?php echo htmlspecialchars($profile['student_id'] ?? 'Not set'); ?>" class="w-full border rounded-lg p-2 bg-gray-100 cursor-not-allowed" readonly>
             </label>
         </div>
-       <div>
-    <label class="block text-sm font-medium text-gray-700">Full Name
-        <input type="text" value="<?php echo htmlspecialchars($profile['official_name'] ?? 'Not set'); ?>" class="w-full border rounded-lg p-2 bg-gray-100 cursor-not-allowed" readonly>
-    </label>
-</div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Full Name
+                <input type="text" value="<?php echo htmlspecialchars($profile['official_name'] ?? 'Not set'); ?>" class="w-full border rounded-lg p-2 bg-gray-100 cursor-not-allowed" readonly>
+            </label>
+        </div>
         <div>
             <label class="block text-sm font-medium text-gray-700">Date of Birth
                 <input type="text" value="<?php 
@@ -550,55 +550,16 @@ ob_start();
             </label>
         </div>
         <div>
-    <label class="block text-sm font-medium text-gray-700">Year Graduated
-        <input type="text" value="<?php echo htmlspecialchars($profile['batch_year'] ?? 'Not set'); ?>" class="w-full border rounded-lg p-2 bg-gray-100 cursor-not-allowed" readonly>
-    </label>
-</div>
+            <label class="block text-sm font-medium text-gray-700">Year Graduated
+                <input type="text" value="<?php echo htmlspecialchars($profile['batch_year'] ?? 'Not set'); ?>" class="w-full border rounded-lg p-2 bg-gray-100 cursor-not-allowed" readonly>
+            </label>
+        </div>
     </div>
     <p class="text-sm text-gray-500 mt-3 flex items-center">
         <i class="fas fa-info-circle text-blue-500 mr-1"></i>
         This information is automatically filled from your student records and cannot be edited.
     </p>
 </div>
-                <!-- Personal Information -->
-                <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg">
-                    <h3 class="text-lg font-semibold text-gray-600 mb-4">Personal Information</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">First Name
-                                <input type="text" name="first_name" autocomplete="given-name" value="<?php echo !empty($profile['first_name']) ? htmlspecialchars($profile['first_name']) : ''; ?>" class="w-full border rounded-lg p-2" required <?php echo $can_update ? '' : 'disabled'; ?>>
-                            </label>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Middle Name
-                                <input type="text" name="middle_name" autocomplete="additional-name" value="<?php echo !empty($profile['middle_name']) ? htmlspecialchars($profile['middle_name']) : ''; ?>" class="w-full border rounded-lg p-2" <?php echo $can_update ? '' : 'disabled'; ?>>
-                            </label>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Last Name
-                                <input type="text" name="last_name" autocomplete="family-name" value="<?php echo !empty($profile['last_name']) ? htmlspecialchars($profile['last_name']) : ''; ?>" class="w-full border rounded-lg p-2" required <?php echo $can_update ? '' : 'disabled'; ?>>
-                            </label>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Contact Number
-                                <input type="tel" name="contact_number" autocomplete="tel" value="<?php echo !empty($profile['contact_number']) ? htmlspecialchars($profile['contact_number']) : ''; ?>" class="w-full border rounded-lg p-2" required pattern="[0-9]{10,11}" title="Contact number must be 11 digits" <?php echo $can_update ? '' : 'disabled'; ?>>
-                            </label>
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Employment Status
-                                <select id="employmentStatusSelect" name="employment_status" class="w-full border rounded-lg p-2" required <?php echo $can_update ? '' : 'disabled'; ?>>
-                                    <option value="">Select Status</option>
-                                    <option value="Employed" <?php echo ($profile['employment_status'] ?? '') === 'Employed' ? 'selected' : ''; ?>>Employed</option>
-                                    <option value="Self-Employed" <?php echo ($profile['employment_status'] ?? '') === 'Self-Employed' ? 'selected' : ''; ?>>Self-Employed</option>
-                                    <option value="Unemployed" <?php echo ($profile['employment_status'] ?? '') === 'Unemployed' ? 'selected' : ''; ?>>Unemployed</option>
-                                    <option value="Student" <?php echo ($profile['employment_status'] ?? '') === 'Student' ? 'selected' : ''; ?>>Student</option>
-                                    <option value="Employed & Student" <?php echo ($profile['employment_status'] ?? '') === 'Employed & Student' ? 'selected' : ''; ?>>Employed & Student</option>
-                                </select>
-                            </label>
-                        </div>
-                    </div>
-                </div>
             </div>
 
             <!-- Address Section -->
@@ -638,7 +599,31 @@ ob_start();
                     </div>
                 </div>
             <?php endif; ?>
+  <!-- Personal Information -->
+                <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg">
+                    <h3 class="text-lg font-semibold text-gray-600 mb-4">Employment Information</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Contact Number
+                                <input type="tel" name="contact_number" autocomplete="tel" value="<?php echo !empty($profile['contact_number']) ? htmlspecialchars($profile['contact_number']) : ''; ?>" class="w-full border rounded-lg p-2" required pattern="[0-9]{10,11}" title="Contact number must be 11 digits" <?php echo $can_update ? '' : 'disabled'; ?>>
+                            </label>
+                        </div>
 
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Employment Status
+                                <select id="employmentStatusSelect" name="employment_status" class="w-full border rounded-lg p-2" required <?php echo $can_update ? '' : 'disabled'; ?>>
+                                    <option value="">Select Status</option>
+                                    <option value="Employed" <?php echo ($profile['employment_status'] ?? '') === 'Employed' ? 'selected' : ''; ?>>Employed</option>
+                                    <option value="Self-Employed" <?php echo ($profile['employment_status'] ?? '') === 'Self-Employed' ? 'selected' : ''; ?>>Self-Employed</option>
+                                    <option value="Unemployed" <?php echo ($profile['employment_status'] ?? '') === 'Unemployed' ? 'selected' : ''; ?>>Unemployed</option>
+                                    <option value="Student" <?php echo ($profile['employment_status'] ?? '') === 'Student' ? 'selected' : ''; ?>>Student</option>
+                                    <option value="Employed & Student" <?php echo ($profile['employment_status'] ?? '') === 'Employed & Student' ? 'selected' : ''; ?>>Employed & Student</option>
+                                </select>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <!-- Employment Details Section -->
             <?php if ($can_update): ?>
                 <div id="employmentDetailsSection" class="hidden bg-white p-6 rounded-xl shadow-lg">
