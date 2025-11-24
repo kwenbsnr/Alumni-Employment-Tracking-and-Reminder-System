@@ -13,20 +13,25 @@ $user_id = $_SESSION['user_id'];
 $page_title = "Profile Management";
 $active_page = "profile";
 
-// Fetch profile data
+// Fetch profile data WITH SCHOOL INFO - FIXED to show official data from database
 $stmt = $conn->prepare("
-    SELECT ap.*, u.email, 
-           tb.barangay_name, tm.municipality_name, tp.province_name, tr.region_name,
-           tr.region_id, tp.province_id, tm.municipality_id, tb.barangay_id
-    FROM alumni_profile ap
-    LEFT JOIN users u ON ap.user_id = u.user_id
+    SELECT 
+        u.user_id, u.email, u.student_id, u.date_of_birth, u.gender, u.program, u.name as official_name, u.batch_year,
+        ap.first_name, ap.middle_name, ap.last_name, ap.contact_number, 
+        ap.employment_status, ap.photo_path, ap.address_id,
+        ap.submission_status, ap.last_profile_update, ap.rejection_reason,
+        tb.barangay_name, tm.municipality_name, tp.province_name, tr.region_name,
+        tr.region_id, tp.province_id, tm.municipality_id, tb.barangay_id
+    FROM users u
+    LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id
     LEFT JOIN address a ON ap.address_id = a.address_id
     LEFT JOIN table_barangay tb ON a.barangay_id = tb.barangay_id
     LEFT JOIN table_municipality tm ON tb.municipality_id = tm.municipality_id
     LEFT JOIN table_province tp ON tm.province_id = tp.province_id
     LEFT JOIN table_region tr ON tp.region_id = tr.region_id
-    WHERE ap.user_id = ?
+    WHERE u.user_id = ?
 ");
+
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -515,38 +520,44 @@ ob_start();
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <div>
             <label class="block text-sm font-medium text-gray-700">Student ID
-                <input type="text" value="2020-00123" class="w-full border rounded-lg p-2 bg-gray-100 cursor-not-allowed" readonly>
+                <input type="text" value="<?php echo htmlspecialchars($profile['student_id'] ?? 'Not set'); ?>" class="w-full border rounded-lg p-2 bg-gray-100 cursor-not-allowed" readonly>
             </label>
         </div>
-        <div>
-            <label class="block text-sm font-medium text-gray-700">Full Name
-                <input type="text" value="Juan Dela Cruz" class="w-full border rounded-lg p-2 bg-gray-100 cursor-not-allowed" readonly>
-            </label>
-        </div>
+       <div>
+    <label class="block text-sm font-medium text-gray-700">Full Name
+        <input type="text" value="<?php echo htmlspecialchars($profile['official_name'] ?? 'Not set'); ?>" class="w-full border rounded-lg p-2 bg-gray-100 cursor-not-allowed" readonly>
+    </label>
+</div>
         <div>
             <label class="block text-sm font-medium text-gray-700">Date of Birth
-                <input type="text" value="January 15, 1998" class="w-full border rounded-lg p-2 bg-gray-100 cursor-not-allowed" readonly>
+                <input type="text" value="<?php 
+                    if (!empty($profile['date_of_birth']) && $profile['date_of_birth'] != '0000-00-00') {
+                        echo date('F j, Y', strtotime($profile['date_of_birth']));
+                    } else {
+                        echo 'Not set';
+                    }
+                ?>" class="w-full border rounded-lg p-2 bg-gray-100 cursor-not-allowed" readonly>
             </label>
         </div>
         <div>
             <label class="block text-sm font-medium text-gray-700">Gender
-                <input type="text" value="Male" class="w-full border rounded-lg p-2 bg-gray-100 cursor-not-allowed" readonly>
+                <input type="text" value="<?php echo htmlspecialchars($profile['gender'] ?? 'Not set'); ?>" class="w-full border rounded-lg p-2 bg-gray-100 cursor-not-allowed" readonly>
             </label>
         </div>
         <div>
             <label class="block text-sm font-medium text-gray-700">Program
-                <input type="text" value="BSIT" class="w-full border rounded-lg p-2 bg-gray-100 cursor-not-allowed" readonly>
+                <input type="text" value="<?php echo htmlspecialchars($profile['program'] ?? 'BSIT'); ?>" class="w-full border rounded-lg p-2 bg-gray-100 cursor-not-allowed" readonly>
             </label>
         </div>
         <div>
-            <label class="block text-sm font-medium text-gray-700">Year Graduated
-                <input type="text" value="2024" class="w-full border rounded-lg p-2 bg-gray-100 cursor-not-allowed" readonly>
-            </label>
-        </div>
+    <label class="block text-sm font-medium text-gray-700">Year Graduated
+        <input type="text" value="<?php echo htmlspecialchars($profile['batch_year'] ?? 'Not set'); ?>" class="w-full border rounded-lg p-2 bg-gray-100 cursor-not-allowed" readonly>
+    </label>
+</div>
     </div>
     <p class="text-sm text-gray-500 mt-3 flex items-center">
         <i class="fas fa-info-circle text-blue-500 mr-1"></i>
-        This information is automatically filled from your student records.
+        This information is automatically filled from your student records and cannot be edited.
     </p>
 </div>
                 <!-- Personal Information -->
