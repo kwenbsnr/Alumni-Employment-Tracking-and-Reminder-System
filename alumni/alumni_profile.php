@@ -78,15 +78,28 @@ $is_profile_pending = !empty($profile) && $submission_status === 'Pending';
 // FIX: Check if profile has personal data for display
 $has_personal_data = !empty($profile) && !empty($profile['first_name']) && !empty($profile['last_name']);
 
-// Yearly update logic - only if profile was previously approved
-$can_update_yearly = $is_profile_new || 
-                    ($is_profile_approved && ($last_profile_update === null || 
-                     strtotime($last_profile_update . ' +1 year') <= time()));
+// === CHECK SUBMISSION STATUS FROM DATABASE (GLOBAL CONTROL) ===
+$submission_open = false;
+$statusCheck = $conn->query("SELECT is_open FROM submission_status LIMIT 1");
+if ($statusCheck && $row = $statusCheck->fetch_assoc()) {
+    $submission_open = (bool)$row['is_open'];
+}
 
-$can_reupload = $is_profile_rejected;
+// Yearly update allowed only if previously approved and 1 year passed
+$can_update_yearly = $is_profile_approved && (
+    $last_profile_update === null || 
+    strtotime($last_profile_update . ' +1 year') <= time()
+);
 
-// User can update if: new profile, pending review, yearly update allowed, or profile was rejected
-$can_update = $is_profile_new || $is_profile_pending || $can_update_yearly || $can_reupload;
+// User can update ONLY if:
+// 1. Submissions are globally OPEN, AND
+// 2. (It's a new profile OR rejected OR pending OR yearly update is due)
+$can_update = $submission_open && (
+    $is_profile_new || 
+    $is_profile_rejected || 
+    $is_profile_pending || 
+    $can_update_yearly
+);
 
 // FIXED: Auto-modal opening logic - only open when there's data to edit
 $auto_open_modal = isset($_SESSION['profile_rejected']) && $_SESSION['profile_rejected'] && $has_personal_data;
@@ -227,31 +240,30 @@ ob_start();
                 ?>
             </p>
         </div>
-    <?php else: ?>
-        <!-- Non-actionable description -->
-        <p class="text-sm leading-tight font-medium
-            <?php 
-            echo $is_profile_approved ? 'text-blue-800' : 
-                 ($is_profile_pending ? 'text-yellow-800' : 'text-yellow-800');
-            ?>">
-            <?php
-            if ($is_profile_approved) {
-                $last_update = $profile['last_profile_update'] ?? null;
-                if ($last_update) {
-                    $formatted_date = date('M j, Y', strtotime($last_update));
-                    $next_update = date('M j, Y', strtotime($last_update . ' +6 months'));
-                    echo "Approved on <strong>$formatted_date</strong>. Next update allowed after <strong>$next_update</strong>.";
-                } else {
-                    echo 'Your profile is approved. Updates allowed every 6 months.';
-                }
-            } elseif ($is_profile_pending) {
-                echo 'Your submission is under review. You will be notified once approved.';
+   <?php else: ?>
+    <!-- Non-actionable description -->
+    <p class="text-sm leading-tight font-medium text-yellow-800">
+        <?php
+        if (!$submission_open) {
+            echo 'Profile updates are currently <strong>closed by the administrator</strong>. ';
+            echo 'You will be able to update your profile when submissions are reopened.';
+        } elseif ($is_profile_approved) {
+            $last_update = $profile['last_profile_update'] ?? null;
+            if ($last_update) {
+                $formatted_date = date('M j, Y', strtotime($last_update));
+                $next_update = date('M j, Y', strtotime($last_update . ' +1 year'));
+                echo "Approved on <strong>$formatted_date</strong>. Next update allowed after <strong>$next_update</strong>.";
             } else {
-                echo 'Profile updates are currently locked.';
+                echo 'Your profile is approved. Updates allowed once per year.';
             }
-            ?>
-        </p>
-    <?php endif; ?>
+        } elseif ($is_profile_pending) {
+            echo 'Your submission is under review. Please wait for approval.';
+        } else {
+            echo 'Profile updates are currently not allowed.';
+        }
+        ?>
+    </p>
+<?php endif; ?>
 </div>
 
       <!-- FIXED: Show profile cards only when personal data exists -->

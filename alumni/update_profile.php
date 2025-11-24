@@ -5,6 +5,7 @@ include("../connect.php");
 
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
+
 if (!isset($_SESSION['user_id'])) {
     // Clean output buffer before redirect
     ob_end_clean();
