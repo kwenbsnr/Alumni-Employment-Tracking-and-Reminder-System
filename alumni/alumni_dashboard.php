@@ -632,70 +632,7 @@ ob_start();
         </div>
     </div>
 
-    <!-- RIGHT: Quick Actions (40%) --> 
-<div class="space-y-5">
-    <!-- Quick Actions Card -->
-    <div class="bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-lg border border-gray-200/60 p-6">
-        <div class="flex items-center justify-between mb-6">
-            <h3 class="text-xl font-bold text-gray-800">Quick Actions</h3>
-            <div class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium">
-                <i class="fas fa-bolt mr-1"></i> Fast Access
-            </div>
-        </div>
-       
-        <div class="space-y-3">
-            <!-- Action 1: Update Profile -->
-            <a href="alumni_profile.php" class="flex items-center p-5 bg-white hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 rounded-xl transition-all duration-300 group border border-gray-200/60 hover:border-green-200 hover:shadow-md">
-                <div class="relative">
-                    <div class="bg-gradient-to-br from-green-100 to-emerald-100 p-4 rounded-xl mr-4 group-hover:from-green-500 group-hover:to-emerald-500 transition-all duration-300 shadow-sm">
-                        <i class="fas fa-user-edit text-green-600 text-xl group-hover:text-white"></i>
-                    </div>
-                    <!-- Removed pulsing dot -->
-                </div>
-                <div class="flex-1">
-                    <p class="font-bold text-gray-800 group-hover:text-green-700">Update Profile</p>
-                    <p class="text-sm text-gray-600 mt-1">Keep your information current</p>
-                </div>
-                <div class="bg-gray-100 group-hover:bg-green-100 text-gray-500 group-hover:text-green-600 p-2 rounded-lg transition-all duration-300">
-                    <i class="fas fa-chevron-right text-sm"></i>
-                </div>
-            </a>
-            <!-- Action 2: View Profile -->
-            <a href="alumni_profile.php" class="flex items-center p-5 bg-white hover:bg-gradient-to-r hover:from-purple-50 hover:to-indigo-50 rounded-xl transition-all duration-300 group border border-gray-200/60 hover:border-purple-200 hover:shadow-md">
-                <div class="relative">
-                    <div class="bg-gradient-to-br from-purple-100 to-indigo-100 p-4 rounded-xl mr-4 group-hover:from-purple-500 group-hover:to-indigo-500 transition-all duration-300 shadow-sm">
-                        <i class="fas fa-id-card text-purple-600 text-xl group-hover:text-white"></i>
-                    </div>
-                    <!-- No animation to remove here -->
-                </div>
-                <div class="flex-1">
-                    <p class="font-bold text-gray-800 group-hover:text-purple-700">View Profile</p>
-                    <p class="text-sm text-gray-600 mt-1">See your full alumni details</p>
-                </div>
-                <div class="bg-gray-100 group-hover:bg-purple-100 text-gray-500 group-hover:text-purple-600 p-2 rounded-lg transition-all duration-300">
-                    <i class="fas fa-chevron-right text-sm"></i>
-                </div>
-            </a>
-            <!-- Action 3: Check Review Status -->
-            <a href="alumni_profile.php#documents" class="flex items-center p-5 bg-white hover:bg-gradient-to-r hover:from-amber-50 hover:to-orange-50 rounded-xl transition-all duration-300 group border border-gray-200/60 hover:border-amber-200 hover:shadow-md">
-                <div class="relative">
-                    <div class="bg-gradient-to-br from-amber-100 to-orange-100 p-4 rounded-xl mr-4 group-hover:from-amber-500 group-hover:to-orange-500 transition-all duration-300 shadow-sm">
-                        <i class="fas fa-clipboard-list text-amber-600 text-xl group-hover:text-white"></i>
-                    </div>
-                    <!-- Removed ping animation dot -->
-                </div>
-                <div class="flex-1">
-                    <p class="font-bold text-gray-800 group-hover:text-amber-700">Check Review Status</p>
-                    <p class="text-sm text-gray-600 mt-1">Track document approval</p>
-                </div>
-                <div class="bg-gray-100 group-hover:bg-amber-100 text-gray-500 group-hover:text-amber-600 p-2 rounded-lg transition-all duration-300">
-                    <i class="fas fa-chevron-right text-sm"></i>
-                </div>
-            </a>
-        </div>
-       
-    </div>
-</div>
+ 
 
 <!-- Enhanced Custom Animations -->
 <style>
