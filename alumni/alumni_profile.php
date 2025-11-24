@@ -506,7 +506,49 @@ ob_start();
                     </button>
                     <input type="file" id="profilePictureInput" name="profile_photo" accept="image/jpeg,image/png" class="hidden">
                 </div>
-
+<!-- School Information (Auto-filled) -->
+<div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg border-2 border-blue-200">
+    <h3 class="text-lg font-semibold text-gray-600 mb-4 flex items-center">
+        <i class="fas fa-graduation-cap text-blue-500 mr-2"></i>
+        School Information (Auto-filled)
+    </h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Student ID
+                <input type="text" value="2020-00123" class="w-full border rounded-lg p-2 bg-gray-100 cursor-not-allowed" readonly>
+            </label>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Full Name
+                <input type="text" value="Juan Dela Cruz" class="w-full border rounded-lg p-2 bg-gray-100 cursor-not-allowed" readonly>
+            </label>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Date of Birth
+                <input type="text" value="January 15, 1998" class="w-full border rounded-lg p-2 bg-gray-100 cursor-not-allowed" readonly>
+            </label>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Gender
+                <input type="text" value="Male" class="w-full border rounded-lg p-2 bg-gray-100 cursor-not-allowed" readonly>
+            </label>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Program
+                <input type="text" value="BSIT" class="w-full border rounded-lg p-2 bg-gray-100 cursor-not-allowed" readonly>
+            </label>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Year Graduated
+                <input type="text" value="2024" class="w-full border rounded-lg p-2 bg-gray-100 cursor-not-allowed" readonly>
+            </label>
+        </div>
+    </div>
+    <p class="text-sm text-gray-500 mt-3 flex items-center">
+        <i class="fas fa-info-circle text-blue-500 mr-1"></i>
+        This information is automatically filled from your student records.
+    </p>
+</div>
                 <!-- Personal Information -->
                 <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg">
                     <h3 class="text-lg font-semibold text-gray-600 mb-4">Personal Information</h3>
@@ -531,19 +573,7 @@ ob_start();
                                 <input type="tel" name="contact_number" autocomplete="tel" value="<?php echo !empty($profile['contact_number']) ? htmlspecialchars($profile['contact_number']) : ''; ?>" class="w-full border rounded-lg p-2" required pattern="[0-9]{10,11}" title="Contact number must be 11 digits" <?php echo $can_update ? '' : 'disabled'; ?>>
                             </label>
                         </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Year Graduated
-                                <select name="year_graduated" class="w-full border rounded-lg p-2" required <?php echo $can_update ? '' : 'disabled'; ?>>
-                                    <option value="">Select Year</option>
-                                    <?php
-                                    $currentYear = date('Y');
-                                    for ($y = $currentYear; $y >= 2000; $y--) {
-                                        echo "<option value=\"$y\" " . (($profile['year_graduated'] ?? '') == $y ? 'selected' : '') . ">$y</option>";
-                                    }
-                                    ?>
-                                </select>
-                            </label>
-                        </div>
+
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Employment Status
                                 <select id="employmentStatusSelect" name="employment_status" class="w-full border rounded-lg p-2" required <?php echo $can_update ? '' : 'disabled'; ?>>
