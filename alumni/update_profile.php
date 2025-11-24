@@ -312,25 +312,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->close();
         }
 
-        // ---- 5.5 Profile INSERT / UPDATE ----------------------------------------
-        if ($can_update) {
-            $original_status = trim($_POST['employment_status'] ?? '');
-            
-            if ($profile) {
-                $stmt = $conn->prepare("UPDATE alumni_profile SET 
-                    contact_number=?, employment_status=?, photo_path=?, last_profile_update=NOW(), address_id=?,
-                    submission_status='Pending', submitted_at=NOW()
-                    WHERE user_id=?");
-                $stmt->bind_param("sssii", $contact, $original_status, $photo_path, $address_id, $user_id);
-            } else {
-                $stmt = $conn->prepare("INSERT INTO alumni_profile 
-                    (user_id, contact_number, employment_status, photo_path, last_profile_update, address_id, submission_status, submitted_at)
-                    VALUES (?,?,?,?,NOW(),?,'Pending',NOW())");
-                $stmt->bind_param("isssi", $user_id, $contact, $original_status, $photo_path, $address_id);
-            }
-            $stmt->execute();
-            $stmt->close();
-        }
+// ---- 5.5 Profile INSERT / UPDATE ----------------------------------------
+if ($can_update) {
+    $original_status = trim($_POST['employment_status'] ?? '');
+    
+    // Get user's name from users table
+    $user_stmt = $conn->prepare("SELECT name FROM users WHERE user_id = ?");
+    $user_stmt->bind_param("i", $user_id);
+    $user_stmt->execute();
+    $user_data = $user_stmt->get_result()->fetch_assoc();
+    $user_stmt->close();
+    
+    $user_name = $user_data['name'] ?? '';
+    
+    if ($profile) {
+        $stmt = $conn->prepare("UPDATE alumni_profile SET 
+            name=?, contact_number=?, employment_status=?, photo_path=?, last_profile_update=NOW(), address_id=?,
+            submission_status='Pending', submitted_at=NOW()
+            WHERE user_id=?");
+        $stmt->bind_param("ssssii", $user_name, $contact, $original_status, $photo_path, $address_id, $user_id);
+    } else {
+        $stmt = $conn->prepare("INSERT INTO alumni_profile 
+            (user_id, name, contact_number, employment_status, photo_path, last_profile_update, address_id, submission_status, submitted_at)
+            VALUES (?,?,?,?,?,NOW(),?,'Pending',NOW())");
+        $stmt->bind_param("issssi", $user_id, $user_name, $contact, $original_status, $photo_path, $address_id);
+    }
+    $stmt->execute();
+    $stmt->close();
+}
 
         // ---- 5.6 Employment ------------------------------------------------------
         if ($can_update) {
