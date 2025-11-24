@@ -20,28 +20,30 @@ $search = $_GET['search'] ?? '';
 $employment_status = $_GET['employment_status'] ?? '';
 $submission_status = $_GET['submission_status'] ?? '';
 
-// Fetch batch statistics
+// Fetch batch statistics - FIXED
 $statsQuery = "SELECT
-    SUM(CASE WHEN submission_status = 'Approved' THEN 1 ELSE 0 END) as approved_count,
-    SUM(CASE WHEN submission_status = 'Pending' THEN 1 ELSE 0 END) as pending_count,
-    SUM(CASE WHEN submission_status = 'Rejected' THEN 1 ELSE 0 END) as rejected_count
-    FROM alumni_profile WHERE year_graduated = ?";
+    SUM(CASE WHEN ap.submission_status = 'Approved' THEN 1 ELSE 0 END) as approved_count,
+    SUM(CASE WHEN ap.submission_status = 'Pending' THEN 1 ELSE 0 END) as pending_count,
+    SUM(CASE WHEN ap.submission_status = 'Rejected' THEN 1 ELSE 0 END) as rejected_count
+    FROM alumni_profile ap
+    INNER JOIN users u ON ap.user_id = u.user_id
+    WHERE u.batch_year = ?";
 $statsStmt = $conn->prepare($statsQuery);
 $statsStmt->bind_param('s', $batch_year);
 $statsStmt->execute();
 $statsResult = $statsStmt->get_result();
 $batchStats = $statsResult->fetch_assoc();
 
-// Build query with filters
-$whereConditions = ["ap.year_graduated = ?"];
+// Build query with filters - FIXED
+$whereConditions = ["u.batch_year = ?"];
 $params = [$batch_year];
 $types = 's';
 
 if (!empty($search)) {
-    $whereConditions[] = "(ap.first_name LIKE ? OR ap.middle_name LIKE ? OR ap.last_name LIKE ?)";
+    $whereConditions[] = "u.name LIKE ?";
     $searchTerm = "%$search%";
-    $params = array_merge($params, [$searchTerm, $searchTerm, $searchTerm]);
-    $types .= 'sss';
+    $params[] = $searchTerm;
+    $types .= 's';
 }
 if (!empty($employment_status)) {
     $whereConditions[] = "ap.employment_status = ?";
@@ -57,12 +59,12 @@ if (!empty($submission_status)) {
 $whereClause = implode(" AND ", $whereConditions);
 
 $alumniQuery = "
-    SELECT ap.user_id, ap.first_name, ap.middle_name, ap.last_name, ap.year_graduated,
+    SELECT ap.user_id, u.name, u.batch_year,
            ap.employment_status, ap.submission_status, ap.photo_path, u.email
     FROM alumni_profile ap
-    LEFT JOIN users u ON ap.user_id = u.user_id
+    INNER JOIN users u ON ap.user_id = u.user_id
     WHERE $whereClause
-    ORDER BY ap.last_name ASC, ap.first_name ASC
+    ORDER BY u.name ASC
 ";
 
 $stmt = $conn->prepare($alumniQuery);
@@ -71,7 +73,8 @@ $stmt->execute();
 $alumniResult = $stmt->get_result();
 
 ob_start();
-?><div class="space-y-6">
+?>
+<div class="space-y-6">
     <div class="bg-white p-4 rounded-2xl shadow-xl border-t-4 border-yellow-600">
         <div class="flex items-center justify-between flex-wrap gap-2">
             <div class="flex items-center space-x-3">
@@ -105,9 +108,8 @@ ob_start();
             </div>
         </div>
     </div>
-</div>
 
-<br> <div class="bg-white p-2 rounded-xl shadow-lg">
+    <div class="bg-white p-2 rounded-xl shadow-lg">
         <form method="GET" action="" class="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
             <input type="hidden" name="batch" value="<?= htmlspecialchars($batch_year) ?>">
             <div class="flex-1 min-w-0">
@@ -141,7 +143,7 @@ ob_start();
         </form>
     </div>
 
-<br> <?php if ($alumniResult->num_rows > 0): ?>
+    <?php if ($alumniResult->num_rows > 0): ?>
     <div class="bg-white rounded-xl shadow-lg overflow-hidden">
         <div class="px-6 py-4 border-b bg-gray-50">
             <h3 class="text-lg font-bold text-gray-800">
@@ -183,7 +185,7 @@ ob_start();
                                     </div>
                                     <div class="ml-4">
                                         <div class="text-sm font-medium text-gray-900 alumni-name-hover" data-user-id="<?= $alumni['user_id'] ?>">
-                                            <?= htmlspecialchars($alumni['first_name'] . ' ' . $alumni['last_name']) ?>
+                                            <?= htmlspecialchars($alumni['name']) ?>
                                         </div>
                                         <div class="text-sm text-gray-500"><?= htmlspecialchars($alumni['email']) ?></div>
                                     </div>
@@ -224,17 +226,17 @@ ob_start();
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                 <?php if ($alumni['submission_status'] === 'Pending'): ?>
                                     <div class="flex gap-2">
-                                        <button onclick="showApproveModal(<?= $alumni['user_id'] ?>, '<?= htmlspecialchars($alumni['first_name'].' '.$alumni['last_name'], ENT_QUOTES) ?>')"
+                                        <button onclick="showApproveModal(<?= $alumni['user_id'] ?>, '<?= htmlspecialchars($alumni['name'], ENT_QUOTES) ?>')"
                                                 class="text-green-600 hover:text-green-900 px-3 py-1 border border-green-600 rounded-lg hover:bg-green-50">
                                             <i class="fas fa-check mr-1"></i> Approve
                                         </button>
-                                        <button onclick="showRejectModal(<?= $alumni['user_id'] ?>, '<?= htmlspecialchars($alumni['first_name'].' '.$alumni['last_name'], ENT_QUOTES) ?>', '<?= $alumni['employment_status'] ?>')"
+                                        <button onclick="showRejectModal(<?= $alumni['user_id'] ?>, '<?= htmlspecialchars($alumni['name'], ENT_QUOTES) ?>', '<?= $alumni['employment_status'] ?>')"
                                                 class="text-red-600 hover:text-red-900 px-3 py-1 border border-red-600 rounded-lg hover:bg-red-50">
                                             <i class="fas fa-times mr-1"></i> Reject
                                         </button>
                                     </div>
                                 <?php else: ?>
-                                    <button onclick="showRevertModal(<?= $alumni['user_id'] ?>, '<?= htmlspecialchars($alumni['first_name'].' '.$alumni['last_name'], ENT_QUOTES) ?>')"
+                                    <button onclick="showRevertModal(<?= $alumni['user_id'] ?>, '<?= htmlspecialchars($alumni['name'], ENT_QUOTES) ?>')"
                                             class="text-orange-600 hover:text-orange-900 px-3 py-1 border border-orange-600 rounded-lg hover:bg-orange-50">
                                         <i class="fas fa-undo mr-1"></i> Undo
                                     </button>
