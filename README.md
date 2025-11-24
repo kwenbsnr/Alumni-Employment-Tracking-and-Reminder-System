@@ -105,3 +105,38 @@ Summary of Changes Implemented
 - Admin can still review, approve, reject, or revisit any existing profile at any time.
 
 - The open/close feature now works only as a control for new entries, without affecting existing records.
+
+NEW UPDATE - MARIAN
+No Info Entered
+- Can submit when the submission is open. Can’t if closed. 
+
+Pending Profiles
+- Can edit profile for as long as sub is open. 
+- When closed, edit is not available.
+
+Approved Profiles
+- Cannot edit even if open/closed. 
+- Can edit again after 6 months. 
+
+Rejected Profiles
+- Can edit if not closed (just like pending cases).
+
+What i did: 
+
+1. Changed the user and alumni profile sql. 
+2. School Information Integration (working 100% and reflects on admin) 
+3. Fixed the completion status. 
+4. Changed most of the admin codes (fixed the errors from the sql update) 
+5. Updated the user profile hover on admin (100% working and data fetched) 
+6. Changed revert into undo as it is misleading (when undo is clicked, submission stat becomes pending again.) 
+7. Added an open/close submission with date customization and 100% reflects on the alumni. 
+8. Removed the quick actions. 
+9. Enhanced most of the guis. 
+
+WHAT TO FIX: 
+1. Generate Report 
+2. Notification button on both alumni and admin. 
+3. Recent activity on the alumni.
+4. Rejected Profile rejection message need to fixing. 
+
+and idk…
