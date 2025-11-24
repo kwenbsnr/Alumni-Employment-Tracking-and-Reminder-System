@@ -22,8 +22,13 @@ if (isset($_POST['generate_report'])) {
 
     if (!empty($selected_batches)) {
         generateAlumniReport($selected_batches, $report_type, $format, $conn);
+        // Exit after generating report to prevent further execution
+        exit();
     } else {
         $_SESSION['error_message'] = "Please select at least one batch to generate a report.";
+        // Redirect to clear POST data
+        header("Location: " . $_SERVER['PHP_SELF']);
+        exit();
     }
 }
 
@@ -44,26 +49,51 @@ if ($statusCheck->num_rows == 0) {
 
 if (isset($_POST['update_submission_status'])) {
     $action = $_POST['submission_action'] ?? '';
+
     if ($action === 'open_now') {
-        $conn->query("UPDATE submission_status SET is_open = 1, manual_override = 1, open_date = NULL, close_date = NULL");
-        $_SESSION['success_message'] = "Alumni submissions are now OPEN.";
+        $conn->query("UPDATE submission_status SET 
+            is_open = 1, 
+            manual_override = 1, 
+            open_date = NULL, 
+            close_date = NULL");
+        $_SESSION['success_message'] = "Alumni submissions are now OPEN indefinitely.";
+        
     } elseif ($action === 'close_now') {
-        $conn->query("UPDATE submission_status SET is_open = 0, manual_override = 1, open_date = NULL, close_date = NULL");
+        $conn->query("UPDATE submission_status SET 
+            is_open = 0, 
+            manual_override = 1, 
+            open_date = NULL, 
+            close_date = NULL");
         $_SESSION['success_message'] = "Alumni submissions are now CLOSED.";
+        
     } elseif ($action === 'schedule') {
-        $open_date = $_POST['open_date'] ?? null;
-        $close_date = $_POST['close_date'] ?? null;
-        if ($open_date && $close_date && strtotime($open_date) <= strtotime($close_date)) {
-            $open_date = date('Y-m-d H:i:s', strtotime($open_date));
-            $close_date = date('Y-m-d H:i:s', strtotime($close_date));
-            $conn->query("UPDATE submission_status SET open_date = '$open_date', close_date = '$close_date', manual_override = 0");
-            $_SESSION['success_message'] = "Submission schedule updated successfully.";
+        $open_date_input  = $_POST['open_date'] ?? null;
+        $close_date_input = $_POST['close_date'] ?? null;
+
+        if ($open_date_input && $close_date_input && strtotime($open_date_input) < strtotime($close_date_input)) {
+            $open_date  = date('Y-m-d H:i:s', strtotime($open_date_input));
+            $close_date = date('Y-m-d H:i:s', strtotime($close_date_input));
+
+            // Format for display in toast
+            $from = date('M j, Y \a\t g:i A', strtotime($open_date));
+            $to   = date('M j, Y \a\t g:i A', strtotime($close_date));
+
+            $conn->query("UPDATE submission_status SET 
+                open_date = '$open_date', 
+                close_date = '$close_date', 
+                manual_override = 0,
+                is_open = 0");  
+
+            $_SESSION['success_message'] = "Submissions scheduled — Opens: $from | Closes: $to";
         } else {
-            $_SESSION['error_message'] = "Invalid date range.";
+            $_SESSION['error_message'] = "Invalid schedule: Closing date & time must be after opening date & time.";
         }
     }
+    
+    // ADD THIS REDIRECTION AFTER PROCESSING THE FORM
+    header("Location: " . $_SERVER['PHP_SELF']);
+    exit();
 }
-
 $statusRow = $conn->query("SELECT * FROM submission_status LIMIT 1")->fetch_assoc();
 $is_open = (bool)$statusRow['is_open'];
 $manual_override = (bool)$statusRow['manual_override'];
@@ -342,46 +372,63 @@ if (isset($_SESSION['error_message'])) {
         </div>
     </div>
 </div>
-
-<!-- Submission Modal (unchanged) -->
+<!-- Submission Modal -->
 <div id="submissionModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-8 relative">
-        <button id="closeModal" class="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-2xl"><i class="fas fa-times"></i></button>
+        <button id="closeModal" class="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-2xl">
+            <i class="fas fa-times"></i>
+        </button>
         <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3">
             <i class="fas fa-cog text-<?= $status_color ?>-600"></i> Manage Submission Period
         </h2>
-        <form method="POST" class="space-y-6">
-            <!-- Same modal content as before -->
+
+        <form method="POST" class="space-y-6" onsubmit="return validateSubmissionDates()">
             <div class="space-y-4">
+                <!-- Open Now -->
                 <div class="bg-gray-50 p-4 rounded-lg border">
                     <label class="flex items-center gap-3 cursor-pointer">
                         <input type="radio" name="submission_action" value="open_now" class="text-emerald-600" <?= $is_open && $manual_override ? 'checked' : '' ?>>
                         <span class="font-medium">Open Submissions Now</span>
                     </label>
                 </div>
+
+                <!-- Close Now -->
                 <div class="bg-gray-50 p-4 rounded-lg border">
                     <label class="flex items-center gap-3 cursor-pointer">
                         <input type="radio" name="submission_action" value="close_now" class="text-red-600" <?= !$is_open && $manual_override ? 'checked' : '' ?>>
                         <span class="font-medium">Close Submissions Now</span>
                     </label>
                 </div>
+
+                <!-- Schedule -->
                 <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
                     <label class="flex items-center gap-3 cursor-pointer">
-                        <input type="radio" name="submission_action" value="schedule" class="text-blue-600" <?= !$manual_override ? 'checked' : '' ?>>
+                        <input type="radio" name="submission_action" value="schedule" class="text-blue-600" id="scheduleRadio" <?= !$manual_override ? 'checked' : '' ?>>
                         <span class="font-medium">Schedule Open/Close Period</span>
                     </label>
                     <div class="mt-4 grid grid-cols-1 gap-4 ml-8">
-                        <div><label class="block text-sm font-medium text-gray-700">Open Date & Time</label>
-                            <input type="datetime-local" name="open_date" class="mt-1 w-full border-gray-300 rounded-md" value="<?= $open_date ? str_replace(' ', 'T', $open_date) : '' ?>">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Open Date & Time</label>
+                            <input type="datetime-local" name="open_date" id="open_date" class="mt-1 w-full border-gray-300 rounded-md" value="<?= $open_date ? str_replace(' ', 'T', $open_date) : '' ?>">
                         </div>
-                        <div><label class="block text-sm font-medium text-gray-700">Close Date & Time</label>
-                            <input type="datetime-local" name="close_date" class="mt-1 w-full border-gray-300 rounded-md" value="<?= $close_date ? str_replace(' ', 'T', $close_date) : '' ?>">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Close Date & Time</label>
+                            <input type="datetime-local" name="close_date" id="close_date" class="mt-1 w-full border-gray-300 rounded-md" value="<?= $close_date ? str_replace(' ', 'T', $close_date) : '' ?>">
                         </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Inline Error Message (Inside Modal) -->
+            <div id="submissionError" class="hidden bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4" role="alert">
+                <span id="submissionErrorText"></span>
+            </div>
+
+            <!-- Buttons -->
             <div class="flex justify-end gap-3 pt-4 border-t">
-                <button type="button" id="cancelModal" class="px-5 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600">Cancel</button>
+                <button type="button" id="cancelModal" class="px-5 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600">
+                    Cancel
+                </button>
                 <button type="submit" name="update_submission_status" class="px-6 py-2 bg-<?= $status_color ?>-600 text-white rounded-lg hover:bg-<?= $status_color ?>-700 flex items-center gap-2">
                     <i class="fas fa-save"></i> Save Changes
                 </button>
@@ -390,6 +437,52 @@ if (isset($_SESSION['error_message'])) {
     </div>
 </div>
 
+<!-- Validation Script -->
+<script>
+function validateSubmissionDates() {
+    const errorBox = document.getElementById('submissionError');
+    const errorText = document.getElementById('submissionErrorText');
+    errorBox.classList.add('hidden');
+    errorText.textContent = '';
+
+    const scheduleRadio = document.getElementById('scheduleRadio');
+    if (!scheduleRadio.checked) return true;
+
+    const openDateInput = document.getElementById('open_date');
+    const closeDateInput = document.getElementById('close_date');
+    const openDate = new Date(openDateInput.value);
+    const closeDate = new Date(closeDateInput.value);
+    const now = new Date();
+    now.setSeconds(0, 0);
+
+    if (!openDateInput.value || !closeDateInput.value) {
+        showError('Both opening and closing dates are required.');
+        return false;
+    }
+
+    if (closeDate <= openDate) {
+        showError('Closing date & time must come after the opening date & time.');
+        return false;
+    }
+
+    // Improved message – no longer says "cannot be in the past" unless truly invalid
+    if (openDate < now) {
+        const formatted = openDate.toLocaleString();
+        showError(`Opening date is in the past (${formatted}). Submissions would open immediately if you save this schedule.`);
+        // We still allow saving – just inform the admin
+    }
+
+    return true;
+}
+
+function showError(message) {
+    const errorBox = document.getElementById('submissionError');
+    const errorText = document.getElementById('submissionErrorText');
+    errorText.textContent = message;
+    errorBox.classList.remove('hidden');
+    errorBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+</script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const toggleReport = document.getElementById('toggleReportForm');
