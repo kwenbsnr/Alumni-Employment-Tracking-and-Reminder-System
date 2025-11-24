@@ -138,39 +138,43 @@ if (!empty($alumni['b_cert_path']) && $employment_status === 'Unemployed') {
 <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-2xl overflow-hidden">
     <!-- Header Section -->
     <div class="bg-gradient-to-r from-blue-600 to-purple-700 p-6 text-white">
-        <div class="flex items-center space-x-6">
-            <!-- Profile Photo -->
-            <div class="flex-shrink-0">
-                <?php if (!empty($alumni['photo_path'])): ?>
-                    <img class="h-20 w-20 rounded-full object-cover border-4 border-white/30 shadow-lg"
-                         src="../<?php echo htmlspecialchars($alumni['photo_path']); ?>"
-                         alt="Profile Photo">
-                <?php else: ?>
-                    <div class="h-20 w-20 rounded-full bg-white/20 flex items-center justify-center border-4 border-white/30 shadow-lg">
-                        <i class="fas fa-user text-white text-2xl"></i>
+        <div class="flex justify-between items-start">
+            <!-- Left Side: Profile and Basic Info -->
+            <div class="flex items-center space-x-6">
+                <!-- Profile Photo -->
+                <div class="flex-shrink-0">
+                    <?php if (!empty($alumni['photo_path'])): ?>
+                        <img class="h-20 w-20 rounded-full object-cover border-4 border-white/30 shadow-lg"
+                             src="../<?php echo htmlspecialchars($alumni['photo_path']); ?>"
+                             alt="Profile Photo">
+                    <?php else: ?>
+                        <div class="h-20 w-20 rounded-full bg-white/20 flex items-center justify-center border-4 border-white/30 shadow-lg">
+                            <i class="fas fa-user text-white text-2xl"></i>
+                        </div>
+                    <?php endif; ?>
+                </div>
+
+                <!-- Name and Basic Info -->
+                <div class="flex-1">
+                    <h1 class="text-2xl font-bold mb-1">
+                        <?php echo !empty($alumni['official_name']) ? htmlspecialchars($alumni['official_name']) : 'Name Not Provided'; ?>
+                    </h1>
+                    <div class="flex flex-wrap items-center gap-4 text-sm">
+                        <div class="flex items-center space-x-1">
+                            <i class="fas fa-envelope"></i>
+                            <span><?php echo htmlspecialchars($alumni['email']); ?></span>
+                        </div>
                     </div>
-                <?php endif; ?>
+                </div>
             </div>
 
-            <!-- Name and Basic Info -->
-            <div class="flex-1">
-                <h1 class="text-2xl font-bold mb-2">
-                    <?php echo !empty($alumni['official_name']) ? htmlspecialchars($alumni['official_name']) : 'Name Not Provided'; ?>
-                </h1>
-                <div class="flex flex-wrap items-center gap-6 text-sm">
-                    <div class="flex items-center space-x-2">
-                        <i class="fas fa-envelope"></i>
-                        <span><?php echo htmlspecialchars($alumni['email']); ?></span>
-                    </div>
-                    <div class="flex items-center space-x-2">
-                        <i class="fas fa-calendar-alt"></i>
-                        <span>Batch <?php echo htmlspecialchars($alumni['batch_year']); ?></span>
-                    </div>
-                    <div class="flex items-center space-x-2">
-                        <span class="px-3 py-1 text-xs font-semibold rounded-full <?php echo getSubmissionStatusColor($alumni['submission_status']); ?>">
-                            <?php echo htmlspecialchars($alumni['submission_status']); ?>
-                        </span>
-                    </div>
+            <!-- Right Side: Batch Year and Status -->
+            <div class="flex flex-col items-end text-right">
+                <div class="text-3xl font-bold text-white/90 mb-2">
+                    Batch <?php echo htmlspecialchars($alumni['batch_year']); ?>
+                </div>
+                <div class="px-3 py-1 text-sm font-semibold rounded-full <?php echo getSubmissionStatusColor($alumni['submission_status']); ?>">
+                    <?php echo htmlspecialchars($alumni['submission_status']); ?>
                 </div>
             </div>
         </div>
