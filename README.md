@@ -26,6 +26,9 @@
 
 **Alumni Module Bug Report**
 
+
+[FIXED NA ANG EVERYTHING] - MARIAN
+
 🔴 Critical
 ____________________
 
