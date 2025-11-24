@@ -57,7 +57,7 @@ $last = trim($_POST['last_name']);
 $email = trim($_POST['email']);
 $contact = trim($_POST['contact_number']);
 $barangay = trim($_POST['barangay_id']);
-$year = trim($_POST['year_graduated']);
+$year = trim($_POST['batch_year']);
 $status = trim($_POST['employment_status']);
 $photo = upload_file('profile_photo', '../Uploads/photos/', $last, 'profile', ['image/jpeg', 'image/png']);
 
@@ -66,7 +66,7 @@ $photo = upload_file('profile_photo', '../Uploads/photos/', $last, 'profile', ['
 $barangay_id = trim($_POST['barangay_id'] ?? '');  // Use barangay_id code from form
 
 // Update alumni_profile with correct column name
-$sql = "UPDATE alumni_profile SET first_name=?, middle_name=?, last_name=?, contact_number=?, year_graduated=?, employment_status=?, photo_path=COALESCE(?, photo_path), last_profile_update=NOW() WHERE user_id=?";
+$sql = "UPDATE alumni_profile SET first_name=?, middle_name=?, last_name=?, contact_number=?, batch_year=?, employment_status=?, photo_path=COALESCE(?, photo_path), last_profile_update=NOW() WHERE user_id=?";
 $q = $conn->prepare($sql);  // Line 75: Updated to use last_profile_update
 $q->bind_param("sssssssi", $first, $middle, $last, $contact, $year, $status, $photo, $alumni_id);  // Line 76: 8 params, sssssssi
 if (!$q->execute()) {

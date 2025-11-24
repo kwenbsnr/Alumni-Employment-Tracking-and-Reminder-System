@@ -17,16 +17,16 @@ $search = $_GET['search'] ?? '';
 $employment_status = $_GET['employment_status'] ?? '';
 $submission_status = $_GET['submission_status'] ?? '';
 
-// Fetch all alumni records with filters
+// Fetch all alumni records with filters - FIXED
 $whereConditions = ["1=1"];
 $params = [];
 $types = '';
 
 if (!empty($search)) {
-    $whereConditions[] = "(ap.first_name LIKE ? OR ap.middle_name LIKE ? OR ap.last_name LIKE ? OR u.email LIKE ?)";
+    $whereConditions[] = "(u.name LIKE ? OR u.email LIKE ?)";
     $searchTerm = "%$search%";
-    $params = array_merge($params, [$searchTerm, $searchTerm, $searchTerm, $searchTerm]);
-    $types .= 'ssss';
+    $params = array_merge($params, [$searchTerm, $searchTerm]);
+    $types .= 'ss';
 }
 
 if (!empty($employment_status)) {
@@ -46,21 +46,19 @@ $whereClause = implode(" AND ", $whereConditions);
 $query = "
     SELECT 
         ap.user_id,
-        ap.first_name,
-        ap.middle_name,
-        ap.last_name,
-        ap.year_graduated,
+        u.name,
+        u.batch_year,
         ap.employment_status,
         ap.submission_status,
         ap.photo_path,
         u.email,
         COUNT(ad.doc_id) as document_count
     FROM alumni_profile ap
-    LEFT JOIN users u ON ap.user_id = u.user_id
+    INNER JOIN users u ON ap.user_id = u.user_id
     LEFT JOIN alumni_documents ad ON ap.user_id = ad.user_id
     WHERE $whereClause
     GROUP BY ap.user_id
-    ORDER BY ap.year_graduated DESC, ap.last_name ASC, ap.first_name ASC
+    ORDER BY u.batch_year DESC, u.name ASC
 ";
 
 $stmt = $conn->prepare($query);
@@ -70,12 +68,12 @@ if (!empty($params)) {
 $stmt->execute();
 $result = $stmt->get_result();
 
-// Group alumni by batch year
+// Group alumni by batch year - FIXED
 $alumniByBatch = [];
 $batchYears = [];
 
 while ($alumni = $result->fetch_assoc()) {
-    $batchYear = $alumni['year_graduated'] ?? 'Unknown';
+    $batchYear = $alumni['batch_year'] ?? 'Unknown';
     if (!isset($alumniByBatch[$batchYear])) {
         $alumniByBatch[$batchYear] = [];
         $batchYears[] = $batchYear;
@@ -209,7 +207,7 @@ ob_start();
                                             <div class="ml-4">
                                                 <div class="text-sm font-medium text-gray-900 alumni-name-hover" 
                                                      data-user-id="<?= $alumni['user_id'] ?>">
-                                                    <?= htmlspecialchars($alumni['first_name'] . ' ' . $alumni['last_name']) ?>
+                                                    <?= htmlspecialchars($alumni['name']) ?>
                                                 </div>
                                                 <div class="text-sm text-gray-500"><?= htmlspecialchars($alumni['email']) ?></div>
                                             </div>
@@ -264,18 +262,18 @@ ob_start();
 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
     <?php if ($alumni['submission_status'] == 'Pending'): ?>
         <div class="flex gap-2">
-            <button onclick="showApproveModal(<?= $alumni['user_id'] ?>, '<?= htmlspecialchars($alumni['first_name'] . ' ' . $alumni['last_name']) ?>')" 
+            <button onclick="showApproveModal(<?= $alumni['user_id'] ?>, '<?= htmlspecialchars($alumni['name']) ?>')" 
                     class="text-green-600 hover:text-green-900 px-3 py-1 border border-green-600 rounded-lg hover:bg-green-50 transition-colors">
                 <i class="fas fa-check mr-1"></i> Approve
             </button>
-            <button onclick="showRejectModal(<?= $alumni['user_id'] ?>, '<?= htmlspecialchars($alumni['first_name'] . ' ' . $alumni['last_name']) ?>', '<?= $alumni['employment_status'] ?>')" 
+            <button onclick="showRejectModal(<?= $alumni['user_id'] ?>, '<?= htmlspecialchars($alumni['name']) ?>', '<?= $alumni['employment_status'] ?>')" 
                     class="text-red-600 hover:text-red-900 px-3 py-1 border border-red-600 rounded-lg hover:bg-red-50 transition-colors">
                 <i class="fas fa-times mr-1"></i> Reject
             </button>
         </div>
     <?php else: ?>
         <div class="flex justify-left">
-            <button onclick="showRevertModal(<?= $alumni['user_id'] ?>, '<?= htmlspecialchars($alumni['first_name'] . ' ' . $alumni['last_name']) ?>')" 
+            <button onclick="showRevertModal(<?= $alumni['user_id'] ?>, '<?= htmlspecialchars($alumni['name']) ?>')" 
                     class="text-orange-600 hover:text-orange-900 px-3 py-1 border border-orange-600 rounded-lg hover:bg-orange-50 transition-colors">
                 <i class="fas fa-undo mr-1"></i> Undo
             </button>
@@ -620,48 +618,7 @@ function closeAlumniModal() {
     modal.classList.add('hidden');
     isModalHovered = false;
 }
-<?php
-// Enhanced helper functions for status styling
-function getEmploymentStatusBorder($status) {
-    switch ($status) {
-        case 'Unemployed': return 'border-red-200';
-        case 'Self-Employed': return 'border-blue-200';
-        case 'Employed': return 'border-green-200';
-        case 'Student': return 'border-purple-200';
-        case 'Employed & Student': return 'border-yellow-200';
-        default: return 'border-gray-200';
-    }
-}
 
-function getEmploymentStatusIcon($status) {
-    switch ($status) {
-        case 'Unemployed': return 'fas fa-user-slash text-red-600';
-        case 'Self-Employed': return 'fas fa-briefcase text-blue-600';
-        case 'Employed': return 'fas fa-building text-green-600';
-        case 'Student': return 'fas fa-graduation-cap text-purple-600';
-        case 'Employed & Student': return 'fas fa-user-graduate text-yellow-600';
-        default: return 'fas fa-question text-gray-600';
-    }
-}
-
-function getSubmissionStatusBorder($status) {
-    switch ($status) {
-        case 'Approved': return 'border-green-200';
-        case 'Pending': return 'border-yellow-200';
-        case 'Rejected': return 'border-red-200';
-        default: return 'border-gray-200';
-    }
-}
-
-function getSubmissionStatusIcon($status) {
-    switch ($status) {
-        case 'Approved': return 'fas fa-check-circle text-green-600';
-        case 'Pending': return 'fas fa-clock text-yellow-600';
-        case 'Rejected': return 'fas fa-times-circle text-red-600';
-        default: return 'fas fa-question text-gray-600';
-    }
-}
-?>
 // Close modals when clicking outside
 document.addEventListener('click', function(e) {
     const approveModal = document.getElementById('approveModal');
@@ -708,6 +665,47 @@ function getSubmissionStatusColor($status) {
         case 'Pending': return 'bg-yellow-100 text-yellow-800';
         case 'Rejected': return 'bg-red-100 text-red-800';
         default: return 'bg-gray-100 text-gray-800';
+    }
+}
+
+// Enhanced helper functions for status styling
+function getEmploymentStatusBorder($status) {
+    switch ($status) {
+        case 'Unemployed': return 'border-red-200';
+        case 'Self-Employed': return 'border-blue-200';
+        case 'Employed': return 'border-green-200';
+        case 'Student': return 'border-purple-200';
+        case 'Employed & Student': return 'border-yellow-200';
+        default: return 'border-gray-200';
+    }
+}
+
+function getEmploymentStatusIcon($status) {
+    switch ($status) {
+        case 'Unemployed': return 'fas fa-user-slash text-red-600';
+        case 'Self-Employed': return 'fas fa-briefcase text-blue-600';
+        case 'Employed': return 'fas fa-building text-green-600';
+        case 'Student': return 'fas fa-graduation-cap text-purple-600';
+        case 'Employed & Student': return 'fas fa-user-graduate text-yellow-600';
+        default: return 'fas fa-question text-gray-600';
+    }
+}
+
+function getSubmissionStatusBorder($status) {
+    switch ($status) {
+        case 'Approved': return 'border-green-200';
+        case 'Pending': return 'border-yellow-200';
+        case 'Rejected': return 'border-red-200';
+        default: return 'border-gray-200';
+    }
+}
+
+function getSubmissionStatusIcon($status) {
+    switch ($status) {
+        case 'Approved': return 'fas fa-check-circle text-green-600';
+        case 'Pending': return 'fas fa-clock text-yellow-600';
+        case 'Rejected': return 'fas fa-times-circle text-red-600';
+        default: return 'fas fa-question text-gray-600';
     }
 }
 

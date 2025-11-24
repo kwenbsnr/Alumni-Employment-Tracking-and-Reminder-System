@@ -120,7 +120,7 @@ if (!$manual_override && $open_date && $close_date) {
     $schedule_info = "<span class='text-xs block text-gray-600'>Scheduled: $from – $to</span>";
 }
 
-// Fetch batches - FIXED with proper error handling
+// Fetch batches - FIXED
 $batchQuery = "SELECT u.batch_year, COUNT(*) as total_count 
                FROM users u 
                INNER JOIN alumni_profile ap ON u.user_id = ap.user_id 
@@ -143,6 +143,7 @@ if ($batchResult && $batchResult !== false) {
     error_log("Batch query failed: " . $conn->error);
     $batchResult = null; // Ensure it's not undefined
 }
+
 ob_start();
 ?>
 
@@ -257,10 +258,10 @@ if (isset($_SESSION['error_message'])) {
             <span class="ml-auto text-blue-600 font-medium">
                 <?php
                 $safe_search = $conn->real_escape_string($search);
-             $searchCount = $conn->query("SELECT COUNT(*) as count FROM alumni_profile ap
-    INNER JOIN users u ON ap.user_id = u.user_id
-    WHERE u.name LIKE '%$safe_search%' 
-       OR u.email LIKE '%$safe_search%'")->fetch_assoc()['count'];
+                $searchCount = $conn->query("SELECT COUNT(*) as count FROM alumni_profile ap
+                    INNER JOIN users u ON ap.user_id = u.user_id
+                    WHERE u.name LIKE '%$safe_search%' 
+                       OR u.email LIKE '%$safe_search%'")->fetch_assoc()['count'];
                 echo "{$searchCount} result(s) found";
                 ?>
             </span>
@@ -283,8 +284,8 @@ if (isset($_SESSION['error_message'])) {
                     <div class="max-h-64 overflow-y-auto space-y-2">
                         <?php foreach ($all_batches as $batch): ?>
                             <label class="flex items-center space-x-3 p-2 rounded hover:bg-gray-50 cursor-pointer">
-                                <input type="checkbox" name="selected_batches[]" value="<?= $batch['year_graduated'] ?>" checked class="h-4 w-4 text-green-600 rounded">
-                                <span class="flex-1">Batch <?= $batch['year_graduated'] ?></span>
+                                <input type="checkbox" name="selected_batches[]" value="<?= $batch['batch_year'] ?>" checked class="h-4 w-4 text-green-600 rounded">
+                                <span class="flex-1">Batch <?= $batch['batch_year'] ?></span>
                                 <span class="text-gray-500 text-sm">(<?= $batch['total_count'] ?> records)</span>
                             </label>
                         <?php endforeach; ?>
@@ -331,8 +332,7 @@ if (isset($_SESSION['error_message'])) {
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <?php
-           $totalQuery = "SELECT COUNT(*) as total FROM alumni_profile";
-// This one is actually fine since we're just counting alumni_profile records
+            $totalQuery = "SELECT COUNT(*) as total FROM alumni_profile";
             $totalAll = $conn->query($totalQuery)->fetch_assoc()['total'];
             ?>
             <a href="all_alumni.php<?= !empty($search) ? '?search=' . urlencode($search) : '' ?>" class="bg-gradient-to-br from-purple-50 to-white p-6 rounded-xl shadow-lg border-2 border-purple-300 hover:shadow-xl hover:border-purple-500 transform hover:scale-105 transition-all duration-300 group text-center">
@@ -346,27 +346,28 @@ if (isset($_SESSION['error_message'])) {
                 <div class="mt-4 bg-purple-700 text-white py-2 px-4 rounded-lg text-sm font-medium group-hover:bg-purple-600 transition">View All Records</div>
             </a>
 
-<?php
-$displayResult = $batchResult;
-if (!empty($search)) {
-    $stmt = $conn->prepare("SELECT DISTINCT u.batch_year 
-                           FROM alumni_profile ap
-                           INNER JOIN users u ON ap.user_id = u.user_id 
-                           WHERE u.batch_year IS NOT NULL 
-                           AND u.name LIKE ?");
-    $term = "%$search%";
-    $stmt->bind_param('s', $term);
-    $stmt->execute();
-    $displayResult = $stmt->get_result();
-}
+            <?php
+            $displayResult = $batchResult;
+            if (!empty($search)) {
+                $stmt = $conn->prepare("SELECT DISTINCT u.batch_year 
+                                       FROM alumni_profile ap
+                                       INNER JOIN users u ON ap.user_id = u.user_id 
+                                       WHERE u.batch_year IS NOT NULL 
+                                       AND u.name LIKE ?");
+                $term = "%$search%";
+                $stmt->bind_param('s', $term);
+                $stmt->execute();
+                $displayResult = $stmt->get_result();
+            }
 
-if ($displayResult && $displayResult->num_rows > 0):
-    while ($batch = $displayResult->fetch_assoc()):
-        $year = $batch['batch_year'];
-        $batch_index = array_search($year, array_column($all_batches, 'batch_year'));
-        $count = ($batch_index !== false) ? $all_batches[$batch_index]['total_count'] : 0;
-?>
-                    <a href="batch_alumni.php?batch=<?= $year ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>" class="...">
+            if ($displayResult && $displayResult->num_rows > 0):
+                while ($batch = $displayResult->fetch_assoc()):
+                    $year = $batch['batch_year'];
+                    $batch_index = array_search($year, array_column($all_batches, 'batch_year'));
+                    $count = ($batch_index !== false) ? $all_batches[$batch_index]['total_count'] : 0;
+            ?>
+                    <a href="batch_alumni.php?batch=<?= $year ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>" class="bg-gradient-to-br from-amber-50 to-white p-6 rounded-xl shadow-lg border-2 border-amber-200 hover:shadow-xl hover:border-amber-400 transform hover:scale-105 transition-all duration-300 group text-center">
+                        <i class="fas fa-folder-open text-4xl text-amber-600 mb-4"></i>
                         <p class="text-xs uppercase tracking-wider text-gray-500">Graduation Batch</p>
                         <p class="text-2xl font-bold text-gray-800"><?= $year ?></p>
                         <div class="mt-4 bg-white rounded-xl p-4 border border-amber-100">
@@ -535,11 +536,16 @@ function generateAlumniReport($selected_batches, $report_type, $format, $conn) {
     $types = str_repeat('i', count($selected_batches));
 
     $queries = [
-        'summary' => "SELECT u.batch_year, COUNT(*) as total, SUM(CASE WHEN employment_status = 'Employed' THEN 1 ELSE 0 END) as employed, ...",
-        // ... rest unchanged
+        'summary' => "SELECT u.batch_year, COUNT(*) as total, SUM(CASE WHEN ap.employment_status = 'Employed' THEN 1 ELSE 0 END) as employed 
+                     FROM alumni_profile ap
+                     INNER JOIN users u ON ap.user_id = u.user_id
+                     WHERE u.batch_year IN ($placeholders)
+                     GROUP BY u.batch_year",
+        // ... rest unchanged - update other queries similarly
     ];
-    // Full function same as before
+    // Full function same as before but with updated column names
 }
+
 // Function to check if submissions are open
 function isSubmissionsOpen($conn) {
     $statusCheck = $conn->query("SELECT is_open FROM submission_status LIMIT 1");
