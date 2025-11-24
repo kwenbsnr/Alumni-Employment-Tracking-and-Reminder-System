@@ -12,11 +12,17 @@ if (!$user_id || !is_numeric($user_id)) {
     echo '<div class="text-center py-8 bg-white rounded-xl"><p class="text-red-500 text-lg">Invalid user ID.</p></div>';
     exit();
 }
-
 $query = "
     SELECT
-        ap.*,
+        u.name as official_name,
+        u.batch_year,
         u.email,
+        u.student_id,
+        ap.contact_number,
+        ap.employment_status,
+        ap.photo_path,
+        ap.submission_status,
+        ap.last_profile_update,
         ei.company_name,
         ei.salary_range,
         jt.title as job_title,
@@ -30,20 +36,20 @@ $query = "
         ad1.file_path as cor_path,
         ad2.file_path as coe_path,
         ad3.file_path as b_cert_path
-    FROM alumni_profile ap
-    LEFT JOIN users u ON ap.user_id = u.user_id
-    LEFT JOIN employment_info ei ON ap.user_id = ei.user_id
+    FROM users u
+    LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id
+    LEFT JOIN employment_info ei ON u.user_id = ei.user_id
     LEFT JOIN job_titles jt ON ei.job_title_id = jt.job_title_id
-    LEFT JOIN education_info edu ON ap.user_id = edu.user_id
+    LEFT JOIN education_info edu ON u.user_id = edu.user_id
     LEFT JOIN address a ON ap.address_id = a.address_id
     LEFT JOIN table_barangay tb ON a.barangay_id = tb.barangay_id
     LEFT JOIN table_municipality tm ON tb.municipality_id = tm.municipality_id
     LEFT JOIN table_province tp ON tm.province_id = tp.province_id
     LEFT JOIN table_region tr ON tp.region_id = tr.region_id
-    LEFT JOIN alumni_documents ad1 ON ap.user_id = ad1.user_id AND ad1.document_type = 'COR'
-    LEFT JOIN alumni_documents ad2 ON ap.user_id = ad2.user_id AND ad2.document_type = 'COE'
-    LEFT JOIN alumni_documents ad3 ON ap.user_id = ad3.user_id AND ad3.document_type = 'B_CERT'
-    WHERE ap.user_id = ?
+    LEFT JOIN alumni_documents ad1 ON u.user_id = ad1.user_id AND ad1.document_type = 'COR'
+    LEFT JOIN alumni_documents ad2 ON u.user_id = ad2.user_id AND ad2.document_type = 'COE'
+    LEFT JOIN alumni_documents ad3 ON u.user_id = ad3.user_id AND ad3.document_type = 'B_CERT'
+    WHERE u.user_id = ?
     LIMIT 1
 ";
 
@@ -60,12 +66,14 @@ if (!$alumni) {
 }
 
 // Set safe defaults to prevent any "undefined array key" warnings
+// Set safe defaults to prevent any "undefined array key" warnings
 $alumni = array_merge([
     'first_name'         => '',
     'middle_name'        => '',
     'last_name'          => '',
+    'official_name'      => '', // Add this line
     'email'              => '—',
-    'batch_year'         => '—',
+    'batch_year'         => '—', // This will now come from users table
     'contact_number'     => '',
     'full_address'       => '',
     'employment_status'  => 'Unemployed',
@@ -127,37 +135,45 @@ if (!empty($alumni['b_cert_path']) && $employment_status === 'Unemployed') {
             <?php endif; ?>
         </div>
 
-        <!-- Name and Basic Info -->
-        <div class="flex-1">
-            <h2 class="text-2xl font-bold text-gray-800 mb-2">
-                <?php
-                $full_name = trim($alumni['first_name'] . ' ' . $alumni['middle_name'] . ' ' . $alumni['last_name']);
-                echo $full_name ? htmlspecialchars($full_name) : 'Name Not Provided';
-                ?>
-            </h2>
-            <div class="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
-                <div>
-                    <span class="font-medium text-gray-600">Email:</span>
-                    <span class="text-gray-800"><?php echo htmlspecialchars($alumni['email']); ?></span>
-                </div>
-                <div>
-    <span class="font-medium text-gray-600">Batch Year:</span>
-    <span class="text-gray-800 font-semibold">
-        <?php 
-        $batch = trim($alumni['batch_year'] ?? '');
-        echo $batch && $batch !== '0' ? htmlspecialchars($batch) : '—';
+<!-- Name and Basic Info -->
+<div class="flex-1">
+    <h2 class="text-2xl font-bold text-gray-800 mb-2">
+        <?php
+        // Try to use the profile name first, fall back to official name from users table
+        $profile_name = trim($alumni['first_name'] . ' ' . $alumni['middle_name'] . ' ' . $alumni['last_name']);
+        $official_name = $alumni['official_name'] ?? '';
+        
+        if (!empty($profile_name) && $profile_name !== '  ') {
+            echo htmlspecialchars($profile_name);
+        } elseif (!empty($official_name)) {
+            echo htmlspecialchars($official_name);
+        } else {
+            echo 'Name Not Provided';
+        }
         ?>
-    </span>
-</div>
-                <div>
-                    <span class="font-medium text-gray-600">Status:</span>
-                    <span class="px-2 py-1 text-xs font-semibold rounded-full <?php echo getSubmissionStatusColor($alumni['submission_status']); ?>">
-                        <?php echo htmlspecialchars($alumni['submission_status']); ?>
-                    </span>
-                </div>
-            </div>
+    </h2>
+    <div class="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
+        <div>
+            <span class="font-medium text-gray-600">Email:</span>
+            <span class="text-gray-800"><?php echo htmlspecialchars($alumni['email']); ?></span>
+        </div>
+        <div>
+            <span class="font-medium text-gray-600">Batch Year:</span>
+            <span class="text-gray-800 font-semibold">
+                <?php 
+                $batch = trim($alumni['batch_year'] ?? '');
+                echo $batch && $batch !== '0' ? htmlspecialchars($batch) : '—';
+                ?>
+            </span>
+        </div>
+        <div>
+            <span class="font-medium text-gray-600">Status:</span>
+            <span class="px-2 py-1 text-xs font-semibold rounded-full <?php echo getSubmissionStatusColor($alumni['submission_status']); ?>">
+                <?php echo htmlspecialchars($alumni['submission_status']); ?>
+            </span>
         </div>
     </div>
+</div>
 
     <!-- Main Content -->
     <div class="p-6 space-y-6">
