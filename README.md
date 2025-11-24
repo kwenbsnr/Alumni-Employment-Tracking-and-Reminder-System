@@ -86,4 +86,19 @@ ______________________
 
 4. ang admin inig human approve/reject, dapat stay lng sa page & d mu redirect sa batch display page.
 
-5. if mag approve ang admin dapat naay "undo approve" instead of directly showing the "reject" button.  
+5. if mag approve ang admin dapat naay "undo approve" instead of directly showing the "reject" button.
+
+
+
+
+Summary of Changes Implemented
+
+- Submissions now close and open based on the admin toggle or scheduled dates.
+
+- When submissions are closed, alumni cannot submit or edit their profiles.
+
+- No data gets deleted—all approved, pending, and rejected submissions remain stored.
+
+- Admin can still review, approve, reject, or revisit any existing profile at any time.
+
+- The open/close feature now works only as a control for new entries, without affecting existing records.
