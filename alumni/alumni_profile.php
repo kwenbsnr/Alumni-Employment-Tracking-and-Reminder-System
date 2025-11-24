@@ -13,11 +13,11 @@ $user_id = $_SESSION['user_id'];
 $page_title = "Profile Management";
 $active_page = "profile";
 
-// Fetch profile data WITH SCHOOL INFO - FIXED to show official data from database
+// Fetch profile data WITH SCHOOL INFO - UPDATED to remove name dependencies
 $stmt = $conn->prepare("
     SELECT 
         u.user_id, u.email, u.student_id, u.date_of_birth, u.gender, u.program, u.name as official_name, u.batch_year,
-        ap.first_name, ap.middle_name, ap.last_name, ap.contact_number, 
+        ap.contact_number, 
         ap.employment_status, ap.photo_path, ap.address_id,
         ap.submission_status, ap.last_profile_update, ap.rejection_reason,
         tb.barangay_name, tm.municipality_name, tp.province_name, tr.region_name,
@@ -80,9 +80,8 @@ $is_profile_rejected = !empty($profile) && $submission_status === 'Rejected';
 $is_profile_approved = !empty($profile) && $submission_status === 'Approved';
 $is_profile_pending = !empty($profile) && $submission_status === 'Pending';
 
-// FIX: Check if profile has personal data for display
-$has_personal_data = !empty($profile) && !empty($profile['first_name']) && !empty($profile['last_name']);
-
+// FIXED: Check if profile has personal data for display - UPDATED criteria
+$has_personal_data = !empty($profile) && (!empty($profile['contact_number']) || !empty($profile['employment_status']));
 // === CHECK SUBMISSION STATUS FROM DATABASE (GLOBAL CONTROL) ===
 $submission_open = false;
 $statusCheck = $conn->query("SELECT is_open FROM submission_status LIMIT 1");
@@ -112,17 +111,6 @@ if ($auto_open_modal) {
     unset($_SESSION['profile_rejected']);
 }
 
-$full_name = 'N/A';
-if (!empty($profile)) {
-    $full_name = trim(
-        ($profile['first_name'] ?? '') . ' ' .
-        ($profile['middle_name'] ?? '') . ' ' .
-        ($profile['last_name'] ?? '')
-    );
-    if (empty($full_name)) {
-        $full_name = 'N/A';
-    }
-}
 
 ob_start();
 ?>
@@ -276,15 +264,14 @@ ob_start();
         <!-- Always show profile cards -->
 
    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    
-<!-- Personal Information Card -->
+<!-- Personal Information Card - UPDATED -->
 <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-blue-500 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-blue-50">
     <div class="flex items-center space-x-3 mb-4 pb-2 border-b border-gray-100">
         <h3 class="text-xl font-bold text-gray-800">Personal Information</h3>
     </div>
-    <dl class="grid grid-cols-2 gap-4">
+    <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="flex flex-col">
-            <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Full Name</dt>
+            <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Name</dt>
             <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['official_name'] ?? 'N/A'); ?></dd>
         </div>
         <div class="flex flex-col">
@@ -296,8 +283,8 @@ ob_start();
             <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['contact_number'] ?? 'N/A'); ?></dd>
         </div>
         <div class="flex flex-col">
-            <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Year Graduated</dt>
-            <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['batch_year'] ?? 'N/A'); ?></dd>
+            <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Program</dt>
+            <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['program'] ?? 'N/A'); ?></dd>
         </div>
     </dl>
 </div>
@@ -1279,53 +1266,127 @@ document.addEventListener('DOMContentLoaded', () => {
     if (provinceSelect) provinceSelect.addEventListener('change', filterMunicipalities);
     if (municipalitySelect) municipalitySelect.addEventListener('change', filterBarangays);
 
-    // SIMPLIFIED Form validation - FIXED VERSION
-    const alumniProfileForm = document.getElementById('alumniProfileForm');
-    if (alumniProfileForm) {
-        alumniProfileForm.addEventListener('submit', function(event) {
-            // Prevent address loading interference
-            if (isAddressLoading) {
-                alert('Address data is still loading. Please wait.');
-                event.preventDefault();
-                return;
-            }
-           
-            // Check student years (end year > start year)
-            if (!validateStudentYears()) {
-                event.preventDefault();
-                return;
-            }
-            
-            /* // Basic permission check
-            <?php if (!$can_update): ?>
-            alert('You are not allowed to update your profile at this time. You can only update once per year unless your submission was rejected.');
+// SIMPLIFIED Form validation - FIXED VERSION
+const alumniProfileForm = document.getElementById('alumniProfileForm');
+if (alumniProfileForm) {
+    alumniProfileForm.addEventListener('submit', function(event) {
+        // Prevent address loading interference
+        if (isAddressLoading) {
+            alert('Address data is still loading. Please wait.');
             event.preventDefault();
             return;
-            <?php endif; ?> */
+        }
+       
+        // Check student years (end year > start year)
+        if (!validateStudentYears()) {
+            event.preventDefault();
+            return;
+        }
 
-            // Profile photo validation - FIXED
-            const profilePhotoInput = document.getElementById('profilePictureInput');
-            const hasExistingPhoto = '<?php echo !empty($profile['photo_path']) ? 'true' : 'false'; ?>';
+        // Profile photo validation - FIXED
+        const profilePhotoInput = document.getElementById('profilePictureInput');
+        const hasExistingPhoto = '<?php echo !empty($profile['photo_path']) ? 'true' : 'false'; ?>';
 
-            // Only require photo if no existing photo
-            if (!profilePhotoInput.files.length && hasExistingPhoto === 'false') {
-                alert('Please upload your profile picture before submitting.');
-                event.preventDefault();
-                return;
+        // Only require photo if no existing photo
+        if (!profilePhotoInput.files.length && hasExistingPhoto === 'false') {
+            alert('Please upload your profile picture before submitting.');
+            event.preventDefault();
+            return;
+        }
+
+        // UPDATED: Only contact number and employment status are required
+        const requiredFields = [
+            { field: 'contact_number', message: 'Contact Number is required.' },
+            { field: 'employment_status', message: 'Employment Status is required.' }
+        ];
+
+        let isValid = true;
+
+        for (const { field, message } of requiredFields) {
+            const element = document.querySelector(`[name="${field}"]`);
+            if (element && !element.value.trim()) {
+                alert(message);
+                isValid = false;
+                break;
             }
+        }
 
-            // Basic required field validation
-            const requiredFields = [
-                { field: 'first_name', message: 'First Name is required.' },
-                { field: 'last_name', message: 'Last Name is required.' },
-                { field: 'contact_number', message: 'Contact Number is required.' },
-                { field: 'year_graduated', message: 'Year Graduated is required.' },
-                { field: 'employment_status', message: 'Employment Status is required.' }
+        if (!isValid) {
+            event.preventDefault();
+            return;
+        }
+
+        // Address validation
+        const addressFieldIds = ['regionSelect', 'provinceSelect', 'municipalitySelect', 'barangaySelect'];
+        const addressMessages = ['Region', 'Province', 'Municipality', 'Barangay'];
+
+        let addressValid = true;
+        for (let i = 0; i < addressFieldIds.length; i++) {
+            const el = document.getElementById(addressFieldIds[i]);
+            if (el && !el.value.trim()) {
+                alert(addressMessages[i] + ' is required.');
+                addressValid = false;
+                break;
+            }
+        }
+
+        if (!addressValid) {
+            event.preventDefault();
+            return;
+        }
+
+        // ... rest of employment validation remains the same ...
+        const status = employmentStatusSelect ? employmentStatusSelect.value : '';
+        
+        if (['Employed', 'Employed & Student'].includes(status)) {
+            if (jobTitleSelect && !jobTitleSelect.value) {
+                alert('Job Title is required for this employment status.');
+                isValid = false;
+            } else if (jobTitleSelect && jobTitleSelect.value === 'Other') {
+                const otherTitle = document.querySelector('[name="other_job_title"]');
+                if (otherTitle && !otherTitle.value.trim()) {
+                    alert('Please specify job title if "Other" is selected.');
+                    isValid = false;
+                }
+            }
+            
+            const companyName = document.querySelector('[name="company_name"]');
+            if (companyName && !companyName.value.trim()) {
+                alert('Company Name is required for this employment status.');
+                isValid = false;
+            }
+            
+            const companyAddress = document.querySelector('[name="company_address"]');
+            if (companyAddress && !companyAddress.value.trim()) {
+                alert('Company Address is required for this employment status.');
+                isValid = false;
+            }
+        }
+
+        // Self-Employed validation
+        if (status === 'Self-Employed') {
+            if (businessTypeSelect && !businessTypeSelect.value) {
+                alert('Business Type is required for Self-Employed status.');
+                isValid = false;
+            } else if (businessTypeSelect && businessTypeSelect.value === 'Others (Please specify)') {
+                const businessTypeOther = document.querySelector('[name="business_type_other"]');
+                if (businessTypeOther && !businessTypeOther.value.trim()) {
+                    alert('Please specify business type if "Others" is selected.');
+                    isValid = false;
+                }
+            }
+        }
+
+        // Student validation
+        if (['Student', 'Employed & Student'].includes(status)) {
+            const studentFields = [
+                { field: 'school_name', message: 'School Name is required for student status.' },
+                { field: 'degree_pursued', message: 'Degree Pursued is required for student status.' },
+                { field: 'start_year', message: 'Start Year is required for student status.' },
+                { field: 'end_year', message: 'End Year is required for student status.' }
             ];
 
-            let isValid = true;
-
-            for (const { field, message } of requiredFields) {
+            for (const { field, message } of studentFields) {
                 const element = document.querySelector(`[name="${field}"]`);
                 if (element && !element.value.trim()) {
                     alert(message);
@@ -1333,179 +1394,51 @@ document.addEventListener('DOMContentLoaded', () => {
                     break;
                 }
             }
+        }
 
-            if (!isValid) {
-                event.preventDefault();
-                return;
-            }
-
-            // Address validation
-            const addressFieldIds = ['regionSelect', 'provinceSelect', 'municipalitySelect', 'barangaySelect'];
-                        const addressMessages = ['Region', 'Province', 'Municipality', 'Barangay'];
-
-                        let addressValid = true;
-                        for (let i = 0; i < addressFieldIds.length; i++) {
-                            const el = document.getElementById(addressFieldIds[i]);
-                            if (el && !el.value.trim()) {
-                                alert(addressMessages[i] + ' is required.');
-                                addressValid = false;
-                                break;
-                            }
-                        }
-
-                        if (!addressValid) {
-                            event.preventDefault();
-                            return;
-                        }
-
-            // Employment-specific validation
-            const status = employmentStatusSelect ? employmentStatusSelect.value : '';
-            
-            if (['Employed', 'Employed & Student'].includes(status)) {
-                if (jobTitleSelect && !jobTitleSelect.value) {
-                    alert('Job Title is required for this employment status.');
-                    isValid = false;
-                } else if (jobTitleSelect && jobTitleSelect.value === 'Other') {
-                    const otherTitle = document.querySelector('[name="other_job_title"]');
-                    if (otherTitle && !otherTitle.value.trim()) {
-                        alert('Please specify job title if "Other" is selected.');
-                        isValid = false;
-                    }
-                }
-                
-                const companyName = document.querySelector('[name="company_name"]');
-                if (companyName && !companyName.value.trim()) {
-                    alert('Company Name is required for this employment status.');
-                    isValid = false;
-                }
-                
-                const companyAddress = document.querySelector('[name="company_address"]');
-                if (companyAddress && !companyAddress.value.trim()) {
-                    alert('Company Address is required for this employment status.');
-                    isValid = false;
-                }
-            }
-
-            // Self-Employed validation
-            if (status === 'Self-Employed') {
-                if (businessTypeSelect && !businessTypeSelect.value) {
-                    alert('Business Type is required for Self-Employed status.');
-                    isValid = false;
-                } else if (businessTypeSelect && businessTypeSelect.value === 'Others (Please specify)') {
-                    const businessTypeOther = document.querySelector('[name="business_type_other"]');
-                    if (businessTypeOther && !businessTypeOther.value.trim()) {
-                        alert('Please specify business type if "Others" is selected.');
-                        isValid = false;
-                    }
-                }
-            }
-
-            // Student validation
-            if (['Student', 'Employed & Student'].includes(status)) {
-                const studentFields = [
-                    { field: 'school_name', message: 'School Name is required for student status.' },
-                    { field: 'degree_pursued', message: 'Degree Pursued is required for student status.' },
-                    { field: 'start_year', message: 'Start Year is required for student status.' },
-                    { field: 'end_year', message: 'End Year is required for student status.' }
-                ];
-
-                for (const { field, message } of studentFields) {
-                    const element = document.querySelector(`[name="${field}"]`);
-                    if (element && !element.value.trim()) {
-                        alert(message);
-                        isValid = false;
-                        break;
-                    }
-                }
-            }
-
-            // Salary validation for employment statuses
-            if (['Employed', 'Self-Employed', 'Employed & Student'].includes(status)) {
-                const salaryElement = document.querySelector('[name="salary_range"]');
-                if (salaryElement && !salaryElement.value.trim()) {
-                    const label = status === 'Self-Employed' ? 'Monthly Income Range' : 'Salary Range';
-                    alert(`${label} is required for ${status} status.`);
-                    isValid = false;
-                }
-            }
-
-            if (!isValid) {
-                event.preventDefault();
-                return;
-            }
-
-            console.log('Form validation passed, submitting...');
-        });
-    }
-
-    // Handle empty form state after rejection
-    function initializeFormState() {
-        const firstName = document.querySelector('[name="first_name"]');
-        const lastName = document.querySelector('[name="last_name"]');
-        
-        // If both first and last name are empty, this is a fresh form after rejection
-        if (firstName && lastName && !firstName.value && !lastName.value) {
-            console.log('Fresh form detected after rejection - resetting all fields');
-            
-            // Reset employment status to default
-            if (employmentStatusSelect) {
-                employmentStatusSelect.value = '';
-                toggleEmploymentSections('');
-            }
-            
-            // Reset address fields
-            if (regionSelect) regionSelect.value = '';
-            if (provinceSelect) provinceSelect.innerHTML = '<option value="">Select Province</option>';
-            if (municipalitySelect) municipalitySelect.innerHTML = '<option value="">Select Municipality</option>';
-            if (barangaySelect) barangaySelect.innerHTML = '<option value="">Select Barangay</option>';
-            
-            // Reset photo preview to default - FORCE reset for rejected profiles
-            if (previewImg) {
-                previewImg.src = 'https://placehold.co/128x128/eeeeee/333333?text=Profile';
-            }
-            
-            // Clear file input
-            if (fileInput) {
-                fileInput.value = '';
+        // Salary validation for employment statuses
+        if (['Employed', 'Self-Employed', 'Employed & Student'].includes(status)) {
+            const salaryElement = document.querySelector('[name="salary_range"]');
+            if (salaryElement && !salaryElement.value.trim()) {
+                const label = status === 'Self-Employed' ? 'Monthly Income Range' : 'Salary Range';
+                alert(`${label} is required for ${status} status.`);
+                isValid = false;
             }
         }
-    }
 
-    // Student year validation function - ENHANCED
-    function validateStudentYears() {
-        const status = employmentStatusSelect ? employmentStatusSelect.value : '';
+        if (!isValid) {
+            event.preventDefault();
+            return;
+        }
+
+        console.log('Form validation passed, submitting...');
+    });
+}
+
+// Student year validation function - UPDATED (removed graduation year check)
+function validateStudentYears() {
+    const status = employmentStatusSelect ? employmentStatusSelect.value : '';
+    
+    // Only validate for student statuses
+    if (['Student', 'Employed & Student'].includes(status)) {
+        const startYear = document.querySelector('[name="start_year"]');
+        const endYear = document.querySelector('[name="end_year"]');
         
-        // Only validate for student statuses
-        if (['Student', 'Employed & Student'].includes(status)) {
-            const startYear = document.querySelector('[name="start_year"]');
-            const endYear = document.querySelector('[name="end_year"]');
-            const graduationYear = document.querySelector('[name="year_graduated"]');
+        // Validate end year > start year
+        if (startYear && endYear && startYear.value && endYear.value) {
+            const start = parseInt(startYear.value);
+            const end = parseInt(endYear.value);
             
-            // Validate end year > start year
-            if (startYear && endYear && startYear.value && endYear.value) {
-                const start = parseInt(startYear.value);
-                const end = parseInt(endYear.value);
-                
-                if (end <= start) {
-                    alert('End Year (Expected Graduation) must be later than Start Year.');
-                    return false;
-                }
-            }
-            
-            // NEW VALIDATION: Start year must be >= graduation year
-            if (graduationYear && startYear && graduationYear.value && startYear.value) {
-                const graduation = parseInt(graduationYear.value);
-                const start = parseInt(startYear.value);
-                
-                if (start < graduation) {
-                    alert('Academic Start Year must be the same as or later than your Graduation Year (' + graduation + ').');
-                    return false;
-                }
+            if (end <= start) {
+                alert('End Year (Expected Graduation) must be later than Start Year.');
+                return false;
             }
         }
-        return true;
+        
+        // REMOVED: Graduation year validation since year graduated is no longer used
     }
-
+    return true;
+}
     // Call this when modal opens
     if (updateProfileBtn) {
         const canUpdate = <?php echo $can_update ? 'true' : 'false'; ?>;
