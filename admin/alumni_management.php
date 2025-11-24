@@ -158,50 +158,75 @@ if (isset($_SESSION['error_message'])) {
 </script>
 <?php endif; ?>
 
-    <!-- Search Bar + Action Buttons (Now with Submission Button on Right) -->
-    <div class="bg-gradient-to-br from-blue-50 to-white p-4 rounded-xl shadow-lg border-2 border-blue-200">
-        <div class="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center">
-            <!-- Search Form (Shortened) -->
-            <form method="GET" action="" class="flex-1 max-w-2xl flex flex-col sm:flex-row gap-3">
+<!-- Enhanced Search Bar with Action Buttons (Updated Layout) -->
+<div class="bg-gradient-to-br from-blue-50 to-white p-4 rounded-xl shadow-lg border-2 border-blue-200">
+    <div class="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center">
+        
+        <!-- Search Form (Left side - takes most space) -->
+        <div class="flex-1 max-w-2xl">
+            <form method="GET" action="" class="flex flex-col sm:flex-row gap-3">
                 <div class="flex-1 relative">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <i class="fas fa-search text-gray-400"></i>
                     </div>
-                    <input type="text" name="search" value="<?= htmlspecialchars($search) ?>" 
-                           class="w-full pl-10 pr-4 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                           placeholder="Search alumni by name...">
+                    <input type="text" name="search" value="<?= htmlspecialchars($search) ?>"
+                           class="w-full pl-10 pr-4 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                           placeholder="Search alumni by name, email, or batch...">
                 </div>
                 <div class="flex gap-2">
-                    <button type="submit" class="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2 whitespace-nowrap">
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg flex items-center gap-2 whitespace-nowrap transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105">
                         <i class="fas fa-search"></i> Search
                     </button>
                     <?php if (!empty($search)): ?>
-                        <a href="alumni_management.php" class="bg-gray-600 text-white px-5 py-2 rounded-lg hover:bg-gray-700 flex items-center gap-2 whitespace-nowrap">
+                        <a href="alumni_management.php" class="bg-gray-500 hover:bg-gray-600 text-white px-5 py-2 rounded-lg flex items-center gap-2 whitespace-nowrap transition-all duration-200 shadow-md hover:shadow-lg">
                             <i class="fas fa-times"></i> Clear
                         </a>
                     <?php endif; ?>
                 </div>
             </form>
-
-            <!-- Right-side Action Buttons -->
-            <div class="flex gap-3">
-                <button id="toggleSubmissionModal" class="bg-<?= $status_color ?>-600 text-white px-5 py-2 rounded-lg hover:bg-<?= $status_color ?>-700 font-medium flex items-center gap-2 shadow-md whitespace-nowrap">
-                    <i class="fas <?= $status_icon ?>"></i> Submissions <?= $status_text ?>
-                </button>
-
-                <button id="toggleReportForm" class="bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-2 rounded-lg hover:from-green-600 hover:to-green-700 flex items-center gap-2 whitespace-nowrap">
-                    <i class="fas fa-file-export"></i> Generate Report
-                </button>
-            </div>
         </div>
 
-        <?php if (!empty($search)): ?>
-            <div class="mt-3 p-3 bg-blue-100 border border-blue-300 rounded-lg text-sm text-blue-800">
-                <i class="fas fa-info-circle"></i> Showing results for: <strong>"<?= htmlspecialchars($search) ?>"</strong>
-            </div>
-        <?php endif; ?>
+        <!-- Right-side Action Buttons (Submissions + Generate Report) -->
+        <div class="flex flex-col sm:flex-row gap-3 lg:ml-auto">
+            <!-- Submissions Control Button -->
+            <button id="toggleSubmissionModal" 
+                    class="bg-<?= $status_color ?>-600 hover:bg-<?= $status_color ?>-700 text-white px-5 py-2 rounded-lg font-medium flex items-center gap-2 shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-105 whitespace-nowrap group relative">
+                <i class="fas <?= $status_icon ?>"></i>
+                <span>Submissions</span>
+                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-white text-<?= $status_color ?>-600 ml-2">
+                    <?= $status_text ?>
+                </span>
+                <div class="absolute -top-2 -right-2 w-3 h-3 bg-<?= $status_color ?>-400 rounded-full animate-pulse"></div>
+            </button>
+
+            <!-- Report Generator Button -->
+            <button id="toggleReportForm" 
+                    class="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-5 py-2 rounded-lg flex items-center gap-2 whitespace-nowrap transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 group">
+                <i class="fas fa-file-export group-hover:rotate-12 transition-transform duration-200"></i>
+                <span>Generate Report</span>
+            </button>
+        </div>
     </div>
 
+    <!-- Search results info (if any) -->
+    <?php if (!empty($search)): ?>
+        <div class="mt-3 p-3 bg-blue-100 border border-blue-300 rounded-lg text-sm text-blue-800 flex items-center gap-2">
+            <i class="fas fa-info-circle"></i>
+            <span>Showing results for: <strong>"<?= htmlspecialchars($search) ?>"</strong></span>
+            <span class="ml-auto text-blue-600 font-medium">
+                <?php
+                $safe_search = $conn->real_escape_string($search);
+                $searchCount = $conn->query("SELECT COUNT(*) as count FROM alumni_profile 
+                    WHERE first_name LIKE '%$safe_search%' 
+                       OR middle_name LIKE '%$safe_search%' 
+                       OR last_name LIKE '%$safe_search%' 
+                       OR email LIKE '%$safe_search%'")->fetch_assoc()['count'];
+                echo "{$searchCount} result(s) found";
+                ?>
+            </span>
+        </div>
+    <?php endif; ?>
+</div>
     <!-- [Rest of your existing content: Report Form, Batch Cards, etc.] -->
     <!-- Inline Report Form -->
     <div id="reportFormContainer" class="hidden bg-gradient-to-br from-green-50 to-white p-6 rounded-xl shadow-lg border-2 border-green-200">
