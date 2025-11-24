@@ -323,8 +323,7 @@ if (isset($_SESSION['error_message'])) {
             </div>
         </form>
     </div>
-
-    <!-- Batch Cards Grid (unchanged) -->
+    <!-- Batch Cards Grid (updated to hide "All Alumni" during search) -->
     <div class="space-y-4">
         <div class="flex items-center gap-3 px-2">
             <i class="fas fa-folder-open text-2xl text-amber-600"></i>
@@ -332,19 +331,22 @@ if (isset($_SESSION['error_message'])) {
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <?php
-            $totalQuery = "SELECT COUNT(*) as total FROM alumni_profile";
-            $totalAll = $conn->query($totalQuery)->fetch_assoc()['total'];
+            // Only show "All Alumni" card when NOT searching
+            if (empty($search)):
+                $totalQuery = "SELECT COUNT(*) as total FROM alumni_profile";
+                $totalAll = $conn->query($totalQuery)->fetch_assoc()['total'];
             ?>
-            <a href="all_alumni.php<?= !empty($search) ? '?search=' . urlencode($search) : '' ?>" class="bg-gradient-to-br from-purple-50 to-white p-6 rounded-xl shadow-lg border-2 border-purple-300 hover:shadow-xl hover:border-purple-500 transform hover:scale-105 transition-all duration-300 group text-center">
-                <i class="fas fa-users text-4xl text-purple-600 mb-4"></i>
-                <p class="text-xs uppercase tracking-wider text-gray-500">All Batches Combined</p>
-                <p class="text-2xl font-bold text-gray-800">All Alumni</p>
-                <div class="mt-4 bg-white rounded-xl p-4 border border-purple-100">
-                    <p class="text-3xl font-bold text-purple-600"><?= $totalAll ?></p>
-                    <p class="text-xs uppercase text-gray-600">Total Records</p>
-                </div>
-                <div class="mt-4 bg-purple-700 text-white py-2 px-4 rounded-lg text-sm font-medium group-hover:bg-purple-600 transition">View All Records</div>
-            </a>
+                <a href="all_alumni.php" class="bg-gradient-to-br from-purple-50 to-white p-6 rounded-xl shadow-lg border-2 border-purple-300 hover:shadow-xl hover:border-purple-500 transform hover:scale-105 transition-all duration-300 group text-center">
+                    <i class="fas fa-users text-4xl text-purple-600 mb-4"></i>
+                    <p class="text-xs uppercase tracking-wider text-gray-500">All Batches Combined</p>
+                    <p class="text-2xl font-bold text-gray-800">All Alumni</p>
+                    <div class="mt-4 bg-white rounded-xl p-4 border border-purple-100">
+                        <p class="text-3xl font-bold text-purple-600"><?= $totalAll ?></p>
+                        <p class="text-xs uppercase text-gray-600">Total Records</p>
+                    </div>
+                    <div class="mt-4 bg-purple-700 text-white py-2 px-4 rounded-lg text-sm font-medium group-hover:bg-purple-600 transition">View All Records</div>
+                </a>
+            <?php endif; ?>
 
             <?php
             $displayResult = $batchResult;
@@ -387,7 +389,6 @@ if (isset($_SESSION['error_message'])) {
             <?php endif; ?>
         </div>
     </div>
-</div>
 <!-- Submission Modal -->
 <div id="submissionModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-8 relative">
