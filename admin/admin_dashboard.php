@@ -10,10 +10,11 @@ $page_title = "Dashboard";
 $active_page = "dashboard";
 
 // Debug: Check what's in the alumni_profile table (kept for original context)
-$debugQuery = "SELECT submission_status, employment_status, year_graduated, COUNT(*) as count 
-               FROM alumni_profile 
-               GROUP BY submission_status, employment_status, year_graduated 
-               ORDER BY submission_status, employment_status, year_graduated";
+$debugQuery = "SELECT ap.submission_status, ap.employment_status, u.batch_year, COUNT(*) as count 
+               FROM alumni_profile ap
+               INNER JOIN users u ON ap.user_id = u.user_id
+               GROUP BY ap.submission_status, ap.employment_status, u.batch_year 
+               ORDER BY ap.submission_status, ap.employment_status, u.batch_year";
 $debugResult = $conn->query($debugQuery);
 
 // Fetch employment status distribution (ALL alumni, not just approved)
@@ -58,7 +59,7 @@ $statsQuery = "
         (SELECT COUNT(*) FROM alumni_profile WHERE submission_status = 'Pending') as pending_profiles,
         (SELECT COUNT(*) FROM alumni_profile WHERE submission_status = 'Rejected') as rejected_profiles,
         (SELECT COUNT(*) FROM employment_info WHERE user_id IN (SELECT user_id FROM alumni_profile WHERE submission_status = 'Approved')) as employed_count,
-        (SELECT COUNT(DISTINCT year_graduated) FROM alumni_profile WHERE year_graduated IS NOT NULL) as unique_graduation_years,
+        (SELECT COUNT(DISTINCT u.batch_year) FROM users u INNER JOIN alumni_profile ap ON u.user_id = ap.user_id WHERE u.batch_year IS NOT NULL) as unique_graduation_years,
         (SELECT COUNT(*) FROM alumni_documents WHERE user_id IN (SELECT user_id FROM alumni_profile WHERE submission_status = 'Approved')) as total_documents
 ";
 
@@ -67,14 +68,15 @@ $stats = $statsResult->fetch_assoc();
 
 // Fetch graduation trends (ALL alumni with graduation years)
 $graduatesQuery = "
-    SELECT year_graduated, COUNT(*) as count 
-    FROM alumni_profile 
-    WHERE year_graduated IS NOT NULL 
-    AND year_graduated != ''
-    AND year_graduated != '0000'
-    AND year_graduated != 0
-    GROUP BY year_graduated 
-    ORDER BY year_graduated
+    SELECT u.batch_year, COUNT(*) as count 
+    FROM users u
+    INNER JOIN alumni_profile ap ON u.user_id = ap.user_id
+    WHERE u.batch_year IS NOT NULL 
+    AND u.batch_year != ''
+    AND u.batch_year != '0000'
+    AND u.batch_year != 0
+    GROUP BY u.batch_year 
+    ORDER BY u.batch_year
 ";
 $graduatesResult = $conn->query($graduatesQuery);
 $gradYears = [];
@@ -82,7 +84,7 @@ $gradCounts = [];
 
 if ($graduatesResult && $graduatesResult->num_rows > 0) {
     while ($row = $graduatesResult->fetch_assoc()) {
-        $gradYears[] = (string)$row['year_graduated']; // Convert to string for JSON
+        $gradYears[] = (string)$row['batch_year']; // Changed from year_graduated to batch_year
         $gradCounts[] = $row['count'];
     }
 } else {
@@ -100,11 +102,10 @@ $recentActivityQuery = "
         ul.update_type,
         ul.updated_at,
         u.name as admin_name,
-        ap.first_name,
-        ap.last_name
+        u2.name as alumni_name
     FROM update_log ul
     LEFT JOIN users u ON ul.updated_by = u.user_id
-    LEFT JOIN alumni_profile ap ON ul.updated_id = ap.user_id
+    LEFT JOIN users u2 ON ul.updated_id = u2.user_id
     ORDER BY ul.updated_at DESC
     LIMIT 10
 ";
@@ -566,28 +567,15 @@ function getActivityBadgeColor($update_type) {
 function getEnhancedActivityText($activity) {
     $name = '';
     
-    // Get the affected user's name - improved logic
-    if (!empty($activity['first_name']) || !empty($activity['last_name'])) {
-        $name = trim(htmlspecialchars(($activity['first_name'] ?? '') . ' ' . ($activity['last_name'] ?? '')));
+    // Get the affected user's name from the updated query
+    if (!empty($activity['alumni_name'])) {
+        $name = trim(htmlspecialchars($activity['alumni_name']));
     }
     
-    // If we still don't have a name, try to get it from the users table
+    // If we still don't have a name, use the user ID
     if (empty($name)) {
-        global $conn;
         $user_id = $activity['updated_id'];
-        $userQuery = "SELECT name FROM users WHERE user_id = ?";
-        $stmt = $conn->prepare($userQuery);
-        $stmt->bind_param("i", $user_id);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        
-        if ($result->num_rows > 0) {
-            $userData = $result->fetch_assoc();
-            $name = htmlspecialchars($userData['name']);
-        } else {
-            $name = "Alumni (ID: {$user_id})";
-        }
-        $stmt->close();
+        $name = "Alumni (ID: {$user_id})";
     }
     
     $actions = [

@@ -120,18 +120,29 @@ if (!$manual_override && $open_date && $close_date) {
     $schedule_info = "<span class='text-xs block text-gray-600'>Scheduled: $from – $to</span>";
 }
 
-// Fetch batches
-$batchQuery = "SELECT year_graduated, COUNT(*) as total_count FROM alumni_profile WHERE year_graduated IS NOT NULL GROUP BY year_graduated ORDER BY year_graduated DESC";
+// Fetch batches - FIXED with proper error handling
+$batchQuery = "SELECT u.batch_year, COUNT(*) as total_count 
+               FROM users u 
+               INNER JOIN alumni_profile ap ON u.user_id = ap.user_id 
+               WHERE u.batch_year IS NOT NULL 
+               GROUP BY u.batch_year 
+               ORDER BY u.batch_year DESC";
 $batchResult = $conn->query($batchQuery);
 
 $all_batches = [];
-if ($batchResult) {
+if ($batchResult && $batchResult !== false) {
     while ($row = $batchResult->fetch_assoc()) {
         $all_batches[] = $row;
     }
-    $batchResult->data_seek(0);
+    // Reset pointer only if we have results
+    if ($batchResult->num_rows > 0) {
+        $batchResult->data_seek(0);
+    }
+} else {
+    // Handle query error
+    error_log("Batch query failed: " . $conn->error);
+    $batchResult = null; // Ensure it's not undefined
 }
-
 ob_start();
 ?>
 
@@ -246,11 +257,10 @@ if (isset($_SESSION['error_message'])) {
             <span class="ml-auto text-blue-600 font-medium">
                 <?php
                 $safe_search = $conn->real_escape_string($search);
-                $searchCount = $conn->query("SELECT COUNT(*) as count FROM alumni_profile 
-                    WHERE first_name LIKE '%$safe_search%' 
-                       OR middle_name LIKE '%$safe_search%' 
-                       OR last_name LIKE '%$safe_search%' 
-                       OR email LIKE '%$safe_search%'")->fetch_assoc()['count'];
+             $searchCount = $conn->query("SELECT COUNT(*) as count FROM alumni_profile ap
+    INNER JOIN users u ON ap.user_id = u.user_id
+    WHERE u.name LIKE '%$safe_search%' 
+       OR u.email LIKE '%$safe_search%'")->fetch_assoc()['count'];
                 echo "{$searchCount} result(s) found";
                 ?>
             </span>
@@ -321,7 +331,8 @@ if (isset($_SESSION['error_message'])) {
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <?php
-            $totalQuery = "SELECT COUNT(*) as total FROM alumni_profile";
+           $totalQuery = "SELECT COUNT(*) as total FROM alumni_profile";
+// This one is actually fine since we're just counting alumni_profile records
             $totalAll = $conn->query($totalQuery)->fetch_assoc()['total'];
             ?>
             <a href="all_alumni.php<?= !empty($search) ? '?search=' . urlencode($search) : '' ?>" class="bg-gradient-to-br from-purple-50 to-white p-6 rounded-xl shadow-lg border-2 border-purple-300 hover:shadow-xl hover:border-purple-500 transform hover:scale-105 transition-all duration-300 group text-center">
@@ -335,23 +346,27 @@ if (isset($_SESSION['error_message'])) {
                 <div class="mt-4 bg-purple-700 text-white py-2 px-4 rounded-lg text-sm font-medium group-hover:bg-purple-600 transition">View All Records</div>
             </a>
 
-            <?php
-            $displayResult = $batchResult;
-            if (!empty($search)) {
-                $stmt = $conn->prepare("SELECT DISTINCT year_graduated FROM alumni_profile WHERE year_graduated IS NOT NULL AND (first_name LIKE ? OR middle_name LIKE ? OR last_name LIKE ?)");
-                $term = "%$search%";
-                $stmt->bind_param('sss', $term, $term, $term);
-                $stmt->execute();
-                $displayResult = $stmt->get_result();
-            }
+<?php
+$displayResult = $batchResult;
+if (!empty($search)) {
+    $stmt = $conn->prepare("SELECT DISTINCT u.batch_year 
+                           FROM alumni_profile ap
+                           INNER JOIN users u ON ap.user_id = u.user_id 
+                           WHERE u.batch_year IS NOT NULL 
+                           AND u.name LIKE ?");
+    $term = "%$search%";
+    $stmt->bind_param('s', $term);
+    $stmt->execute();
+    $displayResult = $stmt->get_result();
+}
 
-            if ($displayResult && $displayResult->num_rows > 0):
-                while ($batch = $displayResult->fetch_assoc()):
-                    $year = $batch['year_graduated'];
-                    $count = $all_batches[array_search($year, array_column($all_batches, 'year_graduated'))]['total_count'] ?? 0;
-            ?>
-                    <a href="batch_alumni.php?batch=<?= $year ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>" class="bg-gradient-to-br from-amber-50 to-white p-6 rounded-xl shadow-lg border-2 border-amber-200 hover:shadow-xl hover:border-amber-400 transform hover:scale-105 transition-all duration-300 group text-center">
-                        <i class="fas fa-folder-open text-4xl text-amber-600 mb-4"></i>
+if ($displayResult && $displayResult->num_rows > 0):
+    while ($batch = $displayResult->fetch_assoc()):
+        $year = $batch['batch_year'];
+        $batch_index = array_search($year, array_column($all_batches, 'batch_year'));
+        $count = ($batch_index !== false) ? $all_batches[$batch_index]['total_count'] : 0;
+?>
+                    <a href="batch_alumni.php?batch=<?= $year ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>" class="...">
                         <p class="text-xs uppercase tracking-wider text-gray-500">Graduation Batch</p>
                         <p class="text-2xl font-bold text-gray-800"><?= $year ?></p>
                         <div class="mt-4 bg-white rounded-xl p-4 border border-amber-100">
@@ -520,7 +535,7 @@ function generateAlumniReport($selected_batches, $report_type, $format, $conn) {
     $types = str_repeat('i', count($selected_batches));
 
     $queries = [
-        'summary' => "SELECT year_graduated, COUNT(*) as total, SUM(CASE WHEN employment_status = 'Employed' THEN 1 ELSE 0 END) as employed, ...",
+        'summary' => "SELECT u.batch_year, COUNT(*) as total, SUM(CASE WHEN employment_status = 'Employed' THEN 1 ELSE 0 END) as employed, ...",
         // ... rest unchanged
     ];
     // Full function same as before
