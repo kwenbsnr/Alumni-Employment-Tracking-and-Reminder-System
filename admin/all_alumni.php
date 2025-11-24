@@ -277,7 +277,7 @@ ob_start();
         <div class="flex justify-left">
             <button onclick="showRevertModal(<?= $alumni['user_id'] ?>, '<?= htmlspecialchars($alumni['first_name'] . ' ' . $alumni['last_name']) ?>')" 
                     class="text-orange-600 hover:text-orange-900 px-3 py-1 border border-orange-600 rounded-lg hover:bg-orange-50 transition-colors">
-                <i class="fas fa-undo mr-1"></i> Revert to Pending
+                <i class="fas fa-undo mr-1"></i> Undo
             </button>
         </div>
     <?php endif; ?>
@@ -378,11 +378,12 @@ ob_start();
         <div class="p-6">
             <div class="flex items-center justify-center w-12 h-12 mx-auto bg-orange-100 rounded-full mb-4">
                 <i class="fas fa-undo text-orange-600 text-xl"></i>
-            </div>
-            <h3 class="text-lg font-bold text-gray-900 text-center mb-2">Revert to Pending Status</h3>
-            <p class="text-gray-600 text-center mb-6">
-                Are you sure you want to revert <span id="revertAlumniName" class="font-semibold"></span>'s profile back to pending status? This will require re-approval.
-            </p>
+           </div>
+<h3 class="text-lg font-bold text-gray-900 text-center mb-2">Undo Action</h3>
+<p class="text-gray-600 text-center mb-6">
+    Are you sure you want to undo this action and return <span id="revertAlumniName" class="font-semibold"></span>'s profile to its previous status?
+</p>
+
             <div class="flex gap-3">
                 <button type="button" onclick="closeRevertModal()" 
                         class="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400 transition-colors">
@@ -390,7 +391,7 @@ ob_start();
                 </button>
                 <button type="button" onclick="processRevert()" 
                         class="flex-1 bg-orange-600 text-white py-2 px-4 rounded-lg hover:bg-orange-700 transition-colors">
-                    Confirm Revert
+                    Confirm Action
                 </button>
             </div>
         </div>

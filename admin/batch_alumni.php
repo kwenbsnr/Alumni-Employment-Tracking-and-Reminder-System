@@ -236,7 +236,7 @@ ob_start();
                                 <?php else: ?>
                                     <button onclick="showRevertModal(<?= $alumni['user_id'] ?>, '<?= htmlspecialchars($alumni['first_name'].' '.$alumni['last_name'], ENT_QUOTES) ?>')"
                                             class="text-orange-600 hover:text-orange-900 px-3 py-1 border border-orange-600 rounded-lg hover:bg-orange-50">
-                                        <i class="fas fa-undo mr-1"></i> Revert
+                                        <i class="fas fa-undo mr-1"></i> Undo
                                     </button>
                                 <?php endif; ?>
                             </td>
@@ -290,11 +290,20 @@ ob_start();
 <div id="revertModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
     <div class="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 p-6">
         <div class="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4"><i class="fas fa-undo text-orange-600 text-xl"></i></div>
-        <h3 class="text-lg font-bold text-center mb-2">Revert to Pending</h3>
-        <p class="text-gray-600 text-center mb-6">Revert <span id="revertAlumniName" class="font-semibold"></span> back to pending?</p>
-        <div class="flex gap-3">
-            <button onclick="closeRevertModal()" class="flex-1 bg-gray-300 py-2 rounded-lg hover:bg-gray-400">Cancel</button>
-            <button onclick="processRevert()" class="flex-1 bg-orange-600 text-white py-2 rounded-lg hover:bg-orange-700">Confirm</button>
+       <h3 class="text-lg font-bold text-gray-900 text-center mb-2">Undo Action</h3>
+<p class="text-gray-600 text-center mb-6">
+    Are you sure you want to undo this action and return <span id="revertAlumniName" class="font-semibold"></span>'s profile to its previous status?
+</p>
+
+            <div class="flex gap-3">
+                <button type="button" onclick="closeRevertModal()" 
+                        class="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400 transition-colors">
+                    Cancel
+                </button>
+                <button type="button" onclick="processRevert()" 
+                        class="flex-1 bg-orange-600 text-white py-2 px-4 rounded-lg hover:bg-orange-700 transition-colors">
+                    Confirm Action
+                </button>
         </div>
     </div>
 </div>
