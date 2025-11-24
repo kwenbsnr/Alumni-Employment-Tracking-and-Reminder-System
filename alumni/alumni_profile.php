@@ -273,7 +273,7 @@ ob_start();
             <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Name</dt>
             <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['official_name'] ?? 'N/A'); ?></dd>
         </div>
-        <div class="flex flex-col">
+        <div class="flex flex-col md:ml-[-70px]">
             <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Email</dt>
             <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['email'] ?? 'N/A'); ?></dd>
         </div>
@@ -281,7 +281,7 @@ ob_start();
             <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Contact Number</dt>
             <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['contact_number'] ?? 'N/A'); ?></dd>
         </div>
-        <div class="flex flex-col">
+        <div class="flex flex-col md:ml-[-70px]">
             <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Program</dt>
             <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['program'] ?? 'N/A'); ?></dd>
         </div>
@@ -372,9 +372,7 @@ ob_start();
             </div>
         <?php endif; ?>
         <?php if (($profile['employment_status'] ?? '') === 'Unemployed'): ?>
-            <div class="flex flex-col md:col-span-2">
-                <dd class="font-semibold text-gray-700" style="font-size: 15px;">Currently Unemployed</dd>
-            </div>
+            
         <?php endif; ?>
     </dl>
 </div>
