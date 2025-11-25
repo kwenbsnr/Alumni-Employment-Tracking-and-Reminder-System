@@ -201,7 +201,7 @@ ob_start();
         <!-- Analytics Section -->
         <div class="bg-white rounded-xl shadow-lg border border-gray-100 p-3">
             <div class="mb-5 border-b pb-3">
-                <h2 class="text-xl font-extrabold text-gray-900 flex items-center">
+                <h2 class="text-xl font-ex Learn more about alumni analytics-extrabold text-bold-gray-900 flex items-center">
                     <i class="fas fa-chart-bar mr-1 text-blue-600"></i> Alumni Analytics
                 </h2>
                 <p class="text-sm text-gray-500 mt-1">Visual data for career status and graduation trends.</p>

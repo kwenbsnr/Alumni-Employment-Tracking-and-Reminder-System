@@ -269,23 +269,7 @@ document.addEventListener("DOMContentLoaded", () => {
                                     <p class="text-gray-500 text-base">
                                         <?php echo htmlspecialchars($_SESSION["email"]); ?>
                                     </p>
-                                </div>
-                                <i class="fas fa-chevron-down text-gray-500 text-sm hidden md:block"></i>
-                            </button>
-                            
-                            <!-- User Dropdown Menu -->
-                            <div id="userDropdown" class="user-dropdown hidden absolute right-0 mt-2 w-48 bg-white rounded-md py-1 z-20">
-                                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                    <i class="fas fa-user mr-3 text-lg"></i>Profile
-                                </a>
-                                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                    <i class="fas fa-cog mr-3 text-lg"></i>Settings
-                                </a>
-                                <div class="border-t border-gray-100 my-1"></div>
-                                <a href="../login/logout.php" class="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100">
-                                    <i class="fas fa-sign-out-alt mr-3 text-lg"></i>Logout
-                                </a>
-                            </div>
+
                         </div>
                     </div>
                 </div>
