@@ -1,12 +1,13 @@
 <?php
 session_start();
-
 if (!isset($_SESSION["user_id"]) || $_SESSION["role"] !== "admin") {
     header("Location: ../login/login.php");
     exit();
 }
-
 include("../connect.php");
+
+// Load TCPDF library
+require_once '../tcpdf/tcpdf.php';
 
 $page_title = "Alumni Records";
 $active_page = "alumni_management";
@@ -18,10 +19,9 @@ $search = $_GET['search'] ?? '';
 if (isset($_POST['generate_report'])) {
     $selected_batches = $_POST['selected_batches'] ?? [];
     $report_type      = $_POST['report_type'] ?? 'summary';
-    $format           = $_POST['format'] ?? 'csv';
 
     if (!empty($selected_batches)) {
-        generateAlumniReport($selected_batches, $report_type, $format, $conn);
+        generateAlumniReport($selected_batches, $report_type, $conn);
         // Exit after generating report to prevent further execution
         exit();
     } else {
@@ -268,14 +268,13 @@ if (isset($_SESSION['error_message'])) {
         </div>
     <?php endif; ?>
 </div>
-    <!-- [Rest of your existing content: Report Form, Batch Cards, etc.] -->
+
     <!-- Inline Report Form -->
     <div id="reportFormContainer" class="hidden bg-gradient-to-br from-green-50 to-white p-6 rounded-xl shadow-lg border-2 border-green-200">
         <h2 class="text-2xl font-bold text-gray-800 mb-5 flex items-center gap-3">
             <i class="fas fa-file-export text-green-600"></i> Customize Alumni Report
         </h2>
         <form method="POST" action="" class="space-y-6">
-            <!-- Your existing report form content here (unchanged) -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div class="bg-white p-5 rounded-xl border-2 border-gray-200">
                     <h3 class="font-semibold text-lg mb-4 flex items-center gap-2">
@@ -296,8 +295,8 @@ if (isset($_SESSION['error_message'])) {
                     </div>
                 </div>
                 <div class="bg-white p-5 rounded-xl border-2 border-gray-200 space-y-5">
-                    <!-- Report options (unchanged) -->
-                    <div><label class="block font-medium mb-2">Report Type</label>
+                    <div>
+                        <label class="block font-medium mb-2">Report Type</label>
                         <select name="report_type" class="w-full border-2 border-gray-300 rounded-lg px-4 py-2">
                             <option value="summary">Summary Report</option>
                             <option value="detailed">Detailed Alumni List</option>
@@ -305,24 +304,33 @@ if (isset($_SESSION['error_message'])) {
                             <option value="employment">Employment Status</option>
                         </select>
                     </div>
-                    <div><label class="block font-medium mb-2">Export Format</label>
+                    <div>
+                        <label class="block font-medium mb-2">Export Format</label>
                         <div class="flex gap-6">
-                            <label><input type="radio" name="format" value="csv" checked> CSV</label>
-                            <label><input type="radio" name="format" value="excel"> Excel</label>
-                            <label><input type="radio" name="format" value="pdf"> PDF</label>
+                            <label class="flex items-center gap-2">
+                                <input type="radio" name="format" value="pdf" checked class="text-blue-600">
+                                <span class="font-medium">PDF Document</span>
+                            </label>
                         </div>
+                        <p class="text-sm text-gray-600 mt-1">Reports will be generated as PDF files with professional formatting</p>
                     </div>
-                    <div><label class="flex items-center gap-3"><input type="checkbox" name="include_charts" checked> Include Charts (PDF only)</label></div>
+                    <div>
+                        <label class="flex items-center gap-3">
+                            <input type="checkbox" name="include_charts" checked> 
+                            Include Charts (PDF only)
+                        </label>
+                    </div>
                 </div>
             </div>
             <div class="flex justify-end gap-4 pt-4 border-t">
                 <button type="button" id="cancelReport" class="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600">Cancel</button>
                 <button type="submit" name="generate_report" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2">
-                    <i class="fas fa-download"></i> Generate & Download
+                    <i class="fas fa-file-pdf"></i> Generate PDF Report
                 </button>
             </div>
         </form>
     </div>
+
     <!-- Batch Cards Grid (updated to hide "All Alumni" during search) -->
     <div class="space-y-4">
         <div class="flex items-center gap-3 px-2">
@@ -389,6 +397,7 @@ if (isset($_SESSION['error_message'])) {
             <?php endif; ?>
         </div>
     </div>
+
 <!-- Submission Modal -->
 <div id="submissionModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-8 relative">
@@ -500,6 +509,7 @@ function showError(message) {
     errorBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 </script>
+
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const toggleReport = document.getElementById('toggleReportForm');
@@ -531,20 +541,205 @@ include("admin_format.php");
 ?>
 
 <?php
-function generateAlumniReport($selected_batches, $report_type, $format, $conn) {
-    // Your existing report function (unchanged)
+function generateAlumniReport($selected_batches, $report_type, $conn) {
+    // Build placeholders for IN clause
     $placeholders = str_repeat('?,', count($selected_batches) - 1) . '?';
     $types = str_repeat('i', count($selected_batches));
 
+    // Queries for each report type
     $queries = [
-        'summary' => "SELECT u.batch_year, COUNT(*) as total, SUM(CASE WHEN ap.employment_status = 'Employed' THEN 1 ELSE 0 END) as employed 
-                     FROM alumni_profile ap
-                     INNER JOIN users u ON ap.user_id = u.user_id
-                     WHERE u.batch_year IN ($placeholders)
-                     GROUP BY u.batch_year",
-        // ... rest unchanged - update other queries similarly
+        'summary' => "SELECT 
+                        u.batch_year,
+                        COUNT(*) as total_alumni,
+                        SUM(CASE WHEN ap.employment_status = 'Employed' THEN 1 ELSE 0 END) as employed,
+                        ROUND(100.0 * SUM(CASE WHEN ap.employment_status = 'Employed' THEN 1 ELSE 0 END) / COUNT(*), 2) as employment_rate
+                      FROM alumni_profile ap
+                      INNER JOIN users u ON ap.user_id = u.user_id
+                      WHERE u.batch_year IN ($placeholders)
+                      GROUP BY u.batch_year
+                      ORDER BY u.batch_year DESC",
+
+        'detailed' => "SELECT u.name, u.email, u.batch_year, 
+                              COALESCE(ap.employment_status, 'Not Updated') as employment_status,
+                              COALESCE(ap.job_title, '-') as job_title,
+                              COALESCE(ap.company, '-') as company
+                       FROM alumni_profile ap
+                       INNER JOIN users u ON ap.user_id = u.user_id
+                       WHERE u.batch_year IN ($placeholders)
+                       ORDER BY u.batch_year DESC, u.name",
+
+        'contact' => "SELECT u.name, u.email, 
+                             COALESCE(u.phone, 'Not Provided') as phone,
+                             u.batch_year
+                      FROM alumni_profile ap
+                      INNER JOIN users u ON ap.user_id = u.user_id
+                      WHERE u.batch_year IN ($placeholders)
+                      ORDER BY u.batch_year DESC, u.name",
+
+        'employment' => "SELECT u.name, u.batch_year,
+                                COALESCE(ap.employment_status, 'Not Updated') as employment_status,
+                                COALESCE(ap.job_title, '-') as job_title,
+                                COALESCE(ap.company, '-') as company
+                         FROM alumni_profile ap
+                         INNER JOIN users u ON ap.user_id = u.user_id
+                         WHERE u.batch_year IN ($placeholders)
+                         ORDER BY u.batch_year DESC, u.name"
     ];
-    // Full function same as before but with updated column names
+
+    if (!isset($queries[$report_type])) {
+        $_SESSION['error_message'] = "Invalid report type selected.";
+        header("Location: " . $_SERVER['PHP_SELF']);
+        exit();
+    }
+
+    $stmt = $conn->prepare($queries[$report_type]);
+    $stmt->bind_param($types, ...$selected_batches);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $data = $result->fetch_all(MYSQLI_ASSOC);
+
+    // ==================================================================
+    // PDF GENERATION USING TCPDF
+    // ==================================================================
+    
+    // Create new PDF document
+    $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
+
+    // Set document information
+    $pdf->SetCreator('Alumni Tracking System');
+    $pdf->SetAuthor('Administrator');
+    $pdf->SetTitle('Alumni Report - ' . ucfirst($report_type));
+    $pdf->SetSubject('Alumni Records Report');
+
+    // Set default header data
+    $pdf->SetHeaderData('', 0, 'ALUMNI MANAGEMENT SYSTEM', 'Alumni Report - ' . date('F j, Y'));
+
+    // Set header and footer fonts
+    $pdf->setHeaderFont(Array('helvetica', '', 10));
+    $pdf->setFooterFont(Array('helvetica', '', 8));
+
+    // Set margins
+    $pdf->SetMargins(15, 20, 15);
+    $pdf->SetHeaderMargin(5);
+    $pdf->SetFooterMargin(10);
+
+    // Set auto page breaks
+    $pdf->SetAutoPageBreak(TRUE, 15);
+
+    // Add a page
+    $pdf->AddPage();
+
+    // Set font for title
+    $pdf->SetFont('helvetica', 'B', 16);
+    $pdf->Cell(0, 10, strtoupper($report_type) . ' ALUMNI REPORT', 0, 1, 'C');
+    $pdf->Ln(5);
+
+    // Report information
+    $pdf->SetFont('helvetica', '', 10);
+    $pdf->Cell(0, 6, 'Selected Batches: ' . implode(', ', $selected_batches), 0, 1);
+    $pdf->Cell(0, 6, 'Total Records: ' . number_format(count($data)), 0, 1);
+    $pdf->Cell(0, 6, 'Generated on: ' . date('F j, Y \a\t g:i A'), 0, 1);
+    $pdf->Ln(10);
+
+    // Define table configurations for different report types
+    $table_config = [
+        'summary' => [
+            'headers' => ['Batch Year', 'Total Alumni', 'Employed', 'Employment Rate %'],
+            'widths'  => [40, 40, 40, 40],
+            'align'   => ['C', 'C', 'C', 'C']
+        ],
+        'detailed' => [
+            'headers' => ['Name', 'Email', 'Batch', 'Status', 'Job Title', 'Company'],
+            'widths'  => [35, 45, 20, 25, 35, 30],
+            'align'   => ['L', 'L', 'C', 'L', 'L', 'L']
+        ],
+        'contact' => [
+            'headers' => ['Name', 'Email', 'Phone', 'Batch Year'],
+            'widths'  => [50, 60, 40, 30],
+            'align'   => ['L', 'L', 'L', 'C']
+        ],
+        'employment' => [
+            'headers' => ['Name', 'Batch', 'Status', 'Job Title', 'Company'],
+            'widths'  => [50, 25, 30, 40, 35],
+            'align'   => ['L', 'C', 'L', 'L', 'L']
+        ]
+    ];
+
+    $cfg = $table_config[$report_type];
+
+    // Create table header
+    $pdf->SetFillColor(59, 130, 246); // Blue color
+    $pdf->SetTextColor(255);
+    $pdf->SetDrawColor(59, 130, 246);
+    $pdf->SetLineWidth(0.3);
+    $pdf->SetFont('helvetica', 'B', 10);
+
+    // Header row
+    for ($i = 0; $i < count($cfg['headers']); $i++) {
+        $pdf->Cell($cfg['widths'][$i], 8, $cfg['headers'][$i], 1, 0, 'C', true);
+    }
+    $pdf->Ln();
+
+    // Table data
+    $pdf->SetFillColor(255, 255, 255);
+    $pdf->SetTextColor(0);
+    $pdf->SetFont('helvetica', '', 9);
+
+    $fill = false;
+    foreach ($data as $row) {
+        // Alternate row background
+        $fill = !$fill;
+        $pdf->SetFillColor($fill ? 240 : 255, $fill ? 245 : 255, $fill ? 255 : 255);
+        
+        for ($i = 0; $i < count($cfg['headers']); $i++) {
+            $header_key = strtolower(str_replace([' ', '%'], ['_', ''], $cfg['headers'][$i]));
+            
+            // Map headers to database fields
+            $field_map = [
+                'batch_year' => 'batch_year',
+                'total_alumni' => 'total_alumni',
+                'employed' => 'employed',
+                'employment_rate_' => 'employment_rate',
+                'name' => 'name',
+                'email' => 'email',
+                'batch' => 'batch_year',
+                'status' => 'employment_status',
+                'job_title' => 'job_title',
+                'company' => 'company',
+                'phone' => 'phone'
+            ];
+            
+            $field_name = $field_map[$header_key] ?? $header_key;
+            $value = $row[$field_name] ?? '';
+            
+            // Format values for summary report
+            if ($report_type === 'summary') {
+                if ($header_key === 'employment_rate_') {
+                    $value = is_numeric($value) ? number_format((float)$value, 2) . '%' : '0.00%';
+                } elseif (in_array($header_key, ['total_alumni', 'employed'])) {
+                    $value = is_numeric($value) ? number_format((float)$value) : '0';
+                }
+            }
+            
+            $pdf->Cell($cfg['widths'][$i], 6, $value, 'LR', 0, $cfg['align'][$i], true);
+        }
+        $pdf->Ln();
+    }
+
+    // Closing line
+    $pdf->Cell(array_sum($cfg['widths']), 0, '', 'T');
+    $pdf->Ln(10);
+
+    // Add summary note for empty reports
+    if (empty($data)) {
+        $pdf->SetFont('helvetica', 'I', 10);
+        $pdf->Cell(0, 10, 'No records found for the selected criteria.', 0, 1, 'C');
+    }
+
+    // Output PDF
+    $filename = "Alumni_Report_" . ucfirst($report_type) . "_" . date('Y-m-d') . ".pdf";
+    $pdf->Output($filename, 'D'); // Force download
+    exit();
 }
 
 // Function to check if submissions are open
