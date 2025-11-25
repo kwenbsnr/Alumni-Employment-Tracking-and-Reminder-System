@@ -295,15 +295,15 @@ if (isset($_SESSION['error_message'])) {
                     </div>
                 </div>
                 <div class="bg-white p-5 rounded-xl border-2 border-gray-200 space-y-5">
-                    <div>
-                        <label class="block font-medium mb-2">Report Type</label>
-                        <select name="report_type" class="w-full border-2 border-gray-300 rounded-lg px-4 py-2">
-                            <option value="summary">Summary Report</option>
-                            <option value="detailed">Detailed Alumni List</option>
-                            <option value="contact">Contact Information</option>
-                            <option value="employment">Employment Status</option>
-                        </select>
-                    </div>
+                   <!-- Inside the Report Form (dropdown) -->
+<div>
+    <label class="block font-medium mb-2">Report Type</label>
+    <select name="report_type" class="w-full border-2 border-gray-300 rounded-lg px-4 py-2">
+        <option value="summary">Summary Report</option>
+        <option value="detailed">Detailed Alumni List</option>
+        <!-- Removed: Contact Information & Employment Status -->
+    </select>
+</div>
                     <div>
                         <label class="block font-medium mb-2">Export Format</label>
                         <div class="flex gap-6">
@@ -567,55 +567,40 @@ function generateAlumniReport($selected_batches, $report_type, $conn) {
 
     // Queries for each report type
     // Queries for each report type
-    $queries = [
-        'summary' => "SELECT 
-                u.batch_year,
-                COUNT(*) as total_alumni,
-                SUM(CASE WHEN ap.employment_status = 'Employed' THEN 1 ELSE 0 END) as employed,
-                SUM(CASE WHEN ap.employment_status = 'Self-Employed' THEN 1 ELSE 0 END) as self_employed,
-                SUM(CASE WHEN ap.employment_status = 'Unemployed' THEN 1 ELSE 0 END) as unemployed,
-                SUM(CASE WHEN ap.employment_status = 'Student' THEN 1 ELSE 0 END) as student,
-                SUM(CASE WHEN ap.employment_status = 'Student and Employed' THEN 1 ELSE 0 END) as student_employed,
-                CASE 
-                    WHEN COUNT(*) > 0 THEN 
-                        ROUND(100.0 * SUM(CASE 
-                            WHEN ap.employment_status IN ('Employed', 'Self-Employed', 'Student and Employed') 
-                            THEN 1 ELSE 0 
-                        END) / COUNT(*), 2)
-                    ELSE 0 
-                END as employment_rate
-              FROM alumni_profile ap
-              INNER JOIN users u ON ap.user_id = u.user_id
-              WHERE u.batch_year IN ($placeholders)
-              GROUP BY u.batch_year
-              ORDER BY u.batch_year DESC",
+// Inside generateAlumniReport() function - replace the $queries array
+$queries = [
+    'summary' => "SELECT 
+            u.batch_year,
+            COUNT(*) as total_alumni,
+            SUM(CASE WHEN ap.employment_status = 'Employed' THEN 1 ELSE 0 END) as employed,
+            SUM(CASE WHEN ap.employment_status = 'Self-Employed' THEN 1 ELSE 0 END) as self_employed,
+            SUM(CASE WHEN ap.employment_status = 'Unemployed' THEN 1 ELSE 0 END) as unemployed,
+            SUM(CASE WHEN ap.employment_status = 'Student' THEN 1 ELSE 0 END) as student,
+            SUM(CASE WHEN ap.employment_status = 'Student and Employed' THEN 1 ELSE 0 END) as student_employed,
+            CASE 
+                WHEN COUNT(*) > 0 THEN 
+                    ROUND(100.0 * SUM(CASE 
+                        WHEN ap.employment_status IN ('Employed', 'Self-Employed', 'Student and Employed') 
+                        THEN 1 ELSE 0 
+                    END) / COUNT(*), 2)
+                ELSE 0 
+            END as employment_rate
+          FROM alumni_profile ap
+          INNER JOIN users u ON ap.user_id = u.user_id
+          WHERE u.batch_year IN ($placeholders)
+          GROUP BY u.batch_year
+          ORDER BY u.batch_year DESC",
 
-        'detailed' => "SELECT u.name, u.email, u.batch_year, 
-                              COALESCE(ap.employment_status, 'Not Updated') as employment_status,
-                              COALESCE(ap.current_job, '-') as current_job,
-                              COALESCE(ap.current_employer, '-') as current_employer
-                       FROM alumni_profile ap
-                       INNER JOIN users u ON ap.user_id = u.user_id
-                       WHERE u.batch_year IN ($placeholders)
-                       ORDER BY u.batch_year DESC, u.name",
+    'detailed' => "SELECT u.name, u.email, u.batch_year, 
+                          COALESCE(ap.employment_status, 'Not Updated') as employment_status,
+                          COALESCE(ap.current_job, '-') as current_job,
+                          COALESCE(ap.current_employer, '-') as current_employer
+                   FROM alumni_profile ap
+                   INNER JOIN users u ON ap.user_id = u.user_id
+                   WHERE u.batch_year IN ($placeholders)
+                   ORDER BY u.batch_year DESC, u.name"
+];
 
-        'contact' => "SELECT u.name, u.email, 
-                             COALESCE(u.phone, 'Not Provided') as phone,
-                             u.batch_year
-                      FROM alumni_profile ap
-                      INNER JOIN users u ON ap.user_id = u.user_id
-                      WHERE u.batch_year IN ($placeholders)
-                      ORDER BY u.batch_year DESC, u.name",
-
-        'employment' => "SELECT u.name, u.batch_year,
-                                COALESCE(ap.employment_status, 'Not Updated') as employment_status,
-                                COALESCE(ap.current_job, '-') as current_job,
-                                COALESCE(ap.current_employer, '-') as current_employer
-                         FROM alumni_profile ap
-                         INNER JOIN users u ON ap.user_id = u.user_id
-                         WHERE u.batch_year IN ($placeholders)
-                         ORDER BY u.batch_year DESC, u.name"
-    ];
     if (!isset($queries[$report_type])) {
         $_SESSION['error_message'] = "Invalid report type selected.";
         header("Location: " . $_SERVER['PHP_SELF']);
@@ -690,16 +675,7 @@ function generateAlumniReport($selected_batches, $report_type, $conn) {
             'widths'  => [35, 45, 20, 25, 35, 30],
             'align'   => ['L', 'L', 'C', 'L', 'L', 'L']
         ],
-        'contact' => [
-            'headers' => ['Name', 'Email', 'Phone', 'Batch Year'],
-            'widths'  => [50, 60, 40, 30],
-            'align'   => ['L', 'L', 'L', 'C']
-        ],
-        'employment' => [
-            'headers' => ['Name', 'Batch', 'Status', 'Current Job', 'Current Employer'],
-            'widths'  => [50, 25, 30, 40, 35],
-            'align'   => ['L', 'C', 'L', 'L', 'L']
-        ]
+    
     ];
 
     $cfg = $table_config[$report_type];
@@ -733,23 +709,24 @@ function generateAlumniReport($selected_batches, $report_type, $conn) {
             
             // Map headers to database fields
                        // Map headers to database fields
-            $field_map = [
-                'batch_year' => 'batch_year',
-                'total_alumni' => 'total_alumni',
-                'employed' => 'employed',
-                'self-employed' => 'self_employed',
-                'unemployed' => 'unemployed',
-                'student' => 'student',
-                'student_&_employed' => 'student_employed',
-                'employment_rate_' => 'employment_rate',
-                'name' => 'name',
-                'email' => 'email',
-                'batch' => 'batch_year',
-                'status' => 'employment_status',
-                'current_job' => 'current_job',
-                'current_employer' => 'current_employer',
-                'phone' => 'phone'
-            ];
+           // Update the field_map to remove unused keys (optional cleanup)
+$field_map = [
+    'batch_year' => 'batch_year',
+    'total_alumni' => 'total_alumni',
+    'employed' => 'employed',
+    'self-employed' => 'self_employed',
+    'unemployed' => 'unemployed',
+    'student' => 'student',
+    'student_&_employed' => 'student_employed',
+    'employment_rate_' => 'employment_rate',
+    'name' => 'name',
+    'email' => 'email',
+    'batch' => 'batch_year',
+    'status' => 'employment_status',
+    'current_job' => 'current_job',
+    'current_employer' => 'current_employer'
+    // Removed: 'phone'
+];
             
             $field_name = $field_map[$header_key] ?? $header_key;
             $value = $row[$field_name] ?? '';
