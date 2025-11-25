@@ -537,6 +537,7 @@ include("admin_format.php");
 
 <?php
 function generateAlumniReport($selected_batches, $report_type, $conn) {
+    if (ob_get_length()) ob_clean();
     // Build placeholders for IN clause
     $placeholders = str_repeat('?,', count($selected_batches) - 1) . '?';
     $types = str_repeat('i', count($selected_batches));
@@ -576,11 +577,11 @@ $queries = [
             SUM(CASE WHEN ap.employment_status = 'Self-Employed' THEN 1 ELSE 0 END) as self_employed,
             SUM(CASE WHEN ap.employment_status = 'Unemployed' THEN 1 ELSE 0 END) as unemployed,
             SUM(CASE WHEN ap.employment_status = 'Student' THEN 1 ELSE 0 END) as student,
-            SUM(CASE WHEN ap.employment_status = 'Student and Employed' THEN 1 ELSE 0 END) as student_employed,
+            SUM(CASE WHEN ap.employment_status = 'Employed & Student' THEN 1 ELSE 0 END) as student_employed,
             CASE 
                 WHEN COUNT(*) > 0 THEN 
                     ROUND(100.0 * SUM(CASE 
-                        WHEN ap.employment_status IN ('Employed', 'Self-Employed', 'Student and Employed') 
+                        WHEN ap.employment_status IN ('Employed', 'Self-Employed', 'Employed & Student') 
                         THEN 1 ELSE 0 
                     END) / COUNT(*), 2)
                 ELSE 0 
@@ -593,10 +594,20 @@ $queries = [
 
     'detailed' => "SELECT u.name, u.email, u.batch_year, 
                           COALESCE(ap.employment_status, 'Not Updated') as employment_status,
-                          COALESCE(ap.current_job, '-') as current_job,
-                          COALESCE(ap.current_employer, '-') as current_employer
+                          CASE 
+                              WHEN ap.employment_status = 'Self-Employed' THEN 'Self-Employed'
+                              WHEN jt.title IS NOT NULL THEN jt.title
+                              ELSE '-'
+                          END as current_job,
+                          CASE 
+                              WHEN ap.employment_status = 'Self-Employed' THEN COALESCE(ei.business_type, '-')
+                              WHEN ei.company_name IS NOT NULL THEN ei.company_name
+                              ELSE '-'
+                          END as current_employer
                    FROM alumni_profile ap
                    INNER JOIN users u ON ap.user_id = u.user_id
+                   LEFT JOIN employment_info ei ON ap.user_id = ei.user_id
+                   LEFT JOIN job_titles jt ON ei.job_title_id = jt.job_title_id
                    WHERE u.batch_year IN ($placeholders)
                    ORDER BY u.batch_year DESC, u.name"
 ];
@@ -613,11 +624,7 @@ $queries = [
     $result = $stmt->get_result();
     $data = $result->fetch_all(MYSQLI_ASSOC);
 
-    // Debug: Log the actual calculated data
-    error_log("Calculated summary data:");
-    foreach ($data as $row) {
-        error_log("Batch {$row['batch_year']}: Total={$row['total_alumni']}, Employed={$row['employed']}, Self-Employed={$row['self_employed']}, StudentEmployed={$row['student_employed']}, Rate={$row['employment_rate']}%");
-    }
+
 
     // ==================================================================
     // PDF GENERATION USING TCPDF
@@ -663,20 +670,18 @@ $queries = [
     $pdf->Ln(10);
 
     // Define table configurations for different report types
-    // Define table configurations for different report types
-    $table_config = [
-        'summary' => [
-            'headers' => ['Batch Year', 'Total Alumni', 'Employed', 'Self-Employed', 'Unemployed', 'Student', 'Student & Employed', 'Employment Rate %'],
-            'widths'  => [25, 25, 25, 30, 25, 25, 45, 40],
-            'align'   => ['C', 'C', 'C', 'C', 'C', 'C', 'C', 'C']
-        ],
-        'detailed' => [
-            'headers' => ['Name', 'Email', 'Batch', 'Status', 'Current Job', 'Current Employer'],
-            'widths'  => [35, 45, 20, 25, 35, 30],
-            'align'   => ['L', 'L', 'C', 'L', 'L', 'L']
-        ],
-    
-    ];
+$table_config = [
+    'summary' => [
+        'headers' => ['Batch Year', 'Total Alumni', 'Employed', 'Self-Employed', 'Unemployed', 'Student', 'Student & Employed', 'Employment Rate %'],
+        'widths'  => [25, 25, 25, 30, 25, 25, 45, 40],
+        'align'   => ['C', 'C', 'C', 'C', 'C', 'C', 'C', 'C']
+    ],
+    'detailed' => [
+        'headers' => ['Name', 'Email', 'Batch', 'Status', 'Current Job', 'Current Employer'],
+        'widths'  => [50, 60, 25, 40, 50, 50],
+        'align'   => ['L', 'L', 'C', 'L', 'L', 'L']
+    ],
+];
 
     $cfg = $table_config[$report_type];
 
@@ -693,58 +698,54 @@ $queries = [
     }
     $pdf->Ln();
 
-    // Table data
-    $pdf->SetFillColor(255, 255, 255);
-    $pdf->SetTextColor(0);
-    $pdf->SetFont('helvetica', '', 9);
+ // Table data - FIXED VERSION
+$pdf->SetFillColor(255, 255, 255);
+$pdf->SetTextColor(0);
+$pdf->SetFont('helvetica', '', 9);
 
-    $fill = false;
-    foreach ($data as $row) {
-        // Alternate row background
-        $fill = !$fill;
-        $pdf->SetFillColor($fill ? 240 : 255, $fill ? 245 : 255, $fill ? 255 : 255);
-        
-        for ($i = 0; $i < count($cfg['headers']); $i++) {
-            $header_key = strtolower(str_replace([' ', '%'], ['_', ''], $cfg['headers'][$i]));
-            
-            // Map headers to database fields
-                       // Map headers to database fields
-           // Update the field_map to remove unused keys (optional cleanup)
-$field_map = [
-    'batch_year' => 'batch_year',
-    'total_alumni' => 'total_alumni',
-    'employed' => 'employed',
-    'self-employed' => 'self_employed',
-    'unemployed' => 'unemployed',
-    'student' => 'student',
-    'student_&_employed' => 'student_employed',
-    'employment_rate_' => 'employment_rate',
-    'name' => 'name',
-    'email' => 'email',
-    'batch' => 'batch_year',
-    'status' => 'employment_status',
-    'current_job' => 'current_job',
-    'current_employer' => 'current_employer'
-    // Removed: 'phone'
-];
-            
-            $field_name = $field_map[$header_key] ?? $header_key;
-            $value = $row[$field_name] ?? '';
-            
-            // Format values for summary report
-            if ($report_type === 'summary') {
-                if ($header_key === 'employment_rate_') {
-                    $value = is_numeric($value) ? number_format((float)$value, 2) . '%' : '0.00%';
-                } elseif (in_array($header_key, ['total_alumni', 'employed', 'self_employed', 'unemployed', 'student', 'student_employed'])) {
-                    $value = is_numeric($value) ? number_format((float)$value) : '0';
-                }
+$fill = false;
+foreach ($data as $row) {
+    $fill = !$fill;
+    $pdf->SetFillColor($fill ? 240 : 255, $fill ? 245 : 255, $fill ? 255 : 255);
+
+    for ($i = 0; $i < count($cfg['headers']); $i++) {
+        $header_text = $cfg['headers'][$i];
+        $header_key = strtolower(str_replace([' ', '%', '&'], ['_', '', '_'], $header_text));
+
+        // Special handling for these exact header texts
+        $key_map = [
+            'batchyear'             => 'batch_year',
+            'totalalumni'           => 'total_alumni',
+            'employed'              => 'employed',
+            'self-employed'         => 'self_employed',
+            'unemployed'            => 'unemployed',
+            'student'               => 'student',
+            'student_employed'      => 'student_employed',  // direct match
+            'employmentrate'        => 'employment_rate',
+            'name'                  => 'name',
+            'email'                 => 'email',
+            'batch'                 => 'batch_year',
+            'status'                => 'employment_status',
+            'currentjob'            => 'current_job',
+            'currentemployer'       => 'current_employer'
+        ];
+
+        $field_name = $key_map[$header_key] ?? $header_key;
+        $value = $row[$field_name] ?? '';
+
+        // Format numeric values and percentages
+        if ($report_type === 'summary') {
+            if (strpos($header_text, 'Rate') !== false) {
+                $value = is_numeric($value) ? number_format((float)$value, 2) . '%' : '0.00%';
+            } elseif (in_array($header_text, ['Total Alumni', 'Employed', 'Self-Employed', 'Unemployed', 'Student', 'Student & Employed'])) {
+                $value = $value !== null && $value !== '' ? number_format((int)$value) : '0';
             }
-            
-            $pdf->Cell($cfg['widths'][$i], 6, $value, 'LR', 0, $cfg['align'][$i], true);
         }
-        $pdf->Ln();
-    }
 
+        $pdf->Cell($cfg['widths'][$i], 7, $value, 'LR', 0, $cfg['align'][$i], true);
+    }
+    $pdf->Ln();
+}
     // Closing line
     $pdf->Cell(array_sum($cfg['widths']), 0, '', 'T');
     $pdf->Ln(10);
