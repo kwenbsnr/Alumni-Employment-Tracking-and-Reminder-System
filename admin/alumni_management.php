@@ -566,6 +566,7 @@ function generateAlumniReport($selected_batches, $report_type, $conn) {
     }
 
     // Queries for each report type
+    // Queries for each report type
     $queries = [
         'summary' => "SELECT 
                 u.batch_year,
@@ -591,8 +592,8 @@ function generateAlumniReport($selected_batches, $report_type, $conn) {
 
         'detailed' => "SELECT u.name, u.email, u.batch_year, 
                               COALESCE(ap.employment_status, 'Not Updated') as employment_status,
-                              COALESCE(ap.job_title, '-') as job_title,
-                              COALESCE(ap.company, '-') as company
+                              COALESCE(ap.current_job, '-') as current_job,
+                              COALESCE(ap.current_employer, '-') as current_employer
                        FROM alumni_profile ap
                        INNER JOIN users u ON ap.user_id = u.user_id
                        WHERE u.batch_year IN ($placeholders)
@@ -608,14 +609,13 @@ function generateAlumniReport($selected_batches, $report_type, $conn) {
 
         'employment' => "SELECT u.name, u.batch_year,
                                 COALESCE(ap.employment_status, 'Not Updated') as employment_status,
-                                COALESCE(ap.job_title, '-') as job_title,
-                                COALESCE(ap.company, '-') as company
+                                COALESCE(ap.current_job, '-') as current_job,
+                                COALESCE(ap.current_employer, '-') as current_employer
                          FROM alumni_profile ap
                          INNER JOIN users u ON ap.user_id = u.user_id
                          WHERE u.batch_year IN ($placeholders)
                          ORDER BY u.batch_year DESC, u.name"
     ];
-
     if (!isset($queries[$report_type])) {
         $_SESSION['error_message'] = "Invalid report type selected.";
         header("Location: " . $_SERVER['PHP_SELF']);
@@ -678,6 +678,7 @@ function generateAlumniReport($selected_batches, $report_type, $conn) {
     $pdf->Ln(10);
 
     // Define table configurations for different report types
+    // Define table configurations for different report types
     $table_config = [
         'summary' => [
             'headers' => ['Batch Year', 'Total Alumni', 'Employed', 'Self-Employed', 'Unemployed', 'Student', 'Student & Employed', 'Employment Rate %'],
@@ -685,7 +686,7 @@ function generateAlumniReport($selected_batches, $report_type, $conn) {
             'align'   => ['C', 'C', 'C', 'C', 'C', 'C', 'C', 'C']
         ],
         'detailed' => [
-            'headers' => ['Name', 'Email', 'Batch', 'Status', 'Job Title', 'Company'],
+            'headers' => ['Name', 'Email', 'Batch', 'Status', 'Current Job', 'Current Employer'],
             'widths'  => [35, 45, 20, 25, 35, 30],
             'align'   => ['L', 'L', 'C', 'L', 'L', 'L']
         ],
@@ -695,7 +696,7 @@ function generateAlumniReport($selected_batches, $report_type, $conn) {
             'align'   => ['L', 'L', 'L', 'C']
         ],
         'employment' => [
-            'headers' => ['Name', 'Batch', 'Status', 'Job Title', 'Company'],
+            'headers' => ['Name', 'Batch', 'Status', 'Current Job', 'Current Employer'],
             'widths'  => [50, 25, 30, 40, 35],
             'align'   => ['L', 'C', 'L', 'L', 'L']
         ]
@@ -731,6 +732,7 @@ function generateAlumniReport($selected_batches, $report_type, $conn) {
             $header_key = strtolower(str_replace([' ', '%'], ['_', ''], $cfg['headers'][$i]));
             
             // Map headers to database fields
+                       // Map headers to database fields
             $field_map = [
                 'batch_year' => 'batch_year',
                 'total_alumni' => 'total_alumni',
@@ -744,8 +746,8 @@ function generateAlumniReport($selected_batches, $report_type, $conn) {
                 'email' => 'email',
                 'batch' => 'batch_year',
                 'status' => 'employment_status',
-                'job_title' => 'job_title',
-                'company' => 'company',
+                'current_job' => 'current_job',
+                'current_employer' => 'current_employer',
                 'phone' => 'phone'
             ];
             
