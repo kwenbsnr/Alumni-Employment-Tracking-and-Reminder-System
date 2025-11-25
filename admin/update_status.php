@@ -18,6 +18,7 @@ if (isset($_GET['user_id']) && isset($_GET['status'])) {
     $user_id = intval($_GET['user_id']);
     $status = $_GET['status'];
     $reason = $_GET['reason'] ?? '';
+    $admin_id = $_SESSION["user_id"];
 
     // Validate status
     $valid_statuses = ['Approved', 'Rejected', 'Pending'];
@@ -25,23 +26,76 @@ if (isset($_GET['user_id']) && isset($_GET['status'])) {
         $_SESSION['message'] = "Invalid status parameter";
         $_SESSION['message_type'] = "error";
     } else {
-        $stmt = $conn->prepare("UPDATE alumni_profile SET submission_status = ? WHERE user_id = ?");
-        $stmt->bind_param("si", $status, $user_id);
+        // Start transaction for atomic operations
+        $conn->begin_transaction();
+        
+        try {
+            // Get current status before update for undo context
+            $currentStatusQuery = $conn->prepare("SELECT submission_status FROM alumni_profile WHERE user_id = ?");
+            $currentStatusQuery->bind_param("i", $user_id);
+            $currentStatusQuery->execute();
+            $currentStatusResult = $currentStatusQuery->get_result();
+            $currentStatus = $currentStatusResult->fetch_assoc()['submission_status'] ?? '';
+            $currentStatusQuery->close();
 
-        if ($stmt->execute()) {
-            if ($status === 'Pending') {
-                $_SESSION['message'] = "Profile reverted to pending successfully";
-            } elseif ($status === 'Approved') {
-                $_SESSION['message'] = "Profile approved successfully";
+            // Update the alumni profile status
+            $stmt = $conn->prepare("UPDATE alumni_profile SET submission_status = ? WHERE user_id = ?");
+            $stmt->bind_param("si", $status, $user_id);
+
+            if ($stmt->execute()) {
+                // LOG THE ACTION - Enhanced with better context
+                $update_type = '';
+                $details = '';
+                
+                if ($status === 'Approved') {
+                    $update_type = 'approve';
+                    $details = "Approved alumni profile";
+                } elseif ($status === 'Rejected') {
+                    $update_type = 'reject';
+                    $details = "Rejected alumni profile";
+                    if (!empty($reason)) {
+                        $details .= " - Reason: {$reason}";
+                    }
+                } elseif ($status === 'Pending') {
+                    $update_type = 'update';
+                    // Provide context for undo action
+                    if ($currentStatus === 'Approved') {
+                        $details = "Undo approval - Reverted to pending status";
+                    } elseif ($currentStatus === 'Rejected') {
+                        $details = "Undo rejection - Reverted to pending status";
+                    } else {
+                        $details = "Changed status to pending";
+                    }
+                }
+                
+                // Insert into update_log
+                $logStmt = $conn->prepare("INSERT INTO update_log (updated_by, updated_id, update_type, update_details) VALUES (?, ?, ?, ?)");
+                $logStmt->bind_param("iiss", $admin_id, $user_id, $update_type, $details);
+                $logStmt->execute();
+                $logStmt->close();
+                
+                // Commit both operations
+                $conn->commit();
+                
+                if ($status === 'Pending') {
+                    $_SESSION['message'] = "Profile reverted to pending successfully";
+                } elseif ($status === 'Approved') {
+                    $_SESSION['message'] = "Profile approved successfully";
+                } else {
+                    $_SESSION['message'] = "Profile rejected successfully" . ($reason ? " - Reason: " . htmlspecialchars($reason) : "");
+                }
+                $_SESSION['message_type'] = "success";
             } else {
-                $_SESSION['message'] = "Profile rejected successfully" . ($reason ? " - Reason: " . htmlspecialchars($reason) : "");
+                throw new Exception("Database update error: " . $conn->error);
             }
-            $_SESSION['message_type'] = "success";
-        } else {
-            $_SESSION['message'] = "Database error: " . $conn->error;
+            $stmt->close();
+            
+        } catch (Exception $e) {
+            // Rollback on any error
+            $conn->rollback();
+            $_SESSION['message'] = "Error: " . $e->getMessage();
             $_SESSION['message_type'] = "error";
         }
-        $stmt->close();
     }
 } else {
     $_SESSION['message'] = "Invalid request parameters";

@@ -94,6 +94,7 @@ if ($graduatesResult && $graduatesResult->num_rows > 0) {
 }
 
 // Fetch enhanced recent activity from update_log with more details
+// Fetch enhanced recent activity from update_log with admin actions
 $recentActivityQuery = "
     SELECT 
         ul.log_id,
@@ -101,11 +102,14 @@ $recentActivityQuery = "
         ul.updated_id,
         ul.update_type,
         ul.updated_at,
+        ul.update_details,
         u.name as admin_name,
-        u2.name as alumni_name
+        u2.name as alumni_name,
+        u2.batch_year
     FROM update_log ul
     LEFT JOIN users u ON ul.updated_by = u.user_id
     LEFT JOIN users u2 ON ul.updated_id = u2.user_id
+    WHERE ul.update_type IN ('approve', 'reject', 'update')
     ORDER BY ul.updated_at DESC
     LIMIT 10
 ";
@@ -578,15 +582,23 @@ function getEnhancedActivityText($activity) {
         $name = "Alumni (ID: {$user_id})";
     }
     
+    $batch_year = !empty($activity['batch_year']) ? " - Batch {$activity['batch_year']}" : "";
+    
+    // Use the update_details from the database for more accurate descriptions
+    if (!empty($activity['update_details'])) {
+        return htmlspecialchars($activity['update_details']) . " for {$name}{$batch_year}";
+    }
+    
+    // Fallback to generic descriptions if no details available
     $actions = [
-        'approve' => 'Approved',
-        'reject' => 'Rejected', 
-        'update' => 'Updated'
+        'approve' => 'Approved profile',
+        'reject' => 'Rejected profile', 
+        'update' => 'Updated profile'
     ];
     
-    $action = $actions[$activity['update_type']] ?? 'Modified';
+    $action = $actions[$activity['update_type']] ?? 'Modified profile';
     
-    return "{$action} {$name}'s profile";
+    return "{$action} for {$name}{$batch_year}";
 }
 function time_elapsed_string($datetime, $full = false) {
     // Ensure we work with DateTime in the correct timezone
