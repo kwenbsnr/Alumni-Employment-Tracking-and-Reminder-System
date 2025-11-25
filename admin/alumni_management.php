@@ -541,9 +541,33 @@ function generateAlumniReport($selected_batches, $report_type, $conn) {
     $placeholders = str_repeat('?,', count($selected_batches) - 1) . '?';
     $types = str_repeat('i', count($selected_batches));
 
+    // Debug: Check what batches we're querying
+    error_log("Selected batches: " . implode(', ', $selected_batches));
+    
+    // Test query to see actual data
+    $test_query = "SELECT 
+        u.batch_year,
+        ap.employment_status,
+        COUNT(*) as count
+        FROM alumni_profile ap
+        INNER JOIN users u ON ap.user_id = u.user_id
+        WHERE u.batch_year IN ($placeholders)
+        GROUP BY u.batch_year, ap.employment_status
+        ORDER BY u.batch_year, ap.employment_status";
+    
+    $test_stmt = $conn->prepare($test_query);
+    $test_stmt->bind_param($types, ...$selected_batches);
+    $test_stmt->execute();
+    $test_result = $test_stmt->get_result();
+    
+    error_log("Employment status distribution:");
+    while ($row = $test_result->fetch_assoc()) {
+        error_log("Batch {$row['batch_year']}: {$row['employment_status']} - {$row['count']} records");
+    }
+
     // Queries for each report type
     $queries = [
-       'summary' => "SELECT 
+        'summary' => "SELECT 
                 u.batch_year,
                 COUNT(*) as total_alumni,
                 SUM(CASE WHEN ap.employment_status = 'Employed' THEN 1 ELSE 0 END) as employed,
@@ -551,7 +575,14 @@ function generateAlumniReport($selected_batches, $report_type, $conn) {
                 SUM(CASE WHEN ap.employment_status = 'Unemployed' THEN 1 ELSE 0 END) as unemployed,
                 SUM(CASE WHEN ap.employment_status = 'Student' THEN 1 ELSE 0 END) as student,
                 SUM(CASE WHEN ap.employment_status = 'Student and Employed' THEN 1 ELSE 0 END) as student_employed,
-                ROUND(100.0 * SUM(CASE WHEN ap.employment_status = 'Employed' THEN 1 ELSE 0 END) / COUNT(*), 2) as employment_rate
+                CASE 
+                    WHEN COUNT(*) > 0 THEN 
+                        ROUND(100.0 * SUM(CASE 
+                            WHEN ap.employment_status IN ('Employed', 'Self-Employed', 'Student and Employed') 
+                            THEN 1 ELSE 0 
+                        END) / COUNT(*), 2)
+                    ELSE 0 
+                END as employment_rate
               FROM alumni_profile ap
               INNER JOIN users u ON ap.user_id = u.user_id
               WHERE u.batch_year IN ($placeholders)
@@ -597,12 +628,18 @@ function generateAlumniReport($selected_batches, $report_type, $conn) {
     $result = $stmt->get_result();
     $data = $result->fetch_all(MYSQLI_ASSOC);
 
+    // Debug: Log the actual calculated data
+    error_log("Calculated summary data:");
+    foreach ($data as $row) {
+        error_log("Batch {$row['batch_year']}: Total={$row['total_alumni']}, Employed={$row['employed']}, Self-Employed={$row['self_employed']}, StudentEmployed={$row['student_employed']}, Rate={$row['employment_rate']}%");
+    }
+
     // ==================================================================
     // PDF GENERATION USING TCPDF
     // ==================================================================
     
     // Create new PDF document
-    $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
+    $pdf = new TCPDF('L', 'mm', 'A4', true, 'UTF-8', false);
 
     // Set document information
     $pdf->SetCreator('Alumni Tracking System');
@@ -642,11 +679,11 @@ function generateAlumniReport($selected_batches, $report_type, $conn) {
 
     // Define table configurations for different report types
     $table_config = [
-       'summary' => [
-    'headers' => ['Batch Year', 'Total Alumni', 'Employed', 'Self-Employed', 'Unemployed', 'Student', 'Student & Employed', 'Employment Rate %'],
-    'widths'  => [25, 25, 20, 25, 20, 20, 30, 25],
-    'align'   => ['C', 'C', 'C', 'C', 'C', 'C', 'C', 'C']
-],
+        'summary' => [
+            'headers' => ['Batch Year', 'Total Alumni', 'Employed', 'Self-Employed', 'Unemployed', 'Student', 'Student & Employed', 'Employment Rate %'],
+            'widths'  => [25, 25, 25, 30, 25, 25, 45, 40],
+            'align'   => ['C', 'C', 'C', 'C', 'C', 'C', 'C', 'C']
+        ],
         'detailed' => [
             'headers' => ['Name', 'Email', 'Batch', 'Status', 'Job Title', 'Company'],
             'widths'  => [35, 45, 20, 25, 35, 30],
@@ -694,15 +731,15 @@ function generateAlumniReport($selected_batches, $report_type, $conn) {
             $header_key = strtolower(str_replace([' ', '%'], ['_', ''], $cfg['headers'][$i]));
             
             // Map headers to database fields
-          $field_map = [
-    'batch_year' => 'batch_year',
-    'total_alumni' => 'total_alumni',
-    'employed' => 'employed',
-    'self-employed' => 'self_employed',
-    'unemployed' => 'unemployed',
-    'student' => 'student',
-    'student_&_employed' => 'student_employed',
-    'employment_rate_' => 'employment_rate',
+            $field_map = [
+                'batch_year' => 'batch_year',
+                'total_alumni' => 'total_alumni',
+                'employed' => 'employed',
+                'self-employed' => 'self_employed',
+                'unemployed' => 'unemployed',
+                'student' => 'student',
+                'student_&_employed' => 'student_employed',
+                'employment_rate_' => 'employment_rate',
                 'name' => 'name',
                 'email' => 'email',
                 'batch' => 'batch_year',
@@ -716,14 +753,13 @@ function generateAlumniReport($selected_batches, $report_type, $conn) {
             $value = $row[$field_name] ?? '';
             
             // Format values for summary report
-           // Format values for summary report
-if ($report_type === 'summary') {
-    if ($header_key === 'employment_rate_') {
-        $value = is_numeric($value) ? number_format((float)$value, 2) . '%' : '0.00%';
-    } elseif (in_array($header_key, ['total_alumni', 'employed', 'self_employed', 'unemployed', 'student', 'student_employed'])) {
-        $value = is_numeric($value) ? number_format((float)$value) : '0';
-    }
-}
+            if ($report_type === 'summary') {
+                if ($header_key === 'employment_rate_') {
+                    $value = is_numeric($value) ? number_format((float)$value, 2) . '%' : '0.00%';
+                } elseif (in_array($header_key, ['total_alumni', 'employed', 'self_employed', 'unemployed', 'student', 'student_employed'])) {
+                    $value = is_numeric($value) ? number_format((float)$value) : '0';
+                }
+            }
             
             $pdf->Cell($cfg['widths'][$i], 6, $value, 'LR', 0, $cfg['align'][$i], true);
         }
