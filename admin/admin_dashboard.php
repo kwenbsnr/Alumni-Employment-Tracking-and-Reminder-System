@@ -53,16 +53,39 @@ if (!$result) {
 
 // Fetch ACCURATE dashboard statistics
 $statsQuery = "
-    SELECT 
-        (SELECT COUNT(*) FROM users WHERE role = 'alumni') as total_alumni,
-        (SELECT COUNT(*) FROM alumni_profile WHERE submission_status = 'Approved') as approved_profiles,
-        (SELECT COUNT(*) FROM alumni_profile WHERE submission_status = 'Pending') as pending_profiles,
-        (SELECT COUNT(*) FROM alumni_profile WHERE submission_status = 'Rejected') as rejected_profiles,
-        (SELECT COUNT(*) FROM employment_info WHERE user_id IN (SELECT user_id FROM alumni_profile WHERE submission_status = 'Approved')) as employed_count,
-        (SELECT COUNT(DISTINCT u.batch_year) FROM users u INNER JOIN alumni_profile ap ON u.user_id = ap.user_id WHERE u.batch_year IS NOT NULL) as unique_graduation_years,
-        (SELECT COUNT(*) FROM alumni_documents WHERE user_id IN (SELECT user_id FROM alumni_profile WHERE submission_status = 'Approved')) as total_documents
+    SELECT
+        -- Total alumni who have submitted a profile (regardless of status)
+        (SELECT COUNT(*) FROM alumni_profile) AS total_alumni_with_profile,
+        
+        -- Total alumni who have EVER submitted (including Pending/Rejected/Approved)
+        (SELECT COUNT(*) FROM alumni_profile) AS total_alumni,
+        
+        -- Approved profiles
+        (SELECT COUNT(*) FROM alumni_profile WHERE submission_status = 'Approved') AS approved_profiles,
+        
+        -- Pending profiles
+        (SELECT COUNT(*) FROM alumni_profile WHERE submission_status = 'Pending') AS pending_profiles,
+        
+        -- Rejected profiles
+        (SELECT COUNT(*) FROM alumni_profile WHERE submission_status = 'Rejected') AS rejected_profiles,
+        
+        -- Employed count (only from APPROVED profiles) - as per your original intent
+        (SELECT COUNT(*) FROM alumni_profile 
+         WHERE submission_status = 'Approved' 
+         AND employment_status IN ('Employed', 'Self-Employed', 'Employed & Student')) AS employed_count,
+        
+        -- Unique graduation years from users who have a profile
+        (SELECT COUNT(DISTINCT u.batch_year) 
+         FROM users u 
+         INNER JOIN alumni_profile ap ON u.user_id = ap.user_id 
+         WHERE u.batch_year IS NOT NULL AND u.batch_year != '' AND u.batch_year != '0000'
+        ) AS unique_graduation_years,
+        
+        -- Total documents uploaded by approved alumni
+        (SELECT COUNT(*) FROM alumni_documents 
+         WHERE user_id IN (SELECT user_id FROM alumni_profile WHERE submission_status = 'Approved')
+        ) AS total_documents
 ";
-
 $statsResult = $conn->query($statsQuery);
 $stats = $statsResult->fetch_assoc();
 
