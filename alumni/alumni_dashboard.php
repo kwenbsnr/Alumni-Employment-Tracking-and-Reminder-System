@@ -183,33 +183,32 @@ ob_start();
         </div>
         <?php unset($_SESSION['show_welcome']); ?>
     <?php endif; ?>
-
 <!-- MODERN DASHBOARD LAYOUT WITH EQUAL HEIGHT CARDS -->
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
     <!-- LEFT: 4 Cards (2x2 Grid) -->
     <div class="lg:col-span-2">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 h-full">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 h-full">
             
-            <!-- CARD 1: Profile Completion - MODERN DESIGN -->
-            <div class="bg-white border-2 border-gray-100 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 flex flex-col h-full">
+            <!-- CARD 1: Profile Completion - SMALLER DESIGN -->
+            <div class="bg-white border-2 border-gray-100 shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 flex flex-col h-full">
                 <!-- Status accent bar -->
-                <div class="h-2 <?php
+                <div class="h-1 <?php
                     echo $profile_status === 'Complete' ? 'bg-gradient-to-r from-emerald-500 to-green-600' :
                          ($profile_status === 'Pending Approval' ? 'bg-gradient-to-r from-amber-500 to-orange-600' : 'bg-gradient-to-r from-orange-500 to-red-600');
                 ?>"></div>
                 
-                <div class="p-6 flex-1 flex flex-col">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="flex items-center space-x-4">
-                            <div class="w-14 h-14 <?php
+                <div class="p-4 flex-1 flex flex-col">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 <?php
                                 echo $profile_status === 'Complete' ? 'bg-emerald-100 text-emerald-600' :
                                      ($profile_status === 'Pending Approval' ? 'bg-amber-100 text-amber-600' : 'bg-orange-100 text-orange-600');
-                            ?> flex items-center justify-center">
-                                <i class="fas fa-user-check text-xl"></i>
+                            ?> flex items-center justify-center rounded-lg">
+                                <i class="fas fa-user-check text-lg"></i>
                             </div>
                             <div>
-                                <h3 class="text-xl font-bold text-gray-900">Profile Status</h3>
-                                <span class="text-sm font-semibold <?php
+                                <h3 class="text-lg font-bold text-gray-900">Profile Status</h3>
+                                <span class="text-xs font-semibold <?php
                                     echo $profile_status === 'Complete' ? 'text-emerald-600' :
                                          ($profile_status === 'Pending Approval' ? 'text-amber-600' : 'text-orange-600');
                                 ?>">
@@ -219,9 +218,9 @@ ob_start();
                         </div>
                     </div>
 
-                    <div class="space-y-4 flex-1 flex flex-col justify-between">
+                    <div class="space-y-3 flex-1 flex flex-col justify-between">
                         <div>
-                            <p class="text-sm text-gray-600 leading-relaxed">
+                            <p class="text-xs text-gray-600 leading-relaxed">
                                 <?php
                                 if ($profile_status === 'Complete') {
                                     echo 'Your profile is fully verified and complete.';
@@ -235,11 +234,11 @@ ob_start();
                         </div>
 
                         <div class="space-y-2">
-                            <div class="flex justify-between text-sm font-semibold text-gray-700">
+                            <div class="flex justify-between text-xs font-semibold text-gray-700">
                                 <span>Completion Progress</span>
                                 <span><?php echo $completion_percentage; ?>%</span>
                             </div>
-                            <div class="w-full bg-gray-200 h-3 relative">
+                            <div class="w-full bg-gray-200 h-2 relative">
                                 <div class="absolute top-0 left-0 h-full <?php
                                     echo $completion_percentage >= 90 ? 'bg-gradient-to-r from-emerald-500 to-green-600' :
                                          ($completion_percentage >= 70 ? 'bg-gradient-to-r from-orange-500 to-amber-600' : 'bg-gradient-to-r from-red-500 to-orange-600');
@@ -251,25 +250,25 @@ ob_start();
                 </div>
             </div>
 
-            <!-- CARD 2: Employment - MODERN DESIGN -->
-            <div class="bg-white border-2 border-gray-100 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 flex flex-col h-full">
-                <div class="h-2 <?php
+            <!-- CARD 2: Employment - SMALLER DESIGN -->
+            <div class="bg-white border-2 border-gray-100 shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 flex flex-col h-full">
+                <div class="h-1 <?php
                     echo !empty($profile_info['employment_status']) && $profile_info['employment_status'] !== 'Not Set'
                         ? 'bg-gradient-to-r from-blue-500 to-cyan-600' : 'bg-gradient-to-r from-gray-400 to-gray-500';
                 ?>"></div>
 
-                <div class="p-6 flex-1 flex flex-col">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="flex items-center space-x-4">
-                            <div class="w-14 h-14 <?php
+                <div class="p-4 flex-1 flex flex-col">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 <?php
                                 echo !empty($profile_info['employment_status']) && $profile_info['employment_status'] !== 'Not Set'
                                     ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500';
-                            ?> flex items-center justify-center">
-                                <i class="fas fa-briefcase text-xl"></i>
+                            ?> flex items-center justify-center rounded-lg">
+                                <i class="fas fa-briefcase text-lg"></i>
                             </div>
                             <div>
-                                <h3 class="text-xl font-bold text-gray-900">Employment</h3>
-                                <span class="text-sm font-semibold <?php
+                                <h3 class="text-lg font-bold text-gray-900">Employment</h3>
+                                <span class="text-xs font-semibold <?php
                                     echo !empty($profile_info['employment_status']) && $profile_info['employment_status'] !== 'Not Set'
                                         ? 'text-blue-600' : 'text-gray-500';
                                 ?>">
@@ -280,9 +279,9 @@ ob_start();
                         </div>
                     </div>
 
-                    <div class="space-y-3 flex-1 flex flex-col justify-between">
+                    <div class="space-y-2 flex-1 flex flex-col justify-between">
                         <div>
-                            <p class="text-lg font-bold text-gray-800 <?php
+                            <p class="text-md font-bold text-gray-800 <?php
                                 echo !empty($profile_info['employment_status']) && $profile_info['employment_status'] !== 'Not Set'
                                     ? '' : 'italic text-gray-400';
                             ?>">
@@ -290,7 +289,7 @@ ob_start();
                                     ? htmlspecialchars($profile_info['employment_status'])
                                     : 'No employment info'; ?>
                             </p>
-                            <p class="text-sm <?php
+                            <p class="text-xs <?php
                                 echo !empty($profile_info['last_profile_update'])
                                     ? 'text-gray-500' : 'text-gray-400 italic';
                             ?>">
@@ -316,7 +315,7 @@ ob_start();
 
                         if ($msg !== '' && $status !== 'Not Set'):
                         ?>
-                            <div class="flex items-center space-x-2 text-sm text-blue-600 font-medium">
+                            <div class="flex items-center space-x-2 text-xs text-blue-600 font-medium">
                                 <i class="fas fa-check-circle"></i>
                                 <span><?php echo $msg; ?></span>
                             </div>
@@ -325,27 +324,27 @@ ob_start();
                 </div>
             </div>
 
-            <!-- CARD 3: Document Review - MODERN DESIGN -->
-            <div class="bg-white border-2 border-gray-100 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 flex flex-col h-full">
-                <div class="h-2 <?php
+            <!-- CARD 3: Document Review - SMALLER DESIGN -->
+            <div class="bg-white border-2 border-gray-100 shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 flex flex-col h-full">
+                <div class="h-1 <?php
                     echo $document['submission_status'] === 'Approved' ? 'bg-gradient-to-r from-emerald-500 to-green-600' :
                          ($document['submission_status'] === 'Rejected' ? 'bg-gradient-to-r from-red-500 to-pink-600' :
                          ($document['submission_status'] === 'Under Review' ? 'bg-gradient-to-r from-amber-500 to-orange-600' : 'bg-gradient-to-r from-gray-400 to-gray-500'));
                 ?>"></div>
 
-                <div class="p-6 flex-1 flex flex-col">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="flex items-center space-x-4">
-                            <div class="w-14 h-14 <?php
+                <div class="p-4 flex-1 flex flex-col">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 <?php
                                 echo $document['submission_status'] === 'Approved' ? 'bg-emerald-100 text-emerald-600' :
                                      ($document['submission_status'] === 'Rejected' ? 'bg-red-100 text-red-600' :
                                      ($document['submission_status'] === 'Under Review' ? 'bg-amber-100 text-amber-600' : 'bg-gray-100 text-gray-500'));
-                            ?> flex items-center justify-center">
-                                <i class="fas fa-clipboard-check text-xl"></i>
+                            ?> flex items-center justify-center rounded-lg">
+                                <i class="fas fa-clipboard-check text-lg"></i>
                             </div>
                             <div>
-                                <h3 class="text-xl font-bold text-gray-900">Document Review</h3>
-                                <span class="text-sm font-semibold <?php
+                                <h3 class="text-lg font-bold text-gray-900">Document Review</h3>
+                                <span class="text-xs font-semibold <?php
                                     echo $document['submission_status'] === 'Approved' ? 'text-emerald-600' :
                                          ($document['submission_status'] === 'Rejected' ? 'text-red-600' :
                                          ($document['submission_status'] === 'Under Review' ? 'text-amber-600' : 'text-gray-500'));
@@ -356,9 +355,9 @@ ob_start();
                         </div>
                     </div>
 
-                    <div class="space-y-4 flex-1 flex flex-col justify-between">
+                    <div class="space-y-3 flex-1 flex flex-col justify-between">
                         <div>
-                            <p class="text-sm font-medium <?php
+                            <p class="text-xs font-medium <?php
                                 echo $document['submission_status'] === 'Approved' ? 'text-emerald-700' :
                                      ($document['submission_status'] === 'Rejected' ? 'text-red-700' :
                                      ($document['submission_status'] === 'Under Review' ? 'text-amber-700' : 'text-gray-600'));
@@ -367,8 +366,8 @@ ob_start();
                             </p>
                         </div>
 
-                        <div class="flex items-center justify-between pt-3 border-t border-gray-200">
-                            <div class="flex items-center space-x-2 text-sm font-semibold <?php
+                        <div class="flex items-center justify-between pt-2 border-t border-gray-200">
+                            <div class="flex items-center space-x-2 text-xs font-semibold <?php
                                 echo $document['submission_status'] === 'Approved' ? 'text-emerald-600' :
                                      ($document['submission_status'] === 'Rejected' ? 'text-red-600' :
                                      ($document['submission_status'] === 'Under Review' ? 'text-amber-600' : 'text-gray-500'));
@@ -377,19 +376,19 @@ ob_start();
                                 <span>Files: <?php echo $document['document_count']; ?></span>
                             </div>
 
-                            <div class="w-10 h-10 <?php
+                            <div class="w-8 h-8 <?php
                                 echo $document['submission_status'] === 'Approved' ? 'bg-emerald-100 text-emerald-600' :
                                      ($document['submission_status'] === 'Rejected' ? 'bg-red-100 text-red-600' :
                                      ($document['submission_status'] === 'Under Review' ? 'bg-amber-100 text-amber-600' : 'bg-gray-100 text-gray-500'));
-                            ?> flex items-center justify-center">
+                            ?> flex items-center justify-center rounded">
                                 <?php if ($document['submission_status'] === 'Approved'): ?>
-                                    <i class="fas fa-check"></i>
+                                    <i class="fas fa-check text-sm"></i>
                                 <?php elseif ($document['submission_status'] === 'Under Review'): ?>
-                                    <i class="fas fa-hourglass-half"></i>
+                                    <i class="fas fa-hourglass-half text-sm"></i>
                                 <?php elseif ($document['submission_status'] === 'Rejected'): ?>
-                                    <i class="fas fa-times"></i>
+                                    <i class="fas fa-times text-sm"></i>
                                 <?php else: ?>
-                                    <i class="fas fa-question"></i>
+                                    <i class="fas fa-question text-sm"></i>
                                 <?php endif; ?>
                             </div>
                         </div>
@@ -397,24 +396,24 @@ ob_start();
                 </div>
             </div>
 
-            <!-- CARD 4: Uploaded Documents - MODERN DESIGN -->
-            <div class="bg-white border-2 border-gray-100 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 flex flex-col h-full">
-                <div class="h-2 <?php
+            <!-- CARD 4: Uploaded Documents - SMALLER DESIGN -->
+            <div class="bg-white border-2 border-gray-100 shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 flex flex-col h-full">
+                <div class="h-1 <?php
                     echo $document['document_count'] > 0 ? 'bg-gradient-to-r from-blue-500 to-cyan-600' : 'bg-gradient-to-r from-gray-400 to-gray-500';
                 ?>"></div>
 
-                <div class="p-6 flex-1 flex flex-col">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="flex items-center space-x-4">
-                            <div class="w-14 h-14 <?php
+                <div class="p-4 flex-1 flex flex-col">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 <?php
                                 echo $document['document_count'] > 0
                                     ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500';
-                            ?> flex items-center justify-center">
-                                <i class="fas fa-cloud-upload-alt text-xl"></i>
+                            ?> flex items-center justify-center rounded-lg">
+                                <i class="fas fa-cloud-upload-alt text-lg"></i>
                             </div>
                             <div>
-                                <h3 class="text-xl font-bold text-gray-900">Uploaded Documents</h3>
-                                <span class="text-sm font-semibold <?php
+                                <h3 class="text-lg font-bold text-gray-900">Uploaded Documents</h3>
+                                <span class="text-xs font-semibold <?php
                                     echo $document['document_count'] > 0
                                         ? 'text-blue-600' : 'text-gray-500';
                                 ?>">
@@ -423,7 +422,7 @@ ob_start();
                             </div>
                         </div>
                         <div class="text-right">
-                            <div class="text-3xl font-bold <?php echo $document['document_count'] > 0 ? 'text-blue-600' : 'text-gray-400'; ?>">
+                            <div class="text-2xl font-bold <?php echo $document['document_count'] > 0 ? 'text-blue-600' : 'text-gray-400'; ?>">
                                 <?php echo $document['document_count']; ?>
                             </div>
                             <div class="text-xs <?php echo $document['document_count'] > 0 ? 'text-blue-500' : 'text-gray-400'; ?> uppercase font-semibold">
@@ -432,8 +431,8 @@ ob_start();
                         </div>
                     </div>
 
-                    <div class="space-y-3 flex-1 flex flex-col justify-between">
-                        <p class="text-sm font-medium <?php
+                    <div class="space-y-2 flex-1 flex flex-col justify-between">
+                        <p class="text-xs font-medium <?php
                             echo $document['document_count'] > 0
                                 ? 'text-blue-700'
                                 : 'text-gray-500 italic';
@@ -443,15 +442,15 @@ ob_start();
                                 : 'No files uploaded yet. '; ?>
                         </p>
 
-                        <div class="flex items-center justify-between pt-3 border-t border-gray-200">
-                            <div class="flex items-center space-x-2 text-sm font-semibold <?php
+                        <div class="flex items-center justify-between pt-2 border-t border-gray-200">
+                            <div class="flex items-center space-x-2 text-xs font-semibold <?php
                                 echo $document['document_count'] > 0 ? 'text-emerald-600' : 'text-gray-500';
                             ?>">
                                 <i class="fas fa-check-circle"></i>
                                 <span>Ready: <?php echo $document['document_count'] > 0 ? 'Yes' : 'No'; ?></span>
                             </div>
-                            <div class="w-10 h-10 <?php echo $document['document_count'] > 0 ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-100 text-gray-400'; ?> flex items-center justify-center">
-                                <i class="fas <?php echo $document['document_count'] > 0 ? 'fa-check' : 'fa-times'; ?>"></i>
+                            <div class="w-8 h-8 <?php echo $document['document_count'] > 0 ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-100 text-gray-400'; ?> flex items-center justify-center rounded">
+                                <i class="fas <?php echo $document['document_count'] > 0 ? 'fa-check text-sm' : 'fa-times text-sm'; ?>"></i>
                             </div>
                         </div>
                     </div>
@@ -461,19 +460,19 @@ ob_start();
         </div>
     </div>
 
-    <!-- RIGHT: Recent Activity Card - MODERN DESIGN -->
-    <div class="bg-white border-2 border-gray-100 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 flex flex-col h-full">
-        <div class="h-2 bg-gradient-to-r from-indigo-500 to-purple-600"></div>
+    <!-- RIGHT: Recent Activity Card - SMALLER DESIGN -->
+    <div class="bg-white border-2 border-gray-100 shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 flex flex-col h-full">
+        <div class="h-1 bg-gradient-to-r from-indigo-500 to-purple-600"></div>
 
-        <div class="p-6 flex-1 flex flex-col">
-            <div class="flex items-center justify-between mb-6">
-                <div class="flex items-center space-x-4">
-                    <div class="w-14 h-14 bg-indigo-100 text-indigo-600 flex items-center justify-center">
-                        <i class="fas fa-history text-xl"></i>
+        <div class="p-4 flex-1 flex flex-col">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-indigo-100 text-indigo-600 flex items-center justify-center rounded-lg">
+                        <i class="fas fa-history text-lg"></i>
                     </div>
                     <div>
-                        <h3 class="text-xl font-bold text-gray-900">Recent Activity</h3>
-                        <span class="text-sm font-semibold text-indigo-600">Last 30 Days</span>
+                        <h3 class="text-lg font-bold text-gray-900">Recent Activity</h3>
+                        <span class="text-xs font-semibold text-indigo-600">Last 30 Days</span>
                     </div>
                 </div>
             </div>
@@ -493,7 +492,7 @@ ob_start();
             ?>
 
             <?php if ($activities->num_rows > 0): ?>
-                <div class="space-y-4 flex-1">
+                <div class="space-y-3 flex-1">
                     <?php while ($act = $activities->fetch_assoc()): ?>
                         <?php
                         // Default icon & color
@@ -573,12 +572,12 @@ ob_start();
                         }
                         ?>
 
-                        <div class="flex items-start space-x-4">
-                            <div class="w-10 h-10 bg-gray-50 flex items-center justify-center flex-shrink-0 mt-0.5">
-                                <i class="fas <?= $icon ?> <?= $color ?> text-lg"></i>
+                        <div class="flex items-start space-x-3">
+                            <div class="w-8 h-8 bg-gray-50 flex items-center justify-center flex-shrink-0 mt-0.5 rounded">
+                                <i class="fas <?= $icon ?> <?= $color ?> text-sm"></i>
                             </div>
                             <div class="flex-1 min-w-0">
-                                <p class="text-sm font-semibold text-gray-800 leading-snug">
+                                <p class="text-xs font-semibold text-gray-800 leading-snug">
                                     <?= htmlspecialchars($act['description'] ?: ucwords(str_replace('_', ' ', $act['action_type']))) ?>
                                 </p>
                                 <p class="text-xs text-gray-500 font-medium">
@@ -589,10 +588,10 @@ ob_start();
                     <?php endwhile; ?>
                 </div>
             <?php else: ?>
-                <div class="text-center py-8 text-gray-400 flex-1 flex items-center justify-center">
+                <div class="text-center py-6 text-gray-400 flex-1 flex items-center justify-center">
                     <div>
-                        <i class="fas fa-history text-4xl mb-3 opacity-40"></i>
-                        <p class="text-sm font-semibold">No recent activity</p>
+                        <i class="fas fa-history text-3xl mb-2 opacity-40"></i>
+                        <p class="text-xs font-semibold">No recent activity</p>
                         <p class="text-xs mt-1">Your actions will appear here</p>
                     </div>
                 </div>
@@ -600,9 +599,9 @@ ob_start();
 
             <?php $stmt_act->close(); ?>
 
-            <a href="activity_log.php" class="block text-center py-4 px-6 text-white text-sm font-bold tracking-wide bg-gradient-to-r from-indigo-600 to-purple-700 hover:from-indigo-700 hover:to-purple-800 transition-all duration-300 mt-6 flex items-center justify-center space-x-2">
+            <a href="activity_log.php" class="block text-center py-3 px-4 text-white text-xs font-bold tracking-wide bg-gradient-to-r from-indigo-600 to-purple-700 hover:from-indigo-700 hover:to-purple-800 transition-all duration-300 mt-4 flex items-center justify-center space-x-2 rounded">
                 <span>View Full History</span>
-                <i class="fas fa-arrow-right text-sm transform group-hover:translate-x-1 transition-transform"></i>
+                <i class="fas fa-arrow-right text-xs transform group-hover:translate-x-1 transition-transform"></i>
             </a>
         </div>
     </div>
