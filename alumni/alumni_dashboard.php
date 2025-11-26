@@ -145,7 +145,6 @@ if (!empty($profile_info)) {
 }
 ob_start();
 ?>
-
 <!-- Dashboard Section -->
 <div class="space-y-8">
     <?php if ($needs_profile_update): ?>
@@ -185,21 +184,21 @@ ob_start();
         <?php unset($_SESSION['show_welcome']); ?>
     <?php endif; ?>
 
-<!-- MODERN DASHBOARD LAYOUT WITH SHARP EDGES -->
+<!-- MODERN DASHBOARD LAYOUT WITH EQUAL HEIGHT CARDS -->
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
     <!-- LEFT: 4 Cards (2x2 Grid) -->
     <div class="lg:col-span-2">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 h-full">
             
             <!-- CARD 1: Profile Completion - MODERN DESIGN -->
-            <div class="bg-white border-2 border-gray-100 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+            <div class="bg-white border-2 border-gray-100 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 flex flex-col h-full">
                 <!-- Status accent bar -->
                 <div class="h-2 <?php
                     echo $profile_status === 'Complete' ? 'bg-gradient-to-r from-emerald-500 to-green-600' :
                          ($profile_status === 'Pending Approval' ? 'bg-gradient-to-r from-amber-500 to-orange-600' : 'bg-gradient-to-r from-orange-500 to-red-600');
                 ?>"></div>
                 
-                <div class="p-6">
+                <div class="p-6 flex-1 flex flex-col">
                     <div class="flex items-center justify-between mb-4">
                         <div class="flex items-center space-x-4">
                             <div class="w-14 h-14 <?php
@@ -220,7 +219,7 @@ ob_start();
                         </div>
                     </div>
 
-                    <div class="space-y-4">
+                    <div class="space-y-4 flex-1 flex flex-col justify-between">
                         <div>
                             <p class="text-sm text-gray-600 leading-relaxed">
                                 <?php
@@ -253,13 +252,13 @@ ob_start();
             </div>
 
             <!-- CARD 2: Employment - MODERN DESIGN -->
-            <div class="bg-white border-2 border-gray-100 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+            <div class="bg-white border-2 border-gray-100 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 flex flex-col h-full">
                 <div class="h-2 <?php
                     echo !empty($profile_info['employment_status']) && $profile_info['employment_status'] !== 'Not Set'
                         ? 'bg-gradient-to-r from-blue-500 to-cyan-600' : 'bg-gradient-to-r from-gray-400 to-gray-500';
                 ?>"></div>
 
-                <div class="p-6">
+                <div class="p-6 flex-1 flex flex-col">
                     <div class="flex items-center justify-between mb-4">
                         <div class="flex items-center space-x-4">
                             <div class="w-14 h-14 <?php
@@ -281,7 +280,7 @@ ob_start();
                         </div>
                     </div>
 
-                    <div class="space-y-3">
+                    <div class="space-y-3 flex-1 flex flex-col justify-between">
                         <div>
                             <p class="text-lg font-bold text-gray-800 <?php
                                 echo !empty($profile_info['employment_status']) && $profile_info['employment_status'] !== 'Not Set'
@@ -327,14 +326,14 @@ ob_start();
             </div>
 
             <!-- CARD 3: Document Review - MODERN DESIGN -->
-            <div class="bg-white border-2 border-gray-100 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+            <div class="bg-white border-2 border-gray-100 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 flex flex-col h-full">
                 <div class="h-2 <?php
                     echo $document['submission_status'] === 'Approved' ? 'bg-gradient-to-r from-emerald-500 to-green-600' :
                          ($document['submission_status'] === 'Rejected' ? 'bg-gradient-to-r from-red-500 to-pink-600' :
                          ($document['submission_status'] === 'Under Review' ? 'bg-gradient-to-r from-amber-500 to-orange-600' : 'bg-gradient-to-r from-gray-400 to-gray-500'));
                 ?>"></div>
 
-                <div class="p-6">
+                <div class="p-6 flex-1 flex flex-col">
                     <div class="flex items-center justify-between mb-4">
                         <div class="flex items-center space-x-4">
                             <div class="w-14 h-14 <?php
@@ -357,7 +356,7 @@ ob_start();
                         </div>
                     </div>
 
-                    <div class="space-y-4">
+                    <div class="space-y-4 flex-1 flex flex-col justify-between">
                         <div>
                             <p class="text-sm font-medium <?php
                                 echo $document['submission_status'] === 'Approved' ? 'text-emerald-700' :
@@ -399,12 +398,12 @@ ob_start();
             </div>
 
             <!-- CARD 4: Uploaded Documents - MODERN DESIGN -->
-            <div class="bg-white border-2 border-gray-100 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+            <div class="bg-white border-2 border-gray-100 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 flex flex-col h-full">
                 <div class="h-2 <?php
                     echo $document['document_count'] > 0 ? 'bg-gradient-to-r from-blue-500 to-cyan-600' : 'bg-gradient-to-r from-gray-400 to-gray-500';
                 ?>"></div>
 
-                <div class="p-6">
+                <div class="p-6 flex-1 flex flex-col">
                     <div class="flex items-center justify-between mb-4">
                         <div class="flex items-center space-x-4">
                             <div class="w-14 h-14 <?php
@@ -433,7 +432,7 @@ ob_start();
                         </div>
                     </div>
 
-                    <div class="space-y-3">
+                    <div class="space-y-3 flex-1 flex flex-col justify-between">
                         <p class="text-sm font-medium <?php
                             echo $document['document_count'] > 0
                                 ? 'text-blue-700'
@@ -463,10 +462,10 @@ ob_start();
     </div>
 
     <!-- RIGHT: Recent Activity Card - MODERN DESIGN -->
-    <div class="bg-white border-2 border-gray-100 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 h-fit">
+    <div class="bg-white border-2 border-gray-100 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 flex flex-col h-full">
         <div class="h-2 bg-gradient-to-r from-indigo-500 to-purple-600"></div>
 
-        <div class="p-6">
+        <div class="p-6 flex-1 flex flex-col">
             <div class="flex items-center justify-between mb-6">
                 <div class="flex items-center space-x-4">
                     <div class="w-14 h-14 bg-indigo-100 text-indigo-600 flex items-center justify-center">
@@ -494,7 +493,7 @@ ob_start();
             ?>
 
             <?php if ($activities->num_rows > 0): ?>
-                <div class="space-y-4">
+                <div class="space-y-4 flex-1">
                     <?php while ($act = $activities->fetch_assoc()): ?>
                         <?php
                         // Default icon & color
@@ -590,10 +589,12 @@ ob_start();
                     <?php endwhile; ?>
                 </div>
             <?php else: ?>
-                <div class="text-center py-8 text-gray-400">
-                    <i class="fas fa-history text-4xl mb-3 opacity-40"></i>
-                    <p class="text-sm font-semibold">No recent activity</p>
-                    <p class="text-xs mt-1">Your actions will appear here</p>
+                <div class="text-center py-8 text-gray-400 flex-1 flex items-center justify-center">
+                    <div>
+                        <i class="fas fa-history text-4xl mb-3 opacity-40"></i>
+                        <p class="text-sm font-semibold">No recent activity</p>
+                        <p class="text-xs mt-1">Your actions will appear here</p>
+                    </div>
                 </div>
             <?php endif; ?>
 
@@ -610,8 +611,8 @@ ob_start();
 <!-- QUICK ACTIONS - MODERN DESIGN -->
 <div class="mt-8">
     <div class="bg-white border-2 border-gray-100 shadow-lg overflow-hidden">
-        <div class="bg-gradient-to-r from-indigo-600 to-purple-700 px-8 py-6">
-            <h3 class="text-xl font-bold text-white text-center">
+        <div class="bg-gray px-5 py-4">
+            <h3 class="text-xl font-bold text-black text-center">
                 Quick Actions
             </h3>
         </div>
