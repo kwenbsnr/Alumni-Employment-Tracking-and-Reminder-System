@@ -37,7 +37,9 @@ ____________________
 ### 4. modal shadow naay line above.
 ##
 ## ADMIN:
-### 1. Unnecessary program field in the hover since all are bsit.
+### 1. Remove unnecessary program field in the hover since all are bsit.
+### 2. Rejected card display
+### 3. 
 ##
 ## DB:
 ### 1. filepath must be surname + filenm for clarity.
