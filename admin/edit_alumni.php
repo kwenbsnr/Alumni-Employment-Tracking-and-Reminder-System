@@ -6,10 +6,9 @@ if (!isset($_SESSION["user_id"]) || $_SESSION["role"] !== "admin") {
 }
 include("../connect.php");
 
-    // DEBUGGING PURPS
-    /*echo "<pre>"; var_dump($_GET); exit;*/
+// DEBUGGING PURPOSE
+/*echo "<pre>"; var_dump($_GET); exit;*/
 
-    
 // Validate and fetch user_id with DB check in a single query
 $user_id = null;
 if (isset($_GET['user_id']) && is_numeric($_GET['user_id'])) {
@@ -39,13 +38,13 @@ $stmt->execute();
 $result = $stmt->get_result();
 $alumni = $result->fetch_assoc();
 
-if (!$alumni) { // Simplified check, handles NULL from any join failure
-    unset($_SESSION['last_edited_user_id']); // Clear invalid session
+if (!$alumni) {
+    unset($_SESSION['last_edited_user_id']);
     header("Location: alumni_management.php?error=" . urlencode("User or alumni profile not found"));
     exit();
 }
 
-// Proceed with document and job queries (unchanged)
+// Proceed with document and job queries
 $doc_query = "SELECT doc_id, document_type, file_path, document_status FROM alumni_documents WHERE user_id = ?";
 $stmt = $conn->prepare($doc_query);
 $stmt->bind_param("i", $user_id);
@@ -63,12 +62,10 @@ while ($row = $job_result->fetch_assoc()) {
     $job_titles[] = $row;
 }
 
-
 if (!$alumni || !$alumni['email']) {
     header("Location: alumni_management.php?error=" . urlencode("User or alumni profile not found"));
     exit();
 }
-
 
 $page_title = "Edit Alumni Profile";
 $active_page = "alumni_management";
@@ -100,8 +97,8 @@ ob_start();
                 <input type="text" name="contact_number" value="<?php echo htmlspecialchars($alumni['contact_number'] ?? ''); ?>" class="w-full p-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500">
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700">Year Graduated</label>
-                <input type="number" name="year_graduated" value="<?php echo htmlspecialchars($alumni['year_graduated'] ?? ''); ?>" class="w-full p-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                <label class="block text-sm font-medium text-gray-700">Batch Year</label>
+                <input type="number" name="batch_year" value="<?php echo htmlspecialchars($alumni['batch_year'] ?? ''); ?>" class="w-full p-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500">
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700">Employment Status</label>
@@ -114,6 +111,7 @@ ob_start();
                 </select>
             </div>
         </div>
+
         <div id="employmentFields" class="<?php echo in_array($alumni['employment_status'], ['Employed', 'Self-Employed', 'Employed & Student']) ? '' : 'hidden'; ?>">
             <div class="mt-4">
                 <label class="block text-sm font-medium text-gray-700">Job Title</label>
@@ -140,6 +138,7 @@ ob_start();
                 </select>
             </div>
         </div>
+
         <div class="mt-4">
             <label class="block text-sm font-medium text-gray-700">Profile Photo</label>
             <input type="file" name="photo" accept="image/*" class="w-full p-2 border rounded-lg">
@@ -147,7 +146,8 @@ ob_start();
                 <p class="text-sm text-gray-500">Current: <a href="../<?php echo htmlspecialchars($alumni['photo_path']); ?>" target="_blank">View Photo</a></p>
             <?php endif; ?>
         </div>
-        <!-- Address Fields (use code for barangay_id) -->
+
+        <!-- Address Fields -->
         <div class="mt-6">
             <h3 class="text-lg font-bold text-gray-800 mb-4">Address Details</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -155,9 +155,7 @@ ob_start();
                     <label class="block text-sm font-medium text-gray-700">Barangay (Select Code)</label>
                     <select name="barangay_id" class="w-full p-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500">
                         <option value="">Select Barangay</option>
-                        <!-- Populated by phil.min.js or fetch from DB -->
                         <?php
-                        // Fetch options from table_barangay for pre-fill
                         $brgy_query = "SELECT barangay_id, barangay_name FROM table_barangay";
                         $brgy_result = $conn->query($brgy_query);
                         while ($brgy = $brgy_result->fetch_assoc()) {
@@ -169,6 +167,7 @@ ob_start();
                 </div>
             </div>
         </div>
+
         <div class="mt-4">
             <label class="block text-sm font-medium text-gray-700">Certificate of Employment</label>
             <input type="file" name="coe" accept=".pdf" class="w-full p-2 border rounded-lg">
@@ -190,13 +189,13 @@ ob_start();
                 <p class="text-sm text-gray-500">Current: <a href="../<?php echo htmlspecialchars($documents['B_CERT']['file_path']); ?>" target="_blank">View Business Certificate</a> (Status: <?php echo $documents['B_CERT']['document_status']; ?>)</p>
             <?php endif; ?>
         </div>
+
         <div class="mt-6 flex space-x-4">
             <button type="submit" class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700">Save Changes</button>
             <a href="alumni_management.php" class="bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700">Cancel</a>
         </div>
     </form>
 </div>
-
 
 <script>
 function toggleFields() {

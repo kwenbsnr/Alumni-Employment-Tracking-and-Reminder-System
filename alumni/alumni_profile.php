@@ -13,20 +13,25 @@ $user_id = $_SESSION['user_id'];
 $page_title = "Profile Management";
 $active_page = "profile";
 
-// Fetch profile data
+// Fetch profile data WITH SCHOOL INFO - UPDATED to remove name dependencies
 $stmt = $conn->prepare("
-    SELECT ap.*, u.email, 
-           tb.barangay_name, tm.municipality_name, tp.province_name, tr.region_name,
-           tr.region_id, tp.province_id, tm.municipality_id, tb.barangay_id
-    FROM alumni_profile ap
-    LEFT JOIN users u ON ap.user_id = u.user_id
+    SELECT 
+        u.user_id, u.email, u.student_id, u.date_of_birth, u.gender, u.program, u.name as official_name, u.batch_year,
+        ap.contact_number, 
+        ap.employment_status, ap.photo_path, ap.address_id,
+        ap.submission_status, ap.last_profile_update, ap.rejection_reason,
+        tb.barangay_name, tm.municipality_name, tp.province_name, tr.region_name,
+        tr.region_id, tp.province_id, tm.municipality_id, tb.barangay_id
+    FROM users u
+    LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id
     LEFT JOIN address a ON ap.address_id = a.address_id
     LEFT JOIN table_barangay tb ON a.barangay_id = tb.barangay_id
     LEFT JOIN table_municipality tm ON tb.municipality_id = tm.municipality_id
     LEFT JOIN table_province tp ON tm.province_id = tp.province_id
     LEFT JOIN table_region tr ON tp.region_id = tr.region_id
-    WHERE ap.user_id = ?
+    WHERE u.user_id = ?
 ");
+
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -75,35 +80,35 @@ $is_profile_rejected = !empty($profile) && $submission_status === 'Rejected';
 $is_profile_approved = !empty($profile) && $submission_status === 'Approved';
 $is_profile_pending = !empty($profile) && $submission_status === 'Pending';
 
-// FIX: Check if profile has personal data for display
-$has_personal_data = !empty($profile) && !empty($profile['first_name']) && !empty($profile['last_name']);
+// FIXED: Check if profile has personal data for display - UPDATED criteria
+$has_personal_data = !empty($profile) && (!empty($profile['contact_number']) || !empty($profile['employment_status']));
+// === CHECK SUBMISSION STATUS FROM DATABASE (GLOBAL CONTROL) ===
+$submission_open = false;
+$statusCheck = $conn->query("SELECT is_open FROM submission_status LIMIT 1");
+if ($statusCheck && $row = $statusCheck->fetch_assoc()) {
+    $submission_open = (bool)$row['is_open'];
+}
 
-// Yearly update logic - only if profile was previously approved
-$can_update_yearly = $is_profile_new || 
-                    ($is_profile_approved && ($last_profile_update === null || 
-                     strtotime($last_profile_update . ' +1 year') <= time()));
+// Yearly update allowed only if previously approved and 1 year passed
+$can_update_yearly = $is_profile_approved && (
+    $last_profile_update === null || 
+    strtotime($last_profile_update . ' +1 year') <= time()
+);
 
-$can_reupload = $is_profile_rejected;
-
-// User can update if: new profile, pending review, yearly update allowed, or profile was rejected
-$can_update = $is_profile_new || $is_profile_pending || $can_update_yearly || $can_reupload;
+// User can update ONLY if:
+// 1. Submissions are globally OPEN, AND
+// 2. (It's a new profile OR rejected OR pending OR yearly update is due)
+$can_update = $submission_open && (
+    $is_profile_new || 
+    $is_profile_rejected || 
+    $is_profile_pending || 
+    $can_update_yearly
+);
 
 // FIXED: Auto-modal opening logic - only open when there's data to edit
 $auto_open_modal = isset($_SESSION['profile_rejected']) && $_SESSION['profile_rejected'] && $has_personal_data;
 if ($auto_open_modal) {
     unset($_SESSION['profile_rejected']);
-}
-
-$full_name = 'N/A';
-if (!empty($profile)) {
-    $full_name = trim(
-        ($profile['first_name'] ?? '') . ' ' .
-        ($profile['middle_name'] ?? '') . ' ' .
-        ($profile['last_name'] ?? '')
-    );
-    if (empty($full_name)) {
-        $full_name = 'N/A';
-    }
 }
 
 ob_start();
@@ -227,31 +232,30 @@ ob_start();
                 ?>
             </p>
         </div>
-    <?php else: ?>
-        <!-- Non-actionable description -->
-        <p class="text-sm leading-tight font-medium
-            <?php 
-            echo $is_profile_approved ? 'text-blue-800' : 
-                 ($is_profile_pending ? 'text-yellow-800' : 'text-yellow-800');
-            ?>">
-            <?php
-            if ($is_profile_approved) {
-                $last_update = $profile['last_profile_update'] ?? null;
-                if ($last_update) {
-                    $formatted_date = date('M j, Y', strtotime($last_update));
-                    $next_update = date('M j, Y', strtotime($last_update . ' +6 months'));
-                    echo "Approved on <strong>$formatted_date</strong>. Next update allowed after <strong>$next_update</strong>.";
-                } else {
-                    echo 'Your profile is approved. Updates allowed every 6 months.';
-                }
-            } elseif ($is_profile_pending) {
-                echo 'Your submission is under review. You will be notified once approved.';
+   <?php else: ?>
+    <!-- Non-actionable description -->
+    <p class="text-sm leading-tight font-medium text-yellow-800">
+        <?php
+        if (!$submission_open) {
+            echo 'Profile updates are currently <strong>closed by the administrator</strong>. ';
+            echo 'You will be able to update your profile when submissions are reopened.';
+        } elseif ($is_profile_approved) {
+            $last_update = $profile['last_profile_update'] ?? null;
+            if ($last_update) {
+                $formatted_date = date('M j, Y', strtotime($last_update));
+                $next_update = date('M j, Y', strtotime($last_update . ' +1 year'));
+                echo "Approved on <strong>$formatted_date</strong>. Next update allowed after <strong>$next_update</strong>.";
             } else {
-                echo 'Profile updates are currently locked.';
+                echo 'Your profile is approved. Updates allowed once per year.';
             }
-            ?>
-        </p>
-    <?php endif; ?>
+        } elseif ($is_profile_pending) {
+            echo 'Your submission is under review. Please wait for approval.';
+        } else {
+            echo 'Profile updates are currently not allowed.';
+        }
+        ?>
+    </p>
+<?php endif; ?>
 </div>
 
       <!-- FIXED: Show profile cards only when personal data exists -->
@@ -259,31 +263,30 @@ ob_start();
         <!-- Always show profile cards -->
 
    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    
-   <!-- Personal Information Card -->
-    <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-blue-500 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-blue-50">
-        <div class="flex items-center space-x-3 mb-4 pb-2 border-b border-gray-100">
-            <h3 class="text-xl font-bold text-gray-800">Personal Information</h3>
-        </div>
-        <dl class="grid grid-cols-2 gap-4">
-            <div class="flex flex-col">
-                <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Full Name</dt>
-                <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($full_name); ?></dd>
-            </div>
-            <div class="flex flex-col">
-                <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Email</dt>
-                <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['email'] ?? 'N/A'); ?></dd>
-            </div>
-            <div class="flex flex-col">
-                <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Contact Number</dt>
-                <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['contact_number'] ?? 'N/A'); ?></dd>
-            </div>
-            <div class="flex flex-col">
-                <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Year Graduated</dt>
-                <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['year_graduated'] ?? 'N/A'); ?></dd>
-            </div>
-        </dl>
+<!-- Personal Information Card - UPDATED -->
+<div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-blue-500 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-blue-50">
+    <div class="flex items-center space-x-3 mb-4 pb-2 border-b border-gray-100">
+        <h3 class="text-xl font-bold text-gray-800">Personal Information</h3>
     </div>
+    <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="flex flex-col">
+            <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Name</dt>
+            <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['official_name'] ?? 'N/A'); ?></dd>
+        </div>
+        <div class="flex flex-col md:ml-[-70px]">
+            <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Email</dt>
+            <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['email'] ?? 'N/A'); ?></dd>
+        </div>
+        <div class="flex flex-col">
+            <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Contact Number</dt>
+            <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['contact_number'] ?? 'N/A'); ?></dd>
+        </div>
+        <div class="flex flex-col md:ml-[-70px]">
+            <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Program</dt>
+            <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['program'] ?? 'N/A'); ?></dd>
+        </div>
+    </dl>
+</div>
     <!-- Address Card -->
     <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-green-500 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-green-50">
         <div class="flex items-center space-x-3 mb-4 pb-2 border-b border-gray-100">
@@ -369,9 +372,7 @@ ob_start();
             </div>
         <?php endif; ?>
         <?php if (($profile['employment_status'] ?? '') === 'Unemployed'): ?>
-            <div class="flex flex-col md:col-span-2">
-                <dd class="font-semibold text-gray-700" style="font-size: 15px;">Currently Unemployed</dd>
-            </div>
+            
         <?php endif; ?>
     </dl>
 </div>
@@ -471,296 +472,354 @@ ob_start();
         <?php endif; ?>
 </div>
 
-<!-- Profile Update Modal (Hidden by default) -->
-<div id="profileUpdateModal" class="hidden fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50 transition-opacity duration-300">
-    <div class="bg-white p-8 rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div class="flex justify-between items-center mb-6">
-            <h3 class="text-2xl font-bold text-gray-800">Update Your Profile</h3>
-            <button id="closeProfileModal" class="text-gray-600 hover:text-red-600">
-                <i class="fas fa-times text-xl"></i>
-            </button>
+<!-- Profile Update Modal (Hidden by default) - ENHANCED DESIGN -->
+<div id="profileUpdateModal" class="hidden fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50 transition-all duration-300 p-4">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+        <!-- Enhanced Header -->
+        <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200 p-6">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h3 class="text-xl font-bold text-gray-800">Update Your Profile</h3>
+                    <p class="text-gray-600 text-sm mt-0">Complete your alumni information for verification</p>
+                </div>
+                <button id="closeProfileModal" class="text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg p-2 transition duration-200">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
         </div>
         
- <!-- Profile Form -->
-        <form id="alumniProfileForm" class="space-y-6" action="update_profile.php" method="post" enctype="multipart/form-data">
-            <!-- Profile Picture + Personal Details -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div class="bg-white p-6 rounded-xl shadow-lg flex flex-col items-center">
-                    <div class="w-32 h-32 rounded-full overflow-hidden mb-4 border-4 border-gray-200">
-                        <img id="profilePreview" src="<?php echo !empty($profile['photo_path']) ? '../' . htmlspecialchars($profile['photo_path']) : 'https://placehold.co/128x128/eeeeee/333333?text=Profile'; ?>" alt="Profile Picture" class="w-full h-full object-cover">
-                    </div>
-                    <button type="button" id="uploadPictureBtn" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition duration-150 shadow-md">
-                        Upload New Picture
-                    </button>
-                    <input type="file" id="profilePictureInput" name="profile_photo" accept="image/jpeg,image/png" class="hidden">
+        <!-- Content Area -->
+        <div class="flex-1 overflow-y-auto p-6 bg-gray-50">
+            <form id="alumniProfileForm" class="space-y-6" action="update_profile.php" method="post" enctype="multipart/form-data">
+                
+<!-- Profile Picture + School Info - ENHANCED -->
+<div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+    <!-- Profile Picture - NOW CIRCULAR -->
+    <div class="lg:col-span-1 bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
+        <div class="text-center">
+            <div class="relative inline-block mb-4">
+                <!-- CHANGED: Changed from rounded-lg to rounded-full for circular shape -->
+                <div class="w-32 h-32 rounded-full overflow-hidden mx-auto border-2 border-gray-300 bg-gray-100">
+                    <img id="profilePreview" src="<?php echo !empty($profile['photo_path']) ? '../' . htmlspecialchars($profile['photo_path']) : 'https://placehold.co/128x128/eeeeee/333333?text=Upload+Photo'; ?>" alt="Profile Picture" class="w-full h-full object-cover">
                 </div>
-
-                <!-- Personal Information -->
-                <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg">
-                    <h3 class="text-lg font-semibold text-gray-600 mb-4">Personal Information</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">First Name
-                                <input type="text" name="first_name" autocomplete="given-name" value="<?php echo !empty($profile['first_name']) ? htmlspecialchars($profile['first_name']) : ''; ?>" class="w-full border rounded-lg p-2" required <?php echo $can_update ? '' : 'disabled'; ?>>
-                            </label>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Middle Name
-                                <input type="text" name="middle_name" autocomplete="additional-name" value="<?php echo !empty($profile['middle_name']) ? htmlspecialchars($profile['middle_name']) : ''; ?>" class="w-full border rounded-lg p-2" <?php echo $can_update ? '' : 'disabled'; ?>>
-                            </label>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Last Name
-                                <input type="text" name="last_name" autocomplete="family-name" value="<?php echo !empty($profile['last_name']) ? htmlspecialchars($profile['last_name']) : ''; ?>" class="w-full border rounded-lg p-2" required <?php echo $can_update ? '' : 'disabled'; ?>>
-                            </label>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Contact Number
-                                <input type="tel" name="contact_number" autocomplete="tel" value="<?php echo !empty($profile['contact_number']) ? htmlspecialchars($profile['contact_number']) : ''; ?>" class="w-full border rounded-lg p-2" required pattern="[0-9]{10,11}" title="Contact number must be 11 digits" <?php echo $can_update ? '' : 'disabled'; ?>>
-                            </label>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Year Graduated
-                                <select name="year_graduated" class="w-full border rounded-lg p-2" required <?php echo $can_update ? '' : 'disabled'; ?>>
-                                    <option value="">Select Year</option>
-                                    <?php
-                                    $currentYear = date('Y');
-                                    for ($y = $currentYear; $y >= 2000; $y--) {
-                                        echo "<option value=\"$y\" " . (($profile['year_graduated'] ?? '') == $y ? 'selected' : '') . ">$y</option>";
-                                    }
-                                    ?>
-                                </select>
-                            </label>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Employment Status
-                                <select id="employmentStatusSelect" name="employment_status" class="w-full border rounded-lg p-2" required <?php echo $can_update ? '' : 'disabled'; ?>>
-                                    <option value="">Select Status</option>
-                                    <option value="Employed" <?php echo ($profile['employment_status'] ?? '') === 'Employed' ? 'selected' : ''; ?>>Employed</option>
-                                    <option value="Self-Employed" <?php echo ($profile['employment_status'] ?? '') === 'Self-Employed' ? 'selected' : ''; ?>>Self-Employed</option>
-                                    <option value="Unemployed" <?php echo ($profile['employment_status'] ?? '') === 'Unemployed' ? 'selected' : ''; ?>>Unemployed</option>
-                                    <option value="Student" <?php echo ($profile['employment_status'] ?? '') === 'Student' ? 'selected' : ''; ?>>Student</option>
-                                    <option value="Employed & Student" <?php echo ($profile['employment_status'] ?? '') === 'Employed & Student' ? 'selected' : ''; ?>>Employed & Student</option>
-                                </select>
-                            </label>
-                        </div>
-                    </div>
+                <div class="absolute bottom-2 right-2 bg-blue-500 rounded-full p-2 shadow-md">
+                    <i class="fas fa-camera text-white text-xs"></i>
                 </div>
             </div>
+            <button type="button" id="uploadPictureBtn" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition duration-200 w-full mb-2 shadow-sm hover:shadow">
+                <i class="fas fa-upload mr-2"></i>Choose Photo
+            </button>
+            <input type="file" id="profilePictureInput" name="profile_photo" accept="image/jpeg,image/png" class="hidden">
+            <p class="text-xs text-gray-500 mt-2">
+                <i class="fas fa-info-circle mr-1"></i>JPG or PNG, max 2MB
+            </p>
+            <div id="profilePictureFeedback" class="text-xs text-green-600 mt-1 hidden">
+                <i class="fas fa-check mr-1"></i>Photo selected
+            </div>
+        </div>
+    </div>
 
-            <!-- Address Section -->
-            <?php if ($can_update): ?>
-                <div class="bg-white p-6 rounded-xl shadow-lg">
-                    <h3 class="text-lg font-semibold text-gray-600 mb-4">Address</h3>
+    <!-- School Information - ENHANCED with bold text -->
+    <div class="lg:col-span-3 bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
+        <h3 class="text-base font-semibold text-gray-800 mb-4 flex items-center">
+            <div class="bg-blue-100 rounded-lg p-2 mr-3">
+                <i class="fas fa-graduation-cap text-blue-600 text-sm"></i>
+            </div>
+            School Information
+            <span class="text-xs font-normal text-blue-600 ml-2 bg-blue-50 px-2 py-1 rounded">Auto-filled</span>
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <?php
+            $schoolFields = [
+                ['label' => 'Student ID', 'value' => $profile['student_id'] ?? 'Not set'],
+                ['label' => 'Full Name', 'value' => $profile['official_name'] ?? 'Not set'],
+                ['label' => 'Date of Birth', 'value' => !empty($profile['date_of_birth']) && $profile['date_of_birth'] != '0000-00-00' ? date('M j, Y', strtotime($profile['date_of_birth'])) : 'Not set'],
+                ['label' => 'Gender', 'value' => $profile['gender'] ?? 'Not set'],
+                ['label' => 'Program', 'value' => $profile['program'] ?? 'BSIT'],
+                ['label' => 'Year Graduated', 'value' => $profile['batch_year'] ?? 'Not set']
+            ];
+            
+            foreach ($schoolFields as $field):
+            ?>
+            <div class="space-y-1">
+                <label class="block text-xs font-medium text-gray-600 uppercase tracking-wide"><?php echo $field['label']; ?></label>
+                <!-- CHANGED: Added font-bold to make values stand out -->
+                <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                    <span class="font-semibold text-gray-800 text-sm"><?php echo htmlspecialchars($field['value']); ?></span>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+        <div class="mt-4 bg-blue-50 rounded-lg p-3 border border-blue-200">
+            <p class="text-blue-700 text-xs flex items-center">
+                <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+                Automatically filled from student records
+            </p>
+        </div>
+    </div>
+</div>
+                <!-- Address Section - ENHANCED -->
+                <?php if ($can_update): ?>
+                <div class="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
+                    <h3 class="text-base font-semibold text-gray-800 mb-4 flex items-center">
+                        <div class="bg-green-100 rounded-lg p-2 mr-3">
+                            <i class="fas fa-map-marker-alt text-green-600 text-sm"></i>
+                        </div>
+                        Current Address
+                    </h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Region
-                                <select id="regionSelect" name="region_id" class="w-full border rounded-lg p-2" <?php if (!$can_update) echo 'disabled'; ?>>
-                                    <option value="">Select Region</option>
-                                </select>
-                            </label>
+                        <div class="space-y-1">
+                            <label class="block text-sm font-medium text-gray-700">Region</label>
+                            <select id="regionSelect" name="region_id" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200">
+                                <option value="">Select Region</option>
+                            </select>
                         </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Province
-                                <select id="provinceSelect" name="province_id" class="w-full border rounded-lg p-2" <?php if (!$can_update) echo 'disabled'; ?>>
-                                    <option value="">Select Province</option>
-                                </select>
-                            </label>
+                        <div class="space-y-1">
+                            <label class="block text-sm font-medium text-gray-700">Province</label>
+                            <select id="provinceSelect" name="province_id" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200">
+                                <option value="">Select Province</option>
+                            </select>
                         </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Municipality
-                                <select id="municipalitySelect" name="municipality_id" class="w-full border rounded-lg p-2" <?php if (!$can_update) echo 'disabled'; ?>>
-                                    <option value="">Select Municipality</option>
-                                </select>
-                            </label>
+                        <div class="space-y-1">
+                            <label class="block text-sm font-medium text-gray-700">Municipality</label>
+                            <select id="municipalitySelect" name="municipality_id" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200">
+                                <option value="">Select Municipality</option>
+                            </select>
                         </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Barangay
-                                <select id="barangaySelect" name="barangay_id" class="w-full border rounded-lg p-2" <?php if (!$can_update) echo 'disabled'; ?>>
-                                    <option value="">Select Barangay</option>
-                                </select>
-
-                            </label>
+                        <div class="space-y-1">
+                            <label class="block text-sm font-medium text-gray-700">Barangay</label>
+                            <select id="barangaySelect" name="barangay_id" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200">
+                                <option value="">Select Barangay</option>
+                            </select>
                         </div>
                     </div>
                 </div>
-            <?php endif; ?>
 
-            <!-- Employment Details Section -->
-            <?php if ($can_update): ?>
-                <div id="employmentDetailsSection" class="hidden bg-white p-6 rounded-xl shadow-lg">
-                    <h3 class="text-lg font-medium text-gray-600 mb-4">Employment Details</h3>
+                <!-- Employment Information - ENHANCED -->
+                <div class="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
+                    <h3 class="text-base font-semibold text-gray-800 mb-4 flex items-center">
+                        <div class="bg-purple-100 rounded-lg p-2 mr-3">
+                            <i class="fas fa-briefcase text-purple-600 text-sm"></i>
+                        </div>
+                        Employment Information
+                    </h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div id="jobTitleField" class="hidden">
-                            <label class="block text-sm font-medium text-gray-700">Job Title
-                                <select id="jobTitleSelect" name="job_title" class="w-full border rounded-lg p-2" autocomplete="organization-title">
-                                    <option value="">Select Job Title</option>
-                                    <?php
-                                    $stmt_titles = $conn->prepare("SELECT title FROM job_titles ORDER BY title ASC");
-                                    $stmt_titles->execute();
-                                    $result_titles = $stmt_titles->get_result();
-                                    $existing_title = $employment['job_title'] ?? '';
-                                    $is_other = true;
-                                    while ($row_title = $result_titles->fetch_assoc()) {
-                                        $title = $row_title['title'];
-                                        $selected = ($existing_title === $title) ? 'selected' : '';
-                                        if ($selected) $is_other = false;
-                                        echo '<option value="' . htmlspecialchars($title) . '" ' . $selected . '>' . htmlspecialchars($title) . '</option>';
-                                    }
-                                    $stmt_titles->close();
-                                    ?>
-                                    <option value="Other" <?php if ($is_other && $existing_title) echo 'selected'; ?>>Other (Please specify)</option>
-                                </select>
-                            </label>
+                        <div class="space-y-1">
+                            <label class="block text-sm font-medium text-gray-700">Contact Number</label>
+                            <input type="tel" name="contact_number" autocomplete="tel" value="<?php echo !empty($profile['contact_number']) ? htmlspecialchars($profile['contact_number']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" required pattern="[0-9]{10,11}" title="Contact number must be 11 digits">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="block text-sm font-medium text-gray-700">Employment Status</label>
+                            <select id="employmentStatusSelect" name="employment_status" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" required>
+                                <option value="">Select Status</option>
+                                <option value="Employed" <?php echo ($profile['employment_status'] ?? '') === 'Employed' ? 'selected' : ''; ?>>Employed</option>
+                                <option value="Self-Employed" <?php echo ($profile['employment_status'] ?? '') === 'Self-Employed' ? 'selected' : ''; ?>>Self-Employed</option>
+                                <option value="Unemployed" <?php echo ($profile['employment_status'] ?? '') === 'Unemployed' ? 'selected' : ''; ?>>Unemployed</option>
+                                <option value="Student" <?php echo ($profile['employment_status'] ?? '') === 'Student' ? 'selected' : ''; ?>>Student</option>
+                                <option value="Employed & Student" <?php echo ($profile['employment_status'] ?? '') === 'Employed & Student' ? 'selected' : ''; ?>>Employed & Student</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Employment Details Section - ENHANCED -->
+                <div id="employmentDetailsSection" class="hidden bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
+                    <h3 class="text-base font-semibold text-gray-800 mb-4 flex items-center">
+                        <div class="bg-orange-100 rounded-lg p-2 mr-3">
+                            <i class="fas fa-building text-orange-600 text-sm"></i>
+                        </div>
+                        Employment Details
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div id="jobTitleField" class="hidden space-y-1">
+                            <label class="block text-sm font-medium text-gray-700">Job Title</label>
+                            <select id="jobTitleSelect" name="job_title" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" autocomplete="organization-title">
+                                <option value="">Select Job Title</option>
+                                <?php
+                                $stmt_titles = $conn->prepare("SELECT title FROM job_titles ORDER BY title ASC");
+                                $stmt_titles->execute();
+                                $result_titles = $stmt_titles->get_result();
+                                $existing_title = $employment['job_title'] ?? '';
+                                $is_other = true;
+                                while ($row_title = $result_titles->fetch_assoc()) {
+                                    $title = $row_title['title'];
+                                    $selected = ($existing_title === $title) ? 'selected' : '';
+                                    if ($selected) $is_other = false;
+                                    echo '<option value="' . htmlspecialchars($title) . '" ' . $selected . '>' . htmlspecialchars($title) . '</option>';
+                                }
+                                $stmt_titles->close();
+                                ?>
+                                <option value="Other" <?php if ($is_other && $existing_title) echo 'selected'; ?>>Other (Please specify)</option>
+                            </select>
                             <div id="otherJobTitleDiv" class="mt-2" style="display: <?php echo ($is_other && $existing_title) ? 'block' : 'none'; ?>;">
-                                <input type="text" id="otherJobTitleInput" name="other_job_title" placeholder="Enter custom job title" value="<?php echo ($is_other && $existing_title) ? htmlspecialchars($existing_title) : ''; ?>" class="w-full border rounded-lg p-2">
+                                <input type="text" id="otherJobTitleInput" name="other_job_title" placeholder="Enter custom job title" value="<?php echo ($is_other && $existing_title) ? htmlspecialchars($existing_title) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm">
                             </div>
                         </div>
-                        <div id="companyField" class="hidden">
-                            <label class="block text-sm font-medium text-gray-700">Company Name
-                                <input type="text" name="company_name" value="<?php echo !empty($employment['company_name']) ? htmlspecialchars($employment['company_name']) : ''; ?>" class="w-full border rounded-lg p-2" autocomplete="organization">
-                            </label>
+                        <div id="companyField" class="hidden space-y-1">
+                            <label class="block text-sm font-medium text-gray-700">Company Name</label>
+                            <input type="text" name="company_name" value="<?php echo !empty($employment['company_name']) ? htmlspecialchars($employment['company_name']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" autocomplete="organization">
                         </div>
-                        <div id="companyAddressField" class="hidden">
-                            <label class="block text-sm font-medium text-gray-700">Company Address
-                                <input type="text" name="company_address" value="<?php echo !empty($employment['company_address']) ? htmlspecialchars($employment['company_address']) : ''; ?>" class="w-full border rounded-lg p-2" autocomplete="street-address">
-                            </label>
+                        <div id="companyAddressField" class="hidden space-y-1 md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700">Company Address</label>
+                            <input type="text" name="company_address" value="<?php echo !empty($employment['company_address']) ? htmlspecialchars($employment['company_address']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" autocomplete="street-address">
                         </div>
-                        <div id="businessTypeField" class="hidden">
-                            <label class="block text-sm font-medium text-gray-700">Business Type
-                                <select id="businessTypeSelect" name="business_type" class="w-full border rounded-lg p-2">
-                                    <option value="">Select Business Type</option>
-                                    <option value="Food Service / Catering" <?php echo $business_type === 'Food Service / Catering' ? 'selected' : ''; ?>>Food Service / Catering</option>
-                                    <option value="Retail / Online Selling" <?php echo $business_type === 'Retail / Online Selling' ? 'selected' : ''; ?>>Retail / Online Selling</option>
-                                    <option value="Freelancer" <?php echo $business_type === 'Freelancer' ? 'selected' : ''; ?>>Freelancer</option>
-                                    <option value="Marketing / Advertising" <?php echo $business_type === 'Marketing / Advertising' ? 'selected' : ''; ?>>Marketing / Advertising</option>
-                                    <option value="Education / Tutoring" <?php echo $business_type === 'Education / Tutoring' ? 'selected' : ''; ?>>Education / Tutoring</option>
-                                    <option value="Construction / Carpentry / Electrical" <?php echo $business_type === 'Construction / Carpentry / Electrical' ? 'selected' : ''; ?>>Construction / Carpentry / Electrical</option>
-                                    <option value="Delivery Services" <?php echo $business_type === 'Delivery Services' ? 'selected' : ''; ?>>Delivery Services</option>
-                                    <option value="Event Planning / Photography" <?php echo $business_type === 'Event Planning / Photography' ? 'selected' : ''; ?>>Event Planning / Photography</option>
-                                    <option value="Real Estate / Property Leasing" <?php echo $business_type === 'Real Estate / Property Leasing' ? 'selected' : ''; ?>>Real Estate / Property Leasing</option>
-                                    <option value="Others (Please specify)" <?php echo $business_type === 'Others (Please specify)' ? 'selected' : ''; ?>>Others (Please specify)</option>
-                                </select>
-                            </label>
+                        <div id="businessTypeField" class="hidden space-y-1">
+                            <label class="block text-sm font-medium text-gray-700">Business Type</label>
+                            <select id="businessTypeSelect" name="business_type" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200">
+                                <option value="">Select Business Type</option>
+                                <option value="Food Service / Catering" <?php echo $business_type === 'Food Service / Catering' ? 'selected' : ''; ?>>Food Service / Catering</option>
+                                <option value="Retail / Online Selling" <?php echo $business_type === 'Retail / Online Selling' ? 'selected' : ''; ?>>Retail / Online Selling</option>
+                                <option value="Freelancer" <?php echo $business_type === 'Freelancer' ? 'selected' : ''; ?>>Freelancer</option>
+                                <option value="Marketing / Advertising" <?php echo $business_type === 'Marketing / Advertising' ? 'selected' : ''; ?>>Marketing / Advertising</option>
+                                <option value="Education / Tutoring" <?php echo $business_type === 'Education / Tutoring' ? 'selected' : ''; ?>>Education / Tutoring</option>
+                                <option value="Construction / Carpentry / Electrical" <?php echo $business_type === 'Construction / Carpentry / Electrical' ? 'selected' : ''; ?>>Construction / Carpentry / Electrical</option>
+                                <option value="Delivery Services" <?php echo $business_type === 'Delivery Services' ? 'selected' : ''; ?>>Delivery Services</option>
+                                <option value="Event Planning / Photography" <?php echo $business_type === 'Event Planning / Photography' ? 'selected' : ''; ?>>Event Planning / Photography</option>
+                                <option value="Real Estate / Property Leasing" <?php echo $business_type === 'Real Estate / Property Leasing' ? 'selected' : ''; ?>>Real Estate / Property Leasing</option>
+                                <option value="Others (Please specify)" <?php echo $business_type === 'Others (Please specify)' ? 'selected' : ''; ?>>Others (Please specify)</option>
+                            </select>
                             <div id="businessTypeOtherDiv" class="mt-2" style="display: <?php echo ($business_type === 'Others (Please specify)') ? 'block' : 'none'; ?>;">
-                                <input type="text" id="businessTypeOtherInput" name="business_type_other" value="<?php echo htmlspecialchars($business_type_other); ?>" class="w-full border rounded-lg p-2" placeholder="Specify Business Type">
+                                <input type="text" id="businessTypeOtherInput" name="business_type_other" value="<?php echo htmlspecialchars($business_type_other); ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm" placeholder="Specify Business Type">
                             </div>
                         </div>
-                        <div id="salaryField">
-                            <label class="block text-sm font-medium text-gray-700">Salary Range
-                                <select name="salary_range" class="w-full border rounded-lg p-2">
-                                    <option value="">Select Salary Range</option>
-                                    <option value="Below ₱10,000" <?php echo ($employment['salary_range'] ?? '') === 'Below ₱10,000' ? 'selected' : ''; ?>>Below ₱10,000</option>
-                                    <option value="₱10,000–₱20,000" <?php echo ($employment['salary_range'] ?? '') === '₱10,000–₱20,000' ? 'selected' : ''; ?>>₱10,000–₱20,000</option>
-                                    <option value="₱20,000–₱30,000" <?php echo ($employment['salary_range'] ?? '') === '₱20,000–₱30,000' ? 'selected' : ''; ?>>₱20,000–₱30,000</option>
-                                    <option value="₱30,000–₱40,000" <?php echo ($employment['salary_range'] ?? '') === '₱30,000–₱40,000' ? 'selected' : ''; ?>>₱30,000–₱40,000</option>
-                                    <option value="₱40,000–₱50,000" <?php echo ($employment['salary_range'] ?? '') === '₱40,000–₱50,000' ? 'selected' : ''; ?>>₱40,000–₱50,000</option>
-                                    <option value="Above ₱50,000" <?php echo ($employment['salary_range'] ?? '') === 'Above ₱50,000' ? 'selected' : ''; ?>>Above ₱50,000</option>
-                                </select>
-                            </label>
+                        <div id="salaryField" class="space-y-1">
+                            <label class="block text-sm font-medium text-gray-700">Salary Range</label>
+                            <select name="salary_range" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200">
+                                <option value="">Select Salary Range</option>
+                                <option value="Below ₱10,000" <?php echo ($employment['salary_range'] ?? '') === 'Below ₱10,000' ? 'selected' : ''; ?>>Below ₱10,000</option>
+                                <option value="₱10,000–₱20,000" <?php echo ($employment['salary_range'] ?? '') === '₱10,000–₱20,000' ? 'selected' : ''; ?>>₱10,000–₱20,000</option>
+                                <option value="₱20,000–₱30,000" <?php echo ($employment['salary_range'] ?? '') === '₱20,000–₱30,000' ? 'selected' : ''; ?>>₱20,000–₱30,000</option>
+                                <option value="₱30,000–₱40,000" <?php echo ($employment['salary_range'] ?? '') === '₱30,000–₱40,000' ? 'selected' : ''; ?>>₱30,000–₱40,000</option>
+                                <option value="₱40,000–₱50,000" <?php echo ($employment['salary_range'] ?? '') === '₱40,000–₱50,000' ? 'selected' : ''; ?>>₱40,000–₱50,000</option>
+                                <option value="Above ₱50,000" <?php echo ($employment['salary_range'] ?? '') === 'Above ₱50,000' ? 'selected' : ''; ?>>Above ₱50,000</option>
+                            </select>
                         </div>
                     </div>
                 </div>
 
-                <!-- Unemployed Section -->
-                <div id="unemployedSection" class="hidden bg-white p-6 rounded-xl shadow-lg">
-                    <p>You are currently marked as unemployed.</p>
-                </div>
-
-                <!-- Student Details Section -->
-                <div id="studentDetailsSection" class="hidden bg-white p-6 rounded-xl shadow-lg">
-                    <h3 class="text-lg font-medium text-gray-600 mb-4">Student Details</h3>
+                <!-- Student Details Section - ENHANCED -->
+                <div id="studentDetailsSection" class="hidden bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
+                    <h3 class="text-base font-semibold text-gray-800 mb-4 flex items-center">
+                        <div class="bg-indigo-100 rounded-lg p-2 mr-3">
+                            <i class="fas fa-user-graduate text-indigo-600 text-sm"></i>
+                        </div>
+                        Student Details
+                    </h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">School Name
-                                <input type="text" name="school_name" value="<?php echo !empty($education['school_name']) ? htmlspecialchars($education['school_name']) : ''; ?>" class="w-full border rounded-lg p-2" autocomplete="organization">
-                            </label>
+                        <div class="space-y-1">
+                            <label class="block text-sm font-medium text-gray-700">School Name</label>
+                            <input type="text" name="school_name" value="<?php echo !empty($education['school_name']) ? htmlspecialchars($education['school_name']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" autocomplete="organization">
                         </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Degree Pursued
-                                <input type="text" name="degree_pursued" value="<?php echo !empty($education['degree_pursued']) ? htmlspecialchars($education['degree_pursued']) : ''; ?>" class="w-full border rounded-lg p-2" autocomplete="off">
-                            </label>
+                        <div class="space-y-1">
+                            <label class="block text-sm font-medium text-gray-700">Degree Pursued</label>
+                            <input type="text" name="degree_pursued" value="<?php echo !empty($education['degree_pursued']) ? htmlspecialchars($education['degree_pursued']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" autocomplete="off">
                         </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Start Year
-                                <select name="start_year" class="w-full border rounded-lg p-2">
-                                    <option value="">Select Start Year</option>
-                                    <?php
-                                    $currentYear = date('Y');
-                                    for ($y = $currentYear; $y >= 2000; $y--) {
-                                        $selected = ($education['start_year'] ?? '') == $y ? 'selected' : '';
-                                        echo "<option value=\"$y\" $selected>$y</option>";
-                                    }
-                                    ?>
-                                </select>
-                            </label>
+                        <div class="space-y-1">
+                            <label class="block text-sm font-medium text-gray-700">Start Year</label>
+                            <select name="start_year" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200">
+                                <option value="">Select Start Year</option>
+                                <?php
+                                $currentYear = date('Y');
+                                for ($y = $currentYear; $y >= 2000; $y--) {
+                                    $selected = ($education['start_year'] ?? '') == $y ? 'selected' : '';
+                                    echo "<option value=\"$y\" $selected>$y</option>";
+                                }
+                                ?>
+                            </select>
                         </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">End Year (Expected)
-                                <select name="end_year" class="w-full border rounded-lg p-2">
-                                    <option value="">Select End Year</option>
-                                    <?php
-                                    $currentYear = date('Y');
-                                    for ($y = $currentYear + 5; $y >= 2000; $y--) {
-                                        $selected = ($education['end_year'] ?? '') == $y ? 'selected' : '';
-                                        echo "<option value=\"$y\" $selected>$y</option>";
-                                    }
-                                    ?>
-                                </select>
-                            </label>
+                        <div class="space-y-1">
+                            <label class="block text-sm font-medium text-gray-700">End Year (Expected)</label>
+                            <select name="end_year" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200">
+                                <option value="">Select End Year</option>
+                                <?php
+                                $currentYear = date('Y');
+                                for ($y = $currentYear + 5; $y >= 2000; $y--) {
+                                    $selected = ($education['end_year'] ?? '') == $y ? 'selected' : '';
+                                    echo "<option value=\"$y\" $selected>$y</option>";
+                                }
+                                ?>
+                            </select>
                         </div>
                     </div>
                 </div>
 
-
-                <!-- Supporting Documents Section -->
-                <div id="supportingDocumentsSection" class="hidden bg-white p-6 rounded-xl shadow-lg">
-                    <h3 class="text-lg font-medium text-gray-600 mb-4">Supporting Documents</h3>
+                <!-- Supporting Documents Section - ENHANCED with clear file attachment styling -->
+                <div id="supportingDocumentsSection" class="hidden bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
+                    <h3 class="text-base font-semibold text-gray-800 mb-4 flex items-center">
+                        <div class="bg-red-100 rounded-lg p-2 mr-3">
+                            <i class="fas fa-file-alt text-red-600 text-sm"></i>
+                        </div>
+                        Supporting Documents
+                    </h3>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <!-- COE Field -->
-                        <div id="coeField" class="hidden">
+                        <!-- COE Field - CLEAR FILE ATTACHMENT -->
+                        <div id="coeField" class="hidden space-y-1">
                             <label class="block text-sm font-medium text-gray-700">
+                                <i class="fas fa-file-pdf text-red-500 mr-2"></i>
                                 Certificate of Employment (COE)
                                 <?php if ($can_update): ?><span class="text-red-500">*</span><?php endif; ?>
-                                <input type="file" name="coe_file" accept="application/pdf" class="w-full border rounded-lg p-2">
                             </label>
+                            <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-blue-400 transition duration-200 bg-gray-50">
+                                <input type="file" name="coe_file" accept="application/pdf" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">PDF format only</p>
                         </div>
 
-                        <!-- Business Certificate Field -->
-                        <div id="businessCertField" class="hidden">
+                        <!-- Business Certificate Field - CLEAR FILE ATTACHMENT -->
+                        <div id="businessCertField" class="hidden space-y-1">
                             <label class="block text-sm font-medium text-gray-700">
+                                <i class="fas fa-file-certificate text-green-500 mr-2"></i>
                                 Business Certificate
                                 <?php if ($can_update): ?><span class="text-red-500">*</span><?php endif; ?>
-                                <input type="file" name="business_file" accept="application/pdf" class="w-full border rounded-lg p-2">
                             </label>
+                            <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-blue-400 transition duration-200 bg-gray-50">
+                                <input type="file" name="business_file" accept="application/pdf" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">PDF format only</p>
                         </div>
 
-                        <!-- COR Field -->
-                        <div id="corField" class="hidden">
+                        <!-- COR Field - CLEAR FILE ATTACHMENT -->
+                        <div id="corField" class="hidden space-y-1">
                             <label class="block text-sm font-medium text-gray-700">
+                                <i class="fas fa-file-contract text-purple-500 mr-2"></i>
                                 Certificate of Registration (COR)
                                 <?php if ($can_update): ?><span class="text-red-500">*</span><?php endif; ?>
-                                <input type="file" name="cor_file" accept="application/pdf" class="w-full border rounded-lg p-2">
                             </label>
+                            <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-blue-400 transition duration-200 bg-gray-50">
+                                <input type="file" name="cor_file" accept="application/pdf" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">PDF format only</p>
                         </div>
                     </div>
                 </div>
-            <?php endif; ?>
-            
-            <!-- Submit Button - ONLY SHOW WHEN CAN UPDATE -->
-            <div class="flex justify-end">
-                <?php if ($can_update): ?>
-                    <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition duration-150 shadow-md">Submit</button>
-                <?php else: ?>
-                    <button type="button" disabled class="bg-gray-400 text-white px-4 py-2 rounded-lg cursor-not-allowed opacity-60">Submit (Not Available)</button>
                 <?php endif; ?>
-            </div>
-        </form>
+
+                <!-- Submit Button - ENHANCED -->
+                <div class="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
+                    <div class="flex justify-between items-center">
+                        <div class="text-gray-600">
+                            <p class="text-sm font-medium">Ready to submit your profile?</p>
+                            <p class="text-xs text-gray-500 mt-1">Review all information before submitting</p>
+                        </div>
+                        <?php if ($can_update): ?>
+                            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-8 rounded-lg transition duration-200 shadow-sm hover:shadow flex items-center space-x-2 text-sm">
+                                <i class="fas fa-paper-plane"></i>
+                                <span>Submit Profile Update</span>
+                            </button>
+                        <?php else: ?>
+                            <button type="button" disabled class="bg-gray-400 text-white font-medium py-3 px-8 rounded-lg cursor-not-allowed flex items-center space-x-2 text-sm">
+                                <i class="fas fa-lock"></i>
+                                <span>Submit (Not Available)</span>
+                            </button>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
 <script>
-
 // Auto-close modal if form was just submitted
 <?php if (isset($_SESSION['form_submitted']) && $_SESSION['form_submitted']): ?>
     <?php unset($_SESSION['form_submitted']); // Clear the flag ?>
@@ -787,7 +846,6 @@ document.addEventListener('DOMContentLoaded', () => {
 <?php endif; ?>
 
 document.addEventListener('DOMContentLoaded', () => {
-
     // Modal and form elements
     const updateProfileBtn = document.getElementById('updateProfileBtn');
     const updateProfileModal = document.getElementById('profileUpdateModal');
@@ -801,7 +859,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const businessTypeField = document.getElementById('businessTypeField');
     const businessTypeSelect = document.getElementById('businessTypeSelect');
     const businessTypeOtherDiv = document.getElementById('businessTypeOtherDiv');
-    const unemployedSection = document.getElementById('unemployedSection');
     const studentDetailsSection = document.getElementById('studentDetailsSection');
     const coeField = document.getElementById('coeField');
     const businessCertField = document.getElementById('businessCertField');
@@ -822,15 +879,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (updateProfileBtn) {
         const canUpdate = <?php echo $can_update ? 'true' : 'false'; ?>;
         
-            if (canUpdate) {
-                updateProfileBtn.addEventListener('click', () => {
-                    if (updateProfileModal) {
-                        updateProfileModal.classList.remove('hidden');
-                        updateProfileModal.classList.add('show', 'flex');
-                        loadAddressData(); // Always load
-                    }
-                });
-            } else {
+        if (canUpdate) {
+            updateProfileBtn.addEventListener('click', () => {
+                if (updateProfileModal) {
+                    updateProfileModal.classList.remove('hidden');
+                    updateProfileModal.classList.add('show', 'flex');
+                    loadAddressData(); // Always load
+                }
+            });
+        } else {
             // Make it visually clear the button is disabled
             updateProfileBtn.style.cursor = 'not-allowed';
             updateProfileBtn.style.opacity = '0.6';
@@ -839,7 +896,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 e.preventDefault();
                 e.stopPropagation();
                 
-                if (!empty(<?php echo !empty($profile) ? 'true' : 'false'; ?>)) {
+                if (<?php echo !empty($profile) ? 'true' : 'false'; ?>) {
                     const status = '<?php echo $profile['submission_status'] ?? ''; ?>';
                     if (status === 'Approved') {
                         alert('Your profile has been approved. You can update again after one year from your last update.');
@@ -933,7 +990,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Hide all sections first
         if (employmentDetailsSection) employmentDetailsSection.classList.add('hidden');
-        if (unemployedSection) unemployedSection.classList.add('hidden');
         if (studentDetailsSection) studentDetailsSection.classList.add('hidden');
         if (supportingDocumentsSection) supportingDocumentsSection.classList.add('hidden');
         
@@ -968,7 +1024,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 break;
                 
             case 'Unemployed':
-                if (unemployedSection) unemployedSection.classList.remove('hidden');
+                // No additional sections for unemployed
                 break;
                 
             case 'Student':
@@ -1004,37 +1060,39 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-        // NEW: Dynamic filtering for years based on graduation year and current year
+    // ENHANCED: Dynamic filtering for years based on graduation year and current year
     function updateStudentYearOptions() {
-        const graduationYearSelect = document.querySelector('[name="year_graduated"]');
+        const graduationYear = <?php echo !empty($profile['batch_year']) ? $profile['batch_year'] : 'null'; ?>;
         const startYearSelect = document.querySelector('[name="start_year"]');
         const endYearSelect = document.querySelector('[name="end_year"]');
         const status = employmentStatusSelect ? employmentStatusSelect.value : '';
         
-        if (graduationYearSelect && startYearSelect && endYearSelect && ['Student', 'Employed & Student'].includes(status)) {
-            const graduationYear = parseInt(graduationYearSelect.value);
+        if (startYearSelect && endYearSelect && ['Student', 'Employed & Student'].includes(status)) {
             const currentYear = new Date().getFullYear();
             
-            if (graduationYear) {
-                // Store current selections
-                const currentStartYear = startYearSelect.value;
-                const currentEndYear = endYearSelect.value;
-                
-                // Update Start Year dropdown: graduation year to current year
-                startYearSelect.innerHTML = '<option value="">Select Start Year</option>';
-                for (let y = graduationYear; y <= currentYear; y++) {
-                    const option = document.createElement('option');
-                    option.value = y;
-                    option.textContent = y;
-                    if (currentStartYear && y === parseInt(currentStartYear)) {
-                        option.selected = true;
-                    }
-                    startYearSelect.appendChild(option);
+            // Store current selections
+            const currentStartYear = startYearSelect.value;
+            const currentEndYear = endYearSelect.value;
+            
+            // Update Start Year dropdown: graduation year + 1 to current year
+            startYearSelect.innerHTML = '<option value="">Select Start Year</option>';
+            
+            // Start year can be from the year after graduation up to current year
+            const minStartYear = graduationYear ? parseInt(graduationYear) + 1 : currentYear - 10;
+            const maxStartYear = currentYear;
+            
+            for (let y = minStartYear; y <= maxStartYear; y++) {
+                const option = document.createElement('option');
+                option.value = y;
+                option.textContent = y;
+                if (currentStartYear && y === parseInt(currentStartYear)) {
+                    option.selected = true;
                 }
-                
-                // Update End Year dropdown based on selected start year
-                updateEndYearOptions();
+                startYearSelect.appendChild(option);
             }
+            
+            // Update End Year dropdown based on selected start year
+            updateEndYearOptions();
         }
     }
 
@@ -1064,11 +1122,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Event listeners for dynamic year filtering
     if (employmentStatusSelect) {
         employmentStatusSelect.addEventListener('change', updateStudentYearOptions);
-    }
-
-    const graduationYearSelect = document.querySelector('[name="year_graduated"]');
-    if (graduationYearSelect) {
-        graduationYearSelect.addEventListener('change', updateStudentYearOptions);
     }
 
     const startYearSelect = document.querySelector('[name="start_year"]');
@@ -1204,6 +1257,34 @@ document.addEventListener('DOMContentLoaded', () => {
     if (provinceSelect) provinceSelect.addEventListener('change', filterMunicipalities);
     if (municipalitySelect) municipalitySelect.addEventListener('change', filterBarangays);
 
+    // Student year validation function
+    function validateStudentYears() {
+        const status = employmentStatusSelect ? employmentStatusSelect.value : '';
+        
+        if (['Student', 'Employed & Student'].includes(status)) {
+            const startYear = document.querySelector('[name="start_year"]').value;
+            const endYear = document.querySelector('[name="end_year"]').value;
+            
+            if (!startYear || !endYear) {
+                alert('Both Start Year and End Year are required for student status.');
+                return false;
+            }
+            
+            if (parseInt(endYear) <= parseInt(startYear)) {
+                alert('End Year must be later than Start Year.');
+                return false;
+            }
+            
+            const currentYear = new Date().getFullYear();
+            if (parseInt(endYear) > (currentYear + 10)) {
+                alert('End Year seems too far in the future. Please verify your expected graduation year.');
+                return false;
+            }
+        }
+        
+        return true;
+    }
+
     // SIMPLIFIED Form validation - FIXED VERSION
     const alumniProfileForm = document.getElementById('alumniProfileForm');
     if (alumniProfileForm) {
@@ -1214,19 +1295,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 event.preventDefault();
                 return;
             }
-           
-            // Check student years (end year > start year)
+            
+            // Validate student years
             if (!validateStudentYears()) {
                 event.preventDefault();
                 return;
             }
-            
-            /* // Basic permission check
-            <?php if (!$can_update): ?>
-            alert('You are not allowed to update your profile at this time. You can only update once per year unless your submission was rejected.');
-            event.preventDefault();
-            return;
-            <?php endif; ?> */
 
             // Profile photo validation - FIXED
             const profilePhotoInput = document.getElementById('profilePictureInput');
@@ -1239,12 +1313,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // Basic required field validation
+            // UPDATED: Only contact number and employment status are required
             const requiredFields = [
-                { field: 'first_name', message: 'First Name is required.' },
-                { field: 'last_name', message: 'Last Name is required.' },
                 { field: 'contact_number', message: 'Contact Number is required.' },
-                { field: 'year_graduated', message: 'Year Graduated is required.' },
                 { field: 'employment_status', message: 'Employment Status is required.' }
             ];
 
@@ -1266,24 +1337,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Address validation
             const addressFieldIds = ['regionSelect', 'provinceSelect', 'municipalitySelect', 'barangaySelect'];
-                        const addressMessages = ['Region', 'Province', 'Municipality', 'Barangay'];
+            const addressMessages = ['Region', 'Province', 'Municipality', 'Barangay'];
 
-                        let addressValid = true;
-                        for (let i = 0; i < addressFieldIds.length; i++) {
-                            const el = document.getElementById(addressFieldIds[i]);
-                            if (el && !el.value.trim()) {
-                                alert(addressMessages[i] + ' is required.');
-                                addressValid = false;
-                                break;
-                            }
-                        }
+            let addressValid = true;
+            for (let i = 0; i < addressFieldIds.length; i++) {
+                const el = document.getElementById(addressFieldIds[i]);
+                if (el && !el.value.trim()) {
+                    alert(addressMessages[i] + ' is required.');
+                    addressValid = false;
+                    break;
+                }
+            }
 
-                        if (!addressValid) {
-                            event.preventDefault();
-                            return;
-                        }
+            if (!addressValid) {
+                event.preventDefault();
+                return;
+            }
 
-            // Employment-specific validation
+            // Employment validation
             const status = employmentStatusSelect ? employmentStatusSelect.value : '';
             
             if (['Employed', 'Employed & Student'].includes(status)) {
@@ -1325,113 +1396,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // Student validation
-            if (['Student', 'Employed & Student'].includes(status)) {
-                const studentFields = [
-                    { field: 'school_name', message: 'School Name is required for student status.' },
-                    { field: 'degree_pursued', message: 'Degree Pursued is required for student status.' },
-                    { field: 'start_year', message: 'Start Year is required for student status.' },
-                    { field: 'end_year', message: 'End Year is required for student status.' }
-                ];
-
-                for (const { field, message } of studentFields) {
-                    const element = document.querySelector(`[name="${field}"]`);
-                    if (element && !element.value.trim()) {
-                        alert(message);
-                        isValid = false;
-                        break;
-                    }
-                }
-            }
-
-            // Salary validation for employment statuses
-            if (['Employed', 'Self-Employed', 'Employed & Student'].includes(status)) {
-                const salaryElement = document.querySelector('[name="salary_range"]');
-                if (salaryElement && !salaryElement.value.trim()) {
-                    const label = status === 'Self-Employed' ? 'Monthly Income Range' : 'Salary Range';
-                    alert(`${label} is required for ${status} status.`);
-                    isValid = false;
-                }
-            }
-
             if (!isValid) {
                 event.preventDefault();
                 return;
             }
-
-            console.log('Form validation passed, submitting...');
         });
     }
 
-    // Handle empty form state after rejection
-    function initializeFormState() {
-        const firstName = document.querySelector('[name="first_name"]');
-        const lastName = document.querySelector('[name="last_name"]');
-        
-        // If both first and last name are empty, this is a fresh form after rejection
-        if (firstName && lastName && !firstName.value && !lastName.value) {
-            console.log('Fresh form detected after rejection - resetting all fields');
-            
-            // Reset employment status to default
-            if (employmentStatusSelect) {
-                employmentStatusSelect.value = '';
-                toggleEmploymentSections('');
-            }
-            
-            // Reset address fields
-            if (regionSelect) regionSelect.value = '';
-            if (provinceSelect) provinceSelect.innerHTML = '<option value="">Select Province</option>';
-            if (municipalitySelect) municipalitySelect.innerHTML = '<option value="">Select Municipality</option>';
-            if (barangaySelect) barangaySelect.innerHTML = '<option value="">Select Barangay</option>';
-            
-            // Reset photo preview to default - FORCE reset for rejected profiles
-            if (previewImg) {
-                previewImg.src = 'https://placehold.co/128x128/eeeeee/333333?text=Profile';
-            }
-            
-            // Clear file input
-            if (fileInput) {
-                fileInput.value = '';
-            }
-        }
-    }
-
-    // Student year validation function - ENHANCED
-    function validateStudentYears() {
-        const status = employmentStatusSelect ? employmentStatusSelect.value : '';
-        
-        // Only validate for student statuses
-        if (['Student', 'Employed & Student'].includes(status)) {
-            const startYear = document.querySelector('[name="start_year"]');
-            const endYear = document.querySelector('[name="end_year"]');
-            const graduationYear = document.querySelector('[name="year_graduated"]');
-            
-            // Validate end year > start year
-            if (startYear && endYear && startYear.value && endYear.value) {
-                const start = parseInt(startYear.value);
-                const end = parseInt(endYear.value);
-                
-                if (end <= start) {
-                    alert('End Year (Expected Graduation) must be later than Start Year.');
-                    return false;
-                }
-            }
-            
-            // NEW VALIDATION: Start year must be >= graduation year
-            if (graduationYear && startYear && graduationYear.value && startYear.value) {
-                const graduation = parseInt(graduationYear.value);
-                const start = parseInt(startYear.value);
-                
-                if (start < graduation) {
-                    alert('Academic Start Year must be the same as or later than your Graduation Year (' + graduation + ').');
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
-
-    // Call this when modal opens
+    // Initialize student year options when modal opens
     if (updateProfileBtn) {
         const canUpdate = <?php echo $can_update ? 'true' : 'false'; ?>;
         
@@ -1441,18 +1413,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     updateProfileModal.classList.remove('hidden');
                     updateProfileModal.classList.add('show', 'flex');
                     loadAddressData();
-                    initializeFormState(); // Initialize form state
-                    // NEW: Initialize student year options if needed
+                    // Initialize student year options based on graduation year
                     setTimeout(updateStudentYearOptions, 100);
                 }
             });
         }
     }
 
-    // Also call when auto-opening modal
+    // Also initialize for auto-opening modal
     <?php if ($auto_open_modal): ?>
     setTimeout(() => {
-        initializeFormState();
+        updateStudentYearOptions();
     }, 200);
     <?php endif; ?>
 });

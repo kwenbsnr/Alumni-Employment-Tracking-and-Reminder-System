@@ -1,119 +1,135 @@
 <?php
+// update_status.php
 session_start();
+
 if (!isset($_SESSION["user_id"]) || $_SESSION["role"] !== "admin") {
     header("Location: ../login/login.php");
     exit();
 }
+
 include("../connect.php");
 
-// Enhanced cleanup function for rejected alumni
-function cleanup_alumni_data($user_id, $conn) {
-    // Delete all related data
-    $tables = ['employment_info', 'education_info', 'alumni_documents'];
-    
-    foreach ($tables as $table) {
-        $stmt = $conn->prepare("DELETE FROM $table WHERE user_id = ?");
-        $stmt->bind_param("i", $user_id);
-        $stmt->execute();
-        $stmt->close();
-    }
-    
-    // Delete address record if exists
-    $stmt = $conn->prepare("DELETE a FROM address a 
-                        INNER JOIN alumni_profile ap ON a.address_id = ap.address_id 
-                        WHERE ap.user_id = ?");
-    $stmt->bind_param("i", $user_id);
-    $stmt->execute();
-    $stmt->close();
-    
-    // Delete photo file if exists
-    $stmt = $conn->prepare("SELECT photo_path FROM alumni_profile WHERE user_id = ?");
-    $stmt->bind_param("i", $user_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    if ($row = $result->fetch_assoc()) {
-        if (!empty($row['photo_path']) && file_exists("../" . $row['photo_path'])) {
-            unlink("../" . $row['photo_path']);
-        }
-    }
-    $stmt->close();
-    
-    // Delete document files if exist
-    $stmt = $conn->prepare("SELECT file_path FROM alumni_documents WHERE user_id = ?");
-    $stmt->bind_param("i", $user_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    while ($row = $result->fetch_assoc()) {
-        if (!empty($row['file_path']) && file_exists("../" . $row['file_path'])) {
-            unlink("../" . $row['file_path']);
-        }
-    }
-    $stmt->close();
-}
+// Get referrer to determine which page the action came from
+$referrer = $_SERVER['HTTP_REFERER'] ?? '';
+$came_from_batch = strpos($referrer, 'batch_alumni.php') !== false;
+$came_from_all = strpos($referrer, 'all_alumni.php') !== false;
 
-$user_id = $_GET['user_id'] ?? 0;
-$status = $_GET['status'] ?? '';
-$reason = $_GET['reason'] ?? '';
+if (isset($_GET['user_id']) && isset($_GET['status'])) {
+    $user_id = intval($_GET['user_id']);
+    $status = $_GET['status'];
+    $reason = $_GET['reason'] ?? '';
+    $admin_id = $_SESSION["user_id"];
 
-if ($user_id && in_array($status, ['Approved', 'Rejected'])) {
-    
-    // Start transaction for data consistency
-    $conn->begin_transaction();
-    
-    try {
-        // Update alumni profile based on admin action
-        if ($status === 'Rejected') {
-            // Clean up alumni data when rejecting - THIS HAPPENS IMMEDIATELY
-            cleanup_alumni_data($user_id, $conn);
+    // Validate status
+    $valid_statuses = ['Approved', 'Rejected', 'Pending'];
+    if (!in_array($status, $valid_statuses)) {
+        $_SESSION['message'] = "Invalid status parameter";
+        $_SESSION['message_type'] = "error";
+    } else {
+        // Start transaction for atomic operations
+        $conn->begin_transaction();
+        
+        try {
+            // Get current status before update for undo context
+            $currentStatusQuery = $conn->prepare("SELECT submission_status FROM alumni_profile WHERE user_id = ?");
+            $currentStatusQuery->bind_param("i", $user_id);
+            $currentStatusQuery->execute();
+            $currentStatusResult = $currentStatusQuery->get_result();
+            $currentStatus = $currentStatusResult->fetch_assoc()['submission_status'] ?? '';
+            $currentStatusQuery->close();
+
+            // Update the alumni profile status
+            $stmt = $conn->prepare("UPDATE alumni_profile SET submission_status = ? WHERE user_id = ?");
+            $stmt->bind_param("si", $status, $user_id);
+
+            if ($stmt->execute()) {
+                // LOG THE ACTION - Enhanced with better context
+                $update_type = '';
+                $details = '';
+                
+                if ($status === 'Approved') {
+                    $update_type = 'approve';
+                    $details = "Approved alumni profile";
+                } elseif ($status === 'Rejected') {
+                    $update_type = 'reject';
+                    $details = "Rejected alumni profile";
+                    if (!empty($reason)) {
+                        $details .= " - Reason: {$reason}";
+                    }
+                } elseif ($status === 'Pending') {
+                    $update_type = 'update';
+                    // Provide context for undo action
+                    if ($currentStatus === 'Approved') {
+                        $details = "Undo approval - Reverted to pending status";
+                    } elseif ($currentStatus === 'Rejected') {
+                        $details = "Undo rejection - Reverted to pending status";
+                    } else {
+                        $details = "Changed status to pending";
+                    }
+                }
+                
+                // Insert into update_log
+                $logStmt = $conn->prepare("INSERT INTO update_log (updated_by, updated_id, update_type, update_details) VALUES (?, ?, ?, ?)");
+                $logStmt->bind_param("iiss", $admin_id, $user_id, $update_type, $details);
+                $logStmt->execute();
+                $logStmt->close();
+                
+                // Commit both operations
+                $conn->commit();
+                
+                if ($status === 'Pending') {
+                    $_SESSION['message'] = "Profile reverted to pending successfully";
+                } elseif ($status === 'Approved') {
+                    $_SESSION['message'] = "Profile approved successfully";
+                } else {
+                    $_SESSION['message'] = "Profile rejected successfully" . ($reason ? " - Reason: " . htmlspecialchars($reason) : "");
+                }
+                $_SESSION['message_type'] = "success";
+            } else {
+                throw new Exception("Database update error: " . $conn->error);
+            }
+            $stmt->close();
             
-            $updateQuery = "UPDATE alumni_profile 
-                            SET submission_status = ?, rejection_reason = ?, rejected_at = NOW(),
-                            first_name = NULL, middle_name = NULL, last_name = NULL,
-                            contact_number = NULL, year_graduated = NULL, employment_status = NULL,
-                            photo_path = NULL, address_id = NULL, last_profile_update = NULL,
-                            submitted_at = NULL
-                            WHERE user_id = ?";
-            $stmt = $conn->prepare($updateQuery);
-            $stmt->bind_param('ssi', $status, $reason, $user_id);
-        } else {
-            $updateQuery = "UPDATE alumni_profile SET submission_status = ?, rejection_reason = NULL, rejected_at = NULL WHERE user_id = ?";
-            $stmt = $conn->prepare($updateQuery);
-            $stmt->bind_param('si', $status, $user_id);
+        } catch (Exception $e) {
+            // Rollback on any error
+            $conn->rollback();
+            $_SESSION['message'] = "Error: " . $e->getMessage();
+            $_SESSION['message_type'] = "error";
         }
-        
-        if (!$stmt->execute()) {
-            throw new Exception("Failed to update alumni profile");
-        }
-        $stmt->close();
-
-        // Log the action correctly
-        $update_type = ($status === 'Approved') ? 'approve' : 'reject';
-        $logQuery = "INSERT INTO update_log (updated_by, updated_id, update_type) VALUES (?, ?, ?)";
-        $logStmt = $conn->prepare($logQuery);
-        $logStmt->bind_param('iis', $_SESSION['user_id'], $user_id, $update_type);
-        
-        if (!$logStmt->execute()) {
-            throw new Exception("Failed to log admin action");
-        }
-        $logStmt->close();
-
-        // Commit transaction
-        $conn->commit();
-
-        // Redirect success
-        header("Location: alumni_management.php?success=" . urlencode("Alumni profile " . strtolower($status) . " successfully"));
-        exit();
-        
-    } catch (Exception $e) {
-        // Rollback transaction on error
-        $conn->rollback();
-        error_log("Admin status update error: " . $e->getMessage());
-        header("Location: alumni_management.php?error=Error updating alumni status: " . $e->getMessage());
-        exit();
     }
-    
 } else {
-    header("Location: alumni_management.php?error=Invalid parameters");
-    exit();
+    $_SESSION['message'] = "Invalid request parameters";
+    $_SESSION['message_type'] = "error";
 }
+
+// === SMART REDIRECT BACK TO ORIGINAL PAGE WITH ALL FILTERS ===
+
+$redirect_url = "all_alumni.php"; // default fallback
+
+if ($came_from_batch && isset($_GET['batch'])) {
+    // Rebuild batch page URL with all current GET parameters
+    $batch = $_GET['batch'];
+    $query_params = [
+        'batch' => $batch,
+        'search' => $_GET['search'] ?? '',
+        'employment_status' => $_GET['employment_status'] ?? '',
+        'submission_status' => $_GET['submission_status'] ?? ''
+    ];
+    // Remove empty values
+    $query_params = array_filter($query_params, function($v) { return $v !== ''; });
+    $redirect_url = "batch_alumni.php?" . http_build_query($query_params);
+}
+elseif ($came_from_all) {
+    // Rebuild all_alumni.php with filters
+    $query_params = [
+        'search' => $_GET['search'] ?? '',
+        'employment_status' => $_GET['employment_status'] ?? '',
+        'submission_status' => $_GET['submission_status'] ?? ''
+    ];
+    $query_params = array_filter($query_params, function($v) { return $v !== ''; });
+    $redirect_url = "all_alumni.php" . ($query_params ? "?" . http_build_query($query_params) : "");
+}
+
+header("Location: $redirect_url");
+exit();
 ?>

@@ -11,22 +11,24 @@ $active_page = "dashboard";
 $user_id = $_SESSION["user_id"];
 
 // ---- 1. UPDATE THE SQL QUERY (only the fields that really exist) ----
+// ---- UPDATED SQL QUERY ----
 $stmt = $conn->prepare("
     SELECT
-        ap.first_name,
-        ap.middle_name,
-        ap.last_name,
-        ap.year_graduated,
+        u.name as official_name,
+        u.student_id,
+        u.program,
+        u.batch_year as year_graduated,
         ap.last_profile_update,
         ap.employment_status,
         ap.submission_status,
         ap.address_id,
         ap.contact_number,
         COUNT(ad.doc_id) as document_count
-    FROM alumni_profile ap
-    LEFT JOIN alumni_documents ad ON ap.user_id = ad.user_id
-    WHERE ap.user_id = ?
-    GROUP BY ap.user_id
+    FROM users u
+    LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id
+    LEFT JOIN alumni_documents ad ON u.user_id = ad.user_id
+    WHERE u.user_id = ?
+    GROUP BY u.user_id
 ");
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
@@ -34,28 +36,18 @@ $result = $stmt->get_result();
 $profile_info = $result->fetch_assoc() ?: [];
 $stmt->close();
 
-// Build full name
+// Build full name from the new structure
 $full_name = 'Alumni';
-if (!empty($profile_info)) {
-    $full_name = trim(
-        ($profile_info['first_name'] ?? '') . ' ' .
-        ($profile_info['middle_name'] ?? '') . ' ' .
-        ($profile_info['last_name'] ?? '')
-    );
-    if (empty($full_name)) {
-        $full_name = 'Alumni';
-    }
+if (!empty($profile_info) && !empty($profile_info['official_name'])) {
+    $full_name = htmlspecialchars($profile_info['official_name']);
 }
-
-// --- NEW CODE: CLEAR & CORRECT ---
-// Check 7 required fields
-$fields_complete = !empty($profile_info) &&
-    !empty($profile_info['first_name']) &&
-    !empty($profile_info['last_name']) &&
+// --- SIMPLIFIED PROFILE COMPLETION LOGIC ---
+// Basic required fields that everyone needs
+$has_basic_info = !empty($profile_info) && 
     !empty($profile_info['contact_number']) &&
-    !empty($profile_info['year_graduated']) &&
-    !empty($profile_info['employment_status']) &&
-    !empty($profile_info['address_id']);
+    !empty($profile_info['employment_status']);
+
+$has_address = !empty($profile_info) && !empty($profile_info['address_id']);
 
 // Check photo
 $has_photo = false;
@@ -68,29 +60,48 @@ if ($stmt_photo) {
     $stmt_photo->close();
     $has_photo = !empty($photo_data['photo_path']);
 }
-// --- UPDATED CODE: 8 EQUAL SECTIONS (7 fields + photo) ---
-$sections = [
-    !empty($profile_info['first_name']),
-    !empty($profile_info['last_name']),
-    !empty($profile_info['contact_number']),
-    !empty($profile_info['year_graduated']),
-    !empty($profile_info['employment_status']),
-    !empty($profile_info['address_id']),
-    $has_photo
+
+// Check documents
+$has_documents = false;
+$stmt_docs = $conn->prepare("SELECT 1 FROM alumni_documents WHERE user_id = ?");
+if ($stmt_docs) {
+    $stmt_docs->bind_param("i", $user_id);
+    $stmt_docs->execute();
+    $has_documents = $stmt_docs->get_result()->num_rows > 0;
+    $stmt_docs->close();
+}
+
+// SIMPLIFIED: Everyone needs these 4 basic sections
+$required_sections = [
+    $has_basic_info,    // Contact + employment status
+    $has_address,       // Address
+    $has_photo,         // Profile photo
+    $has_documents      // Supporting documents
 ];
 
-$completed_count = count(array_filter($sections));
-$total_fields    = count($sections); // 8
-$completion_percentage = $total_fields > 0 ? round(($completed_count / $total_fields) * 100) : 0;
+$completed_count = count(array_filter($required_sections));
+$total_required = count($required_sections);
+$completion_percentage = $total_required > 0 ? round(($completed_count / $total_required) * 100) : 0;
 
-// Profile is 100% only if all 8 sections are filled
-$is_profile_complete = $completed_count === $total_fields;
+// Profile is complete when all 4 basic sections are filled
+$is_profile_complete = $completed_count === $total_required;
 
-// Final display status
+// Final display status - SIMPLIFIED
+$submission_status = $profile_info['submission_status'] ?? 'Not Submitted';
 $profile_status = 'Incomplete';
+
 if ($is_profile_complete) {
-    $submission_status = $profile_info['submission_status'] ?? 'Not Submitted';
-    $profile_status = ($submission_status === 'Pending') ? 'Pending Approval' : 'Complete';
+    if ($submission_status === 'Approved') {
+        $profile_status = 'Complete';
+    } elseif ($submission_status === 'Pending') {
+        $profile_status = 'Pending Approval';
+    } elseif ($submission_status === 'Rejected') {
+        $profile_status = 'Rejected';
+    } else {
+        $profile_status = 'Ready to Submit';
+    }
+} elseif ($submission_status === 'Rejected') {
+    $profile_status = 'Rejected';
 }
 
 // Annual update check
@@ -99,7 +110,6 @@ $needs_annual_update = !empty($profile_info) &&
      strtotime($profile_info['last_profile_update'] . ' +1 year') <= time());
 
 $needs_profile_update = empty($profile_info) || !$is_profile_complete || $needs_annual_update;
-
 // Profile & Document status
 $profile = [
     'employment_status' => $profile_info['employment_status'] ?? 'Not Set',
@@ -622,70 +632,7 @@ ob_start();
         </div>
     </div>
 
-    <!-- RIGHT: Quick Actions (40%) --> 
-<div class="space-y-5">
-    <!-- Quick Actions Card -->
-    <div class="bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-lg border border-gray-200/60 p-6">
-        <div class="flex items-center justify-between mb-6">
-            <h3 class="text-xl font-bold text-gray-800">Quick Actions</h3>
-            <div class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium">
-                <i class="fas fa-bolt mr-1"></i> Fast Access
-            </div>
-        </div>
-       
-        <div class="space-y-3">
-            <!-- Action 1: Update Profile -->
-            <a href="alumni_profile.php" class="flex items-center p-5 bg-white hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 rounded-xl transition-all duration-300 group border border-gray-200/60 hover:border-green-200 hover:shadow-md">
-                <div class="relative">
-                    <div class="bg-gradient-to-br from-green-100 to-emerald-100 p-4 rounded-xl mr-4 group-hover:from-green-500 group-hover:to-emerald-500 transition-all duration-300 shadow-sm">
-                        <i class="fas fa-user-edit text-green-600 text-xl group-hover:text-white"></i>
-                    </div>
-                    <!-- Removed pulsing dot -->
-                </div>
-                <div class="flex-1">
-                    <p class="font-bold text-gray-800 group-hover:text-green-700">Update Profile</p>
-                    <p class="text-sm text-gray-600 mt-1">Keep your information current</p>
-                </div>
-                <div class="bg-gray-100 group-hover:bg-green-100 text-gray-500 group-hover:text-green-600 p-2 rounded-lg transition-all duration-300">
-                    <i class="fas fa-chevron-right text-sm"></i>
-                </div>
-            </a>
-            <!-- Action 2: View Profile -->
-            <a href="alumni_profile.php" class="flex items-center p-5 bg-white hover:bg-gradient-to-r hover:from-purple-50 hover:to-indigo-50 rounded-xl transition-all duration-300 group border border-gray-200/60 hover:border-purple-200 hover:shadow-md">
-                <div class="relative">
-                    <div class="bg-gradient-to-br from-purple-100 to-indigo-100 p-4 rounded-xl mr-4 group-hover:from-purple-500 group-hover:to-indigo-500 transition-all duration-300 shadow-sm">
-                        <i class="fas fa-id-card text-purple-600 text-xl group-hover:text-white"></i>
-                    </div>
-                    <!-- No animation to remove here -->
-                </div>
-                <div class="flex-1">
-                    <p class="font-bold text-gray-800 group-hover:text-purple-700">View Profile</p>
-                    <p class="text-sm text-gray-600 mt-1">See your full alumni details</p>
-                </div>
-                <div class="bg-gray-100 group-hover:bg-purple-100 text-gray-500 group-hover:text-purple-600 p-2 rounded-lg transition-all duration-300">
-                    <i class="fas fa-chevron-right text-sm"></i>
-                </div>
-            </a>
-            <!-- Action 3: Check Review Status -->
-            <a href="alumni_profile.php#documents" class="flex items-center p-5 bg-white hover:bg-gradient-to-r hover:from-amber-50 hover:to-orange-50 rounded-xl transition-all duration-300 group border border-gray-200/60 hover:border-amber-200 hover:shadow-md">
-                <div class="relative">
-                    <div class="bg-gradient-to-br from-amber-100 to-orange-100 p-4 rounded-xl mr-4 group-hover:from-amber-500 group-hover:to-orange-500 transition-all duration-300 shadow-sm">
-                        <i class="fas fa-clipboard-list text-amber-600 text-xl group-hover:text-white"></i>
-                    </div>
-                    <!-- Removed ping animation dot -->
-                </div>
-                <div class="flex-1">
-                    <p class="font-bold text-gray-800 group-hover:text-amber-700">Check Review Status</p>
-                    <p class="text-sm text-gray-600 mt-1">Track document approval</p>
-                </div>
-                <div class="bg-gray-100 group-hover:bg-amber-100 text-gray-500 group-hover:text-amber-600 p-2 rounded-lg transition-all duration-300">
-                    <i class="fas fa-chevron-right text-sm"></i>
-                </div>
-            </a>
-        </div>
-       
-    </div>
-</div>
+ 
 
 <!-- Enhanced Custom Animations -->
 <style>
