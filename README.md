@@ -36,6 +36,9 @@ ____________________
 ### 3. idk if dis is meant to be there. everytime the "Help" button is clicked, an alert msg pops up bef the actual modal.
 ### 4. modal shadow naay line above.
 ##
+## ADMIN:
+### 1. Unnecessary program field in the hover since all are bsit.
+##
 ## DB:
 ### 1. filepath must be surname + filenm for clarity.
 ____________________
