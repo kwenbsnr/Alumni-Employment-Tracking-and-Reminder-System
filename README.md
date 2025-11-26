@@ -23,8 +23,17 @@
 │  └─ alumni_format.css           # Alumni header and sidebar styles
 ```
 
-Summary of Changes Implemented
 ____________________
+##
+WHAT TO FIX: 
+1. Generate Report 
+2. Notification button on both alumni and admin. 
+3. Recent activity on the alumni.
+4. Rejected Profile rejection message need to fixing. 
+##
+____________________
+
+Summary of Changes Implemented
 - Submissions now close and open based on the admin toggle or scheduled dates.
 
 - When submissions are closed, alumni cannot submit or edit their profiles.
@@ -61,11 +70,3 @@ ____________________
 7. Added an open/close submission with date customization and 100% reflects on the alumni. 
 8. Removed the quick actions. 
 9. Enhanced most of the guis. 
-____________________
-```
-WHAT TO FIX: 
-1. Generate Report 
-2. Notification button on both alumni and admin. 
-3. Recent activity on the alumni.
-4. Rejected Profile rejection message need to fixing. 
-```
