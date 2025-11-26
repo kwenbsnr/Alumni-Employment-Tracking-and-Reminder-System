@@ -126,6 +126,7 @@ $page_title = $page_title ?? "Alumni Page";
             height: 100%;
             object-fit: cover;
         }
+        
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen flex">
@@ -291,7 +292,7 @@ $page_title = $page_title ?? "Alumni Page";
                 helpButton.addEventListener('click', () => {
                     alert('Need help? Contact the alumni support team at alumni-support@university.edu');
                 });
-            }
+        }
         });
     </script>
 </body>

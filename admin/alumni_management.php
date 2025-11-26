@@ -535,7 +535,7 @@ $page_content = ob_get_clean();
 include("admin_format.php");
 ?>
 
-<?php<?php
+<?php
 function generateAlumniReport($selected_batches, $report_type, $conn) {
     if (ob_get_length()) ob_clean();
 
@@ -754,7 +754,7 @@ function generateAlumniReport($selected_batches, $report_type, $conn) {
     $pdf->Output($pdf_filename, 'I');
     exit;
 }
-?>
+
 // Function to check if submissions are open
 function isSubmissionsOpen($conn) {
     $statusCheck = $conn->query("SELECT is_open FROM submission_status LIMIT 1");

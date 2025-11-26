@@ -147,452 +147,336 @@ ob_start();
 ?>
 
 <!-- Dashboard Section -->
-<div class="space-y-6">
+<div class="space-y-8">
     <?php if ($needs_profile_update): ?>
         <!-- Profile update warning would go here -->
     <?php endif; ?>
 
     <!-- Success Card -->
     <?php if (isset($_SESSION['profile_submission_success'])): ?>
-        <div id="successCard" class="bg-green-100 p-6 rounded-xl shadow-lg border-l-4 border-green-600 flex items-center space-x-3 animate-fade-in">
-            <div class="text-green-600 text-2xl">✅</div>
-            <div>
-                <h3 class="text-lg font-semibold text-green-800">Submission Successful!</h3>
-                <p class="text-green-700">Your profile has been submitted for review.</p>
+        <div id="successCard" class="bg-gradient-to-r from-green-500 to-emerald-600 p-6 text-white flex items-center justify-between shadow-lg animate-fade-in">
+            <div class="flex items-center space-x-4">
+                <div class="w-10 h-10 bg-white bg-opacity-20 flex items-center justify-center rounded-lg">
+                    <i class="fas fa-check text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold">Submission Successful!</h3>
+                    <p class="text-green-100">Your profile has been submitted for review.</p>
+                </div>
             </div>
-            <button id="closeSuccessCard" class="ml-auto text-green-600 hover:text-green-800 text-xl font-bold">×</button>
+            <button id="closeSuccessCard" class="text-white hover:text-green-200 text-xl font-bold transition-colors">×</button>
         </div>
         <?php unset($_SESSION['profile_submission_success']); ?>
     <?php endif; ?>
 
     <!-- Welcome Card -->
     <?php if (isset($_SESSION['show_welcome'])): ?>
-        <div id="welcomeCard" class="bg-green-100 p-6 rounded-xl shadow-lg border-l-4 border-green-600">
-            <h2 class="text-3xl font-bold text-green-800 mb-2">Welcome Back, <?php echo htmlspecialchars($full_name); ?>!</h2>
-            <p class="text-green-700">Your network and resources are waiting. Check your quick stats below.</p>
+        <div id="welcomeCard" class="bg-gradient-to-r from-blue-600 to-indigo-700 p-8 text-white shadow-xl">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-3xl font-bold mb-2">Welcome Back, <?php echo htmlspecialchars($full_name); ?>!</h2>
+                    <p class="text-blue-100 text-lg">Your network and resources are waiting. Check your quick stats below.</p>
+                </div>
+                <div class="w-16 h-16 bg-white bg-opacity-20 flex items-center justify-center rounded-xl">
+                    <i class="fas fa-graduation-cap text-2xl"></i>
+                </div>
+            </div>
         </div>
         <?php unset($_SESSION['show_welcome']); ?>
     <?php endif; ?>
-<!-- TWO-COLUMN LAYOUT: Stats (60%) + Quick Actions (40%) -->
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
-    <!-- LEFT: 4 Cards (2x2 Grid, ~60%) -->
+
+<!-- MODERN DASHBOARD LAYOUT WITH SHARP EDGES -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+    <!-- LEFT: 4 Cards (2x2 Grid) -->
     <div class="lg:col-span-2">
- <!-- MODERN 2x2 DASHBOARD CARDS - EQUAL HEIGHT, FULLY RESPONSIVE -->
-<div class="max-w-6xl mx-auto">
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
-        
-<!-- CARD 1: Profile Completion -->
-<div class="h-full flex flex-col">
-    <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border <?php
-        echo $profile_status === 'Complete' ? 'border-emerald-400 ring-2 ring-emerald-100' :
-             ($profile_status === 'Pending Approval' ? 'border-amber-400 ring-2 ring-amber-100' : 'border-orange-500 ring-2 ring-orange-200');
-    ?> overflow-hidden flex flex-col h-full hover:shadow-xl transition-all duration-400 group relative">
-      
-        <!-- ALERT: Incomplete (More noticeable animation) -->
-        <?php if ($profile_status === 'Incomplete'): ?>
-            <div class="absolute top-4 right-4 z-20 pointer-events-none">
-                <div class="relative">
-                    <!-- Triple pulse rings -->
-                    <div class="absolute inset-0 w-12 h-12 bg-red-200 rounded-full opacity-80 animate-ping-slow"></div>
-                    <div class="absolute inset-0 w-12 h-12 bg-orange-200 rounded-full opacity-60 animate-ping-slow delay-300"></div>
-                    <div class="absolute inset-0 w-12 h-12 bg-orange-100 rounded-full opacity-40 animate-ping-slow delay-600"></div>
-                    <!-- Main icon with bounce and glow -->
-                    <div class="relative w-12 h-12 bg-gradient-to-br from-red-500 to-orange-600 rounded-full flex items-center justify-center shadow-lg ring-2 ring-red-300 animate-bounce-gentle">
-                        <i class="fas fa-exclamation text-white text-base font-bold drop-shadow-sm"></i>
-                    </div>
-                    <!-- Floating dot -->
-                    <div class="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full animate-pulse-fast"></div>
-                </div>
-            </div>
-        <?php endif; ?>
-
-        <!-- SUCCESS CHECKMARK (More celebratory animation) -->
-        <?php if ($profile_status === 'Complete'): ?>
-            <div class="absolute top-4 right-4 z-20 pointer-events-none">
-                <div class="relative">
-                    <!-- Enhanced pulse rings -->
-                    <div class="absolute inset-0 w-12 h-12 bg-emerald-200 rounded-full opacity-70 animate-ping-slow"></div>
-                    <div class="absolute inset-0 w-12 h-12 bg-emerald-100 rounded-full opacity-50 animate-ping-slow delay-400"></div>
-                    <div class="absolute inset-0 w-12 h-12 bg-emerald-50 rounded-full opacity-30 animate-ping-slow delay-800"></div>
-                    <!-- Bouncing checkmark with glow -->
-                    <div class="relative w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center shadow-lg ring-2 ring-emerald-300 animate-bounce-gentle">
-                        <i class="fas fa-check text-white text-lg font-bold drop-shadow-sm"></i>
-                    </div>
-                    <!-- Sparkle effects -->
-                    <div class="absolute -top-1 -left-1 w-2 h-2 bg-yellow-300 rounded-full animate-ping-fast"></div>
-                    <div class="absolute -bottom-1 -right-1 w-2 h-2 bg-yellow-200 rounded-full animate-ping-fast delay-300"></div>
-                </div>
-            </div>
-        <?php endif; ?>
-
-        <!-- PENDING APPROVAL: Enhanced clock animation -->
-        <?php if ($profile_status === 'Pending Approval'): ?>
-            <div class="absolute top-4 right-4 z-20 pointer-events-none">
-                <div class="relative">
-                    <!-- Multi-layered pulse rings -->
-                    <div class="absolute inset-0 w-12 h-12 bg-amber-200 rounded-full opacity-70 animate-ping-slow"></div>
-                    <div class="absolute inset-0 w-12 h-12 bg-amber-150 rounded-full opacity-50 animate-ping-slow delay-200"></div>
-                    <div class="absolute inset-0 w-12 h-12 bg-amber-100 rounded-full opacity-30 animate-ping-slow delay-400"></div>
-                    <!-- Clock with enhanced spin and glow -->
-                    <div class="relative w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-500 rounded-full flex items-center justify-center shadow-lg ring-2 ring-amber-300 animate-spin-slow">
-                        <div class="absolute inset-0 flex items-center justify-center">
-                            <i class="fas fa-clock text-white text-base font-bold drop-shadow-sm"></i>
-                        </div>
-                    </div>
-                    <!-- Moving dots around clock -->
-                    <div class="absolute -top-1 -right-1 w-2 h-2 bg-yellow-300 rounded-full animate-orbit-slow"></div>
-                    <div class="absolute -bottom-1 -left-1 w-2 h-2 bg-yellow-200 rounded-full animate-orbit-slow delay-500"></div>
-                </div>
-            </div>
-        <?php endif; ?>
-
-        <!-- Main Content -->
-        <div class="p-6 space-y-4 flex flex-col flex-1">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-3">
-                    <div class="p-3 <?php
-                        echo $profile_status === 'Complete' ? 'bg-emerald-600' :
-                             ($profile_status === 'Pending Approval' ? 'bg-amber-600' : 'bg-orange-600');
-                    ?> rounded-xl text-white shadow-md transform group-hover:scale-110 transition-transform duration-300">
-                        <i class="fas fa-user-check text-xl"></i>
-                    </div>
-                    <div>
-                        <h3 class="text-lg font-extrabold <?php echo $profile_status === 'Complete' ? 'text-gray-900' : 'text-orange-900'; ?>">
-                            Profile Completion
-                        </h3>
-                        <div class="mt-1.5">
-                            <span class="inline-flex items-center px-3 py-1 text-xs font-bold tracking-wider rounded-full uppercase <?php
-                                echo $profile_status === 'Complete' ? 'bg-emerald-100 text-emerald-800' :
-                                     ($profile_status === 'Pending Approval' ? 'bg-amber-100 text-amber-800' : 'bg-orange-100 text-orange-800');
-                            ?> shadow-sm">
-                                <?php echo $profile_status; ?>
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="flex-1">
-                <p class="text-sm <?php echo $profile_status === 'Complete' ? 'text-gray-600' : 'text-orange-700'; ?> leading-relaxed font-medium">
-                    <?php
-                    if ($profile_status === 'Complete') {
-                        echo 'Congratulations! Your profile is fully verified.';
-                    } elseif ($profile_status === 'Pending Approval') {
-                        echo 'Submitted! Admin review in progress...';
-                    } else {
-                        echo 'Action needed: Complete your profile to unlock all features.';
-                    }
-                    ?>
-                </p>
-            </div>
-
-            <div class="space-y-3">
-                <div class="flex justify-between text-xs font-semibold <?php echo $profile_status === 'Complete' ? 'text-gray-500' : 'text-orange-700'; ?>">
-                    <span>Completion Progress</span>
-                    <span><?php echo $completion_percentage; ?>%</span>
-                </div>
-                <?php if ($profile_status === 'Complete'): ?>
-                    <div class="text-center text-emerald-600 text-xs font-medium">
-                        <i class="fas fa-sparkles mr-1"></i> Fully Verified
-                    </div>
-                <?php else: ?>
-                    <div class="relative w-full h-3 bg-gray-200 rounded-full overflow-hidden shadow-inner">
-                        <div class="absolute inset-0 bg-gradient-to-r <?php
-                            echo $completion_percentage >= 90 ? 'from-emerald-500 to-teal-500' :
-                                 ($completion_percentage >= 70 ? 'from-orange-500 to-yellow-500' : 'from-orange-600 to-red-500');
-                        ?> h-full rounded-full transition-all duration-1000 ease-out transform origin-left"
-                             style="width: <?php echo $completion_percentage; ?>%"></div>
-                        <div class="absolute inset-0 bg-white/30 backdrop-blur-sm h-full rounded-full animate-pulse"></div>
-                    </div>
-                <?php endif; ?>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- CARD 2: Employment -->
-<div class="h-full flex flex-col">
-    <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border <?php
-        echo !empty($profile_info['employment_status']) && $profile_info['employment_status'] !== 'Not Set'
-            ? 'border-blue-400 ring-2 ring-blue-100'
-            : 'border-gray-300 ring-2 ring-gray-100';
-    ?> overflow-hidden flex flex-col h-full hover:shadow-xl transition-all duration-400 group relative">
-
-        <?php if (empty($profile_info['employment_status']) || $profile_info['employment_status'] === 'Not Set'): ?>
-            <div class="absolute top-3 right-3 w-9 h-9 bg-gradient-to-br from-gray-500 to-gray-700 rounded-full flex items-center justify-center text-white shadow-lg z-20">
-                <i class="fas fa-question text-sm"></i>
-            </div>
-        <?php endif; ?>
-
-        <div class="p-6 flex-1 flex flex-col justify-between space-y-4">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-3">
-                    <div class="p-3 <?php
-                        echo !empty($profile_info['employment_status']) && $profile_info['employment_status'] !== 'Not Set'
-                            ? 'bg-gradient-to-br from-blue-600 to-cyan-600'
-                            : 'bg-gradient-to-br from-gray-500 to-gray-700';
-                    ?> rounded-xl text-white shadow-md transform group-hover:scale-110 transition-all duration-300">
-                        <i class="fas fa-briefcase text-xl"></i>
-                    </div>
-                    <div>
-                        <h3 class="text-lg font-extrabold text-gray-900">Employment</h3>
-                        <div class="mt-1.5">
-                            <span class="inline-flex items-center px-3 py-1 text-xs font-bold tracking-wider rounded-full uppercase shadow-sm <?php
-                                echo !empty($profile_info['employment_status']) && $profile_info['employment_status'] !== 'Not Set'
-                                    ? 'bg-blue-100 text-blue-800'
-                                    : 'bg-gray-100 text-gray-700';
-                            ?>">
-                                <?php echo !empty($profile_info['employment_status']) && $profile_info['employment_status'] !== 'Not Set'
-                                    ? 'Current' : 'Not Set'; ?>
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="space-y-1 flex-1">
-                <p class="text-base font-bold text-gray-800 truncate <?php
-                    echo !empty($profile_info['employment_status']) && $profile_info['employment_status'] !== 'Not Set'
-                        ? '' : 'italic text-gray-400';
-                ?>">
-                    <?php echo !empty($profile_info['employment_status']) && $profile_info['employment_status'] !== 'Not Set'
-                        ? htmlspecialchars($profile_info['employment_status'])
-                        : 'No employment info'; ?>
-                </p>
-                <p class="text-xs <?php
-                    echo !empty($profile_info['last_profile_update'])
-                        ? 'text-gray-500' : 'text-gray-400 italic';
-                ?>">
-                    <?php echo !empty($profile_info['last_profile_update'])
-                        ? 'Updated ' . date('M d, Y', strtotime($profile_info['last_profile_update']))
-                        : 'Never updated'; ?>
-                </p>
-            </div>
-
-            <?php
-            // ---- DYNAMIC “Visible on Network” MESSAGE (no extra DB fields) ----
-            $msg = '';
-            $status = $profile_info['employment_status'] ?? '';
-
-            if ($status === 'Unemployed') {
-                $msg = 'No documents required — you are currently unemployed.';
-            } elseif ($status === 'Employed') {
-                $msg = 'Works at the company entered.';
-            } elseif ($status === 'Student') {
-                $msg = 'Studies at the school entered.';
-            } elseif ($status === 'Employed' && $status === 'Student') {   // both selected in profile form
-                $msg = 'Works at the company entered and studies at the school entered.';
-            }
-
-            if ($msg !== '' && $status !== 'Not Set'):
-            ?>
-                <div class="flex items-center space-x-1 text-xs text-blue-600 font-medium">
-                    <i class="fas fa-check-circle"></i>
-                    <span><?php echo $msg; ?></span>
-                </div>
-            <?php endif; ?>
-        </div>
-    </div>
-</div>
-
-<!-- CARD 3: Document Review -->
-<div class="h-full flex flex-col">
-    <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border <?php
-        echo $document['submission_status'] === 'Approved' ? 'border-emerald-400 ring-2 ring-emerald-100' :
-             ($document['submission_status'] === 'Rejected' ? 'border-red-500 ring-2 ring-red-200' :
-             ($document['submission_status'] === 'Under Review' ? 'border-amber-400 ring-2 ring-amber-100' :
-             'border-gray-300 ring-2 ring-gray-100'));
-    ?> overflow-hidden flex flex-col h-full hover:shadow-xl transition-all duration-400 group relative">
-
-        <!-- ALERT: Rejected (Upper-right inside card - NO ANIMATION) -->
-        <?php if ($document['submission_status'] === 'Rejected'): ?>
-            <div class="absolute top-3 right-3 w-10 h-10 bg-gradient-to-br from-red-500 to-rose-600 rounded-full flex items-center justify-center text-white font-bold shadow-lg z-20">
-                <i class="fas fa-times text-sm"></i>
-            </div>
-        <?php endif; ?>
-
-        <!-- Main Content -->
-        <div class="p-6 space-y-4 flex flex-col flex-1">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-3">
-                    <div class="p-3 <?php
-                        echo $document['submission_status'] === 'Approved' ? 'bg-gradient-to-br from-emerald-600 to-teal-600' :
-                             ($document['submission_status'] === 'Rejected' ? 'bg-gradient-to-br from-red-600 to-rose-600' :
-                             ($document['submission_status'] === 'Under Review' ? 'bg-gradient-to-br from-amber-600 to-orange-600' :
-                             'bg-gradient-to-br from-gray-500 to-gray-700'));
-                    ?> rounded-xl text-white shadow-md transform group-hover:scale-110 transition-all duration-300">
-                        <i class="fas fa-clipboard-check text-xl"></i>
-                    </div>
-                    <div>
-                        <h3 class="text-lg font-extrabold text-gray-900">Document Review</h3>
-                        <div class="mt-1.5">
-                            <span class="inline-flex items-center px-3 py-1 text-xs font-bold tracking-wider rounded-full uppercase shadow-sm <?php
-                                echo $document['submission_status'] === 'Approved' ? 'bg-emerald-100 text-emerald-800' :
-                                     ($document['submission_status'] === 'Rejected' ? 'bg-red-100 text-red-800' :
-                                     ($document['submission_status'] === 'Under Review' ? 'bg-amber-100 text-amber-800' :
-                                     'bg-gray-100 text-gray-700'));
-                            ?>">
-                                <?php echo htmlspecialchars($document['submission_status']); ?>
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="flex-1">
-                <p class="text-sm font-medium <?php
-                    echo $document['submission_status'] === 'Approved' ? 'text-emerald-700' :
-                         ($document['submission_status'] === 'Rejected' ? 'text-red-700' :
-                         ($document['submission_status'] === 'Under Review' ? 'text-amber-700' : 'text-gray-600'));
-                ?> leading-relaxed">
-                    <?php echo htmlspecialchars($document['message']); ?>
-                </p>
-            </div>
-
-            <div class="flex items-center justify-between pt-3 border-t border-gray-100">
-                <div class="flex items-center space-x-1.5 text-xs font-semibold <?php
-                    echo $document['submission_status'] === 'Approved' ? 'text-emerald-600' :
-                         ($document['submission_status'] === 'Rejected' ? 'text-red-600' :
-                         ($document['submission_status'] === 'Under Review' ? 'text-amber-600' : 'text-gray-500'));
-                ?>">
-                    <i class="fas fa-paperclip"></i>
-                    <span>Files:</span>
-                    <span class="font-bold"><?php echo $document['document_count']; ?></span>
-                </div>
-
-                <div class="flex justify-center">
-                    <?php if ($document['submission_status'] === 'Approved'): ?>
-                        <div class="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center">
-                            <i class="fas fa-check text-lg text-emerald-700"></i>
-                        </div>
-                    <?php elseif ($document['submission_status'] === 'Under Review'): ?>
-                        <div class="relative w-10 h-10">
-                            <svg class="w-10 h-10 transform -rotate-90">
-                                <circle cx="20" cy="20" r="16" stroke="currentColor" stroke-width="3" fill="none" class="text-gray-200"/>
-                                <circle cx="20" cy="20" r="16" stroke="currentColor" stroke-width="3" fill="none"
-                                        class="text-amber-500"
-                                        stroke-dasharray="100"
-                                        stroke-dashoffset="<?php echo 100 - ($document['document_count'] > 0 ? 75 : 100); ?>"
-                                        stroke-linecap="round"/>
-                            </svg>
-                            <div class="absolute inset-0 flex items-center justify-center">
-                                <i class="fas fa-hourglass-half text-xs text-amber-600"></i>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            
+            <!-- CARD 1: Profile Completion - MODERN DESIGN -->
+            <div class="bg-white border-2 border-gray-100 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                <!-- Status accent bar -->
+                <div class="h-2 <?php
+                    echo $profile_status === 'Complete' ? 'bg-gradient-to-r from-emerald-500 to-green-600' :
+                         ($profile_status === 'Pending Approval' ? 'bg-gradient-to-r from-amber-500 to-orange-600' : 'bg-gradient-to-r from-orange-500 to-red-600');
+                ?>"></div>
+                
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-14 h-14 <?php
+                                echo $profile_status === 'Complete' ? 'bg-emerald-100 text-emerald-600' :
+                                     ($profile_status === 'Pending Approval' ? 'bg-amber-100 text-amber-600' : 'bg-orange-100 text-orange-600');
+                            ?> flex items-center justify-center">
+                                <i class="fas fa-user-check text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold text-gray-900">Profile Status</h3>
+                                <span class="text-sm font-semibold <?php
+                                    echo $profile_status === 'Complete' ? 'text-emerald-600' :
+                                         ($profile_status === 'Pending Approval' ? 'text-amber-600' : 'text-orange-600');
+                                ?>">
+                                    <?php echo $profile_status; ?>
+                                </span>
                             </div>
                         </div>
-                    <?php elseif ($document['submission_status'] === 'Rejected'): ?>
-                        <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                            <i class="fas fa-times text-lg text-red-700"></i>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div>
+                            <p class="text-sm text-gray-600 leading-relaxed">
+                                <?php
+                                if ($profile_status === 'Complete') {
+                                    echo 'Your profile is fully verified and complete.';
+                                } elseif ($profile_status === 'Pending Approval') {
+                                    echo 'Profile submitted and under administrative review.';
+                                } else {
+                                    echo 'Complete your profile to unlock all platform features.';
+                                }
+                                ?>
+                            </p>
                         </div>
-                    <?php else: ?>
-                        <div class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
-                            <i class="fas fa-question text-sm text-gray-500"></i>
+
+                        <div class="space-y-2">
+                            <div class="flex justify-between text-sm font-semibold text-gray-700">
+                                <span>Completion Progress</span>
+                                <span><?php echo $completion_percentage; ?>%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 h-3 relative">
+                                <div class="absolute top-0 left-0 h-full <?php
+                                    echo $completion_percentage >= 90 ? 'bg-gradient-to-r from-emerald-500 to-green-600' :
+                                         ($completion_percentage >= 70 ? 'bg-gradient-to-r from-orange-500 to-amber-600' : 'bg-gradient-to-r from-red-500 to-orange-600');
+                                ?> transition-all duration-1000 ease-out"
+                                     style="width: <?php echo $completion_percentage; ?>%"></div>
+                            </div>
                         </div>
-                    <?php endif; ?>
+                    </div>
                 </div>
             </div>
-        </div>
-    </div>
-</div>
 
-<!-- CARD 4: Uploaded Documents -->
-<div class="h-full flex flex-col">
-    <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border <?php
-        echo $document['document_count'] > 0
-            ? 'border-blue-400 ring-2 ring-blue-100'
-            : 'border-gray-300 ring-2 ring-gray-100';
-    ?> overflow-hidden flex flex-col h-full hover:shadow-xl transition-all duration-400 group relative">
+            <!-- CARD 2: Employment - MODERN DESIGN -->
+            <div class="bg-white border-2 border-gray-100 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                <div class="h-2 <?php
+                    echo !empty($profile_info['employment_status']) && $profile_info['employment_status'] !== 'Not Set'
+                        ? 'bg-gradient-to-r from-blue-500 to-cyan-600' : 'bg-gradient-to-r from-gray-400 to-gray-500';
+                ?>"></div>
 
-        <!-- ALERT REMOVED: No Files (Upper-right badge completely removed) -->
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-14 h-14 <?php
+                                echo !empty($profile_info['employment_status']) && $profile_info['employment_status'] !== 'Not Set'
+                                    ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500';
+                            ?> flex items-center justify-center">
+                                <i class="fas fa-briefcase text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold text-gray-900">Employment</h3>
+                                <span class="text-sm font-semibold <?php
+                                    echo !empty($profile_info['employment_status']) && $profile_info['employment_status'] !== 'Not Set'
+                                        ? 'text-blue-600' : 'text-gray-500';
+                                ?>">
+                                    <?php echo !empty($profile_info['employment_status']) && $profile_info['employment_status'] !== 'Not Set'
+                                        ? 'Current' : 'Not Set'; ?>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
 
-        <!-- Main Content -->
-        <div class="p-6 flex flex-col flex-1 space-y-5">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-3">
-                    <div class="p-3 <?php
-                        echo $document['document_count'] > 0
-                            ? 'bg-gradient-to-br from-blue-600 to-cyan-600'
-                            : 'bg-gradient-to-br from-gray-500 to-gray-700';
-                    ?> rounded-xl text-white shadow-md transform group-hover:scale-110 transition-all duration-300 relative overflow-hidden">
-                        <i class="fas fa-cloud-upload-alt text-xl"></i>
-                        <?php if ($document['document_count'] > 0): ?>
-                            <div class="absolute inset-0 flex items-center justify-center">
-                                <div class="w-5 h-5 bg-white/30 rounded-sm transform rotate-12 translate-x-1 translate-y-1"></div>
-                                <div class="w-5 h-5 bg-white/20 rounded-sm transform -rotate-6 -translate-x-1 -translate-y-1"></div>
+                    <div class="space-y-3">
+                        <div>
+                            <p class="text-lg font-bold text-gray-800 <?php
+                                echo !empty($profile_info['employment_status']) && $profile_info['employment_status'] !== 'Not Set'
+                                    ? '' : 'italic text-gray-400';
+                            ?>">
+                                <?php echo !empty($profile_info['employment_status']) && $profile_info['employment_status'] !== 'Not Set'
+                                    ? htmlspecialchars($profile_info['employment_status'])
+                                    : 'No employment info'; ?>
+                            </p>
+                            <p class="text-sm <?php
+                                echo !empty($profile_info['last_profile_update'])
+                                    ? 'text-gray-500' : 'text-gray-400 italic';
+                            ?>">
+                                <?php echo !empty($profile_info['last_profile_update'])
+                                    ? 'Updated ' . date('M d, Y', strtotime($profile_info['last_profile_update']))
+                                    : 'Never updated'; ?>
+                            </p>
+                        </div>
+
+                        <?php
+                        $msg = '';
+                        $status = $profile_info['employment_status'] ?? '';
+
+                        if ($status === 'Unemployed') {
+                            $msg = 'No documents required — you are currently unemployed.';
+                        } elseif ($status === 'Employed') {
+                            $msg = 'Works at the company entered.';
+                        } elseif ($status === 'Student') {
+                            $msg = 'Studies at the school entered.';
+                        } elseif ($status === 'Employed' && $status === 'Student') {
+                            $msg = 'Works at the company entered and studies at the school entered.';
+                        }
+
+                        if ($msg !== '' && $status !== 'Not Set'):
+                        ?>
+                            <div class="flex items-center space-x-2 text-sm text-blue-600 font-medium">
+                                <i class="fas fa-check-circle"></i>
+                                <span><?php echo $msg; ?></span>
                             </div>
                         <?php endif; ?>
                     </div>
-                    <div>
-                        <h3 class="text-lg font-extrabold text-gray-900">Uploaded Documents</h3>
-                        <span class="inline-flex items-center px-3 py-1 text-xs font-bold tracking-wider rounded-full uppercase shadow-sm <?php
+                </div>
+            </div>
+
+            <!-- CARD 3: Document Review - MODERN DESIGN -->
+            <div class="bg-white border-2 border-gray-100 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                <div class="h-2 <?php
+                    echo $document['submission_status'] === 'Approved' ? 'bg-gradient-to-r from-emerald-500 to-green-600' :
+                         ($document['submission_status'] === 'Rejected' ? 'bg-gradient-to-r from-red-500 to-pink-600' :
+                         ($document['submission_status'] === 'Under Review' ? 'bg-gradient-to-r from-amber-500 to-orange-600' : 'bg-gradient-to-r from-gray-400 to-gray-500'));
+                ?>"></div>
+
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-14 h-14 <?php
+                                echo $document['submission_status'] === 'Approved' ? 'bg-emerald-100 text-emerald-600' :
+                                     ($document['submission_status'] === 'Rejected' ? 'bg-red-100 text-red-600' :
+                                     ($document['submission_status'] === 'Under Review' ? 'bg-amber-100 text-amber-600' : 'bg-gray-100 text-gray-500'));
+                            ?> flex items-center justify-center">
+                                <i class="fas fa-clipboard-check text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold text-gray-900">Document Review</h3>
+                                <span class="text-sm font-semibold <?php
+                                    echo $document['submission_status'] === 'Approved' ? 'text-emerald-600' :
+                                         ($document['submission_status'] === 'Rejected' ? 'text-red-600' :
+                                         ($document['submission_status'] === 'Under Review' ? 'text-amber-600' : 'text-gray-500'));
+                                ?>">
+                                    <?php echo htmlspecialchars($document['submission_status']); ?>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div>
+                            <p class="text-sm font-medium <?php
+                                echo $document['submission_status'] === 'Approved' ? 'text-emerald-700' :
+                                     ($document['submission_status'] === 'Rejected' ? 'text-red-700' :
+                                     ($document['submission_status'] === 'Under Review' ? 'text-amber-700' : 'text-gray-600'));
+                            ?> leading-relaxed">
+                                <?php echo htmlspecialchars($document['message']); ?>
+                            </p>
+                        </div>
+
+                        <div class="flex items-center justify-between pt-3 border-t border-gray-200">
+                            <div class="flex items-center space-x-2 text-sm font-semibold <?php
+                                echo $document['submission_status'] === 'Approved' ? 'text-emerald-600' :
+                                     ($document['submission_status'] === 'Rejected' ? 'text-red-600' :
+                                     ($document['submission_status'] === 'Under Review' ? 'text-amber-600' : 'text-gray-500'));
+                            ?>">
+                                <i class="fas fa-paperclip"></i>
+                                <span>Files: <?php echo $document['document_count']; ?></span>
+                            </div>
+
+                            <div class="w-10 h-10 <?php
+                                echo $document['submission_status'] === 'Approved' ? 'bg-emerald-100 text-emerald-600' :
+                                     ($document['submission_status'] === 'Rejected' ? 'bg-red-100 text-red-600' :
+                                     ($document['submission_status'] === 'Under Review' ? 'bg-amber-100 text-amber-600' : 'bg-gray-100 text-gray-500'));
+                            ?> flex items-center justify-center">
+                                <?php if ($document['submission_status'] === 'Approved'): ?>
+                                    <i class="fas fa-check"></i>
+                                <?php elseif ($document['submission_status'] === 'Under Review'): ?>
+                                    <i class="fas fa-hourglass-half"></i>
+                                <?php elseif ($document['submission_status'] === 'Rejected'): ?>
+                                    <i class="fas fa-times"></i>
+                                <?php else: ?>
+                                    <i class="fas fa-question"></i>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CARD 4: Uploaded Documents - MODERN DESIGN -->
+            <div class="bg-white border-2 border-gray-100 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                <div class="h-2 <?php
+                    echo $document['document_count'] > 0 ? 'bg-gradient-to-r from-blue-500 to-cyan-600' : 'bg-gradient-to-r from-gray-400 to-gray-500';
+                ?>"></div>
+
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-14 h-14 <?php
+                                echo $document['document_count'] > 0
+                                    ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500';
+                            ?> flex items-center justify-center">
+                                <i class="fas fa-cloud-upload-alt text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-xl font-bold text-gray-900">Uploaded Documents</h3>
+                                <span class="text-sm font-semibold <?php
+                                    echo $document['document_count'] > 0
+                                        ? 'text-blue-600' : 'text-gray-500';
+                                ?>">
+                                    <?php echo $document['document_count'] > 0 ? 'Active' : 'Empty'; ?>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-3xl font-bold <?php echo $document['document_count'] > 0 ? 'text-blue-600' : 'text-gray-400'; ?>">
+                                <?php echo $document['document_count']; ?>
+                            </div>
+                            <div class="text-xs <?php echo $document['document_count'] > 0 ? 'text-blue-500' : 'text-gray-400'; ?> uppercase font-semibold">
+                                File<?php echo $document['document_count'] != 1 ? 's' : ''; ?>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <p class="text-sm font-medium <?php
                             echo $document['document_count'] > 0
-                                ? 'bg-blue-100 text-blue-800'
-                                : 'bg-gray-100 text-gray-700';
+                                ? 'text-blue-700'
+                                : 'text-gray-500 italic';
                         ?>">
-                            <?php echo $document['document_count'] > 0 ? 'Active' : 'Empty'; ?>
-                        </span>
-                    </div>
-                </div>
-                <div class="text-right">
-                    <div class="text-3xl font-extrabold <?php echo $document['document_count'] > 0 ? 'text-blue-600' : 'text-gray-400'; ?>">
-                        <?php echo $document['document_count']; ?>
-                    </div>
-                    <div class="text-xs <?php echo $document['document_count'] > 0 ? 'text-blue-500' : 'text-gray-400'; ?> uppercase tracking-wider font-medium">
-                        File<?php echo $document['document_count'] != 1 ? 's' : ''; ?>
+                            <?php echo $document['document_count'] > 0
+                                ? 'You have <strong>' . $document['document_count'] . '</strong> file' . ($document['document_count'] != 1 ? 's' : '') . ' ready.'
+                                : 'No files uploaded yet. '; ?>
+                        </p>
+
+                        <div class="flex items-center justify-between pt-3 border-t border-gray-200">
+                            <div class="flex items-center space-x-2 text-sm font-semibold <?php
+                                echo $document['document_count'] > 0 ? 'text-emerald-600' : 'text-gray-500';
+                            ?>">
+                                <i class="fas fa-check-circle"></i>
+                                <span>Ready: <?php echo $document['document_count'] > 0 ? 'Yes' : 'No'; ?></span>
+                            </div>
+                            <div class="w-10 h-10 <?php echo $document['document_count'] > 0 ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-100 text-gray-400'; ?> flex items-center justify-center">
+                                <i class="fas <?php echo $document['document_count'] > 0 ? 'fa-check' : 'fa-times'; ?>"></i>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <p class="text-sm font-medium <?php
-                echo $document['document_count'] > 0
-                    ? 'text-blue-700'
-                    : 'text-gray-500 italic';
-            ?>">
-                <?php echo $document['document_count'] > 0
-                    ? 'You have <strong>' . $document['document_count'] . '</strong> file' . ($document['document_count'] != 1 ? 's' : '') . ' ready.'
-                    : 'No files uploaded yet. '; ?>
-            </p>
-
-            <div class="flex items-center justify-between pt-2 border-t border-gray-100">
-                <div class="flex items-center space-x-1.5 text-xs font-semibold <?php
-                    echo $document['document_count'] > 0 ? 'text-emerald-600' : 'text-gray-500';
-                ?>">
-                    <i class="fas fa-check-circle"></i>
-                    <span>Ready:</span>
-                    <span class="font-bold"><?php echo $document['document_count'] > 0 ? 'Yes' : 'No'; ?></span>
-                </div>
-                <div class="relative w-11 h-11">
-                    <svg class="w-11 h-11 transform -rotate-90">
-                        <circle cx="22" cy="22" r="18" stroke="currentColor" stroke-width="3" fill="none" class="text-gray-200"/>
-                        <circle cx="22" cy="22" r="18" stroke="currentColor" stroke-width="3" fill="none"
-                                class="<?php echo $document['document_count'] > 0 ? 'text-emerald-500' : 'text-gray-400'; ?>"
-                                stroke-dasharray="113"
-                                stroke-dashoffset="<?php echo $document['document_count'] > 0 ? '0' : '113'; ?>"
-                                stroke-linecap="round"/>
-                    </svg>
-                    <div class="absolute inset-0 flex items-center justify-center">
-                        <i class="fas <?php echo $document['document_count'] > 0 ? 'fa-check text-xs text-emerald-600' : 'fa-times text-xs text-gray-400'; ?>"></i>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
-</div>
 
-            </div>
-        </div>
-    </div>
-<!-- CARD 5: Recent Activity (Fixed & Enhanced Icons) -->
-<div class="h-full flex flex-col">
-    <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-indigo-200 ring-2 ring-indigo-100 overflow-hidden flex flex-col h-full hover:shadow-xl transition-all duration-400 group">
-        <div class="p-6 flex-1 flex flex-col">
-            <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center space-x-3">
-                    <div class="p-3 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl text-white shadow-md">
+    <!-- RIGHT: Recent Activity Card - MODERN DESIGN -->
+    <div class="bg-white border-2 border-gray-100 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 h-fit">
+        <div class="h-2 bg-gradient-to-r from-indigo-500 to-purple-600"></div>
+
+        <div class="p-6">
+            <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center space-x-4">
+                    <div class="w-14 h-14 bg-indigo-100 text-indigo-600 flex items-center justify-center">
                         <i class="fas fa-history text-xl"></i>
                     </div>
-                    <h3 class="text-lg font-extrabold text-gray-900">Recent Activity</h3>
+                    <div>
+                        <h3 class="text-xl font-bold text-gray-900">Recent Activity</h3>
+                        <span class="text-sm font-semibold text-indigo-600">Last 30 Days</span>
+                    </div>
                 </div>
-                <span class="text-xs font-medium text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">Last 30 Days</span>
             </div>
 
             <?php
@@ -610,7 +494,7 @@ ob_start();
             ?>
 
             <?php if ($activities->num_rows > 0): ?>
-                <div class="space-y-3 flex-1">
+                <div class="space-y-4">
                     <?php while ($act = $activities->fetch_assoc()): ?>
                         <?php
                         // Default icon & color
@@ -690,15 +574,15 @@ ob_start();
                         }
                         ?>
 
-                        <div class="flex items-start space-x-3 group-hover:translate-x-1 transition-transform duration-300">
-                            <div class="flex-shrink-0 w-8 h-8 bg-gray-50 rounded-full flex items-center justify-center mt-0.5 shadow-sm">
-                                <i class="fas <?= $icon ?> <?= $color ?> text-sm"></i>
+                        <div class="flex items-start space-x-4">
+                            <div class="w-10 h-10 bg-gray-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <i class="fas <?= $icon ?> <?= $color ?> text-lg"></i>
                             </div>
                             <div class="flex-1 min-w-0">
-                                <p class="text-sm font-medium text-gray-800 leading-snug">
+                                <p class="text-sm font-semibold text-gray-800 leading-snug">
                                     <?= htmlspecialchars($act['description'] ?: ucwords(str_replace('_', ' ', $act['action_type']))) ?>
                                 </p>
-                                <p class="text-xs text-gray-500">
+                                <p class="text-xs text-gray-500 font-medium">
                                     <?= date('M j, Y \a\t g:i A', strtotime($act['created_at'])) ?>
                                 </p>
                             </div>
@@ -706,137 +590,88 @@ ob_start();
                     <?php endwhile; ?>
                 </div>
             <?php else: ?>
-                <div class="flex-1 flex flex-col items-center justify-center text-center py-10 text-gray-400">
-                    <i class="fas fa-history text-5xl mb-4 opacity-40"></i>
-                    <p class="text-sm font-medium">No recent activity</p>
-                    <p class="text-xs mt-1">Your actions will appear here once you start updating your profile</p>
+                <div class="text-center py-8 text-gray-400">
+                    <i class="fas fa-history text-4xl mb-3 opacity-40"></i>
+                    <p class="text-sm font-semibold">No recent activity</p>
+                    <p class="text-xs mt-1">Your actions will appear here</p>
                 </div>
             <?php endif; ?>
 
             <?php $stmt_act->close(); ?>
-        </div>
 
-        <a href="activity_log.php" class="block text-center py-3.5 px-6 text-white text-sm font-bold tracking-wide bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 rounded-b-2xl flex items-center justify-center space-x-1 group">
-            <span>View Full History</span>
-            <i class="fas fa-arrow-right text-sm transform group-hover:translate-x-1 transition-transform"></i>
-        </a>
+            <a href="activity_log.php" class="block text-center py-4 px-6 text-white text-sm font-bold tracking-wide bg-gradient-to-r from-indigo-600 to-purple-700 hover:from-indigo-700 hover:to-purple-800 transition-all duration-300 mt-6 flex items-center justify-center space-x-2">
+                <span>View Full History</span>
+                <i class="fas fa-arrow-right text-sm transform group-hover:translate-x-1 transition-transform"></i>
+            </a>
+        </div>
     </div>
 </div>
-<!-- QUICK ACTIONS – Full-width, Light & Energetic -->
-<div class="mt-8 lg:col-span-3">
-    <div class="bg-white border border-gray-200 rounded-2xl shadow-lg overflow-hidden">
-        <div class="bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 px-6 py-5">
-            <h3 class="text-lg font-bold text-gray-800 text-center mb-4">
+
+<!-- QUICK ACTIONS - MODERN DESIGN -->
+<div class="mt-8">
+    <div class="bg-white border-2 border-gray-100 shadow-lg overflow-hidden">
+        <div class="bg-gradient-to-r from-indigo-600 to-purple-700 px-8 py-6">
+            <h3 class="text-xl font-bold text-white text-center">
                 Quick Actions
             </h3>
+        </div>
 
-            <!-- Three full-stretch buttons -->
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                
-                <!-- 1. View Profile -->
-                <a href="alumni_profile.php" 
-                   class="group flex items-center justify-between bg-white rounded-xl px-6 py-5 shadow-sm hover:shadow-xl hover:-translate-y-1 border border-gray-200 hover:border-indigo-300 transition-all duration-300">
-                    <div class="flex items-center space-x-4">
-                        <div class="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center group-hover:bg-indigo-200 transition-colors">
-                            <i class="fas fa-id-card text-xl text-indigo-600"></i>
-                        </div>
-                        <div>
-                            <p class="font-semibold text-gray-800">View Profile</p>
-                            <p class="text-xs text-gray-500">See your complete info</p>
-                        </div>
+        <!-- Three full-stretch buttons -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-0 divide-x divide-gray-200">
+            
+            <!-- 1. View Profile -->
+            <a href="alumni_profile.php" 
+               class="group flex items-center justify-between px-8 py-6 hover:bg-gray-50 transition-all duration-300">
+                <div class="flex items-center space-x-4">
+                    <div class="w-12 h-12 bg-indigo-100 text-indigo-600 flex items-center justify-center group-hover:bg-indigo-200 transition-colors">
+                        <i class="fas fa-id-card text-xl"></i>
                     </div>
-                    <i class="fas fa-arrow-right text-indigo-500 group-hover:translate-x-2 transition-transform duration-300"></i>
-                </a>
-
-                <!-- 2. Update Profile -->
-                <a href="alumni_profile.php?edit=1" 
-                   class="group flex items-center justify-between bg-white rounded-xl px-6 py-5 shadow-sm hover:shadow-xl hover:-translate-y-1 border border-gray-200 hover:border-purple-300 transition-all duration-300">
-                    <div class="flex items-center space-x-4">
-                        <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center group-hover:bg-purple-200 transition-colors">
-                            <i class="fas fa-user-pen text-xl text-purple-600"></i>
-                        </div>
-                        <div>
-                            <p class="font-semibold text-gray-800">Update Profile</p>
-                            <p class="text-xs text-gray-500">Edit personal & work info</p>
-                        </div>
+                    <div>
+                        <p class="font-bold text-gray-800">View Profile</p>
+                        <p class="text-sm text-gray-600">See your complete info</p>
                     </div>
-                    <i class="fas fa-arrow-right text-purple-500 group-hover:translate-x-2 transition-transform duration-300"></i>
-                </a>
+                </div>
+                <i class="fas fa-arrow-right text-indigo-500 group-hover:translate-x-2 transition-transform duration-300"></i>
+            </a>
 
-                <!-- 3. Upload Files -->
-                <a href="alumni_profile.php#documents" 
-                   class="group flex items-left justify-between bg-white rounded-xl px-6 py-5 shadow-sm hover:shadow-xl hover:-translate-y-1 border border-gray-200 hover:border-emerald-300 transition-all duration-300">
-                    <div class="flex items-center space-x-4">
-                        <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center group-hover:bg-emerald-200 transition-colors">
-                            <i class="fas fa-cloud-upload-alt text-xl text-emerald-600"></i>
-                        </div>
-                        <div>
-                            <p class="font-semibold text-gray-800">Upload Files</p>
-                            <p class="text-xs text-gray-500">Add certificates & docs</p>
-                        </div>
+            <!-- 2. Update Profile -->
+            <a href="alumni_profile.php?edit=1" 
+               class="group flex items-center justify-between px-8 py-6 hover:bg-gray-50 transition-all duration-300">
+                <div class="flex items-center space-x-4">
+                    <div class="w-12 h-12 bg-purple-100 text-purple-600 flex items-center justify-center group-hover:bg-purple-200 transition-colors">
+                        <i class="fas fa-user-pen text-xl"></i>
                     </div>
-                    <i class="fas fa-arrow-right text-emerald-500 group-hover:translate-x-2 transition-transform duration-300"></i>
-                </a>
+                    <div>
+                        <p class="font-bold text-gray-800">Update Profile</p>
+                        <p class="text-sm text-gray-600">Edit personal & work info</p>
+                    </div>
+                </div>
+                <i class="fas fa-arrow-right text-purple-500 group-hover:translate-x-2 transition-transform duration-300"></i>
+            </a>
 
-            </div>
+            <!-- 3. Upload Files -->
+            <a href="alumni_profile.php#documents" 
+               class="group flex items-center justify-between px-8 py-6 hover:bg-gray-50 transition-all duration-300">
+                <div class="flex items-center space-x-4">
+                    <div class="w-12 h-12 bg-emerald-100 text-emerald-600 flex items-center justify-center group-hover:bg-emerald-200 transition-colors">
+                        <i class="fas fa-cloud-upload-alt text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="font-bold text-gray-800">Upload Files</p>
+                        <p class="text-sm text-gray-600">Add certificates & docs</p>
+                    </div>
+                </div>
+                <i class="fas fa-arrow-right text-emerald-500 group-hover:translate-x-2 transition-transform duration-300"></i>
+            </a>
+
         </div>
     </div>
 </div>
-<!-- Enhanced Custom Animations -->
-<style>
-@keyframes spin-slow {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-.animate-spin-slow {
-  animation: spin-slow 2.5s linear infinite;
-}
-
-@keyframes ping-slow {
-  0% { transform: scale(1); opacity: 0.7; }
-  75%, 100% { transform: scale(2); opacity: 0; }
-}
-.animate-ping-slow {
-  animation: ping-slow 2s cubic-bezier(0, 0, 0.2, 1) infinite;
-}
-
-@keyframes ping-fast {
-  0% { transform: scale(1); opacity: 1; }
-  50%, 100% { transform: scale(2); opacity: 0; }
-}
-.animate-ping-fast {
-  animation: ping-fast 1s cubic-bezier(0, 0, 0.2, 1) infinite;
-}
-
-@keyframes bounce-gentle {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
-}
-.animate-bounce-gentle {
-  animation: bounce-gentle 2s ease-in-out infinite;
-}
-
-@keyframes orbit-slow {
-  0% { transform: rotate(0deg) translateX(8px) rotate(0deg); }
-  100% { transform: rotate(360deg) translateX(8px) rotate(-360deg); }
-}
-.animate-orbit-slow {
-  animation: orbit-slow 3s linear infinite;
-}
-
-/* Enhanced glow effects */
-.ring-2 {
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
-}
-.drop-shadow-sm {
-  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.3));
-}
-</style>
 
 <!-- Help & Support Modal -->
 <div id="helpModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 transform transition-all duration-300 scale-95 opacity-0">
-        <div class="bg-gradient-to-r from-green-600 to-emerald-700 p-6 rounded-t-2xl text-white">
+    <div class="bg-white border-2 border-gray-100 max-w-md w-full mx-4 transform transition-all duration-300 scale-95 opacity-0">
+        <div class="bg-gradient-to-r from-green-600 to-emerald-700 p-6 text-white">
             <div class="flex items-center justify-between">
                 <h3 class="text-xl font-bold flex items-center">
                     <i class="fas fa-question-circle mr-3"></i>
@@ -847,52 +682,53 @@ ob_start();
                 </button>
             </div>
         </div>
-<div class="space-y-6 min-h-0 p-6 bg-white rounded-2xl shadow-xl">
-    <div class="grid grid-cols-2 gap-4">
-        <div class="flex flex-col items-center p-3 bg-green-50 rounded-lg text-center border border-green-200 hover:shadow-md transition-shadow duration-300">
-            <div class="bg-green-100 p-2 rounded-full mb-1">
-                <i class="fas fa-envelope text-green-600 text-lg"></i>
-            </div>
-            <h4 class="font-semibold text-gray-800 text-sm whitespace-nowrap">Email Support</h4>
-            <p class="text-xs text-gray-600 truncate max-w-full">main@jhcsc.edu.ph</p>
-        </div>
+        <div class="space-y-6 min-h-0 p-6 bg-white">
+            <div class="grid grid-cols-2 gap-4">
+                <div class="flex flex-col items-center p-4 bg-green-50 text-center border-2 border-green-100">
+                    <div class="bg-green-100 p-3 mb-2">
+                        <i class="fas fa-envelope text-green-600 text-xl"></i>
+                    </div>
+                    <h4 class="font-bold text-gray-800 text-sm">Email Support</h4>
+                    <p class="text-xs text-gray-600">main@jhcsc.edu.ph</p>
+                </div>
 
-        <div class="flex flex-col items-center p-3 bg-blue-50 rounded-lg text-center border border-blue-200 hover:shadow-md transition-shadow duration-300">
-            <div class="bg-blue-100 p-2 rounded-full mb-1">
-                <i class="fas fa-phone text-blue-600 text-lg"></i>
-            </div>
-            <h4 class="font-semibold text-gray-800 text-sm whitespace-nowrap">Phone Support</h4>
-            <p class="text-xs text-gray-600 truncate max-w-full">0948 954 7078 - BSIT Faculty</p>
-        </div>
+                <div class="flex flex-col items-center p-4 bg-blue-50 text-center border-2 border-blue-100">
+                    <div class="bg-blue-100 p-3 mb-2">
+                        <i class="fas fa-phone text-blue-600 text-xl"></i>
+                    </div>
+                    <h4 class="font-bold text-gray-800 text-sm">Phone Support</h4>
+                    <p class="text-xs text-gray-600">0948 954 7078 - BSIT Faculty</p>
+                </div>
 
-        <div class="flex flex-col items-center p-3 bg-purple-50 rounded-lg text-center border border-purple-200 hover:shadow-md transition-shadow duration-300">
-            <div class="bg-purple-100 p-2 rounded-full mb-1">
-                <i class="fas fa-clock text-purple-600 text-lg"></i>
-            </div>
-            <h4 class="font-semibold text-gray-800 text-sm whitespace-nowrap">Support Hours</h4>
-            <p class="text-xs text-gray-600 truncate max-w-full">Mon - Fri: 9AM - 5PM EST</p>
-        </div>
+                <div class="flex flex-col items-center p-4 bg-purple-50 text-center border-2 border-purple-100">
+                    <div class="bg-purple-100 p-3 mb-2">
+                        <i class="fas fa-clock text-purple-600 text-xl"></i>
+                    </div>
+                    <h4 class="font-bold text-gray-800 text-sm">Support Hours</h4>
+                    <p class="text-xs text-gray-600">Mon - Fri: 9AM - 5PM EST</p>
+                </div>
 
-        <div class="flex flex-col items-center p-3 bg-amber-50 rounded-lg text-center border border-amber-200 hover:shadow-md transition-shadow duration-300">
-            <div class="bg-amber-100 p-2 rounded-full mb-1">
-                <i class="fas fa-life-ring text-amber-600 text-lg"></i>
+                <div class="flex flex-col items-center p-4 bg-amber-50 text-center border-2 border-amber-100">
+                    <div class="bg-amber-100 p-3 mb-2">
+                        <i class="fas fa-life-ring text-amber-600 text-xl"></i>
+                    </div>
+                    <h4 class="font-bold text-gray-800 text-sm">FAQs & Guides</h4>
+                    <p class="text-xs text-gray-600">Visit our knowledge base</p>
+                </div>
             </div>
-            <h4 class="font-semibold text-gray-800 text-sm whitespace-nowrap">FAQs & Guides</h4>
-            <p class="text-xs text-gray-600 truncate max-w-full">Visit our knowledge base</p>
-        </div>
-    </div>
 
-    <div class="bg-gray-50 px-6 py-4 rounded-b-2xl flex justify-end space-x-3 -mx-6 -mb-6 mt-6 border-t">
-        <button id="cancelHelp" class="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium transition-colors duration-200">
-            Close
-        </button>
-        <a href="mailto:support@alumniportal.edu" class="px-6 py-2 bg-gradient-to-r from-green-600 to-emerald-700 hover:from-green-700 hover:to-emerald-800 text-white font-semibold rounded-lg transition-all duration-300 shadow-md hover:shadow-lg">
-            Contact Now
-        </a>
+            <div class="bg-gray-50 px-6 py-4 flex justify-end space-x-3 -mx-6 -mb-6 mt-6 border-t-2 border-gray-100">
+                <button id="cancelHelp" class="px-6 py-2 text-gray-600 hover:text-gray-800 font-semibold transition-colors duration-200">
+                    Close
+                </button>
+                <a href="mailto:support@alumniportal.edu" class="px-6 py-2 bg-gradient-to-r from-green-600 to-emerald-700 hover:from-green-700 hover:to-emerald-800 text-white font-semibold transition-all duration-300">
+                    Contact Now
+                </a>
+            </div>
+        </div>
     </div>
 </div>
 
-</div>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const welcomeCard = document.getElementById('welcomeCard');
