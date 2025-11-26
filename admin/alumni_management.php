@@ -269,63 +269,63 @@ if (isset($_SESSION['error_message'])) {
     <?php endif; ?>
 </div>
 
-    <!-- Inline Report Form -->
-    <div id="reportFormContainer" class="hidden bg-gradient-to-br from-green-50 to-white p-6 rounded-xl shadow-lg border-2 border-green-200">
-        <h2 class="text-2xl font-bold text-gray-800 mb-5 flex items-center gap-3">
-            <i class="fas fa-file-export text-green-600"></i> Customize Alumni Report
-        </h2>
-        <form method="POST" action="" class="space-y-6">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="bg-white p-5 rounded-xl border-2 border-gray-200">
-                    <h3 class="font-semibold text-lg mb-4 flex items-center gap-2">
-                        <i class="fas fa-layer-group text-blue-600"></i> Select Batches
-                    </h3>
-                    <div class="max-h-64 overflow-y-auto space-y-2">
-                        <?php foreach ($all_batches as $batch): ?>
-                            <label class="flex items-center space-x-3 p-2 rounded hover:bg-gray-50 cursor-pointer">
-                                <input type="checkbox" name="selected_batches[]" value="<?= $batch['batch_year'] ?>" checked class="h-4 w-4 text-green-600 rounded">
-                                <span class="flex-1">Batch <?= $batch['batch_year'] ?></span>
-                                <span class="text-gray-500 text-sm">(<?= $batch['total_count'] ?> records)</span>
-                            </label>
-                        <?php endforeach; ?>
-                    </div>
-                    <div class="mt-4 flex gap-3">
-                        <button type="button" id="selectAll" class="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded hover:bg-blue-200">Select All</button>
-                        <button type="button" id="deselectAll" class="text-xs bg-gray-100 text-gray-700 px-3 py-1 rounded hover:bg-gray-200">Deselect All</button>
-                    </div>
+<!-- Inline Report Form -->
+<div id="reportFormContainer" class="hidden bg-gradient-to-br from-green-50 to-white p-6 rounded-xl shadow-lg border-2 border-green-200">
+    <h2 class="text-2xl font-bold text-gray-800 mb-5 flex items-center gap-3">
+        <i class="fas fa-file-export text-green-600"></i> Customize Alumni Report
+    </h2>
+    <form method="POST" action="" class="space-y-6" id="reportForm" target="_blank">
+        <!-- Your existing form content remains the same -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Batch selection section -->
+            <div class="bg-white p-5 rounded-xl border-2 border-gray-200">
+                <h3 class="font-semibold text-lg mb-4 flex items-center gap-2">
+                    <i class="fas fa-layer-group text-blue-600"></i> Select Batches
+                </h3>
+                <div class="max-h-64 overflow-y-auto space-y-2">
+                    <?php foreach ($all_batches as $batch): ?>
+                        <label class="flex items-center space-x-3 p-2 rounded hover:bg-gray-50 cursor-pointer">
+                            <input type="checkbox" name="selected_batches[]" value="<?= $batch['batch_year'] ?>" checked class="h-4 w-4 text-green-600 rounded">
+                            <span class="flex-1">Batch <?= $batch['batch_year'] ?></span>
+                            <span class="text-gray-500 text-sm">(<?= $batch['total_count'] ?> records)</span>
+                        </label>
+                    <?php endforeach; ?>
                 </div>
-                <div class="bg-white p-5 rounded-xl border-2 border-gray-200 space-y-5">
-                   <!-- Inside the Report Form (dropdown) -->
-<div>
-    <label class="block font-medium mb-2">Report Type</label>
-    <select name="report_type" class="w-full border-2 border-gray-300 rounded-lg px-4 py-2">
-        <option value="summary">Summary Report</option>
-        <option value="detailed">Detailed Alumni List</option>
-        <!-- Removed: Contact Information & Employment Status -->
-    </select>
-</div>
-                    <div>
-                        <label class="block font-medium mb-2">Export Format</label>
-                        <div class="flex gap-6">
-                            <label class="flex items-center gap-2">
-                                <input type="radio" name="format" value="pdf" checked class="text-blue-600">
-                                <span class="font-medium">PDF Document</span>
-                            </label>
-                        </div>
-                        <p class="text-sm text-gray-600 mt-1">Reports will be generated as PDF files with professional formatting</p>
-                    </div>
+                <div class="mt-4 flex gap-3">
+                    <button type="button" id="selectAll" class="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded hover:bg-blue-200">Select All</button>
+                    <button type="button" id="deselectAll" class="text-xs bg-gray-100 text-gray-700 px-3 py-1 rounded hover:bg-gray-200">Deselect All</button>
+                </div>
+            </div>
             
+            <!-- Report options section -->
+            <div class="bg-white p-5 rounded-xl border-2 border-gray-200 space-y-5">
+                <div>
+                    <label class="block font-medium mb-2">Report Type</label>
+                    <select name="report_type" class="w-full border-2 border-gray-300 rounded-lg px-4 py-2">
+                        <option value="summary">Summary Report</option>
+                        <option value="detailed">Detailed Alumni List</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-medium mb-2">Export Format</label>
+                    <div class="flex gap-6">
+                        <label class="flex items-center gap-2">
+                            <input type="radio" name="format" value="pdf" checked class="text-blue-600">
+                            <span class="font-medium">PDF Document</span>
+                        </label>
+                    </div>
+                    <p class="text-sm text-gray-600 mt-1">Reports will open in a new tab as PDF files</p>
                 </div>
             </div>
-            <div class="flex justify-end gap-4 pt-4 border-t">
-                <button type="button" id="cancelReport" class="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600">Cancel</button>
-                <button type="submit" name="generate_report" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2">
-                    <i class="fas fa-file-pdf"></i> Generate PDF Report
-                </button>
-            </div>
-        </form>
-    </div>
-
+        </div>
+        <div class="flex justify-end gap-4 pt-4 border-t">
+            <button type="button" id="cancelReport" class="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600">Cancel</button>
+            <button type="submit" name="generate_report" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2">
+                <i class="fas fa-file-pdf"></i> Generate PDF Report
+            </button>
+        </div>
+    </form>
+</div>
     <!-- Batch Cards Grid (updated to hide "All Alumni" during search) -->
     <div class="space-y-4">
         <div class="flex items-center gap-3 px-2">
