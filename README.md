@@ -26,26 +26,30 @@
 ____________________
 # WHAT TO FIX: 
 ### 1. Generate Report 
-### 2. Notification button on both alumni and admin. 
+### 2. Rejected Profile rejection message need to fixing.
 ### 3. Recent activity on the alumni.
-### 4. Rejected Profile rejection message need to fixing. 
 ##
 ## ALUMNI:
 ### 1. Apostrophe handling 
 ### 2. Start & end year display
-### 3. idk if dis is meant to be there. everytime the "Help" button is clicked, an alert msg pops up bef the actual modal.
+### 3. idk if dis is meant to be there. everytime the "Help" button is clicked, an alert msg appears bef the actual modal.
 ### 4. modal shadow naay line above.
 ##
 ## ADMIN:
 ### 1. Unnecessary program field in the hover since da system is exclusively for da bsit prog.
 ### 2. Rejected card display
-### 3. 
+### 3. Incorrect DB fetching query for batch.
+### 4. Must dynamically add batch cards if grad is manipulated in the db.
+### 5. Total alumni display cards must be the total role===alumni in the db.
+### 6. Can add active alumni card.
 ##
 ## DB:
 ### 1. filepath must be surname + filenm for clarity.
 ____________________
 # TO IMPLEMENT - if time allows:
 ### 1. Worldwide address 
+### 2. Notification button on both alumni and admin. 
+________________________________________
 ____________________
 
 Summary of Changes Implemented
