@@ -599,10 +599,7 @@ ob_start();
 
             <?php $stmt_act->close(); ?>
 
-            <a href="activity_log.php" class="block text-center py-3 px-4 text-white text-xs font-bold tracking-wide bg-gradient-to-r from-indigo-600 to-purple-700 hover:from-indigo-700 hover:to-purple-800 transition-all duration-300 mt-4 flex items-center justify-center space-x-2 rounded">
-                <span>View Full History</span>
-                <i class="fas fa-arrow-right text-xs transform group-hover:translate-x-1 transition-transform"></i>
-            </a>
+            
         </div>
     </div>
 </div>
