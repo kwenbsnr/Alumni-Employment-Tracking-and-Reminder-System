@@ -33,7 +33,11 @@ ____________________
 ## ALUMNI:
 ### 1. Apostrophe handling 
 ### 2. Start & end year display
-## 3. idk if dis is meant to be there. everytime the "Help" button is clicked, an alert msg pops up bef the actual modal
+### 3. idk if dis is meant to be there. everytime the "Help" button is clicked, an alert msg pops up bef the actual modal.
+### 4. modal shadow naay line above.
+##
+## DB:
+### 1. filepath must be surname + filenm for clarity.
 ____________________
 
 Summary of Changes Implemented
