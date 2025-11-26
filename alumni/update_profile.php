@@ -3,6 +3,12 @@ ob_start();
 session_start();
 include("../connect.php");
 
+function log_alumni_activity($conn, $user_id, $action_type, $description = '') {
+    $stmt = $conn->prepare("INSERT INTO alumni_activity_log (user_id, action_type, description) VALUES (?, ?, ?)");
+    $stmt->bind_param("iss", $user_id, $action_type, $description);
+    $stmt->execute();
+    $stmt->close();
+}
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
 if (!isset($_SESSION['user_id'])) {
@@ -12,6 +18,28 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $user_id = $_SESSION['user_id'];
+
+// Log the main submission
+log_alumni_activity($conn, $user_id, 'profile_submitted', 'Alumni submitted profile for review');
+
+// Conditional logs based on status
+$status = trim($_POST['employment_status'] ?? '');
+
+if (in_array($status, ['Employed', 'Employed & Student'])) {
+    log_alumni_activity($conn, $user_id, 'document_uploaded', 'Uploaded Certificate of Employment (COE)');
+}
+if ($status === 'Self-Employed') {
+    log_alumni_activity($conn, $user_id, 'document_uploaded', 'Uploaded Business Certificate');
+}
+if (in_array($status, ['Student', 'Employed & Student'])) {
+    log_alumni_activity($conn, $user_id, 'document_uploaded', 'Uploaded Certificate of Registration (COR)');
+}
+
+if (!empty($_FILES['profile_photo']['name'])) {
+    log_alumni_activity($conn, $user_id, 'profile_photo_updated', 'Updated profile picture');
+}
+
+log_alumni_activity($conn, $user_id, 'profile_updated', 'Updated personal information and address');
 
 // ---- 1. Profile & Permissions ------------------------------------------------
 $stmt = $conn->prepare("SELECT last_profile_update, user_id, photo_path, address_id, employment_status, submission_status, contact_number 

@@ -632,7 +632,76 @@ ob_start();
         </div>
     </div>
 
- 
+ <!-- CARD 5: Recent Activity (New!) -->
+<div class="h-full flex flex-col">
+    <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-indigo-200 ring-2 ring-indigo-100 overflow-hidden flex flex-col h-full hover:shadow-xl transition-all duration-400 group">
+        <div class="p-6 flex-1 flex flex-col">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center space-x-3">
+                    <div class="p-3 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl text-white shadow-md">
+                        <i class="fas fa-history text-xl"></i>
+                    </div>
+                    <h3 class="text-lg font-extrabold text-gray-900">Recent Activity</h3>
+                </div>
+                <span class="text-xs font-medium text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">Last 30 Days</span>
+            </div>
+
+            <?php
+            // Fetch recent activities
+            $stmt_act = $conn->prepare("
+                SELECT action_type, description, created_at 
+                FROM alumni_activity_log 
+                WHERE user_id = ? 
+                ORDER BY created_at DESC 
+                LIMIT 6
+            ");
+            $stmt_act->bind_param("i", $user_id);
+            $stmt_act->execute();
+            $activities = $stmt_act->get_result();
+            ?>
+
+            <?php if ($activities->num_rows > 0): ?>
+                <div class="space-y-3 flex-1">
+                    <?php while ($act = $activities->fetch_assoc()): ?>
+                        <?php
+                        $icon = 'fa-circle-check text-green-500';
+                        $title = ucwords(str_replace('_', ' ', $act['action_type']));
+
+                        if (strpos($act['action_type'], 'document') !== false) $icon = 'fa-file-circle-check text-blue-500';
+                        if ($act['action_type'] === 'profile_photo_updated') $icon = 'fa-user-circle text-purple-500';
+                        if ($act['action_type'] === 'profile_submitted') $icon = 'fa-paper-plane text-indigo-600';
+                        if ($act['action_type'] === 'profile_updated') $icon = 'fa-user-pen text-orange-500';
+                        ?>
+                        <div class="flex items-start space-x-3 group-hover:translate-x-1 transition-transform duration-300">
+                            <div class="flex-shrink-0 w-8 h-8 bg-gray-50 rounded-full flex items-center justify-center mt-0.5">
+                                <i class="fas <?= $icon ?> text-sm"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-gray-800"><?= htmlspecialchars($act['description'] ?: $title) ?></p>
+                                <p class="text-xs text-gray-500">
+                                    <?= date('M j, Y \a\t g:i A', strtotime($act['created_at'])) ?>
+                                </p>
+                            </div>
+                        </div>
+                    <?php endwhile; ?>
+                </div>
+            <?php else: ?>
+                <div class="flex-1 flex flex-col items-center justify-center text-center py-8 text-gray-400">
+                    <i class="fas fa-history text-4xl mb-3 opacity-50"></i>
+                    <p class="text-sm">No recent activity</p>
+                    <p class="text-xs mt-1">Your actions will appear here</p>
+                </div>
+            <?php endif; ?>
+
+            <?php $stmt_act->close(); ?>
+        </div>
+
+        <a href="activity_log.php" class="block text-center py-3.5 px-6 text-white text-sm font-bold tracking-wide bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 rounded-b-2xl flex items-center justify-center space-x-1 group">
+            <span>View Full History</span>
+            <i class="fas fa-arrow-right text-sm transform group-hover:translate-x-1 transition-transform"></i>
+        </a>
+    </div>
+</div>
 
 <!-- Enhanced Custom Animations -->
 <style>
