@@ -8,7 +8,7 @@ include("../connect.php");
 
 // Load TCPDF library
 require_once '../tcpdf/tcpdf.php';
-require_once '../api/notification/notification_service.php';
+require_once '../api/notification/notif_service.php';
 
 $page_title = "Alumni Records";
 $active_page = "alumni_management";
@@ -83,7 +83,7 @@ if (isset($_POST['update_submission_status'])) {
                 $alumni['alumni_email'],
                 $alumni['alumni_name'],
                 $alumni['graduation_year'],
-                'http://localhost/Alumni-Employment-Tracking-and-Reminder-System/alumni-portal.php'
+                '/alumni/alumni_dashboard.php'
             );
             
             if ($result['success']) {
