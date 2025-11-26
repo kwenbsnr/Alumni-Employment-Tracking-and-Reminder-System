@@ -53,7 +53,7 @@ ____________________
 ____________________
 # TO IMPLEMENT (if time allows 🙏):
 ### 1. Worldwide address 
-### 2. Notif button for both alumni and admin. 
+### 2. In-app notif functionality for both alumni and admin. 
 ________________________________________
 ____________________
 
