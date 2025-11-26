@@ -772,6 +772,66 @@ ob_start();
         </a>
     </div>
 </div>
+<!-- QUICK ACTIONS – Full-width, Light & Energetic -->
+<div class="mt-8 lg:col-span-3">
+    <div class="bg-white border border-gray-200 rounded-2xl shadow-lg overflow-hidden">
+        <div class="bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 px-6 py-5">
+            <h3 class="text-lg font-bold text-gray-800 text-center mb-4">
+                Quick Actions
+            </h3>
+
+            <!-- Three full-stretch buttons -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                
+                <!-- 1. View Profile -->
+                <a href="alumni_profile.php" 
+                   class="group flex items-center justify-between bg-white rounded-xl px-6 py-5 shadow-sm hover:shadow-xl hover:-translate-y-1 border border-gray-200 hover:border-indigo-300 transition-all duration-300">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center group-hover:bg-indigo-200 transition-colors">
+                            <i class="fas fa-id-card text-xl text-indigo-600"></i>
+                        </div>
+                        <div>
+                            <p class="font-semibold text-gray-800">View Profile</p>
+                            <p class="text-xs text-gray-500">See your complete info</p>
+                        </div>
+                    </div>
+                    <i class="fas fa-arrow-right text-indigo-500 group-hover:translate-x-2 transition-transform duration-300"></i>
+                </a>
+
+                <!-- 2. Update Profile -->
+                <a href="alumni_profile.php?edit=1" 
+                   class="group flex items-center justify-between bg-white rounded-xl px-6 py-5 shadow-sm hover:shadow-xl hover:-translate-y-1 border border-gray-200 hover:border-purple-300 transition-all duration-300">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center group-hover:bg-purple-200 transition-colors">
+                            <i class="fas fa-user-pen text-xl text-purple-600"></i>
+                        </div>
+                        <div>
+                            <p class="font-semibold text-gray-800">Update Profile</p>
+                            <p class="text-xs text-gray-500">Edit personal & work info</p>
+                        </div>
+                    </div>
+                    <i class="fas fa-arrow-right text-purple-500 group-hover:translate-x-2 transition-transform duration-300"></i>
+                </a>
+
+                <!-- 3. Upload Files -->
+                <a href="alumni_profile.php#documents" 
+                   class="group flex items-left justify-between bg-white rounded-xl px-6 py-5 shadow-sm hover:shadow-xl hover:-translate-y-1 border border-gray-200 hover:border-emerald-300 transition-all duration-300">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center group-hover:bg-emerald-200 transition-colors">
+                            <i class="fas fa-cloud-upload-alt text-xl text-emerald-600"></i>
+                        </div>
+                        <div>
+                            <p class="font-semibold text-gray-800">Upload Files</p>
+                            <p class="text-xs text-gray-500">Add certificates & docs</p>
+                        </div>
+                    </div>
+                    <i class="fas fa-arrow-right text-emerald-500 group-hover:translate-x-2 transition-transform duration-300"></i>
+                </a>
+
+            </div>
+        </div>
+    </div>
+</div>
 <!-- Enhanced Custom Animations -->
 <style>
 @keyframes spin-slow {
