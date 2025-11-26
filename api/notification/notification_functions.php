@@ -1,135 +1,73 @@
 <?php
-// api/notification/notification_functions.php
-
 require_once $_SERVER['DOCUMENT_ROOT'] . '/Alumni-Employment-Tracking-and-Reminder-System/vendor/autoload.php';
-
 use NotificationAPI\NotificationAPI;
 
-// Configuration
-define('NOTIFICATIONAPI_CLIENT_ID', 'ls4kt1i6t2hhh7rxd51k00rjj3');
-define('NOTIFICATIONAPI_CLIENT_SECRET', 'rtdiclclahiqxqr692c86zyk9in81pmlc2kol4j3n9x3gk7dyy3qco19av');
+/**
+ * Initialize NotificationAPI with your credentials
+ */
+function initNotificationAPI() {
+    return new NotificationAPI(
+        "ls4kt1i6t2hhh7rxd51k00rjj3", // Client ID
+        "rtdiclclahiqxqr692c86zyk9in81pmlc2kol4j3n9x3gk7dyy3qco19av" // Client Secret
+    );
+}
 
 /**
- * Send notification via NotificationAPI
+ * Send notification to alumni to update profile
  */
-function send_notification($templateId, $recipientEmail, $parameters = []) {
+function sendProfileUpdateReminder($alumni_email, $alumni_name, $graduation_year, $alumni_portal_link) {
+    $notificationapi = initNotificationAPI();
+    
     try {
-        // Initialize NotificationAPI
-        $notificationapi = new NotificationAPI(
-            NOTIFICATIONAPI_CLIENT_ID,
-            NOTIFICATIONAPI_CLIENT_SECRET
-        );
-
-        // Enhanced email validation
-        if (empty($recipientEmail)) {
-            throw new Exception("Recipient email is empty");
-        }
-        
-        $recipientEmail = filter_var($recipientEmail, FILTER_VALIDATE_EMAIL);
-        if (!$recipientEmail) {
-            throw new Exception("Invalid recipient email format");
-        }
-
-        // Enhanced parameter validation with defaults
-        $defaultParameters = [
-            "alumni_name" => "Alumni",
-            "graduation_year" => "N/A",
-            "original_rejection_date" => "N/A", 
-            "submission_date" => date('Y-m-d H:i:s'),
-            "current_position" => "N/A",
-            "current_company" => "N/A",
-            "alumni_email" => $recipientEmail,
-            "previous_rejection_reason" => "N/A",
-            "admin_review_link" => "#",
-            "employment_status" => "N/A",
-            "name" => "Alumni",
-            "alumni_portal_link" => "#",
-            "rejection_reason" => "N/A",
-            "resubmission_link" => "#",
-            "status" => "N/A"
-        ];
-
-        $safeParameters = array_merge($defaultParameters, $parameters);
-
-        // Convert all values to strings and handle nulls
-        foreach ($safeParameters as $key => $value) {
-            if ($value === null) {
-                $safeParameters[$key] = "N/A";
-            } else {
-                $safeParameters[$key] = (string)$value;
-            }
-        }
-
         $result = $notificationapi->send([
             'type' => 'alumni_employment_tracking_update_your_profile',
             'to' => [
-                'id' => $recipientEmail,
-                'email' => $recipientEmail
+                'id' => $alumni_email,
+                'email' => $alumni_email
             ],
-            'parameters' => $safeParameters,
-            'templateId' => $templateId // Different for each scenario
+            'parameters' => [
+                "alumni_name" => $alumni_name,
+                "graduation_year" => $graduation_year,
+                "alumni_portal_link" => $alumni_portal_link,
+                "name" => $alumni_name
+            ],
+            'templateId' => 'template_one'
         ]);
-
-        error_log("✅ Notification sent successfully - Type: alumni_employment_tracking_update_your_profile, Template: {$templateId}, To: {$recipientEmail}");
-        return true;
-
-    } catch (Exception $e) {
-        error_log("❌ Notification failed - Template: {$templateId}, Email: {$recipientEmail}, Error: " . $e->getMessage());
-        return false;
-    }
-}
-
-/**
- * Get all admin emails from database
- */
-function get_admin_emails($conn) {
-    try {
-        $admin_emails = [];
-        $stmt = $conn->prepare("SELECT email FROM users WHERE role = 'admin' AND email IS NOT NULL AND email != ''");
-        $stmt->execute();
-        $result = $stmt->get_result();
         
-        while ($row = $result->fetch_assoc()) {
-            if (filter_var($row['email'], FILTER_VALIDATE_EMAIL)) {
-                $admin_emails[] = $row['email'];
-            }
-        }
-        $stmt->close();
-
-        return $admin_emails;
-
+        logNotification($alumni_email, 'template_one', 'sent', 'Profile update reminder sent');
+        return ['success' => true, 'data' => $result];
+        
     } catch (Exception $e) {
-        error_log("Error fetching admin emails: " . $e->getMessage());
-        return [];
+        logNotification($alumni_email, 'template_one', 'failed', $e->getMessage());
+        return ['success' => false, 'error' => $e->getMessage()];
     }
 }
 
 /**
- * Get alumni details by user_id
+ * Log notification attempts
  */
-function get_alumni_details($conn, $user_id) {
-    try {
-        $stmt = $conn->prepare("
-            SELECT u.email, ap.first_name, ap.last_name, ap.year_graduated, 
-                   ap.employment_status, ap.rejection_reason, ap.rejected_at,
-                   ap.submitted_at, ei.company_name, jt.title as job_title
-            FROM users u 
-            LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id 
-            LEFT JOIN employment_info ei ON u.user_id = ei.user_id 
-            LEFT JOIN job_titles jt ON ei.job_title_id = jt.job_title_id
-            WHERE u.user_id = ?
-        ");
-        $stmt->bind_param("i", $user_id);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $alumni = $result->fetch_assoc();
-        $stmt->close();
-
-        return $alumni;
-
-    } catch (Exception $e) {
-        error_log("Error fetching alumni details: " . $e->getMessage());
-        return null;
+function logNotification($email, $template_id, $status, $message = '') {
+    global $conn;
+    
+    if (!$conn) {
+        error_log("Notification Log: $email | $template_id | $status | $message");
+        return;
+    }
+    
+    // Check if notification_logs table exists
+    $table_check = $conn->query("SHOW TABLES LIKE 'notification_logs'");
+    if ($table_check && $table_check->num_rows > 0) {
+        $query = "INSERT INTO notification_logs (email, template_id, status, error_message, sent_at) 
+                  VALUES (?, ?, ?, ?, NOW())";
+        
+        $stmt = $conn->prepare($query);
+        if ($stmt) {
+            $stmt->bind_param("ssss", $email, $template_id, $status, $message);
+            $stmt->execute();
+            $stmt->close();
+        }
+    } else {
+        error_log("Notification Log: $email | $template_id | $status | $message");
     }
 }
 ?>
