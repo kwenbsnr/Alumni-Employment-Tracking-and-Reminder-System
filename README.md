@@ -24,12 +24,11 @@
 ```
 
 ____________________
-#
-WHAT TO FIX: 
-1. Generate Report 
-2. Notification button on both alumni and admin. 
-3. Recent activity on the alumni.
-4. Rejected Profile rejection message need to fixing. 
+# WHAT TO FIX: 
+## 1. Generate Report 
+## 2. Notification button on both alumni and admin. 
+## 3. Recent activity on the alumni.
+## 4. Rejected Profile rejection message need to fixing. 
 ____________________
 
 Summary of Changes Implemented
