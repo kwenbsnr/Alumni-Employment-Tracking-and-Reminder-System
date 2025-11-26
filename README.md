@@ -12,7 +12,8 @@
 │  ├─ batch_alumni.php             # Alumni list for a given batch and management actions
 │  ├─ get_alumni_details.php       # Hover preview of alumni details
 │  ├─ activity_log.php             # Tracks admin actions and activity history
-│  ├─ check_paths.php              # Temp debugging utility 
+│  ├─ check_paths.php              # Temp debugging utility file
+│  ├─ all_alumni.php               # All alumni
 │  └─ admin_format.css             # Admin header and sidebar styles
 │
 ├─ alumni/                               # Alumni module
@@ -40,9 +41,9 @@ ____________________
 ### 2. Rejected card display
 ### 3. Incorrect DB fetching query for batch.
 ### 4. Must automatically display batch cards if grad is manipulated in the db - same for the graph.
-### 5. Total alumni display cards must be the total role===alumni in the db.
+### 5. Total alumni display cards must be the total 'role===alumni' in the db.
 ### 6. we can add active alumni card for those nka submit.
-### 7. dark text when chart is hovered, para clear the display.
+### 7. dark text when chart is hovered, para clear the text display.
 ##
 ## DB:
 ### 1. filepath must be surname + filenm for clarity.
@@ -50,7 +51,7 @@ ____________________
 ### 3. same for the entire name field, just to make the db atomic as well, thus satisfying 1NF.
 ### 4. redudant name field - users.name & alumni_profile.name.
 ____________________
-# TO IMPLEMENT (if time allows):
+# TO IMPLEMENT (if time allows 🙏):
 ### 1. Worldwide address 
 ### 2. Notif button for both alumni and admin. 
 ________________________________________
