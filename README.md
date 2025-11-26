@@ -25,7 +25,7 @@
 ____________________
 # WHAT TO FIX: 
 ### 1. Generate Report 
-### 2. Rejected Profile rejection message need to fixing.
+### 2. Rejected Profile rejection message.
 ### 3. Recent activity on the alumni.
 ##
 ## ALUMNI:
@@ -33,6 +33,7 @@ ____________________
 ### 2. Start & end year display
 ### 3. idk if dis is meant to be there. everytime the "Help" button is clicked, an alert msg appears bef the actual modal.
 ### 4. modal shadow naay line above.
+### 5. idk. redundant dboard buttons on cards??
 ##
 ## ADMIN:
 ### 1. Unnecessary program field in the hover since da system is exclusively for da bsit prog.
@@ -45,8 +46,11 @@ ____________________
 ##
 ## DB:
 ### 1. filepath must be surname + filenm for clarity.
+### 2. it would be better perhaps if middle name is a separate column , since full midname is needed in reality, not only the initials man. 
+### 3. same for the entire name field, just to make the db atomic as well, thus satisfying 1NF.
+### 4. redudant name field - users.name & alumni_profile.name.
 ____________________
-# TO IMPLEMENT - if time allows:
+# TO IMPLEMENT (if time allows):
 ### 1. Worldwide address 
 ### 2. Notif button for both alumni and admin. 
 ________________________________________
@@ -85,7 +89,4 @@ ____________________
 3. Fixed the completion status. 
 4. Changed most of the admin codes (fixed the errors from the sql update) 
 5. Updated the user profile hover on admin (100% working and data fetched) 
-6. Changed revert into undo as it is misleading (when undo is clicked, submission stat becomes pending again.) 
-7. Added an open/close submission with date customization and 100% reflects on the alumni. 
-8. Removed the quick actions. 
-9. Enhanced most of the guis. 
+6. Added an open/close submission with date customization and 100% reflects on the alumni. 
