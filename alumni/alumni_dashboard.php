@@ -177,10 +177,10 @@ ob_start();
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
     <!-- LEFT: 4 Cards (2x2 Grid, ~60%) -->
     <div class="lg:col-span-2">
-        <!-- MODERN 2x2 DASHBOARD CARDS - EQUAL HEIGHT, FULLY RESPONSIVE -->
-        <div class="max-w-6xl mx-auto">
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                
+ <!-- MODERN 2x2 DASHBOARD CARDS - EQUAL HEIGHT, FULLY RESPONSIVE -->
+<div class="max-w-6xl mx-auto">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        
 <!-- CARD 1: Profile Completion -->
 <div class="h-full flex flex-col">
     <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border <?php
@@ -247,7 +247,7 @@ ob_start();
         <?php endif; ?>
 
         <!-- Main Content -->
-        <div class="p-6 pb-4 space-y-4 flex flex-col flex-1">
+        <div class="p-6 space-y-4 flex flex-col flex-1">
             <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-3">
                     <div class="p-3 <?php
@@ -307,22 +307,9 @@ ob_start();
                 <?php endif; ?>
             </div>
         </div>
-
-        <a href="alumni_profile.php" class="mt-auto block text-center py-3.5 px-6 text-white text-sm font-bold tracking-wide
-            <?php
-            echo $profile_status === 'Complete' ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700' :
-                 ($profile_status === 'Pending Approval' ? 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700' : 'bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700');
-            ?> transition-all duration-300 rounded-b-2xl flex items-center justify-center space-x-1 group">
-            <span>
-                <?php
-                echo $profile_status === 'Complete' ? 'View Profile' :
-                     ($profile_status === 'Pending Approval' ? 'Track Submission' : 'Complete Now');
-                ?>
-            </span>
-            <i class="fas fa-arrow-right text-sm transform group-hover:translate-x-1 transition-transform"></i>
-        </a>
     </div>
 </div>
+
 <!-- CARD 2: Employment -->
 <div class="h-full flex flex-col">
     <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border <?php
@@ -337,7 +324,7 @@ ob_start();
             </div>
         <?php endif; ?>
 
-        <div class="p-6 pb-4 flex-1 flex flex-col justify-between space-y-4">
+        <div class="p-6 flex-1 flex flex-col justify-between space-y-4">
             <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-3">
                     <div class="p-3 <?php
@@ -405,19 +392,6 @@ ob_start();
                 </div>
             <?php endif; ?>
         </div>
-
-        <a href="alumni_profile.php#employment" class="mt-auto block text-center py-3.5 px-6 text-white text-sm font-bold tracking-wide
-            <?php
-            echo !empty($profile_info['employment_status']) && $profile_info['employment_status'] !== 'Not Set'
-                ? 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700'
-                : 'bg-gradient-to-r from-gray-500 to-gray-700 hover:from-gray-600 hover:to-gray-800';
-            ?> transition-all duration-300 rounded-b-2xl flex items-center justify-center space-x-1 group">
-            <span>
-                <?php echo !empty($profile_info['employment_status']) && $profile_info['employment_status'] !== 'Not Set'
-                    ? 'Update' : 'Add Employment'; ?>
-            </span>
-            <i class="fas fa-arrow-right text-sm transform group-hover:translate-x-1 transition-transform"></i>
-        </a>
     </div>
 </div>
 
@@ -438,7 +412,7 @@ ob_start();
         <?php endif; ?>
 
         <!-- Main Content -->
-        <div class="p-6 pb-4 space-y-4 flex flex-col flex-1">
+        <div class="p-6 space-y-4 flex flex-col flex-1">
             <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-3">
                     <div class="p-3 <?php
@@ -517,20 +491,6 @@ ob_start();
                 </div>
             </div>
         </div>
-
-        <a href="alumni_profile.php#documents" class="mt-auto block text-center py-3.5 px-6 text-white text-sm font-bold tracking-wide
-            <?php
-            $status = $document['submission_status'];
-            echo $status === 'Approved' ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700' :
-                 ($status === 'Rejected' ? 'bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700' :
-                 ($status === 'Under Review' ? 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700' :
-                 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700'));
-            ?> transition-all duration-300 rounded-b-2xl flex items-center justify-center space-x-1 group">
-            <span>
-                <?php echo $document['submission_status'] === 'Approved' ? 'View Status' : 'Take Action'; ?>
-            </span>
-            <i class="fas fa-arrow-right text-sm transform group-hover:translate-x-1 transition-transform"></i>
-        </a>
     </div>
 </div>
 
@@ -615,16 +575,6 @@ ob_start();
                 </div>
             </div>
         </div>
-
-        <a href="alumni_profile.php#documents" class="mt-auto block text-center py-3.5 text-white text-sm font-bold tracking-wide
-            <?php
-            echo $document['document_count'] > 0
-                ? 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700'
-                : 'bg-gradient-to-r from-gray-500 to-gray-700 hover:from-gray-600 hover:to-gray-800';
-            ?> transition-all duration-300 rounded-b-2xl flex items-center justify-center space-x-1 group">
-            <span><?php echo $document['document_count'] > 0 ? 'Manage Files' : 'Start Upload'; ?></span>
-            <i class="fas fa-arrow-right text-sm transform group-hover:translate-x-1 transition-transform"></i>
-        </a>
     </div>
 </div>
 
