@@ -30,7 +30,6 @@ WHAT TO FIX:
 2. Notification button on both alumni and admin. 
 3. Recent activity on the alumni.
 4. Rejected Profile rejection message need to fixing. 
-#
 ____________________
 
 Summary of Changes Implemented
