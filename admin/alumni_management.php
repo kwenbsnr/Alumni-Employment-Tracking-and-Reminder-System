@@ -535,7 +535,7 @@ $page_content = ob_get_clean();
 include("admin_format.php");
 ?>
 
-<?php
+<?php<?php
 function generateAlumniReport($selected_batches, $report_type, $conn) {
     if (ob_get_length()) ob_clean();
 
@@ -623,7 +623,7 @@ function generateAlumniReport($selected_batches, $report_type, $conn) {
     $data = $result->fetch_all(MYSQLI_ASSOC);
 
     // ==================================================================
-    // PDF GENERATION USING TCPDF (unchanged layout but stable mapping)
+    // PDF GENERATION USING TCPDF (COMPLETE CODE)
     // ==================================================================
     $pdf = new TCPDF('L', 'mm', 'A4', true, 'UTF-8', false);
     $pdf->SetCreator('Alumni Tracking System');
@@ -652,93 +652,109 @@ function generateAlumniReport($selected_batches, $report_type, $conn) {
     // Table configurations
     $table_config = [
         'summary' => [
-            'headers' => ['Batch Year', 'Employed', 'Self-Employed', 'Unemployed', 'Student', 'Employed & Student', 'Total Alumni', 'Employment Rate %'],
-            'widths'  => [25, 20, 25, 22, 20, 35, 30, 40],
-            'align'   => ['C', 'C', 'C', 'C', 'C', 'C', 'C', 'C']
+            'headers' => ['Batch Year', 'Employed', 'Self-Employed', 'Unemployed', 'Student', 'Employed/Student', 'Total', 'Employment Rate'],
+            'widths' => [30, 30, 35, 30, 30, 40, 20, 30], // Total width approx 245mm for landscape A4
+            'data_keys' => ['batch_year', 'employed', 'self_employed', 'unemployed', 'student', 'employed_student', 'total_alumni', 'employment_rate'],
+            'align' => ['C', 'C', 'C', 'C', 'C', 'C', 'C', 'C'],
+            'total_label' => 'Total Alumni:',
         ],
         'detailed' => [
-            'headers' => ['Name', 'Email', 'Batch', 'Status', 'Current Job', 'Current Employer'],
-            'widths'  => [50, 60, 25, 40, 50, 50],
-            'align'   => ['L', 'L', 'C', 'L', 'L', 'L']
-        ],
+            'headers' => ['Batch Year', 'Name', 'Email', 'Employment Status', 'Current Job', 'Current Employer'],
+            'widths' => [25, 50, 60, 40, 40, 60], // Total width approx 275mm for landscape A4
+            'data_keys' => ['batch_year', 'name', 'email', 'employment_status', 'current_job', 'current_employer'],
+            'align' => ['C', 'L', 'L', 'L', 'L', 'L'],
+            'total_label' => 'Total Records:',
+        ]
     ];
 
-    $cfg = $table_config[$report_type];
+    $config = $table_config[$report_type];
 
-    // Header row
-    $pdf->SetFillColor(59, 130, 246);
-    $pdf->SetTextColor(255);
-    $pdf->SetDrawColor(59, 130, 246);
+    // --- Draw Table Header ---
+    $pdf->SetFillColor(230, 240, 255); // Light Blue for Header
+    $pdf->SetTextColor(0);
+    $pdf->SetDrawColor(150, 150, 150);
     $pdf->SetLineWidth(0.3);
-    $pdf->SetFont('helvetica', 'B', 10);
-    for ($i = 0; $i < count($cfg['headers']); $i++) {
-        $pdf->Cell($cfg['widths'][$i], 8, $cfg['headers'][$i], 1, 0, 'C', true);
+    $pdf->SetFont('helvetica', 'B', 9);
+
+    for ($i = 0; $i < count($config['headers']); $i++) {
+        $pdf->Cell($config['widths'][$i], 7, $config['headers'][$i], 1, 0, $config['align'][$i], 1);
     }
     $pdf->Ln();
 
-    // Table rows - stable explicit mapping
-    $pdf->SetFillColor(255, 255, 255);
-    $pdf->SetTextColor(0);
+    // --- Draw Table Body and Calculate Totals ---
+    $pdf->SetFillColor(255);
     $pdf->SetFont('helvetica', '', 9);
-    $fill = false;
+    $totals = array_fill_keys($config['data_keys'], 0);
+    $is_summary = $report_type === 'summary';
 
-    if ($report_type === 'summary') {
-        // $data rows contain: batch_year, employed, self_employed, unemployed, student, employed_student, total_alumni, employment_rate
-        foreach ($data as $row) {
-            $fill = !$fill;
-            $pdf->SetFillColor($fill ? 240 : 255, $fill ? 245 : 255, $fill ? 255 : 255);
+    foreach ($data as $row) {
+        $pdf->SetFillColor(255);
+        $pdf->SetTextColor(0);
 
-            $values = [
-                $row['batch_year'] ?? '-',
-                isset($row['employed']) ? number_format((int)$row['employed']) : '0',
-                isset($row['self_employed']) ? number_format((int)$row['self_employed']) : '0',
-                isset($row['unemployed']) ? number_format((int)$row['unemployed']) : '0',
-                isset($row['student']) ? number_format((int)$row['student']) : '0',
-                isset($row['employed_student']) ? number_format((int)$row['employed_student']) : '0',
-                isset($row['total_alumni']) ? number_format((int)$row['total_alumni']) : '0',
-                isset($row['employment_rate']) ? number_format((float)$row['employment_rate'], 2) . '%' : '0.00%'
-            ];
+        for ($i = 0; $i < count($config['data_keys']); $i++) {
+            $key = $config['data_keys'][$i];
+            $value = $row[$key];
+            $align = $config['align'][$i];
+            $width = $config['widths'][$i];
 
-            for ($i = 0; $i < count($values); $i++) {
-                $pdf->Cell($cfg['widths'][$i], 7, $values[$i], 'LR', 0, $cfg['align'][$i], true);
+            // Special formatting for summary report data and totals calculation
+            if ($is_summary) {
+                // Total calculation for numeric columns
+                if (in_array($key, ['employed', 'self_employed', 'unemployed', 'student', 'employed_student', 'total_alumni'])) {
+                    $totals[$key] += (int)$value;
+                }
+                // Format employment rate with percentage sign
+                if ($key === 'employment_rate') {
+                    $value .= '%';
+                }
             }
-            $pdf->Ln();
+            
+            // Output the cell
+            $pdf->Cell($width, 6, $value, 1, 0, $align, 1, '', 0, false, 'T', 'M');
         }
-    } else { // detailed
-        foreach ($data as $row) {
-            $fill = !$fill;
-            $pdf->SetFillColor($fill ? 240 : 255, $fill ? 245 : 255, $fill ? 255 : 255);
+        $pdf->Ln();
+    }
+    
+    // --- Draw Totals Row (Summary Report Only) ---
+    if ($is_summary && !empty($data)) {
+        $pdf->SetFillColor(200, 215, 230); // Darker Blue for Footer
+        $pdf->SetFont('helvetica', 'B', 9);
+        $total_rate = 0;
 
-            $values = [
-                $row['name'] ?? '-',
-                $row['email'] ?? '-',
-                $row['batch_year'] ?? '-',
-                $row['employment_status'] ?? '-',
-                $row['current_job'] ?? '-',
-                $row['current_employer'] ?? '-'
-            ];
-
-            for ($i = 0; $i < count($values); $i++) {
-                $pdf->Cell($cfg['widths'][$i], 7, $values[$i], 'LR', 0, $cfg['align'][$i], true);
-            }
-            $pdf->Ln();
+        if ($totals['total_alumni'] > 0) {
+            $total_employed = $totals['employed'] + $totals['self_employed'] + $totals['employed_student'];
+            $total_rate = round(100.0 * $total_employed / $totals['total_alumni'], 2);
         }
+
+        $summary_totals = [
+            'batch_year' => 'GRAND TOTAL',
+            'employed' => $totals['employed'],
+            'self_employed' => $totals['self_employed'],
+            'unemployed' => $totals['unemployed'],
+            'student' => $totals['student'],
+            'employed_student' => $totals['employed_student'],
+            'total_alumni' => $totals['total_alumni'],
+            'employment_rate' => $total_rate . '%',
+        ];
+
+        // Output totals cells
+        for ($i = 0; $i < count($config['data_keys']); $i++) {
+            $key = $config['data_keys'][$i];
+            $value = $summary_totals[$key];
+            $align = $config['align'][$i];
+            $width = $config['widths'][$i];
+
+            $pdf->Cell($width, 7, $value, 1, 0, $align, 1);
+        }
+        $pdf->Ln();
     }
 
-    // Closing line & empty report note
-    $pdf->Cell(array_sum($cfg['widths']), 0, '', 'T');
-    $pdf->Ln(10);
-
-    if (empty($data)) {
-        $pdf->SetFont('helvetica', 'I', 10);
-        $pdf->Cell(0, 10, 'No records found for the selected criteria.', 0, 1, 'C');
-    }
-
-    $filename = "Alumni_Report_" . ucfirst($report_type) . "_" . date('Y-m-d') . ".pdf";
-    $pdf->Output($filename, 'D');
-    exit();
+    // Output the PDF
+    $pdf_filename = strtoupper($report_type) . '_Alumni_Report_' . date('Ymd_His') . '.pdf';
+    $pdf->Output($pdf_filename, 'I');
+    exit;
 }
-
+?>
 // Function to check if submissions are open
 function isSubmissionsOpen($conn) {
     $statusCheck = $conn->query("SELECT is_open FROM submission_status LIMIT 1");
