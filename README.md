@@ -22,7 +22,6 @@
 │  ├─ update_profile.php          # Backend logic
 │  └─ alumni_format.css           # Alumni header and sidebar styles
 ```
-
 ____________________
 # WHAT TO FIX: 
 ### 1. Generate Report 
@@ -39,16 +38,17 @@ ____________________
 ### 1. Unnecessary program field in the hover since da system is exclusively for da bsit prog.
 ### 2. Rejected card display
 ### 3. Incorrect DB fetching query for batch.
-### 4. Must dynamically add batch cards if grad is manipulated in the db.
+### 4. Must automatically display batch cards if grad is manipulated in the db - same for the graph.
 ### 5. Total alumni display cards must be the total role===alumni in the db.
-### 6. Can add active alumni card.
+### 6. we can add active alumni card for those nka submit.
+### 7. dark text when chart is hovered, para clear the display.
 ##
 ## DB:
 ### 1. filepath must be surname + filenm for clarity.
 ____________________
 # TO IMPLEMENT - if time allows:
 ### 1. Worldwide address 
-### 2. Notification button on both alumni and admin. 
+### 2. Notif button for both alumni and admin. 
 ________________________________________
 ____________________
 
