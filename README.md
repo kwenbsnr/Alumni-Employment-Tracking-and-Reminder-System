@@ -13,7 +13,7 @@
 │  ├─ get_alumni_details.php       # Hover preview of alumni details
 │  ├─ activity_log.php             # Tracks admin actions and activity history
 │  ├─ check_paths.php              # Temp debugging utility file
-│  ├─ all_alumni.php               # All alumni
+│  ├─ all_alumni.php               # All alumni records
 │  └─ admin_format.css             # Admin header and sidebar styles
 │
 ├─ alumni/                               # Alumni module
@@ -31,7 +31,7 @@ ____________________
 ##
 ## ALUMNI:
 ### 1. Apostrophe handling 
-### 2. Start & end year display
+### 2. Start & end year display for bth student and emp & stud
 ### 3. idk if dis is meant to be there. everytime the "Help" button is clicked, an alert msg appears bef the actual modal.
 ### 4. modal shadow naay line above.
 ### 5. idk. redundant dboard buttons on cards??
@@ -44,14 +44,16 @@ ____________________
 ### 5. Total alumni display cards must be the total 'role===alumni' in the db.
 ### 6. we can add active alumni card for those nka submit.
 ### 7. dark text when chart is hovered, para clear the text display.
+### 8. Toast notif upon approval/rej.
 ##
 ## DB:
 ### 1. filepath must be surname + filenm for clarity.
 ### 2. it would be better perhaps if middle name is a separate column , since full midname is needed in reality, not only the initials man. 
 ### 3. same for the entire name field, just to make the db atomic as well, thus satisfying 1NF.
 ### 4. redudant name field - users.name & alumni_profile.name.
+### 5. add field for name xtnsions
 ____________________
-# TO IMPLEMENT (if time allows 🙏):
+# TO IMPLEMENT (hopefully, if time allows 🙏):
 ### 1. Worldwide address 
 ### 2. In-app notif functionality for both alumni and admin. 
 ________________________________________

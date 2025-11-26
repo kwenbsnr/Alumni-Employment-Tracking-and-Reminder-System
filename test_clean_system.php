@@ -1,5 +1,4 @@
 <?php
-// test_clean_system.php
 echo "<h3>Clean System Test</h3>";
 
 // Test 1: Database connection
