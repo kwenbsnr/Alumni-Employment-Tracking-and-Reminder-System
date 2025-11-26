@@ -631,8 +631,7 @@ ob_start();
             </div>
         </div>
     </div>
-
- <!-- CARD 5: Recent Activity (New!) -->
+<!-- CARD 5: Recent Activity (New!) -->
 <div class="h-full flex flex-col">
     <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-indigo-200 ring-2 ring-indigo-100 overflow-hidden flex flex-col h-full hover:shadow-xl transition-all duration-400 group">
         <div class="p-6 flex-1 flex flex-col">
@@ -664,13 +663,67 @@ ob_start();
                 <div class="space-y-3 flex-1">
                     <?php while ($act = $activities->fetch_assoc()): ?>
                         <?php
+                        // Comprehensive icon mapping for all activity types
                         $icon = 'fa-circle-check text-green-500';
                         $title = ucwords(str_replace('_', ' ', $act['action_type']));
-
-                        if (strpos($act['action_type'], 'document') !== false) $icon = 'fa-file-circle-check text-blue-500';
-                        if ($act['action_type'] === 'profile_photo_updated') $icon = 'fa-user-circle text-purple-500';
-                        if ($act['action_type'] === 'profile_submitted') $icon = 'fa-paper-plane text-indigo-600';
-                        if ($act['action_type'] === 'profile_updated') $icon = 'fa-user-pen text-orange-500';
+                        
+                        // Map specific action types to appropriate icons
+                        switch (true) {
+                            case strpos($act['action_type'], 'document') !== false:
+                            case strpos($act['action_type'], 'upload') !== false:
+                                $icon = 'fa-file-upload text-blue-500';
+                                break;
+                            case strpos($act['action_type'], 'employment') !== false:
+                            case strpos($act['action_type'], 'coe') !== false:
+                            case strpos($act['action_type'], 'certificate') !== false:
+                                $icon = 'fa-file-contract text-purple-500';
+                                break;
+                            case strpos($act['action_type'], 'profile_photo') !== false:
+                                $icon = 'fa-user-circle text-purple-500';
+                                break;
+                            case strpos($act['action_type'], 'profile_submitted') !== false:
+                                $icon = 'fa-paper-plane text-indigo-600';
+                                break;
+                            case strpos($act['action_type'], 'profile_updated') !== false:
+                                $icon = 'fa-user-pen text-orange-500';
+                                break;
+                            case strpos($act['action_type'], 'address') !== false:
+                                $icon = 'fa-map-marker-alt text-red-500';
+                                break;
+                            case strpos($act['action_type'], 'contact') !== false:
+                                $icon = 'fa-phone text-green-600';
+                                break;
+                            case strpos($act['action_type'], 'login') !== false:
+                                $icon = 'fa-sign-in-alt text-gray-500';
+                                break;
+                            case strpos($act['action_type'], 'approved') !== false:
+                                $icon = 'fa-check-circle text-green-600';
+                                break;
+                            case strpos($act['action_type'], 'rejected') !== false:
+                                $icon = 'fa-times-circle text-red-600';
+                                break;
+                            case strpos($act['action_type'], 'pending') !== false:
+                                $icon = 'fa-clock text-amber-500';
+                                break;
+                            case strpos($act['action_type'], 'education') !== false:
+                                $icon = 'fa-graduation-cap text-blue-600';
+                                break;
+                            case strpos($act['action_type'], 'personal') !== false:
+                                $icon = 'fa-user text-cyan-500';
+                                break;
+                            case strpos($act['action_type'], 'delete') !== false:
+                                $icon = 'fa-trash-alt text-red-500';
+                                break;
+                            case strpos($act['action_type'], 'create') !== false:
+                                $icon = 'fa-plus-circle text-green-500';
+                                break;
+                            case strpos($act['action_type'], 'update') !== false:
+                                $icon = 'fa-edit text-blue-500';
+                                break;
+                            default:
+                                $icon = 'fa-circle-check text-green-500';
+                                break;
+                        }
                         ?>
                         <div class="flex items-start space-x-3 group-hover:translate-x-1 transition-transform duration-300">
                             <div class="flex-shrink-0 w-8 h-8 bg-gray-50 rounded-full flex items-center justify-center mt-0.5">
@@ -702,7 +755,6 @@ ob_start();
         </a>
     </div>
 </div>
-
 <!-- Enhanced Custom Animations -->
 <style>
 @keyframes spin-slow {
