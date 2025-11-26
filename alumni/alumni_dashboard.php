@@ -105,11 +105,11 @@ if ($is_profile_complete) {
 }
 
 // Annual update check
-$needs_annual_update = !empty($profile_info) &&
+$needs_semiannual_update = !empty($profile_info) &&
     ($profile_info['last_profile_update'] === null ||
-     strtotime($profile_info['last_profile_update'] . ' +1 year') <= time());
+     strtotime($profile_info['last_profile_update'] . ' +6 months') <= time());
 
-$needs_profile_update = empty($profile_info) || !$is_profile_complete || $needs_annual_update;
+$needs_profile_update = empty($profile_info) || !$is_profile_complete || $needs_semiannual_update;
 // Profile & Document status
 $profile = [
     'employment_status' => $profile_info['employment_status'] ?? 'Not Set',
