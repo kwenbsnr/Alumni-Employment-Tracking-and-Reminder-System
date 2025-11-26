@@ -25,14 +25,14 @@
 
 ____________________
 # WHAT TO FIX: 
-## 1. Generate Report 
-## 2. Notification button on both alumni and admin. 
-## 3. Recent activity on the alumni.
-## 4. Rejected Profile rejection message need to fixing. 
-##
+# 1. Generate Report 
+# 2. Notification button on both alumni and admin. 
+# 3. Recent activity on the alumni.
+# 4. Rejected Profile rejection message need to fixing. 
+#
 ## ALUMNI:
-## 1. Apostrophe handling 
-## 2. Start & end year display
+# 1. Apostrophe handling 
+# 2. Start & end year display
 ____________________
 
 Summary of Changes Implemented
