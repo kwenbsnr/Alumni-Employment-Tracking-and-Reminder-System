@@ -186,12 +186,6 @@ $activities = $stmt_act->get_result();
 
 ob_start();
 ?>
-<!-- Dashboard Section -->
-<div class="min-h-screen bg-gray-50">
-    <div class="space-y-6 max-w-7xl mx-auto px-4 py-6">
-        <?php if ($needs_profile_update): ?>
-            <!-- Profile update warning would go here -->
-        <?php endif; ?>
 
         <!-- Success Card -->
         <?php if (isset($_SESSION['profile_submission_success'])): ?>
@@ -230,9 +224,9 @@ ob_start();
         <?php endif; ?>
 
         <!-- Main Content Grid - IMPROVED LAYOUT -->
-        <div class="grid grid-cols-1 xl:grid-cols-4 gap-6">
+        <div class="grid grid-cols-1 xl:grid-cols-4 gap-4">
             <!-- Left Column - Profile Completion & Quick Actions -->
-            <div class="xl:col-span-3 space-y-6">
+            <div class="xl:col-span-3 space-y-4">
                 <!-- Profile Completion Card - WITH TOP BORDER -->
  <div class="bg-white -xl shadow-2xl border border-indigo-100 overflow-hidden hover:shadow-3xl transition-all duration-500">
                     <div class="h-1 w-full 
