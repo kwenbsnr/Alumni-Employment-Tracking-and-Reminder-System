@@ -255,7 +255,7 @@ $page_title = $page_title ?? "Alumni Page";
         <div class="header-accent-line"></div>
 
         <!-- Main Content -->
-       <main class="flex-1 p-5 overflow-hidden bg-gray-200">
+        <main class="flex-1 p-5 overflow-hidden">
             <?php echo $page_content ?? ''; ?>
         </main>
     </div>

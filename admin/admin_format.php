@@ -276,7 +276,7 @@ document.addEventListener("DOMContentLoaded", () => {
             </header>
 
             <!-- Dynamic Content -->
-             <main class="flex-1 p-5 overflow-hidden bg-gray-200">
+            <main class="flex-1 p-6 overflow-auto bg-gray-50">
                 <?php echo $page_content ?? ''; ?>
             </main>
         </div>
