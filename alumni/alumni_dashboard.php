@@ -222,7 +222,7 @@ ob_start();
  <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 max-w-7xl mx-auto">
 
     <div class="xl:col-span-2 space-y-6">
-
+                    
         <div class="bg-white rounded-xl shadow-2xl border border-indigo-100 overflow-hidden hover:shadow-3xl transition-all duration-500">
             <div class="p-6 bg-gradient-to-br from-white to-gray-50">
                 <div class="flex items-center justify-between mb-6">
