@@ -78,9 +78,7 @@ if (!$is_unemployed) {
 } else {
     // If unemployed, consider documents requirement as met
     $has_documents = true;
-}
-
-// UPDATED: Adjust required sections based on employment status
+}// UPDATED: Adjust required sections based on employment status
 if ($is_unemployed) {
     // Unemployed alumni only need 3 sections (documents not required)
     $required_sections = [
@@ -99,14 +97,6 @@ if ($is_unemployed) {
     ];
 }
 
-// SIMPLIFIED: Everyone needs these 4 basic sections
-$required_sections = [
-    $has_basic_info,    // Contact + employment status
-    $has_address,       // Address
-    $has_photo,         // Profile photo
-    $has_documents      // Supporting documents
-];
-
 $completed_count = count(array_filter($required_sections));
 $total_required = count($required_sections);
 $completion_percentage = $total_required > 0 ? round(($completed_count / $total_required) * 100) : 0;
@@ -118,24 +108,45 @@ $is_profile_complete = $completed_count === $total_required;
 $submission_status = $profile_info['submission_status'] ?? 'Not Submitted';
 $profile_status = 'Incomplete';
 
-if ($is_profile_complete) {
+// FORCE COMPLETION PERCENTAGE DROP WHEN REJECTED - AND UNCHECK DOCUMENTS
+if ($submission_status === 'Rejected') {
+    $profile_status = 'Rejected';
+    // Force completion percentage to drop to 70-90% range
+    if ($completion_percentage > 90) {
+        $completion_percentage = 85; // Drop to middle range
+    } elseif ($completion_percentage > 70) {
+        $completion_percentage = max(70, $completion_percentage - 15); // Ensure it drops
+    } else {
+        // If completion is already low, cap it at 80% max when rejected
+        $completion_percentage = min(80, $completion_percentage);
+    }
+    
+    // FORCE DOCUMENTS TO BE UNCHECKED WHEN REJECTED (since rejection is usually document-related)
+    if (!$is_unemployed) {
+        $has_documents = false;
+        // Recalculate completion count without documents
+        $required_sections = [
+            $has_basic_info,
+            $has_address, 
+            $has_photo,
+            $has_documents  // Now false due to rejection
+        ];
+        $completed_count = count(array_filter($required_sections));
+        $is_profile_complete = false;
+    }
+} elseif ($is_profile_complete) {
     if ($submission_status === 'Approved') {
         $profile_status = 'Complete';
     } elseif ($submission_status === 'Pending') {
         $profile_status = 'Pending Approval';
-    } elseif ($submission_status === 'Rejected') {
-        $profile_status = 'Rejected';
     } else {
         $profile_status = 'Ready to Submit';
     }
-} elseif ($submission_status === 'Rejected') {
-    $profile_status = 'Rejected';
 }
-
-// Annual update check
+// Annual update check - CHANGED TO 6 MONTHS
 $needs_annual_update = !empty($profile_info) &&
     ($profile_info['last_profile_update'] === null ||
-     strtotime($profile_info['last_profile_update'] . ' +1 year') <= time());
+     strtotime($profile_info['last_profile_update'] . ' +6 months') <= time());
 
 $needs_profile_update = empty($profile_info) || !$is_profile_complete || $needs_annual_update;
 // Profile & Document status
