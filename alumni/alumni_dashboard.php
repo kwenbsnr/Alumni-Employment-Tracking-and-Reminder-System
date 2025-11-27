@@ -218,52 +218,49 @@ ob_start();
         </div>
         <?php unset($_SESSION['show_welcome']); ?>
     <?php endif; ?>
-
- <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 max-w-7xl mx-auto">
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-6 max-w-7xl mx-auto">
 
     <div class="xl:col-span-2 space-y-6">
-                    
+                
         <div class="bg-white rounded-xl shadow-2xl border border-indigo-100 overflow-hidden hover:shadow-3xl transition-all duration-500">
             <div class="p-6 bg-gradient-to-br from-white to-gray-50">
-                <div class="flex items-center justify-between mb-6">
-                    <div class="flex items-center space-x-4">
+                <div class="flex items-start justify-between mb-6"> <div class="flex items-center space-x-4">
                         <div class="relative">
-                            <div class="w-16 h-16 <?php
+                            <div class="w-14 h-14 <?php // Reduced size (w-16 h-16 -> w-14 h-14)
                                 echo $profile_status === 'Complete' ? 'bg-gradient-to-br from-emerald-500 to-green-600 text-white shadow-xl' :
-                                     ($profile_status === 'Pending Approval' ? 'bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-xl' : 
-                                     'bg-gradient-to-br from-red-500 to-pink-500 text-white shadow-xl');
+                                    ($profile_status === 'Pending Approval' ? 'bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-xl' : 
+                                    'bg-gradient-to-br from-red-500 to-pink-500 text-white shadow-xl');
                                 ?> flex items-center justify-center rounded-2xl">
-                                <i class="fas fa-user-check text-2xl"></i>
-                            </div>
-                            <div class="absolute -top-1 -right-1 w-7 h-7 <?php
+                                <i class="fas fa-user-check text-xl"></i> </div>
+                            <div class="absolute -top-1 -right-1 w-6 h-6 <?php // Adjusted size (w-7 h-7 -> w-6 h-6)
                                 echo $profile_status === 'Complete' ? 'bg-emerald-500' :
-                                     ($profile_status === 'Pending Approval' ? 'bg-amber-500' : 'bg-red-500');
+                                    ($profile_status === 'Pending Approval' ? 'bg-amber-500' : 'bg-red-500');
                                 ?> rounded-full flex items-center justify-center border-3 border-white shadow-lg">
                                 <i class="fas <?php
                                     echo $profile_status === 'Complete' ? 'fa-check' :
-                                         ($profile_status === 'Pending Approval' ? 'fa-clock' : 'fa-exclamation');
+                                            ($profile_status === 'Pending Approval' ? 'fa-clock' : 'fa-exclamation');
                                     ?> text-white text-xs"></i>
                             </div>
                         </div>
                         <div>
-                            <h3 class="text-2xl font-extrabold text-indigo-900">Profile Completion</h3>
-                            <div class="flex items-center gap-2 mt-1">
-                                <span class="text-sm font-bold <?php
-                                    echo $profile_status === 'Complete' ? 'text-emerald-700 bg-emerald-100 border border-emerald-300' :
-                                         ($profile_status === 'Pending Approval' ? 'text-amber-700 bg-amber-100 border border-amber-300' :
-                                         'text-red-700 bg-red-100 border border-red-300');
-                                    ?> px-3 py-1.5 rounded-full shadow-sm">
-                                    <?php echo $profile_status; ?>
-                                </span>
-                                <?php if ($profile_status === 'Ready to Submit'): ?>
-                                    <span class="text-xs bg-blue-500 text-white px-3 py-1.5 rounded-full font-bold shadow-md animate-pulse">
-                                        <i class="fas fa-paper-plane mr-1"></i> Submit Now
-                                    </span>
-                                <?php endif; ?>
-                            </div>
-                        </div>
+                            <h3 class="text-xl font-extrabold text-indigo-900">Profile Completion</h3> </div>
                     </div>
-                </div>
+                    
+                    <div class="flex flex-col items-end gap-2 mt-0">
+                         <span class="text-sm font-extrabold <?php
+                            echo $profile_status === 'Complete' ? 'text-emerald-700 bg-emerald-100 border-2 border-emerald-400' :
+                                    ($profile_status === 'Pending Approval' ? 'text-amber-700 bg-amber-100 border-2 border-amber-400' :
+                                    'text-red-700 bg-red-100 border-2 border-red-400');
+                            ?> px-4 py-1.5 rounded-lg shadow-inner uppercase tracking-wider">
+                            <?php echo $profile_status; ?>
+                        </span>
+                        <?php if ($profile_status === 'Ready to Submit'): ?>
+                            <button class="text-xs bg-gradient-to-r from-indigo-500 to-blue-600 hover:from-indigo-600 hover:to-blue-700 text-white px-3 py-1.5 rounded-lg font-bold shadow-md transform hover:scale-105 transition duration-300 animate-pulse">
+                                <i class="fas fa-paper-plane mr-1"></i> Submit Now
+                            </button>
+                        <?php endif; ?>
+                    </div>
+                    </div>
 
                 <div class="space-y-5">
                     <div class="flex justify-between items-center">
@@ -328,8 +325,8 @@ ob_start();
                                 </h4>
                                 <span class="text-xs font-bold <?php
                                     echo $document['submission_status'] === 'Approved' ? 'text-emerald-700 bg-white shadow-sm' :
-                                         ($document['submission_status'] === 'Under Review' ? 'text-amber-700 bg-white shadow-sm animate-pulse' :
-                                         ($document['submission_status'] === 'Rejected' ? 'text-red-700 bg-white shadow-sm' : 'text-gray-600 bg-gray-200'));
+                                            ($document['submission_status'] === 'Under Review' ? 'text-amber-700 bg-white shadow-sm animate-pulse' :
+                                            ($document['submission_status'] === 'Rejected' ? 'text-red-700 bg-white shadow-sm' : 'text-gray-600 bg-gray-200'));
                                     ?> px-2.5 py-1 rounded-full">
                                     <?php echo $document['submission_status']; ?>
                                 </span>
@@ -357,9 +354,9 @@ ob_start();
                         <p class="text-xs text-gray-700 mb-4">
                             <?php
                             echo $profile_status === 'Complete' ? '✅ Great job! Your profile is fully verified. Enjoy full access.'
-                                   : ($profile_status === 'Pending Approval' ? '⏳ We are currently reviewing your information. This may take 1-2 business days.'
-                                   : ($profile_status === 'Rejected' ? '⚠️ Action required! Please review the feedback provided and update the necessary sections.'
-                                   : '🔔 Complete the following steps to submit your profile for verification.'));
+                                        : ($profile_status === 'Pending Approval' ? '⏳ We are currently reviewing your information. This may take 1-2 business days.'
+                                        : ($profile_status === 'Rejected' ? '⚠️ Action required! Please review the feedback provided and update the necessary sections.'
+                                        : '🔔 Complete the following steps to submit your profile for verification.'));
                             ?>
                         </p>
                         <div class="grid grid-cols-2 gap-3 text-sm">
@@ -384,6 +381,8 @@ ob_start();
                 </div>
             </div>
         </div>
+    </div>
+</div>
 
         <div class="bg-white rounded-xl shadow-lg border-2 border-indigo-200 overflow-hidden">
             <div class="bg-gradient-to-r from-indigo-50 to-purple-50 px-6 py-3 border-b border-indigo-200">
