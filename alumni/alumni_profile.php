@@ -122,101 +122,228 @@ ob_start();
 <?php endif; ?>
 
 <div class="space-y-6 mt-3 mb-5">
-<!-- Status Card - Modern, Subtle & Ultra-Compact Design -->
-<div id="updateProfileBtn" class="
-    <?php
-    if ($is_profile_rejected) {
-        echo 'bg-red-50/70 border border-red-200/80 rounded-xl shadow-sm hover:shadow hover:border-red-300 cursor-pointer';
-    } elseif ($is_profile_approved) {
-        echo 'bg-emerald-50/60 border border-emerald-200 rounded-xl shadow-sm cursor-not-allowed';
-    } elseif ($is_profile_pending) {
-        echo 'bg-amber-50/70 border border-amber-200 rounded-xl shadow-sm cursor-not-allowed';
-    } elseif ($can_update) {
-        echo 'bg-white border border-green-200 rounded-xl shadow-sm hover:shadow-md hover:border-green-300 cursor-pointer';
-    } else {
-        echo 'bg-gray-50 border border-gray-300 rounded-xl cursor-not-allowed opacity-75';
-    }
-    ?>
-    p-4 transition-all duration-200 border-t-4
-    <?php
-    if ($is_profile_rejected) echo 'border-t-red-400';
-    elseif ($is_profile_approved) echo 'border-t-emerald-500';
-    elseif ($is_profile_pending) echo 'border-t-amber-500';
-    elseif ($can_update) echo 'border-t-green-400';
-    else echo 'border-t-gray-400';
-    ?>
-    ">
+<!-- Status Card - Modern, Professional & Perfectly Balanced (2025 Design) -->
 
-    <!-- Header: Icon + Title (Compact Row) -->
-    <div class="flex items-center justify-between mb-2">
-        <div class="flex items-center gap-2.5">
-            <i class="fas text-lg
+<div id="updateProfileBtn" class="
+
+    <?php
+
+    if ($is_profile_rejected) {
+
+        echo 'bg-red-50 border-red-200 hover:border-red-300 shadow-sm hover:shadow-md cursor-pointer';
+
+    } elseif ($is_profile_approved) {
+
+        echo 'bg-emerald-50 border-emerald-200 cursor-not-allowed opacity-95';
+
+    } elseif ($is_profile_pending) {
+
+        echo 'bg-amber-50 border-amber-200 cursor-not-allowed opacity-95';
+
+    } elseif ($can_update || $is_profile_new) {
+
+        echo 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-300 hover:border-green-400 shadow-sm hover:shadow-lg cursor-pointer';
+
+    } else {
+
+        echo 'bg-gray-50 border-gray-300 cursor-not-allowed opacity-80';
+
+    }
+
+    ?>
+
+    rounded-2xl p-5 transition-all duration-300 border-2 border-t-[6px]
+
+    <?php
+
+    if ($is_profile_rejected) echo 'border-t-red-500';
+
+    elseif ($is_profile_approved) echo 'border-t-emerald-500';
+
+    elseif ($is_profile_pending) echo 'border-t-amber-500';
+
+    elseif ($can_update || $is_profile_new) echo 'border-t-green-500';
+
+    else echo 'border-t-gray-400';
+
+    ?>
+
+">
+
+    <!-- Header: Icon + Title -->
+
+    <div class="flex items-center justify-between mb-3">
+
+        <div class="flex items-center gap-3">
+
+            <i class="fas text-2xl
+
                 <?php
-                if ($is_profile_rejected) echo 'fa-exclamation-triangle text-red-500';
+
+                if ($is_profile_rejected) echo 'fa-exclamation-triangle text-red-600';
+
                 elseif ($is_profile_approved) echo 'fa-check-circle text-emerald-600';
+
                 elseif ($is_profile_pending) echo 'fa-clock text-amber-600';
-                elseif ($can_update) echo 'fa-user-edit text-green-600';
+
+                elseif ($can_update || $is_profile_new) echo 'fa-user-edit text-green-600';
+
                 else echo 'fa-lock text-gray-500';
+
                 ?>
+
             "></i>
-            <h3 class="text-sm font-semibold tracking-tight
+
+            <h3 class="text-lg font-bold tracking-tight
+
                 <?php
-                if ($is_profile_rejected) echo 'text-red-800';
+
+                if ($is_profile_rejected) echo 'text-red-900';
+
                 elseif ($is_profile_approved) echo 'text-emerald-900';
+
                 elseif ($is_profile_pending) echo 'text-amber-900';
-                elseif ($can_update) echo 'text-green-800';
-                else echo 'text-gray-600';
+
+                elseif ($can_update || $is_profile_new) echo 'text-green-900';
+
+                else echo 'text-gray-700';
+
                 ?>">
+
                 <?php
+
                 if ($is_profile_rejected) echo 'Profile Rejected';
+
                 elseif ($is_profile_approved) echo 'Profile Approved';
+
                 elseif ($is_profile_pending) echo 'Pending Review';
+
+                elseif ($is_profile_new) echo 'Create Your Profile';
+
                 elseif ($can_update) echo 'Update Profile';
+
                 else echo 'Editing Locked';
+
                 ?>
+
             </h3>
+
         </div>
 
-        <?php if ($is_profile_rejected || $can_update): ?>
-            <i class="fas fa-arrow-right text-xs <?php echo $is_profile_rejected ? 'text-red-500' : 'text-green-500'; ?> opacity-70"></i>
+        <?php if ($is_profile_rejected || $can_update || $is_profile_new): ?>
+
+            <i class="fas fa-arrow-right text-lg <?php echo $is_profile_rejected ? 'text-red-500' : 'text-green-600'; ?> opacity-80"></i>
+
         <?php endif; ?>
+
     </div>
 
-    <!-- Compact Status Message - Only shows when relevant -->
+    <!-- Status-Specific Message (Clean & Modern) -->
+
     <?php if ($is_profile_rejected): ?>
-        <div class="text-xs text-red-700 leading-snug mt-1 pl-7">
-            <span class="font-medium">Reason:</span>
-            <?php echo !empty($profile['rejection_reason']) ? htmlspecialchars(substr($profile['rejection_reason'], 0, 100)) . (strlen($profile['rejection_reason']) > 100 ? '...' : '') : 'Not specified'; ?>
-            <span class="block mt-1 text-red-600 font-medium">→ Fix issues and resubmit</span>
+
+        <div class="bg-red-100 rounded-xl px-4 py-3 border border-red-200">
+
+            <p class="text-sm font-semibold text-red-900">Your profile was rejected</p>
+
+            <?php if (!empty($profile['rejection_reason'])): ?>
+
+                <p class="text-xs text-red-700 mt-1 leading-relaxed">
+
+                    <span class="font-medium">Reason:</span> <?php echo htmlspecialchars($profile['rejection_reason']); ?>
+
+                </p>
+
+            <?php endif; ?>
+
+            <p class="text-xs font-medium text-red-800 mt-2">Please fix the issues and resubmit</p>
+
         </div>
 
     <?php elseif ($is_profile_pending): ?>
-        <p class="text-xs text-amber-700 font-medium pl-7 mt-1">Under review — we'll notify you soon</p>
 
-    <?php elseif ($is_profile_approved && !empty($profile['last_profile_update'])): ?>
-        <?php 
-        $next = date('M j, Y', strtotime($profile['last_profile_update'] . ' +1 year'));
-        ?>
-        <p class="text-xs text-emerald-700 font-medium pl-7 mt-1">Next update available: <span class="font-bold"><?php echo $next; ?></span></p>
+        <div class="bg-amber-100 rounded-xl px-4 py-3 border border-amber-200">
+
+            <p class="text-sm font-medium text-amber-900 flex items-center gap-2">
+
+                <i class="fas fa-spinner fa-pulse text-amber-600"></i>
+
+                Your profile is under review
+
+            </p>
+
+            <p class="text-xs text-amber-700 mt-2">We'll notify you via email once approved (usually within 24-48 hours)</p>
+
+        </div>
+
+    <?php elseif ($is_profile_new): ?>
+
+        <div class="bg-blue-50 rounded-xl px-4 py-3 border border-blue-200">
+
+            <p class="text-sm font-medium text-blue-900">Complete your profile to get verified</p>
+
+            <p class="text-xs text-blue-700 mt-1">Unlock full access and visibility</p>
+
+        </div>
 
     <?php elseif (!$submission_open): ?>
-        <p class="text-xs text-gray-600 pl-7 mt-1">Updates temporarily closed by admin</p>
+
+        <div class="bg-gray-100 rounded-xl px-4 py-2.5">
+
+            <p class="text-xs font-medium text-gray-700 text-center">Profile updates are temporarily closed by admin</p>
+
+        </div>
+
+    <?php elseif ($is_profile_approved): ?>
+
+        <?php
+
+        $last_update = $profile['last_profile_update'] ?? null;
+
+        $next_update = $last_update ? date('F j, Y', strtotime($last_update . ' +1 year')) : 'one year from approval';
+
+        ?>
+
+        <p class="text-sm text-emerald-800 font-medium">
+
+            Approved ✓ — Next update available: <span class="font-bold"><?php echo $next_update; ?></span>
+
+        </p>
+
     <?php endif; ?>
 
-    <!-- Action Button (Only for editable states) -->
-    <?php if ($is_profile_rejected || $can_update): ?>
-        <div class="mt-3 -mx-1">
-            <button type="button" class="w-full <?php echo $is_profile_rejected ? 'bg-red-500 hover:bg-red-600' : 'bg-emerald-500 hover:bg-emerald-600'; ?> text-white text-xs font-medium py-2.5 rounded-lg transition-all duration-200 flex items-center justify-center gap-1.5 shadow-sm hover:shadow">
-                <i class="fas fa-edit text-xs"></i>
-                <span>
-                    <?php echo $is_profile_rejected ? 'Edit & Resubmit' : ($is_profile_new ? 'Complete Profile' : 'Update Profile'); ?>
+    <!-- Action Button - Only when editable (Prominent & Modern) -->
+
+    <?php if ($is_profile_rejected || $can_update || $is_profile_new): ?>
+
+        <div class="mt-5">
+
+            <button type="button" class="w-full <?php
+
+                echo $is_profile_rejected ? 'bg-red-600 hover:bg-red-700 focus:ring-red-300' : 'bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-300';
+
+            ?> text-white font-semibold text-base py-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center gap-3 transform hover:scale-[1.02] active:scale-100">
+
+                <i class="fas <?php echo $is_profile_rejected ? 'fa-tools' : 'fa-edit'; ?> text-lg"></i>
+
+                <span class="tracking-tight">
+
+                    <?php echo $is_profile_rejected ? 'Edit & Resubmit Profile' : ($is_profile_new ? 'Create My Profile Now' : 'Update Profile Information'); ?>
+
                 </span>
+
             </button>
-            <p class="text-center text-xs text-gray-500 mt-1.5">
-                <?php echo $is_profile_rejected ? 'Make changes to get approved' : 'Keep your info current'; ?>
+
+            <p class="text-center text-xs text-gray-500 mt-3 font-medium">
+
+                <?php echo $is_profile_rejected ? 'Make corrections to get approved quickly' : 'Keep your information up to date'; ?>
+
             </p>
+
         </div>
+
     <?php endif; ?>
+
 </div>
 
       <!-- FIXED: Show profile cards only when personal data exists -->
