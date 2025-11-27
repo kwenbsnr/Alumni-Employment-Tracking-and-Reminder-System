@@ -1,6 +1,4 @@
 <?php
-
-
 // Fetch user data from users table - FIXED QUERY
 $stmt = $conn->prepare("
     SELECT 
@@ -126,7 +124,13 @@ $page_title = $page_title ?? "Alumni Page";
             height: 100%;
             object-fit: cover;
         }
-        
+
+        /* Very thin dark green line below header */
+        .header-accent-line {
+            height: 2px;
+            background-color: #022502; /* Very dark green */
+            width: 100%;
+        }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen flex">
@@ -135,12 +139,12 @@ $page_title = $page_title ?? "Alumni Page";
         <div class="sidebar-wrapper flex flex-col justify-between">
             <div class="p-6">
                 <!-- Logo -->
-                    <div class="flex items-center space-x-3 mb-10">
-                        <div class="w-12 h-12 rounded-xl bg-white bg-opacity-20 flex items-center justify-center">
-                            <i class="fas fa-graduation-cap text-2xl"></i>
-                        </div>
-                        <h2 class="font-bold text-2xl">Alumni Portal</h2>
+                <div class="flex items-center space-x-3 mb-10">
+                    <div class="w-12 h-12 rounded-xl bg-white bg-opacity-20 flex items-center justify-center">
+                        <i class="fas fa-graduation-cap text-2xl"></i>
                     </div>
+                    <h2 class="font-bold text-2xl">Alumni Portal</h2>
+                </div>
 
                 <!-- User Profile -->
                 <div class="sidebar-profile pb-6 mb-6">
@@ -149,11 +153,9 @@ $page_title = $page_title ?? "Alumni Page";
                             <?php
                             if ($photo_path && file_exists("../" . $photo_path)) {
                                 $photo_url = "../" . htmlspecialchars($photo_path);
-                                // Add timestamp to prevent browser caching
                                 $photo_url .= '?v=' . filemtime("../" . $photo_path);
                                 echo '<img src="' . $photo_url . '" alt="Profile" class="w-full h-full object-cover">';
                             } else {
-                                // Show initials
                                 $initials = 'AL';
                                 if ($full_name !== 'Alumni') {
                                     $parts = array_filter(explode(' ', $full_name));
@@ -249,6 +251,9 @@ $page_title = $page_title ?? "Alumni Page";
             </div>
         </div>
 
+        <!-- Thin dark green accent line below header -->
+        <div class="header-accent-line"></div>
+
         <!-- Main Content -->
         <main class="flex-1 p-5 overflow-hidden">
             <?php echo $page_content ?? ''; ?>
@@ -292,7 +297,7 @@ $page_title = $page_title ?? "Alumni Page";
                 helpButton.addEventListener('click', () => {
                     alert('Need help? Contact the alumni support team at alumni-support@university.edu');
                 });
-        }
+            }
         });
     </script>
 </body>
