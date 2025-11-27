@@ -3,6 +3,7 @@
 require_once '../../connect.php';
 require_once '../../vendor/autoload.php';
 require_once '../../config/notification_config.php';
+require_once 'notif_service.php';
 
 use NotificationAPI\NotificationAPI;
 
