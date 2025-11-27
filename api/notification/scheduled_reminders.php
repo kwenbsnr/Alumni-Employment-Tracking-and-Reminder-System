@@ -3,35 +3,20 @@
 require_once '../../connect.php';
 require_once '../../vendor/autoload.php';
 require_once '../../config/notification_config.php';
-
-use NotificationAPI\NotificationAPI;
+require_once 'notif_service.php';
 
 // Simple function to send profile update reminder
 function sendProfileUpdateReminder($alumni_email, $alumni_name, $graduation_year, $reminder_type = 'initial') {
     try {
-        $notificationapi = new NotificationAPI(
-            "ls4kt1i6t2hhh7rxd51k00rjj3",
-            "rtdiclclahiqxqr692c86zyk9in81pmlc2kol4j3n9x3gk7dyy3qco19av"
+        // Use the unified notification service instead of creating new NotificationAPI
+        $result = send_profile_update_reminder(
+            $alumni_email,
+            $alumni_name,
+            $graduation_year
         );
-
-        $result = $notificationapi->send([
-            'notificationId' => 'alumni_employment_tracking_update_your_profile',
-            'templateId' => 'template_one',
-            'user' => [
-                'id' => md5($alumni_email),
-                'email' => $alumni_email
-            ],
-            'mergeTags' => [
-                "alumni_name" => $alumni_name,
-                "graduation_year" => $graduation_year,
-                "alumni_portal_link" => "/alumni/alumni_dashboard.php",
-                "name" => $alumni_name,
-                "reminder_type" => $reminder_type
-            ]
-        ]);
-
+        
         logNotification($alumni_email, 'template_one', 'sent');
-        return ['success' => true, 'data' => $result];
+        return $result;
         
     } catch (Exception $e) {
         logNotification($alumni_email, 'template_one', 'failed', $e->getMessage());
@@ -204,4 +189,3 @@ if (isset($conn) && $conn) {
     error_log("Scheduled reminders: " . $result);
     echo $result;
 }
-?>
