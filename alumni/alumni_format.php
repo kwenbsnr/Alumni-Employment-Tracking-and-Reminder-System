@@ -39,11 +39,11 @@ $page_title = $page_title ?? "Alumni Page";
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         :root {
-            --primary-green: #034f03;
-            --forest-green: #026a02;
-            --lime-green: #016801;
-            --sea-green: #1d681d;
-            --light-bg: #06690e;
+            --primary-green: #033803ff;
+            --forest-green: #013501ff;
+            --lime-green: #015301ff;
+            --sea-green: #004200ff;
+            --light-bg: #014707ff;
             --dark-text: #1C1C1C;
         }
         .gradient-bg {
@@ -135,12 +135,12 @@ $page_title = $page_title ?? "Alumni Page";
         <div class="sidebar-wrapper flex flex-col justify-between">
             <div class="p-6">
                 <!-- Logo -->
-                <div class="flex items-center space-x-3 mb-8">
-                    <div class="w-10 h-10 rounded-full bg-white bg-opacity-20 flex items-center justify-center">
-                        <i class="fas fa-graduation-cap text-lg" aria-hidden="true"></i>
+                    <div class="flex items-center space-x-3 mb-10">
+                        <div class="w-12 h-12 rounded-xl bg-white bg-opacity-20 flex items-center justify-center">
+                            <i class="fas fa-graduation-cap text-2xl"></i>
+                        </div>
+                        <h2 class="font-bold text-2xl">Alumni Portal</h2>
                     </div>
-                    <h2 class="font-bold text-lg">Alumni Portal</h2>
-                </div>
 
                 <!-- User Profile -->
                 <div class="sidebar-profile pb-6 mb-6">
