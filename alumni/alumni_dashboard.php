@@ -229,15 +229,15 @@ ob_start();
             <?php unset($_SESSION['show_welcome']); ?>
         <?php endif; ?>
 
-        <!-- Main Content Grid -->
-        <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <!-- Main Content Grid - IMPROVED LAYOUT -->
+        <div class="grid grid-cols-1 xl:grid-cols-4 gap-6">
             <!-- Left Column - Profile Completion & Quick Actions -->
-            <div class="xl:col-span-2 space-y-6">
-                <!-- Profile Completion Card -->
+            <div class="xl:col-span-3 space-y-6">
+                <!-- Profile Completion Card - IMPROVED SPACING -->
                 <div class="bg-white rounded-xl shadow-2xl border border-indigo-100 overflow-hidden hover:shadow-3xl transition-all duration-500">
                     <div class="p-6 bg-gradient-to-br from-white to-gray-50">
-                        <div class="flex items-start justify-between mb-4"> 
-                            <div class="flex items-center space-x-4">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                            <div class="md:col-span-2 flex items-center space-x-4">
                                 <div class="relative">
                                     <div class="w-14 h-14 <?php
                                         echo $profile_status === 'Complete' ? 'bg-gradient-to-br from-emerald-500 to-green-600 text-white shadow-xl' :
@@ -258,22 +258,41 @@ ob_start();
                                 </div>
                                 <div>
                                     <h3 class="text-xl font-extrabold text-indigo-900">Profile Completion</h3> 
+                                    <div class="flex items-center mt-1">
+                                        <span class="text-sm font-extrabold <?php
+                                            echo $profile_status === 'Complete' ? 'text-emerald-700 bg-emerald-100 border-2 border-emerald-400' :
+                                                    ($profile_status === 'Pending Approval' ? 'text-amber-700 bg-amber-100 border-2 border-amber-400' :
+                                                    'text-red-700 bg-red-100 border-2 border-red-400');
+                                            ?> px-3 py-1 rounded-lg shadow-inner uppercase tracking-wider text-xs">
+                                            <?php echo $profile_status; ?>
+                                        </span>
+                                        <?php if ($profile_status === 'Ready to Submit'): ?>
+                                            <button class="ml-2 text-xs bg-gradient-to-r from-indigo-500 to-blue-600 hover:from-indigo-600 hover:to-blue-700 text-white px-3 py-1 rounded-lg font-bold shadow-md transform hover:scale-105 transition duration-300 animate-pulse">
+                                                <i class="fas fa-paper-plane mr-1"></i> Submit Now
+                                            </button>
+                                        <?php endif; ?>
+                                    </div>
                                 </div>
                             </div>
                             
-                            <div class="flex flex-col items-end gap-2 mt-0">
-                                 <span class="text-sm font-extrabold <?php
-                                    echo $profile_status === 'Complete' ? 'text-emerald-700 bg-emerald-100 border-2 border-emerald-400' :
-                                            ($profile_status === 'Pending Approval' ? 'text-amber-700 bg-amber-100 border-2 border-amber-400' :
-                                            'text-red-700 bg-red-100 border-2 border-red-400');
-                                    ?> px-4 py-1.5 rounded-lg shadow-inner uppercase tracking-wider">
-                                    <?php echo $profile_status; ?>
-                                </span>
-                                <?php if ($profile_status === 'Ready to Submit'): ?>
-                                    <button class="text-xs bg-gradient-to-r from-indigo-500 to-blue-600 hover:from-indigo-600 hover:to-blue-700 text-white px-3 py-1.5 rounded-lg font-bold shadow-md transform hover:scale-105 transition duration-300 animate-pulse">
-                                        <i class="fas fa-paper-plane mr-1"></i> Submit Now
-                                    </button>
-                                <?php endif; ?>
+                            <div class="flex flex-col items-end justify-center">
+                                <div class="text-right">
+                                    <span class="text-sm font-semibold text-gray-700">Overall Progress</span>
+                                    <div class="flex items-center justify-end space-x-2 mt-1">
+                                        <span class="text-xl font-extrabold <?php echo $completion_percentage >= 90 ? 'text-emerald-600' : ($completion_percentage >= 70 ? 'text-amber-600' : 'text-red-600'); ?>">
+                                            <?php echo $completion_percentage; ?>%
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="w-full h-2 bg-gray-200 rounded-full overflow-hidden shadow-inner mt-2">
+                                    <div class="h-full transition-all duration-1000 rounded-full relative <?php
+                                        echo $completion_percentage >= 90 ? 'bg-gradient-to-r from-emerald-500 to-green-500' :
+                                             ($completion_percentage >= 70 ? 'bg-gradient-to-r from-amber-500 to-orange-500' :
+                                             'bg-gradient-to-r from-red-500 to-pink-500');
+                                        ?>" style="width: <?php echo $completion_percentage; ?>%">
+                                        <div class="absolute inset-0 bg-white/20"></div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -281,23 +300,7 @@ ob_start();
                         <div class="border-b border-gray-200 my-4"></div>
 
                         <div class="space-y-5">
-                            <div class="flex justify-between items-center">
-                                <span class="font-semibold text-gray-700">Overall Progress</span>
-                                <span class="text-xl font-extrabold <?php echo $completion_percentage >= 90 ? 'text-emerald-600' : ($completion_percentage >= 70 ? 'text-amber-600' : 'text-red-600'); ?>">
-                                    <?php echo $completion_percentage; ?>%
-                                </span>
-                            </div>
-                            <div class="w-full h-3 bg-gray-200 rounded-full overflow-hidden shadow-inner">
-                                <div class="h-full transition-all duration-1000 rounded-full relative <?php
-                                    echo $completion_percentage >= 90 ? 'bg-gradient-to-r from-emerald-500 to-green-500' :
-                                         ($completion_percentage >= 70 ? 'bg-gradient-to-r from-amber-500 to-orange-500' :
-                                         'bg-gradient-to-r from-red-500 to-pink-500');
-                                    ?>" style="width: <?php echo $completion_percentage; ?>%">
-                                    <div class="absolute inset-0 bg-white/20"></div>
-                                </div>
-                            </div>
-
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div class="bg-gradient-to-br from-indigo-50 to-indigo-100 border border-indigo-200 rounded-xl p-4 shadow-md">
                                     <div class="flex items-center justify-between mb-2">
                                         <h4 class="font-bold text-indigo-900 flex items-center gap-2 text-sm">
@@ -365,11 +368,11 @@ ob_start();
                                 </div>
                             </div>
 
-                            <div class="bg-indigo-50 rounded-xl p-5 border border-indigo-200 mt-5">
-                                <p class="text-sm font-bold text-indigo-800 mb-4 flex items-center gap-2">
+                            <div class="bg-indigo-50 rounded-xl p-4 border border-indigo-200">
+                                <p class="text-sm font-bold text-indigo-800 mb-3 flex items-center gap-2">
                                     <i class="fas fa-list-check text-indigo-500"></i> Completion Checklist
                                 </p>
-                                <p class="text-xs text-gray-700 mb-4">
+                                <p class="text-xs text-gray-700 mb-3">
                                     <?php
                                     echo $profile_status === 'Complete' ? '✅ Great job! Your profile is fully verified. Enjoy full access.'
                                                 : ($profile_status === 'Pending Approval' ? '⏳ We are currently reviewing your information. This may take 1-2 business days.'
@@ -377,22 +380,22 @@ ob_start();
                                                 : '🔔 Complete the following steps to submit your profile for verification.'));
                                     ?>
                                 </p>
-                                <div class="grid grid-cols-2 gap-3 text-sm">
+                                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                                     <div class="flex items-center gap-2 font-medium <?php echo $has_basic_info ? 'text-emerald-600' : 'text-gray-600'; ?>">
                                         <i class="fas <?php echo $has_basic_info ? 'fa-check-circle' : 'fa-circle-dot'; ?> <?php echo $has_basic_info ? 'text-emerald-500' : 'text-gray-400'; ?>"></i>
-                                        <span>Basic Info & Employment</span>
+                                        <span class="text-xs">Basic Info & Employment</span>
                                     </div>
                                     <div class="flex items-center gap-2 font-medium <?php echo $has_address ? 'text-emerald-600' : 'text-gray-600'; ?>">
                                         <i class="fas <?php echo $has_address ? 'fa-check-circle' : 'fa-circle-dot'; ?> <?php echo $has_address ? 'text-emerald-500' : 'text-gray-400'; ?>"></i>
-                                        <span>Address & Contact</span>
+                                        <span class="text-xs">Address & Contact</span>
                                     </div>
                                     <div class="flex items-center gap-2 font-medium <?php echo $has_photo ? 'text-emerald-600' : 'text-gray-600'; ?>">
                                         <i class="fas <?php echo $has_photo ? 'fa-check-circle' : 'fa-circle-dot'; ?> <?php echo $has_photo ? 'text-emerald-500' : 'text-gray-400'; ?>"></i>
-                                        <span>Profile Photo</span>
+                                        <span class="text-xs">Profile Photo</span>
                                     </div>
                                     <div class="flex items-center gap-2 font-medium <?php echo $has_documents ? 'text-emerald-600' : 'text-gray-600'; ?>">
                                         <i class="fas <?php echo $has_documents ? 'fa-check-circle' : 'fa-circle-dot'; ?> <?php echo $has_documents ? 'text-emerald-500' : 'text-gray-400'; ?>"></i>
-                                        <span>Documents Uploaded</span>
+                                        <span class="text-xs">Documents Uploaded</span>
                                     </div>
                                 </div>
                             </div>
@@ -400,7 +403,7 @@ ob_start();
                     </div>
                 </div>
 
-                <!-- Quick Actions Card -->
+                <!-- Quick Actions Card - IMPROVED SPACING -->
                 <div class="bg-white rounded-xl shadow-lg border-2 border-indigo-200 overflow-hidden">
                     <div class="bg-gradient-to-r from-indigo-50 to-purple-50 px-6 py-3 border-b border-indigo-200">
                         <h3 class="text-lg font-extrabold text-indigo-800">🚀 Quick Actions</h3>
@@ -459,9 +462,9 @@ ob_start();
                 </div>
             </div>
 
-            <!-- Right Column - Recent Activity -->
+            <!-- Right Column - Recent Activity - ADJUSTED HEIGHT -->
             <div class="xl:col-span-1">
-                <div class="bg-white rounded-xl shadow-lg border-t-4 border-b-4 border-indigo-300 overflow-hidden h-full min-h-[600px] flex flex-col transition-shadow duration-500 hover:shadow-xl">
+                <div class="bg-white rounded-xl shadow-lg border-t-4 border-b-4 border-indigo-300 overflow-hidden h-full flex flex-col transition-shadow duration-500 hover:shadow-xl">
                     <div class="p-5 border-b border-indigo-100 bg-gradient-to-r from-indigo-50 to-purple-50">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center space-x-3">
@@ -588,6 +591,20 @@ ob_start();
                                 </div>
                             </div>
                         <?php endif; ?>
+                    </div>
+                    
+                    <!-- Activity Summary Section -->
+                    <div class="p-4 border-t border-gray-200 bg-gray-50">
+                        <div class="flex justify-between items-center text-sm">
+                            <div>
+                                <p class="font-semibold text-gray-700">Activity Summary</p>
+                                <p class="text-xs text-gray-500">Last 30 days</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-bold text-indigo-700"><?php echo $activities->num_rows; ?> activities</p>
+                                <p class="text-xs text-gray-500">Keep it up!</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
