@@ -2,6 +2,7 @@
 ob_start();
 session_start();
 include("../connect.php");
+require_once '../api/notification/notif_service.php';
 
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
