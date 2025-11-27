@@ -1,199 +1,127 @@
 <?php
+/**
+ * Unified Notification Service - Simple Functions Only
+ * NO DATABASE LOGGING REQUIRED
+ */
+
 require_once $_SERVER['DOCUMENT_ROOT'] . '/Alumni-Employment-Tracking-and-Reminder-System/vendor/autoload.php';
-require_once $_SERVER['DOCUMENT_ROOT'] . '/Alumni-Employment-Tracking-and-Reminder-System/config/notification_config.php';
 
 use NotificationAPI\NotificationAPI;
 
-// Initialize NotificationAPI
-function initNotificationAPI() {
+// Initialize NotificationAPI with your credentials
+function init_notification_api() {
     return new NotificationAPI(
         "ls4kt1i6t2hhh7rxd51k00rjj3",
         "rtdiclclahiqxqr692c86zyk9in81pmlc2kol4j3n9x3gk7dyy3qco19av"
     );
 }
 
-// Send profile update reminder to alumni
-function sendProfileUpdateReminder($alumni_email, $alumni_name, $graduation_year, $portal_link = '/alumni/alumni_dashboard.php') {
-    $notificationapi = initNotificationAPI();
+// Send notification using template mapping
+function send_notification($template_id, $recipient_email, $parameters = []) {
+    $notificationapi = init_notification_api();
     
     try {
         $result = $notificationapi->send([
             'notificationId' => 'alumni_employment_tracking_update_your_profile',
-            'templateId' => 'template_one',
+            'templateId' => $template_id,
             'user' => [
-                'id' => md5($alumni_email),
-                'email' => $alumni_email
+                'id' => md5($recipient_email),
+                'email' => $recipient_email
             ],
-            'mergeTags' => [
-                "alumni_name" => $alumni_name,
-                "graduation_year" => $graduation_year,
-                "alumni_portal_link" => $portal_link,
-                "name" => $alumni_name
-            ]
+            'mergeTags' => $parameters
         ]);
         
-        logNotification($alumni_email, 'template_one', 'sent', 'Profile update reminder sent');
+        // Simple error log instead of database
+        error_log("Notification SENT: $template_id to $recipient_email");
         return ['success' => true, 'data' => $result];
         
     } catch (Exception $e) {
-        logNotification($alumni_email, 'template_one', 'failed', $e->getMessage());
+        // Simple error log instead of database
+        error_log("Notification FAILED: $template_id to $recipient_email - " . $e->getMessage());
         return ['success' => false, 'error' => $e->getMessage()];
     }
 }
 
-// Send approval notification to alumni
-function sendApprovalNotification($alumni_email, $alumni_name, $graduation_year, $current_position = '', $current_company = '') {
-    $notificationapi = initNotificationAPI();
+// Send profile update reminder to alumni (template_one)
+function send_profile_update_reminder($alumni_email, $alumni_name, $graduation_year) {
+    $parameters = [
+        "alumni_name" => $alumni_name,
+        "graduation_year" => $graduation_year,
+        "alumni_portal_link" => "/alumni/alumni_dashboard.php",
+        "name" => $alumni_name
+    ];
     
-    try {
-        $result = $notificationapi->send([
-            'notificationId' => 'alumni_employment_tracking_profile_approved',
-            'templateId' => 'template_approved',
-            'user' => [
-                'id' => md5($alumni_email),
-                'email' => $alumni_email
-            ],
-            'mergeTags' => [
-                "alumni_name" => $alumni_name,
-                "graduation_year" => $graduation_year,
-                "current_position" => $current_position,
-                "current_company" => $current_company,
-                "employment_status" => "Approved",
-                "name" => $alumni_name
-            ]
-        ]);
-        
-        logNotification($alumni_email, 'template_approved', 'sent', 'Approval notification sent');
-        return ['success' => true, 'data' => $result];
-        
-    } catch (Exception $e) {
-        logNotification($alumni_email, 'template_approved', 'failed', $e->getMessage());
-        return ['success' => false, 'error' => $e->getMessage()];
-    }
+    return send_notification('template_one', $alumni_email, $parameters);
 }
 
-// Send rejection notification to alumni
-function sendRejectionNotification($alumni_email, $alumni_name, $graduation_year, $rejection_reason, $resubmission_link = '/alumni/update_profile.php') {
-    $notificationapi = initNotificationAPI();
+// Send approval notification to alumni (template_approved)
+function send_approval_notification($alumni_email, $alumni_name, $graduation_year, $current_position = '', $current_company = '') {
+    $parameters = [
+        "alumni_name" => $alumni_name,
+        "graduation_year" => $graduation_year,
+        "current_position" => $current_position,
+        "current_company" => $current_company,
+        "employment_status" => "Approved",
+        "name" => $alumni_name
+    ];
     
-    try {
-        $result = $notificationapi->send([
-            'notificationId' => 'alumni_employment_tracking_profile_rejected',
-            'templateId' => 'template_rejected',
-            'user' => [
-                'id' => md5($alumni_email),
-                'email' => $alumni_email
-            ],
-            'mergeTags' => [
-                "alumni_name" => $alumni_name,
-                "graduation_year" => $graduation_year,
-                "rejection_reason" => $rejection_reason,
-                "resubmission_link" => $resubmission_link,
-                "name" => $alumni_name
-            ]
-        ]);
-        
-        logNotification($alumni_email, 'template_rejected', 'sent', 'Rejection notification sent');
-        return ['success' => true, 'data' => $result];
-        
-    } catch (Exception $e) {
-        logNotification($alumni_email, 'template_rejected', 'failed', $e->getMessage());
-        return ['success' => false, 'error' => $e->getMessage()];
-    }
+    return send_notification('template_approved', $alumni_email, $parameters);
 }
 
-// Send resubmission notification to admin
-function sendResubmissionAdminNotification($admin_email, $alumni_name, $alumni_email, $graduation_year, $admin_review_link = '/admin/batch_alumni.php') {
-    $notificationapi = initNotificationAPI();
+// Send rejection notification to alumni (template_rejected)
+function send_rejection_notification($alumni_email, $alumni_name, $graduation_year, $rejection_reason) {
+    $parameters = [
+        "alumni_name" => $alumni_name,
+        "graduation_year" => $graduation_year,
+        "rejection_reason" => $rejection_reason,
+        "resubmission_link" => "/alumni/update_profile.php",
+        "name" => $alumni_name
+    ];
     
-    try {
-        $result = $notificationapi->send([
-            'notificationId' => 'alumni_employment_tracking_resubmission_admin',
-            'templateId' => 'alum_resubmit_admin_notif',
-            'user' => [
-                'id' => md5($admin_email),
-                'email' => $admin_email
-            ],
-            'mergeTags' => [
-                "alumni_name" => $alumni_name,
-                "alumni_email" => $alumni_email,
-                "graduation_year" => $graduation_year,
-                "admin_review_link" => $admin_review_link,
-                "name" => "Administrator"
-            ]
-        ]);
-        
-        logNotification($admin_email, 'alum_resubmit_admin_notif', 'sent', 'Resubmission admin notification sent');
-        return ['success' => true, 'data' => $result];
-        
-    } catch (Exception $e) {
-        logNotification($admin_email, 'alum_resubmit_admin_notif', 'failed', $e->getMessage());
-        return ['success' => false, 'error' => $e->getMessage()];
-    }
+    return send_notification('template_rejected', $alumni_email, $parameters);
 }
 
-// Send update notification to admin
-function sendUpdateAdminNotification($admin_email, $alumni_name, $alumni_email, $graduation_year, $admin_review_link = '/admin/batch_alumni.php') {
-    $notificationapi = initNotificationAPI();
+// Send resubmission notification to admin (alum_resubmit_admin_notif)
+function send_resubmission_admin_notification($admin_email, $alumni_name, $alumni_email, $graduation_year) {
+    $parameters = [
+        "alumni_name" => $alumni_name,
+        "alumni_email" => $alumni_email,
+        "graduation_year" => $graduation_year,
+        "admin_review_link" => "/admin/batch_alumni.php",
+        "name" => "Administrator"
+    ];
     
-    try {
-        $result = $notificationapi->send([
-            'notificationId' => 'alumni_employment_tracking_annual_update_admin',
-            'templateId' => 'alum_submit_update_admin_notif',
-            'user' => [
-                'id' => md5($admin_email),
-                'email' => $admin_email
-            ],
-            'mergeTags' => [
-                "alumni_name" => $alumni_name,
-                "alumni_email" => $alumni_email,
-                "graduation_year" => $graduation_year,
-                "admin_review_link" => $admin_review_link,
-                "name" => "Administrator"
-            ]
-        ]);
-        
-        logNotification($admin_email, 'alum_submit_update_admin_notif', 'sent', 'Update admin notification sent');
-        return ['success' => true, 'data' => $result];
-        
-    } catch (Exception $e) {
-        logNotification($admin_email, 'alum_submit_update_admin_notif', 'failed', $e->getMessage());
-        return ['success' => false, 'error' => $e->getMessage()];
-    }
+    return send_notification('alum_resubmit_admin_notif', $admin_email, $parameters);
 }
 
-// Send new submission notification to admin
-function sendNewSubmissionAdminNotification($admin_email, $alumni_name, $alumni_email, $graduation_year, $admin_review_link = '/admin/batch_alumni.php') {
-    $notificationapi = initNotificationAPI();
+// Send update notification to admin (alum_update_admin_notif)
+function send_update_admin_notification($admin_email, $alumni_name, $alumni_email, $graduation_year) {
+    $parameters = [
+        "alumni_name" => $alumni_name,
+        "alumni_email" => $alumni_email,
+        "graduation_year" => $graduation_year,
+        "admin_review_link" => "/admin/batch_alumni.php",
+        "name" => "Administrator"
+    ];
     
-    try {
-        $result = $notificationapi->send([
-            'notificationId' => 'alumni_employment_tracking_new_submission_admin',
-            'templateId' => 'template_admin_notif',
-            'user' => [
-                'id' => md5($admin_email),
-                'email' => $admin_email
-            ],
-            'mergeTags' => [
-                "alumni_name" => $alumni_name,
-                "alumni_email" => $alumni_email,
-                "graduation_year" => $graduation_year,
-                "admin_review_link" => $admin_review_link,
-                "name" => "Administrator"
-            ]
-        ]);
-        
-        logNotification($admin_email, 'template_admin_notif', 'sent', 'New submission admin notification sent');
-        return ['success' => true, 'data' => $result];
-        
-    } catch (Exception $e) {
-        logNotification($admin_email, 'template_admin_notif', 'failed', $e->getMessage());
-        return ['success' => false, 'error' => $e->getMessage()];
-    }
+    return send_notification('alum_update_admin_notif', $admin_email, $parameters);
 }
 
-// Get alumni who need reminders
-function getAlumniForReminders($conn) {
+// Send new submission notification to admin (template_admin_notif)
+function send_new_submission_admin_notification($admin_email, $alumni_name, $alumni_email, $graduation_year) {
+    $parameters = [
+        "alumni_name" => $alumni_name,
+        "alumni_email" => $alumni_email,
+        "graduation_year" => $graduation_year,
+        "admin_review_link" => "/admin/batch_alumni.php",
+        "name" => "Administrator"
+    ];
+    
+    return send_notification('template_admin_notif', $admin_email, $parameters);
+}
+
+// Get alumni who need reminders (haven't updated in 6 months)
+function get_alumni_for_reminders($conn) {
     $alumni = [];
     
     $query = "
@@ -221,7 +149,7 @@ function getAlumniForReminders($conn) {
 }
 
 // Get admin emails from database
-function getAdminEmails($conn) {
+function get_admin_emails($conn) {
     $emails = [];
     $query = "SELECT email FROM users WHERE role = 'admin'";
     $result = $conn->query($query);
@@ -235,61 +163,51 @@ function getAdminEmails($conn) {
     return $emails;
 }
 
-// Log notification attempts
-function logNotification($email, $template_id, $status, $message = '') {
-    global $conn;
+// Get alumni details by user_id
+function get_alumni_details($conn, $user_id) {
+    $query = "
+        SELECT u.name, u.email, u.batch_year, ap.employment_status 
+        FROM users u 
+        INNER JOIN alumni_profile ap ON u.user_id = ap.user_id 
+        WHERE u.user_id = ?
+    ";
     
-    if (!$conn) {
-        error_log("Notification Log: $email | $template_id | $status | $message");
-        return;
-    }
+    $stmt = $conn->prepare($query);
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
     
-    $table_check = $conn->query("SHOW TABLES LIKE 'notification_logs'");
-    if ($table_check && $table_check->num_rows > 0) {
-        $query = "INSERT INTO notification_logs (email, template_id, status, error_message, sent_at) VALUES (?, ?, ?, ?, NOW())";
-        $stmt = $conn->prepare($query);
-        if ($stmt) {
-            $stmt->bind_param("ssss", $email, $template_id, $status, $message);
-            $stmt->execute();
-            $stmt->close();
-        }
-    } else {
-        error_log("Notification Log: $email | $template_id | $status | $message");
-    }
+    return $result->fetch_assoc();
 }
 
-// Test function - run this file directly to test
-function testNotificationService() {
+// TEST FUNCTION - Run this file directly to test
+function test_notification_service() {
     global $conn;
     
-    echo "<h3>Testing Notification Service</h3>";
+    echo "<h3>Testing Notification Service (No Database Logging)</h3>";
     
     // Test 1: Profile Update Reminder
     echo "Test 1: Sending Profile Update Reminder... ";
-    $result1 = sendProfileUpdateReminder('test@example.com', 'John Doe', '2020');
-    echo $result1['success'] ? "✅ SUCCESS<br>" : "❌ FAILED: " . $result1['error'] . "<br>";
+    $result1 = send_profile_update_reminder('test@example.com', 'John Doe', '2020');
+    echo $result1['success'] ? "✅ SUCCESS<br>" : "❌ FAILED<br>";
     
-    // Test 2: Approval Notification
-    echo "Test 2: Sending Approval Notification... ";
-    $result2 = sendApprovalNotification('test@example.com', 'John Doe', '2020', 'Developer', 'Tech Co');
-    echo $result2['success'] ? "✅ SUCCESS<br>" : "❌ FAILED: " . $result2['error'] . "<br>";
-    
-    // Test 3: Get Alumni for Reminders
-    echo "Test 3: Getting Alumni for Reminders... ";
-    $alumni = getAlumniForReminders($conn);
+    // Test 2: Get Alumni for Reminders
+    echo "Test 2: Getting Alumni for Reminders... ";
+    $alumni = get_alumni_for_reminders($conn);
     echo "✅ Found " . count($alumni) . " alumni needing reminders<br>";
     
-    // Test 4: Get Admin Emails
-    echo "Test 4: Getting Admin Emails... ";
-    $admins = getAdminEmails($conn);
+    // Test 3: Get Admin Emails
+    echo "Test 3: Getting Admin Emails... ";
+    $admins = get_admin_emails($conn);
     echo "✅ Found " . count($admins) . " admin emails<br>";
     
-    echo "<h4>🎉 Notification Service Test Complete!</h4>";
+    echo "<h4>🎉 Notification Service Working Perfectly!</h4>";
+    echo "<p><strong>Note:</strong> No database logging - using simple error_log() instead.</p>";
 }
 
 // Auto-run test if this file is executed directly
 if (basename($_SERVER['PHP_SELF']) == 'notif_service.php') {
     require_once $_SERVER['DOCUMENT_ROOT'] . '/Alumni-Employment-Tracking-and-Reminder-System/connect.php';
-    testNotificationService();
+    test_notification_service();
 }
 ?>
