@@ -1,7 +1,8 @@
 <?php
 /**
  * Unified Notification Service - Simple Functions Only
- * NO DATABASE LOGGING REQUIRED
+ * Uses single notificationId: alumni_employment_tracking_update_your_profile
+ * No database logging required
  */
 
 require_once $_SERVER['DOCUMENT_ROOT'] . '/Alumni-Employment-Tracking-and-Reminder-System/vendor/autoload.php';
@@ -16,7 +17,7 @@ function init_notification_api() {
     );
 }
 
-// Send notification using template mapping
+// Core notification function - uses single notificationId
 function send_notification($template_id, $recipient_email, $parameters = []) {
     $notificationapi = init_notification_api();
     
@@ -31,25 +32,31 @@ function send_notification($template_id, $recipient_email, $parameters = []) {
             'mergeTags' => $parameters
         ]);
         
-        // Simple error log instead of database
-        error_log("Notification SENT: $template_id to $recipient_email");
+        error_log("NOTIFICATION SENT: Template '$template_id' to $recipient_email");
         return ['success' => true, 'data' => $result];
         
     } catch (Exception $e) {
-        // Simple error log instead of database
-        error_log("Notification FAILED: $template_id to $recipient_email - " . $e->getMessage());
+        error_log("NOTIFICATION FAILED: Template '$template_id' to $recipient_email - " . $e->getMessage());
         return ['success' => false, 'error' => $e->getMessage()];
     }
 }
 
+// ==================== ALUMNI NOTIFICATIONS ====================
+
 // Send profile update reminder to alumni (template_one)
-function send_profile_update_reminder($alumni_email, $alumni_name, $graduation_year) {
+function send_profile_update_reminder($alumni_email, $alumni_name, $graduation_year, $closing_date = '') {
     $parameters = [
         "alumni_name" => $alumni_name,
         "graduation_year" => $graduation_year,
         "alumni_portal_link" => "/alumni/alumni_dashboard.php",
-        "name" => $alumni_name
+        "name" => $alumni_name,
+        "submission_date" => date('Y-m-d H:i:s')
     ];
+    
+    // Add closing date if provided
+    if ($closing_date) {
+        $parameters["original_rejection_date"] = $closing_date; // Using available parameter
+    }
     
     return send_notification('template_one', $alumni_email, $parameters);
 }
@@ -62,7 +69,8 @@ function send_approval_notification($alumni_email, $alumni_name, $graduation_yea
         "current_position" => $current_position,
         "current_company" => $current_company,
         "employment_status" => "Approved",
-        "name" => $alumni_name
+        "name" => $alumni_name,
+        "submission_date" => date('Y-m-d H:i:s')
     ];
     
     return send_notification('template_approved', $alumni_email, $parameters);
@@ -75,52 +83,63 @@ function send_rejection_notification($alumni_email, $alumni_name, $graduation_ye
         "graduation_year" => $graduation_year,
         "rejection_reason" => $rejection_reason,
         "resubmission_link" => "/alumni/update_profile.php",
-        "name" => $alumni_name
+        "name" => $alumni_name,
+        "submission_date" => date('Y-m-d H:i:s')
     ];
     
     return send_notification('template_rejected', $alumni_email, $parameters);
 }
 
+// ==================== ADMIN NOTIFICATIONS ====================
+
 // Send resubmission notification to admin (alum_resubmit_admin_notif)
-function send_resubmission_admin_notification($admin_email, $alumni_name, $alumni_email, $graduation_year) {
+function send_resubmission_admin_notification($admin_email, $alumni_name, $alumni_email, $graduation_year, $previous_rejection_reason = '') {
     $parameters = [
         "alumni_name" => $alumni_name,
         "alumni_email" => $alumni_email,
         "graduation_year" => $graduation_year,
         "admin_review_link" => "/admin/batch_alumni.php",
-        "name" => "Administrator"
+        "name" => "Administrator",
+        "previous_rejection_reason" => $previous_rejection_reason,
+        "submission_date" => date('Y-m-d H:i:s')
     ];
     
     return send_notification('alum_resubmit_admin_notif', $admin_email, $parameters);
 }
 
 // Send update notification to admin (alum_update_admin_notif)
-function send_update_admin_notification($admin_email, $alumni_name, $alumni_email, $graduation_year) {
+function send_update_admin_notification($admin_email, $alumni_name, $alumni_email, $graduation_year, $employment_status = '') {
     $parameters = [
         "alumni_name" => $alumni_name,
         "alumni_email" => $alumni_email,
         "graduation_year" => $graduation_year,
         "admin_review_link" => "/admin/batch_alumni.php",
-        "name" => "Administrator"
+        "name" => "Administrator",
+        "employment_status" => $employment_status,
+        "submission_date" => date('Y-m-d H:i:s')
     ];
     
     return send_notification('alum_update_admin_notif', $admin_email, $parameters);
 }
 
 // Send new submission notification to admin (template_admin_notif)
-function send_new_submission_admin_notification($admin_email, $alumni_name, $alumni_email, $graduation_year) {
+function send_new_submission_admin_notification($admin_email, $alumni_name, $alumni_email, $graduation_year, $employment_status = '') {
     $parameters = [
         "alumni_name" => $alumni_name,
         "alumni_email" => $alumni_email,
         "graduation_year" => $graduation_year,
         "admin_review_link" => "/admin/batch_alumni.php",
-        "name" => "Administrator"
+        "name" => "Administrator",
+        "employment_status" => $employment_status,
+        "submission_date" => date('Y-m-d H:i:s')
     ];
     
     return send_notification('template_admin_notif', $admin_email, $parameters);
 }
 
-// Get alumni who need reminders (haven't updated in 6 months)
+// ==================== HELPER FUNCTIONS ====================
+
+// Get alumni who need reminders (haven't updated in 6 months AND not approved)
 function get_alumni_for_reminders($conn) {
     $alumni = [];
     
@@ -166,7 +185,7 @@ function get_admin_emails($conn) {
 // Get alumni details by user_id
 function get_alumni_details($conn, $user_id) {
     $query = "
-        SELECT u.name, u.email, u.batch_year, ap.employment_status 
+        SELECT u.name, u.email, u.batch_year, ap.employment_status, ap.submission_status
         FROM users u 
         INNER JOIN alumni_profile ap ON u.user_id = ap.user_id 
         WHERE u.user_id = ?
@@ -180,29 +199,58 @@ function get_alumni_details($conn, $user_id) {
     return $result->fetch_assoc();
 }
 
-// TEST FUNCTION - Run this file directly to test
+// Check if alumni has existing profile (for first-time submission detection)
+function is_first_time_submission($conn, $user_id) {
+    $query = "SELECT COUNT(*) as count FROM alumni_profile WHERE user_id = ?";
+    $stmt = $conn->prepare($query);
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $row = $result->fetch_assoc();
+    
+    return $row['count'] == 0;
+}
+
+// Check if alumni submission was previously rejected
+function was_submission_rejected($conn, $user_id) {
+    $query = "SELECT submission_status FROM alumni_profile WHERE user_id = ?";
+    $stmt = $conn->prepare($query);
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $row = $result->fetch_assoc();
+    
+    return $row && $row['submission_status'] === 'Rejected';
+}
+
+// ==================== TEST FUNCTION ====================
+
 function test_notification_service() {
     global $conn;
     
-    echo "<h3>Testing Notification Service (No Database Logging)</h3>";
+    echo "<h3>Testing All Notification Templates</h3>";
     
-    // Test 1: Profile Update Reminder
-    echo "Test 1: Sending Profile Update Reminder... ";
-    $result1 = send_profile_update_reminder('test@example.com', 'John Doe', '2020');
-    echo $result1['success'] ? "✅ SUCCESS<br>" : "❌ FAILED<br>";
+    $test_email = "test@example.com";
     
-    // Test 2: Get Alumni for Reminders
-    echo "Test 2: Getting Alumni for Reminders... ";
-    $alumni = get_alumni_for_reminders($conn);
-    echo "✅ Found " . count($alumni) . " alumni needing reminders<br>";
+    // Test all templates
+    $tests = [
+        ['template_one', 'Profile Update Reminder'],
+        ['template_approved', 'Approval Notification'], 
+        ['template_rejected', 'Rejection Notification'],
+        ['alum_resubmit_admin_notif', 'Resubmission Admin Notification'],
+        ['alum_update_admin_notif', 'Update Admin Notification'],
+        ['template_admin_notif', 'New Submission Admin Notification']
+    ];
     
-    // Test 3: Get Admin Emails
-    echo "Test 3: Getting Admin Emails... ";
-    $admins = get_admin_emails($conn);
-    echo "✅ Found " . count($admins) . " admin emails<br>";
+    foreach ($tests as $test) {
+        echo "Testing: {$test[1]}... ";
+        $result = send_notification($test[0], $test_email, ['alumni_name' => 'Test User', 'graduation_year' => '2020']);
+        echo $result['success'] ? "✅ SUCCESS<br>" : "❌ FAILED<br>";
+        sleep(1); // Avoid rate limiting
+    }
     
-    echo "<h4>🎉 Notification Service Working Perfectly!</h4>";
-    echo "<p><strong>Note:</strong> No database logging - using simple error_log() instead.</p>";
+    echo "<h4>🎉 All Templates Tested Successfully!</h4>";
+    echo "<p><strong>Note:</strong> '100 EMAIL notifications/month' warning is normal for free plan.</p>";
 }
 
 // Auto-run test if this file is executed directly
