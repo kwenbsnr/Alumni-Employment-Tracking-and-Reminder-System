@@ -1,6 +1,4 @@
 <?php
-
-
 // Fetch user data from users table - FIXED QUERY
 $stmt = $conn->prepare("
     SELECT 
@@ -39,11 +37,11 @@ $page_title = $page_title ?? "Alumni Page";
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         :root {
-            --primary-green: #034f03;
-            --forest-green: #026a02;
-            --lime-green: #016801;
-            --sea-green: #1d681d;
-            --light-bg: #06690e;
+            --primary-green: #033803ff;
+            --forest-green: #013501ff;
+            --lime-green: #015301ff;
+            --sea-green: #004200ff;
+            --light-bg: #014707ff;
             --dark-text: #1C1C1C;
         }
         .gradient-bg {
@@ -126,6 +124,13 @@ $page_title = $page_title ?? "Alumni Page";
             height: 100%;
             object-fit: cover;
         }
+
+        /* Very thin dark green line below header */
+        .header-accent-line {
+            height: 2px;
+            background-color: #022502; /* Very dark green */
+            width: 100%;
+        }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen flex">
@@ -134,11 +139,11 @@ $page_title = $page_title ?? "Alumni Page";
         <div class="sidebar-wrapper flex flex-col justify-between">
             <div class="p-6">
                 <!-- Logo -->
-                <div class="flex items-center space-x-3 mb-8">
-                    <div class="w-10 h-10 rounded-full bg-white bg-opacity-20 flex items-center justify-center">
-                        <i class="fas fa-graduation-cap text-lg" aria-hidden="true"></i>
+                <div class="flex items-center space-x-3 mb-10">
+                    <div class="w-12 h-12 rounded-xl bg-white bg-opacity-20 flex items-center justify-center">
+                        <i class="fas fa-graduation-cap text-2xl"></i>
                     </div>
-                    <h2 class="font-bold text-lg">Alumni Portal</h2>
+                    <h2 class="font-bold text-2xl">Alumni Portal</h2>
                 </div>
 
                 <!-- User Profile -->
@@ -148,11 +153,9 @@ $page_title = $page_title ?? "Alumni Page";
                             <?php
                             if ($photo_path && file_exists("../" . $photo_path)) {
                                 $photo_url = "../" . htmlspecialchars($photo_path);
-                                // Add timestamp to prevent browser caching
                                 $photo_url .= '?v=' . filemtime("../" . $photo_path);
                                 echo '<img src="' . $photo_url . '" alt="Profile" class="w-full h-full object-cover">';
                             } else {
-                                // Show initials
                                 $initials = 'AL';
                                 if ($full_name !== 'Alumni') {
                                     $parts = array_filter(explode(' ', $full_name));
@@ -247,6 +250,9 @@ $page_title = $page_title ?? "Alumni Page";
                 </button>
             </div>
         </div>
+
+        <!-- Thin dark green accent line below header -->
+        <div class="header-accent-line"></div>
 
         <!-- Main Content -->
         <main class="flex-1 p-5 overflow-hidden">

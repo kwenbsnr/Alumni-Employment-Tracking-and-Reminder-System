@@ -269,63 +269,63 @@ if (isset($_SESSION['error_message'])) {
     <?php endif; ?>
 </div>
 
-    <!-- Inline Report Form -->
-    <div id="reportFormContainer" class="hidden bg-gradient-to-br from-green-50 to-white p-6 rounded-xl shadow-lg border-2 border-green-200">
-        <h2 class="text-2xl font-bold text-gray-800 mb-5 flex items-center gap-3">
-            <i class="fas fa-file-export text-green-600"></i> Customize Alumni Report
-        </h2>
-        <form method="POST" action="" class="space-y-6">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="bg-white p-5 rounded-xl border-2 border-gray-200">
-                    <h3 class="font-semibold text-lg mb-4 flex items-center gap-2">
-                        <i class="fas fa-layer-group text-blue-600"></i> Select Batches
-                    </h3>
-                    <div class="max-h-64 overflow-y-auto space-y-2">
-                        <?php foreach ($all_batches as $batch): ?>
-                            <label class="flex items-center space-x-3 p-2 rounded hover:bg-gray-50 cursor-pointer">
-                                <input type="checkbox" name="selected_batches[]" value="<?= $batch['batch_year'] ?>" checked class="h-4 w-4 text-green-600 rounded">
-                                <span class="flex-1">Batch <?= $batch['batch_year'] ?></span>
-                                <span class="text-gray-500 text-sm">(<?= $batch['total_count'] ?> records)</span>
-                            </label>
-                        <?php endforeach; ?>
-                    </div>
-                    <div class="mt-4 flex gap-3">
-                        <button type="button" id="selectAll" class="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded hover:bg-blue-200">Select All</button>
-                        <button type="button" id="deselectAll" class="text-xs bg-gray-100 text-gray-700 px-3 py-1 rounded hover:bg-gray-200">Deselect All</button>
-                    </div>
+<!-- Inline Report Form -->
+<div id="reportFormContainer" class="hidden bg-gradient-to-br from-green-50 to-white p-6 rounded-xl shadow-lg border-2 border-green-200">
+    <h2 class="text-2xl font-bold text-gray-800 mb-5 flex items-center gap-3">
+        <i class="fas fa-file-export text-green-600"></i> Customize Alumni Report
+    </h2>
+    <form method="POST" action="" class="space-y-6" id="reportForm" target="_blank">
+        <!-- Your existing form content remains the same -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Batch selection section -->
+            <div class="bg-white p-5 rounded-xl border-2 border-gray-200">
+                <h3 class="font-semibold text-lg mb-4 flex items-center gap-2">
+                    <i class="fas fa-layer-group text-blue-600"></i> Select Batches
+                </h3>
+                <div class="max-h-64 overflow-y-auto space-y-2">
+                    <?php foreach ($all_batches as $batch): ?>
+                        <label class="flex items-center space-x-3 p-2 rounded hover:bg-gray-50 cursor-pointer">
+                            <input type="checkbox" name="selected_batches[]" value="<?= $batch['batch_year'] ?>" checked class="h-4 w-4 text-green-600 rounded">
+                            <span class="flex-1">Batch <?= $batch['batch_year'] ?></span>
+                            <span class="text-gray-500 text-sm">(<?= $batch['total_count'] ?> records)</span>
+                        </label>
+                    <?php endforeach; ?>
                 </div>
-                <div class="bg-white p-5 rounded-xl border-2 border-gray-200 space-y-5">
-                   <!-- Inside the Report Form (dropdown) -->
-<div>
-    <label class="block font-medium mb-2">Report Type</label>
-    <select name="report_type" class="w-full border-2 border-gray-300 rounded-lg px-4 py-2">
-        <option value="summary">Summary Report</option>
-        <option value="detailed">Detailed Alumni List</option>
-        <!-- Removed: Contact Information & Employment Status -->
-    </select>
-</div>
-                    <div>
-                        <label class="block font-medium mb-2">Export Format</label>
-                        <div class="flex gap-6">
-                            <label class="flex items-center gap-2">
-                                <input type="radio" name="format" value="pdf" checked class="text-blue-600">
-                                <span class="font-medium">PDF Document</span>
-                            </label>
-                        </div>
-                        <p class="text-sm text-gray-600 mt-1">Reports will be generated as PDF files with professional formatting</p>
-                    </div>
+                <div class="mt-4 flex gap-3">
+                    <button type="button" id="selectAll" class="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded hover:bg-blue-200">Select All</button>
+                    <button type="button" id="deselectAll" class="text-xs bg-gray-100 text-gray-700 px-3 py-1 rounded hover:bg-gray-200">Deselect All</button>
+                </div>
+            </div>
             
+            <!-- Report options section -->
+            <div class="bg-white p-5 rounded-xl border-2 border-gray-200 space-y-5">
+                <div>
+                    <label class="block font-medium mb-2">Report Type</label>
+                    <select name="report_type" class="w-full border-2 border-gray-300 rounded-lg px-4 py-2">
+                        <option value="summary">Summary Report</option>
+                        <option value="detailed">Detailed Alumni List</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-medium mb-2">Export Format</label>
+                    <div class="flex gap-6">
+                        <label class="flex items-center gap-2">
+                            <input type="radio" name="format" value="pdf" checked class="text-blue-600">
+                            <span class="font-medium">PDF Document</span>
+                        </label>
+                    </div>
+                    <p class="text-sm text-gray-600 mt-1">Reports will open in a new tab as PDF files</p>
                 </div>
             </div>
-            <div class="flex justify-end gap-4 pt-4 border-t">
-                <button type="button" id="cancelReport" class="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600">Cancel</button>
-                <button type="submit" name="generate_report" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2">
-                    <i class="fas fa-file-pdf"></i> Generate PDF Report
-                </button>
-            </div>
-        </form>
-    </div>
-
+        </div>
+        <div class="flex justify-end gap-4 pt-4 border-t">
+            <button type="button" id="cancelReport" class="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600">Cancel</button>
+            <button type="submit" name="generate_report" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2">
+                <i class="fas fa-file-pdf"></i> Generate PDF Report
+            </button>
+        </div>
+    </form>
+</div>
     <!-- Batch Cards Grid (updated to hide "All Alumni" during search) -->
     <div class="space-y-4">
         <div class="flex items-center gap-3 px-2">
@@ -538,69 +538,51 @@ include("admin_format.php");
 <?php
 function generateAlumniReport($selected_batches, $report_type, $conn) {
     if (ob_get_length()) ob_clean();
-    // Build placeholders for IN clause
-    $placeholders = str_repeat('?,', count($selected_batches) - 1) . '?';
-    $types = str_repeat('i', count($selected_batches));
 
-    // Debug: Check what batches we're querying
-    error_log("Selected batches: " . implode(', ', $selected_batches));
-    
-    // Test query to see actual data
-    $test_query = "SELECT 
-        u.batch_year,
-        ap.employment_status,
-        COUNT(*) as count
-        FROM alumni_profile ap
-        INNER JOIN users u ON ap.user_id = u.user_id
-        WHERE u.batch_year IN ($placeholders)
-        GROUP BY u.batch_year, ap.employment_status
-        ORDER BY u.batch_year, ap.employment_status";
-    
-    $test_stmt = $conn->prepare($test_query);
-    $test_stmt->bind_param($types, ...$selected_batches);
-    $test_stmt->execute();
-    $test_result = $test_stmt->get_result();
-    
-    error_log("Employment status distribution:");
-    while ($row = $test_result->fetch_assoc()) {
-        error_log("Batch {$row['batch_year']}: {$row['employment_status']} - {$row['count']} records");
+    // make sure batches are integers (prevent SQL injection and type issues)
+    $selected_batches = array_map('intval', $selected_batches);
+    $count_batches = count($selected_batches);
+    if ($count_batches === 0) {
+        $_SESSION['error_message'] = "Please select at least one batch.";
+        header("Location: " . $_SERVER['PHP_SELF']);
+        exit();
     }
 
-    // Queries for each report type
-    // Queries for each report type
-// Inside generateAlumniReport() function - replace the $queries array
-$queries = [
-    'summary' => "SELECT 
-            u.batch_year,
-            COUNT(*) as total_alumni,
-            SUM(CASE WHEN ap.employment_status = 'Employed' THEN 1 ELSE 0 END) as employed,
-            SUM(CASE WHEN ap.employment_status = 'Self-Employed' THEN 1 ELSE 0 END) as self_employed,
-            SUM(CASE WHEN ap.employment_status = 'Unemployed' THEN 1 ELSE 0 END) as unemployed,
-            SUM(CASE WHEN ap.employment_status = 'Student' THEN 1 ELSE 0 END) as student,
-            SUM(CASE WHEN ap.employment_status = 'Employed & Student' THEN 1 ELSE 0 END) as student_employed,
-            CASE 
-                WHEN COUNT(*) > 0 THEN 
-                    ROUND(100.0 * SUM(CASE 
-                        WHEN ap.employment_status IN ('Employed', 'Self-Employed', 'Employed & Student') 
-                        THEN 1 ELSE 0 
-                    END) / COUNT(*), 2)
-                ELSE 0 
-            END as employment_rate
+    // Build placeholders and types for bind_param
+    $placeholders = implode(',', array_fill(0, $count_batches, '?'));
+    $types = str_repeat('i', $count_batches); // batches are integers
+
+    // Debug
+    error_log("Selected batches for report: " . implode(', ', $selected_batches));
+
+    // Use normalized employment_status (lower + trimmed) to avoid mismatches
+    $queries = [
+        'summary' => "SELECT 
+            u.batch_year AS batch_year,
+            SUM(CASE WHEN LOWER(TRIM(ap.employment_status)) = 'employed' THEN 1 ELSE 0 END) AS employed,
+            SUM(CASE WHEN LOWER(TRIM(ap.employment_status)) = 'self-employed' THEN 1 ELSE 0 END) AS self_employed,
+            SUM(CASE WHEN LOWER(TRIM(ap.employment_status)) = 'unemployed' THEN 1 ELSE 0 END) AS unemployed,
+            SUM(CASE WHEN LOWER(TRIM(ap.employment_status)) = 'student' THEN 1 ELSE 0 END) AS student,
+            SUM(CASE WHEN LOWER(TRIM(ap.employment_status)) IN ('employed & student','employed & student','employed & student') THEN 1 ELSE 0 END) AS employed_student,
+            COUNT(*) AS total_alumni,
+            CASE WHEN COUNT(*) > 0 THEN ROUND(100.0 * (
+                SUM(CASE WHEN LOWER(TRIM(ap.employment_status)) IN ('employed','self-employed','employed & student') THEN 1 ELSE 0 END)
+            ) / COUNT(*), 2) ELSE 0 END AS employment_rate
           FROM alumni_profile ap
           INNER JOIN users u ON ap.user_id = u.user_id
           WHERE u.batch_year IN ($placeholders)
           GROUP BY u.batch_year
           ORDER BY u.batch_year DESC",
 
-    'detailed' => "SELECT u.name, u.email, u.batch_year, 
+        'detailed' => "SELECT u.name, u.email, u.batch_year, 
                           COALESCE(ap.employment_status, 'Not Updated') as employment_status,
                           CASE 
-                              WHEN ap.employment_status = 'Self-Employed' THEN 'Self-Employed'
+                              WHEN LOWER(TRIM(ap.employment_status)) = 'self-employed' THEN 'Self-Employed'
                               WHEN jt.title IS NOT NULL THEN jt.title
                               ELSE '-'
                           END as current_job,
                           CASE 
-                              WHEN ap.employment_status = 'Self-Employed' THEN COALESCE(ei.business_type, '-')
+                              WHEN LOWER(TRIM(ap.employment_status)) = 'self-employed' THEN COALESCE(ei.business_type, '-')
                               WHEN ei.company_name IS NOT NULL THEN ei.company_name
                               ELSE '-'
                           END as current_employer
@@ -610,7 +592,7 @@ $queries = [
                    LEFT JOIN job_titles jt ON ei.job_title_id = jt.job_title_id
                    WHERE u.batch_year IN ($placeholders)
                    ORDER BY u.batch_year DESC, u.name"
-];
+    ];
 
     if (!isset($queries[$report_type])) {
         $_SESSION['error_message'] = "Invalid report type selected.";
@@ -618,148 +600,159 @@ $queries = [
         exit();
     }
 
+    // Prepare statement dynamically and bind params
     $stmt = $conn->prepare($queries[$report_type]);
-    $stmt->bind_param($types, ...$selected_batches);
+    if ($stmt === false) {
+        error_log("Prepare failed: " . $conn->error);
+        $_SESSION['error_message'] = "Failed to prepare report query.";
+        header("Location: " . $_SERVER['PHP_SELF']);
+        exit();
+    }
+
+    // Bind the batch params
+    $bind_names = [];
+    $bind_names[] = $types;
+    for ($i = 0; $i < $count_batches; $i++) {
+        // Must pass by reference
+        $bind_names[] = &$selected_batches[$i];
+    }
+    call_user_func_array([$stmt, 'bind_param'], $bind_names);
+
     $stmt->execute();
     $result = $stmt->get_result();
     $data = $result->fetch_all(MYSQLI_ASSOC);
 
-
-
     // ==================================================================
-    // PDF GENERATION USING TCPDF
+    // PDF GENERATION USING TCPDF (COMPLETE CODE)
     // ==================================================================
-    
-    // Create new PDF document
     $pdf = new TCPDF('L', 'mm', 'A4', true, 'UTF-8', false);
-
-    // Set document information
     $pdf->SetCreator('Alumni Tracking System');
     $pdf->SetAuthor('Administrator');
     $pdf->SetTitle('Alumni Report - ' . ucfirst($report_type));
     $pdf->SetSubject('Alumni Records Report');
-
-    // Set default header data
     $pdf->SetHeaderData('', 0, 'ALUMNI MANAGEMENT SYSTEM', 'Alumni Report - ' . date('F j, Y'));
-
-    // Set header and footer fonts
     $pdf->setHeaderFont(Array('helvetica', '', 10));
     $pdf->setFooterFont(Array('helvetica', '', 8));
-
-    // Set margins
     $pdf->SetMargins(15, 20, 15);
     $pdf->SetHeaderMargin(5);
     $pdf->SetFooterMargin(10);
-
-    // Set auto page breaks
     $pdf->SetAutoPageBreak(TRUE, 15);
-
-    // Add a page
     $pdf->AddPage();
 
-    // Set font for title
     $pdf->SetFont('helvetica', 'B', 16);
     $pdf->Cell(0, 10, strtoupper($report_type) . ' ALUMNI REPORT', 0, 1, 'C');
     $pdf->Ln(5);
 
-    // Report information
     $pdf->SetFont('helvetica', '', 10);
     $pdf->Cell(0, 6, 'Selected Batches: ' . implode(', ', $selected_batches), 0, 1);
     $pdf->Cell(0, 6, 'Total Records: ' . number_format(count($data)), 0, 1);
     $pdf->Cell(0, 6, 'Generated on: ' . date('F j, Y \a\t g:i A'), 0, 1);
     $pdf->Ln(10);
 
-    // Define table configurations for different report types
-$table_config = [
-    'summary' => [
-        'headers' => ['Batch Year', 'Total Alumni', 'Employed', 'Self-Employed', 'Unemployed', 'Student', 'Student & Employed', 'Employment Rate %'],
-        'widths'  => [25, 25, 25, 30, 25, 25, 45, 40],
-        'align'   => ['C', 'C', 'C', 'C', 'C', 'C', 'C', 'C']
-    ],
-    'detailed' => [
-        'headers' => ['Name', 'Email', 'Batch', 'Status', 'Current Job', 'Current Employer'],
-        'widths'  => [50, 60, 25, 40, 50, 50],
-        'align'   => ['L', 'L', 'C', 'L', 'L', 'L']
-    ],
-];
+    // Table configurations
+    $table_config = [
+        'summary' => [
+            'headers' => ['Batch Year', 'Employed', 'Self-Employed', 'Unemployed', 'Student', 'Employed/Student', 'Total', 'Employment Rate'],
+            'widths' => [30, 30, 35, 30, 30, 40, 20, 30], // Total width approx 245mm for landscape A4
+            'data_keys' => ['batch_year', 'employed', 'self_employed', 'unemployed', 'student', 'employed_student', 'total_alumni', 'employment_rate'],
+            'align' => ['C', 'C', 'C', 'C', 'C', 'C', 'C', 'C'],
+            'total_label' => 'Total Alumni:',
+        ],
+        'detailed' => [
+            'headers' => ['Batch Year', 'Name', 'Email', 'Employment Status', 'Current Job', 'Current Employer'],
+            'widths' => [25, 50, 60, 40, 40, 60], // Total width approx 275mm for landscape A4
+            'data_keys' => ['batch_year', 'name', 'email', 'employment_status', 'current_job', 'current_employer'],
+            'align' => ['C', 'L', 'L', 'L', 'L', 'L'],
+            'total_label' => 'Total Records:',
+        ]
+    ];
 
-    $cfg = $table_config[$report_type];
+    $config = $table_config[$report_type];
 
-    // Create table header
-    $pdf->SetFillColor(59, 130, 246); // Blue color
-    $pdf->SetTextColor(255);
-    $pdf->SetDrawColor(59, 130, 246);
+    // --- Draw Table Header ---
+    $pdf->SetFillColor(230, 240, 255); // Light Blue for Header
+    $pdf->SetTextColor(0);
+    $pdf->SetDrawColor(150, 150, 150);
     $pdf->SetLineWidth(0.3);
-    $pdf->SetFont('helvetica', 'B', 10);
+    $pdf->SetFont('helvetica', 'B', 9);
 
-    // Header row
-    for ($i = 0; $i < count($cfg['headers']); $i++) {
-        $pdf->Cell($cfg['widths'][$i], 8, $cfg['headers'][$i], 1, 0, 'C', true);
+    for ($i = 0; $i < count($config['headers']); $i++) {
+        $pdf->Cell($config['widths'][$i], 7, $config['headers'][$i], 1, 0, $config['align'][$i], 1);
     }
     $pdf->Ln();
 
- // Table data - FIXED VERSION
-$pdf->SetFillColor(255, 255, 255);
-$pdf->SetTextColor(0);
-$pdf->SetFont('helvetica', '', 9);
+    // --- Draw Table Body and Calculate Totals ---
+    $pdf->SetFillColor(255);
+    $pdf->SetFont('helvetica', '', 9);
+    $totals = array_fill_keys($config['data_keys'], 0);
+    $is_summary = $report_type === 'summary';
 
-$fill = false;
-foreach ($data as $row) {
-    $fill = !$fill;
-    $pdf->SetFillColor($fill ? 240 : 255, $fill ? 245 : 255, $fill ? 255 : 255);
+    foreach ($data as $row) {
+        $pdf->SetFillColor(255);
+        $pdf->SetTextColor(0);
 
-    for ($i = 0; $i < count($cfg['headers']); $i++) {
-        $header_text = $cfg['headers'][$i];
-        $header_key = strtolower(str_replace([' ', '%', '&'], ['_', '', '_'], $header_text));
+        for ($i = 0; $i < count($config['data_keys']); $i++) {
+            $key = $config['data_keys'][$i];
+            $value = $row[$key];
+            $align = $config['align'][$i];
+            $width = $config['widths'][$i];
 
-        // Special handling for these exact header texts
-        $key_map = [
-            'batchyear'             => 'batch_year',
-            'totalalumni'           => 'total_alumni',
-            'employed'              => 'employed',
-            'self-employed'         => 'self_employed',
-            'unemployed'            => 'unemployed',
-            'student'               => 'student',
-            'student_employed'      => 'student_employed',  // direct match
-            'employmentrate'        => 'employment_rate',
-            'name'                  => 'name',
-            'email'                 => 'email',
-            'batch'                 => 'batch_year',
-            'status'                => 'employment_status',
-            'currentjob'            => 'current_job',
-            'currentemployer'       => 'current_employer'
-        ];
-
-        $field_name = $key_map[$header_key] ?? $header_key;
-        $value = $row[$field_name] ?? '';
-
-        // Format numeric values and percentages
-        if ($report_type === 'summary') {
-            if (strpos($header_text, 'Rate') !== false) {
-                $value = is_numeric($value) ? number_format((float)$value, 2) . '%' : '0.00%';
-            } elseif (in_array($header_text, ['Total Alumni', 'Employed', 'Self-Employed', 'Unemployed', 'Student', 'Student & Employed'])) {
-                $value = $value !== null && $value !== '' ? number_format((int)$value) : '0';
+            // Special formatting for summary report data and totals calculation
+            if ($is_summary) {
+                // Total calculation for numeric columns
+                if (in_array($key, ['employed', 'self_employed', 'unemployed', 'student', 'employed_student', 'total_alumni'])) {
+                    $totals[$key] += (int)$value;
+                }
+                // Format employment rate with percentage sign
+                if ($key === 'employment_rate') {
+                    $value .= '%';
+                }
             }
+            
+            // Output the cell
+            $pdf->Cell($width, 6, $value, 1, 0, $align, 1, '', 0, false, 'T', 'M');
+        }
+        $pdf->Ln();
+    }
+    
+    // --- Draw Totals Row (Summary Report Only) ---
+    if ($is_summary && !empty($data)) {
+        $pdf->SetFillColor(200, 215, 230); // Darker Blue for Footer
+        $pdf->SetFont('helvetica', 'B', 9);
+        $total_rate = 0;
+
+        if ($totals['total_alumni'] > 0) {
+            $total_employed = $totals['employed'] + $totals['self_employed'] + $totals['employed_student'];
+            $total_rate = round(100.0 * $total_employed / $totals['total_alumni'], 2);
         }
 
-        $pdf->Cell($cfg['widths'][$i], 7, $value, 'LR', 0, $cfg['align'][$i], true);
-    }
-    $pdf->Ln();
-}
-    // Closing line
-    $pdf->Cell(array_sum($cfg['widths']), 0, '', 'T');
-    $pdf->Ln(10);
+        $summary_totals = [
+            'batch_year' => 'GRAND TOTAL',
+            'employed' => $totals['employed'],
+            'self_employed' => $totals['self_employed'],
+            'unemployed' => $totals['unemployed'],
+            'student' => $totals['student'],
+            'employed_student' => $totals['employed_student'],
+            'total_alumni' => $totals['total_alumni'],
+            'employment_rate' => $total_rate . '%',
+        ];
 
-    // Add summary note for empty reports
-    if (empty($data)) {
-        $pdf->SetFont('helvetica', 'I', 10);
-        $pdf->Cell(0, 10, 'No records found for the selected criteria.', 0, 1, 'C');
+        // Output totals cells
+        for ($i = 0; $i < count($config['data_keys']); $i++) {
+            $key = $config['data_keys'][$i];
+            $value = $summary_totals[$key];
+            $align = $config['align'][$i];
+            $width = $config['widths'][$i];
+
+            $pdf->Cell($width, 7, $value, 1, 0, $align, 1);
+        }
+        $pdf->Ln();
     }
 
-    // Output PDF
-    $filename = "Alumni_Report_" . ucfirst($report_type) . "_" . date('Y-m-d') . ".pdf";
-    $pdf->Output($filename, 'D'); // Force download
-    exit();
+    // Output the PDF
+    $pdf_filename = strtoupper($report_type) . '_Alumni_Report_' . date('Ymd_His') . '.pdf';
+    $pdf->Output($pdf_filename, 'I');
+    exit;
 }
 
 // Function to check if submissions are open
