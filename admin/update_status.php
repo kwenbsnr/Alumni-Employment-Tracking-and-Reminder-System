@@ -1,5 +1,4 @@
 <?php
-// update_status.php
 session_start();
 
 if (!isset($_SESSION["user_id"]) || $_SESSION["role"] !== "admin") {
@@ -8,6 +7,7 @@ if (!isset($_SESSION["user_id"]) || $_SESSION["role"] !== "admin") {
 }
 
 include("../connect.php");
+require_once '../api/notification/notif_service.php';
 
 // Get referrer to determine which page the action came from
 $referrer = $_SERVER['HTTP_REFERER'] ?? '';
