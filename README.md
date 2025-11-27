@@ -52,11 +52,7 @@ ____________________
 ### 3. same for the entire name field, just to make the db atomic as well, thus satisfying 1NF.
 ### 4. redudant name field - users.name & alumni_profile.name.
 ### 5. add field for name xtnsions
-____________________
-# TO IMPLEMENT (hopefully, if time allows 🙏):
-### 1. Worldwide address 
-### 2. In-app notif functionality for both alumni and admin. 
-________________________________________
+
 ____________________
 
 Summary of Changes Implemented
