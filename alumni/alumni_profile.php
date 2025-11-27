@@ -122,140 +122,101 @@ ob_start();
 <?php endif; ?>
 
 <div class="space-y-6 mt-3 mb-5">
- <!-- Status Card - FIXED: Show for all rejected profiles -->
+<!-- Status Card - Modern, Subtle & Ultra-Compact Design -->
 <div id="updateProfileBtn" class="
-    <?php 
+    <?php
     if ($is_profile_rejected) {
-        echo 'bg-white border-green-500 cursor-pointer'; // Green = actionable
+        echo 'bg-red-50/70 border border-red-200/80 rounded-xl shadow-sm hover:shadow hover:border-red-300 cursor-pointer';
     } elseif ($is_profile_approved) {
-        echo 'bg-blue-50 border-blue-500 cursor-not-allowed';
+        echo 'bg-emerald-50/60 border border-emerald-200 rounded-xl shadow-sm cursor-not-allowed';
     } elseif ($is_profile_pending) {
-        echo 'bg-yellow-50 border-yellow-500 cursor-not-allowed';
+        echo 'bg-amber-50/70 border border-amber-200 rounded-xl shadow-sm cursor-not-allowed';
     } elseif ($can_update) {
-        echo 'bg-white border-green-500 cursor-pointer';
+        echo 'bg-white border border-green-200 rounded-xl shadow-sm hover:shadow-md hover:border-green-300 cursor-pointer';
     } else {
-        echo 'bg-yellow-50 border-yellow-500 cursor-not-allowed';
+        echo 'bg-gray-50 border border-gray-300 rounded-xl cursor-not-allowed opacity-75';
     }
-    ?> 
-    p-4 rounded-lg shadow flex flex-col justify-start hover:shadow-md transition duration-200 border-t-4 h-auto min-h-32">
-    
-    <!-- Header: Status Title + Icon -->
-    <div class="flex items-center justify-between mb-3">
-        <div class="flex items-center space-x-3">
-            <!-- Status Icon -->
-            <i class="fas 
-                <?php 
-                if ($is_profile_rejected) echo 'fa-exclamation-triangle text-red-600';
-                elseif ($is_profile_approved) echo 'fa-check-circle text-blue-600';
-                elseif ($is_profile_pending) echo 'fa-clock text-yellow-600';
-                else echo 'fa-lock text-yellow-600';
-                ?> 
-                text-xl"></i>
-            
-            <!-- Main Title -->
-            <h3 class="text-xl font-bold 
-                <?php 
-                if ($is_profile_rejected) echo 'text-red-900';
-                elseif ($is_profile_approved) echo 'text-blue-900';
-                elseif ($is_profile_pending) echo 'text-yellow-900';
-                else echo 'text-gray-700';
+    ?>
+    p-4 transition-all duration-200 border-t-4
+    <?php
+    if ($is_profile_rejected) echo 'border-t-red-400';
+    elseif ($is_profile_approved) echo 'border-t-emerald-500';
+    elseif ($is_profile_pending) echo 'border-t-amber-500';
+    elseif ($can_update) echo 'border-t-green-400';
+    else echo 'border-t-gray-400';
+    ?>
+    ">
+
+    <!-- Header: Icon + Title (Compact Row) -->
+    <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center gap-2.5">
+            <i class="fas text-lg
+                <?php
+                if ($is_profile_rejected) echo 'fa-exclamation-triangle text-red-500';
+                elseif ($is_profile_approved) echo 'fa-check-circle text-emerald-600';
+                elseif ($is_profile_pending) echo 'fa-clock text-amber-600';
+                elseif ($can_update) echo 'fa-user-edit text-green-600';
+                else echo 'fa-lock text-gray-500';
+                ?>
+            "></i>
+            <h3 class="text-sm font-semibold tracking-tight
+                <?php
+                if ($is_profile_rejected) echo 'text-red-800';
+                elseif ($is_profile_approved) echo 'text-emerald-900';
+                elseif ($is_profile_pending) echo 'text-amber-900';
+                elseif ($can_update) echo 'text-green-800';
+                else echo 'text-gray-600';
                 ?>">
-                <?php 
-                if ($is_profile_rejected) {
-                    echo 'Profile Rejected';
-                } elseif ($is_profile_approved) {
-                    echo 'Profile Approved';
-                } elseif ($is_profile_pending) {
-                    echo 'Profile Pending Review';
-                } elseif ($can_update) {
-                    echo 'Update Profile';
-                } else {
-                    echo 'Profile Editing Locked';
-                }
+                <?php
+                if ($is_profile_rejected) echo 'Profile Rejected';
+                elseif ($is_profile_approved) echo 'Profile Approved';
+                elseif ($is_profile_pending) echo 'Pending Review';
+                elseif ($can_update) echo 'Update Profile';
+                else echo 'Editing Locked';
                 ?>
             </h3>
         </div>
 
-        <!-- Action Icon (only show if clickable) -->
         <?php if ($is_profile_rejected || $can_update): ?>
-            <i class="fas fa-user-edit text-green-600 text-xl"></i>
+            <i class="fas fa-arrow-right text-xs <?php echo $is_profile_rejected ? 'text-red-500' : 'text-green-500'; ?> opacity-70"></i>
         <?php endif; ?>
     </div>
 
-    <!-- Rejection Alert Box - Prominent & Clear -->
+    <!-- Compact Status Message - Only shows when relevant -->
     <?php if ($is_profile_rejected): ?>
-        <div class="mb-4 p-4 bg-red-50 border-l-4 border-red-500 rounded-r-md">
-            <div class="flex items-start space-x-3">
-                <i class="fas fa-exclamation-circle text-red-600 text-lg mt-0.5 flex-shrink-0"></i>
-                <div class="flex-1">
-                    <p class="font-bold text-red-900 text-base">Your profile was rejected</p>
-                    
-                    <?php if (!empty($profile['rejection_reason'])): ?>
-                        <p class="text-red-800 mt-1 text-sm">
-                            <span class="font-semibold">Reason:</span> <?php echo htmlspecialchars($profile['rejection_reason']); ?>
-                        </p>
-                    <?php endif; ?>
-                    
-                    <p class="text-red-700 mt-2 text-sm font-medium">
-                        Please fix the issues and resubmit for approval.
-                    </p>
-                </div>
-            </div>
+        <div class="text-xs text-red-700 leading-snug mt-1 pl-7">
+            <span class="font-medium">Reason:</span>
+            <?php echo !empty($profile['rejection_reason']) ? htmlspecialchars(substr($profile['rejection_reason'], 0, 100)) . (strlen($profile['rejection_reason']) > 100 ? '...' : '') : 'Not specified'; ?>
+            <span class="block mt-1 text-red-600 font-medium">→ Fix issues and resubmit</span>
         </div>
+
+    <?php elseif ($is_profile_pending): ?>
+        <p class="text-xs text-amber-700 font-medium pl-7 mt-1">Under review — we'll notify you soon</p>
+
+    <?php elseif ($is_profile_approved && !empty($profile['last_profile_update'])): ?>
+        <?php 
+        $next = date('M j, Y', strtotime($profile['last_profile_update'] . ' +1 year'));
+        ?>
+        <p class="text-xs text-emerald-700 font-medium pl-7 mt-1">Next update available: <span class="font-bold"><?php echo $next; ?></span></p>
+
+    <?php elseif (!$submission_open): ?>
+        <p class="text-xs text-gray-600 pl-7 mt-1">Updates temporarily closed by admin</p>
     <?php endif; ?>
 
-    <!-- Call-to-Action Button (Green, Clickable, Only for Rejected or Can Update) -->
+    <!-- Action Button (Only for editable states) -->
     <?php if ($is_profile_rejected || $can_update): ?>
-        <div class="mt-auto">
-            <button type="button" 
-                    class="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-3 px-4 rounded-md 
-                           transition duration-200 flex items-center justify-center space-x-2 
-                           shadow-sm hover:shadow">
-                <i class="fas fa-edit"></i>
+        <div class="mt-3 -mx-1">
+            <button type="button" class="w-full <?php echo $is_profile_rejected ? 'bg-red-500 hover:bg-red-600' : 'bg-emerald-500 hover:bg-emerald-600'; ?> text-white text-xs font-medium py-2.5 rounded-lg transition-all duration-200 flex items-center justify-center gap-1.5 shadow-sm hover:shadow">
+                <i class="fas fa-edit text-xs"></i>
                 <span>
-                    <?php echo $is_profile_rejected 
-                        ? 'Edit & Resubmit Profile' 
-                        : ($is_profile_new ? 'Create Profile' : 'Update Profile'); ?>
+                    <?php echo $is_profile_rejected ? 'Edit & Resubmit' : ($is_profile_new ? 'Complete Profile' : 'Update Profile'); ?>
                 </span>
             </button>
-            
-            <!-- Subtext below button -->
-            <p class="text-center text-xs text-gray-500 mt-2">
-                <?php 
-                if ($is_profile_rejected) {
-                    echo 'Click to make changes and resubmit for approval.';
-                } elseif ($is_profile_new) {
-                    echo 'Complete your alumni profile to get verified.';
-                } else {
-                    echo 'Update your personal, work, and education info.';
-                }
-                ?>
+            <p class="text-center text-xs text-gray-500 mt-1.5">
+                <?php echo $is_profile_rejected ? 'Make changes to get approved' : 'Keep your info current'; ?>
             </p>
         </div>
-   <?php else: ?>
-    <!-- Non-actionable description -->
-    <p class="text-sm leading-tight font-medium text-yellow-800">
-        <?php
-        if (!$submission_open) {
-            echo 'Profile updates are currently <strong>closed by the administrator</strong>. ';
-            echo 'You will be able to update your profile when submissions are reopened.';
-        } elseif ($is_profile_approved) {
-            $last_update = $profile['last_profile_update'] ?? null;
-            if ($last_update) {
-                $formatted_date = date('M j, Y', strtotime($last_update));
-                $next_update = date('M j, Y', strtotime($last_update . ' +1 year'));
-                echo "Approved on <strong>$formatted_date</strong>. Next update allowed after <strong>$next_update</strong>.";
-            } else {
-                echo 'Your profile is approved. Updates allowed once per year.';
-            }
-        } elseif ($is_profile_pending) {
-            echo 'Your submission is under review. Please wait for approval.';
-        } else {
-            echo 'Profile updates are currently not allowed.';
-        }
-        ?>
-    </p>
-<?php endif; ?>
+    <?php endif; ?>
 </div>
 
       <!-- FIXED: Show profile cards only when personal data exists -->
