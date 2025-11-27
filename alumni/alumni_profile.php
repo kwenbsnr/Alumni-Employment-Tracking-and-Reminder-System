@@ -89,20 +89,20 @@ if ($statusCheck && $row = $statusCheck->fetch_assoc()) {
     $submission_open = (bool)$row['is_open'];
 }
 
-// Yearly update allowed only if previously approved and 1 year passed
-$can_update_yearly = $is_profile_approved && (
+// Semiannual update allowed only if previously approved and 6 months passed
+$can_update_semiannual = $is_profile_approved && (
     $last_profile_update === null || 
-    strtotime($last_profile_update . ' +1 year') <= time()
+    strtotime($last_profile_update . ' +6 months') <= time()
 );
 
 // User can update ONLY if:
 // 1. Submissions are globally OPEN, AND
-// 2. (It's a new profile OR rejected OR pending OR yearly update is due)
+// 2. (It's a new profile OR rejected OR pending OR semiannual update is due)
 $can_update = $submission_open && (
     $is_profile_new || 
     $is_profile_rejected || 
     $is_profile_pending || 
-    $can_update_yearly
+    $can_update_semiannual
 );
 
 // FIXED: Auto-modal opening logic - only open when there's data to edit
@@ -243,10 +243,10 @@ ob_start();
             $last_update = $profile['last_profile_update'] ?? null;
             if ($last_update) {
                 $formatted_date = date('M j, Y', strtotime($last_update));
-                $next_update = date('M j, Y', strtotime($last_update . ' +1 year'));
+                $next_update = date('M j, Y', strtotime($last_update . ' +6 months'));
                 echo "Approved on <strong>$formatted_date</strong>. Next update allowed after <strong>$next_update</strong>.";
             } else {
-                echo 'Your profile is approved. Updates allowed once per year.';
+                echo 'Your profile is approved. You can update again after 6 months from your last update.';
             }
         } elseif ($is_profile_pending) {
             echo 'Your submission is under review. Please wait for approval.';
@@ -899,7 +899,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (<?php echo !empty($profile) ? 'true' : 'false'; ?>) {
                     const status = '<?php echo $profile['submission_status'] ?? ''; ?>';
                     if (status === 'Approved') {
-                        alert('Your profile has been approved. You can update again after one year from your last update.');
+                        alert('Your profile is approved. You can update again after 6 months from your last update.');
                     } else if (status === 'Pending') {
                         alert('Your profile is currently under review. Please wait for administrator approval.');
                     } else {

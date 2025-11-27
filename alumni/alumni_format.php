@@ -289,7 +289,7 @@ $page_title = $page_title ?? "Alumni Page";
             const helpButton = document.getElementById('helpButton');
             if (helpButton) {
                 helpButton.addEventListener('click', () => {
-                    alert('Need help? Contact the alumni support team at alumni-support@university.edu');
+                    alert('Need help? Contact the alumni support team at alumtrak@jhcsc.edu.ph');
                 });
             }
         });
