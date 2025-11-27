@@ -27,7 +27,7 @@ echo "<!DOCTYPE html>
 echo "<div class='test-section'>
         <h2>1. Basic Notification Service Test</h2>";
 
-$test_email = "test@example.com";
+$test_email = "bisnar.quien18@gmail.com";
 $test_result = send_notification('template_one', $test_email, [
     'alumni_name' => 'Test User',
     'graduation_year' => '2020'
@@ -120,7 +120,7 @@ echo "</div>";
 echo "<div class='test-section'>
         <h2>5. Real User Action Simulation</h2>
         <form method='POST'>
-            <input type='email' name='simulate_email' placeholder='Enter test email' value='test@example.com' required>
+            <input type='email' name='simulate_email' placeholder='Enter test email' value='bisnar.quien18@gmail.com' required>
             <input type='text' name='simulate_name' placeholder='Enter test name' value='Test User' required>
             <input type='text' name='simulate_year' placeholder='Graduation year' value='2020' required>
             <br><br>
@@ -184,7 +184,7 @@ echo "</body></html>";
 function test_all_templates() {
     global $conn;
     
-    $test_email = "test@example.com";
+    $test_email = "bisnar.quien18@gmail.com";
     $templates = [
         ['template_one', 'Profile Update Reminder'],
         ['template_approved', 'Approval Notification'],
@@ -215,7 +215,7 @@ function test_all_templates() {
 }
 
 function test_alumni_scenarios() {
-    $test_email = "alumni_test@example.com";
+    $test_email = "quien.bisnar@gmail.com";
     
     echo "<div class='test-container'>
             <h3>Alumni Scenario Tests</h3>";
