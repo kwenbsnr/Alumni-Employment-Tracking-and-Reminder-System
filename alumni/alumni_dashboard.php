@@ -443,152 +443,152 @@ ob_start();
             </div>
         </div>
 
-        <!-- RIGHT COLUMN: Recent Activity - CLEAN DESIGN -->
-        <div class="space-y-6">
-            
-            <!-- Recent Activity Card - CLEAN DESIGN -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden h-full min-h-[500px] flex flex-col">
-                <div class="p-5 border-b border-gray-200">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center space-x-3">
-                            <div class="w-10 h-10 bg-gray-100 text-gray-600 flex items-center justify-center rounded-lg border border-gray-200">
-                                <i class="fas fa-history text-md"></i>
-                            </div>
-                            <div>
-                                <h3 class="text-lg font-bold text-gray-900">Recent Activity</h3>
-                                <span class="text-xs font-semibold text-gray-600 bg-gray-100 px-2 py-1 rounded-full border border-gray-200">Last 30 Days</span>
-                            </div>
-                        </div>
+        <!-- RIGHT COLUMN: Recent Activity -->
+<div class="space-y-6">
+  <!-- Recent Activity Card - MODERN GRADIENT DESIGN -->                                      
+    <div class="bg-white rounded-xl shadow-lg border-t-4 border-b-4 border-indigo-300 overflow-hidden h-full min-h-[500px] flex flex-col transition-shadow duration-500 hover:shadow-xl">
+        <div class="p-5 border-b border-indigo-100 bg-gradient-to-r from-indigo-50 to-purple-50">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-indigo-500 text-white flex items-center justify-center rounded-full shadow-md">
+                        <i class="fas fa-history text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-extrabold text-indigo-800">Recent Activity ⚡</h3>
+                        <span class="text-xs font-bold text-purple-700 bg-purple-100 px-2 py-1 rounded-full border border-purple-200 shadow-sm">Last 30 Days</span>
                     </div>
                 </div>
+            </div>
+        </div>
 
-                <?php
-                // Fetch recent activities
-                $stmt_act = $conn->prepare("
-                    SELECT action_type, description, created_at
-                    FROM alumni_activity_log
-                    WHERE user_id = ?
-                    ORDER BY created_at DESC
-                    LIMIT 6
-                ");
-                $stmt_act->bind_param("i", $user_id);
-                $stmt_act->execute();
-                $activities = $stmt_act->get_result();
-                ?>
+        <?php
+        // Fetch recent activities
+        $stmt_act = $conn->prepare("
+            SELECT action_type, description, created_at
+            FROM alumni_activity_log
+            WHERE user_id = ?
+            ORDER BY created_at DESC
+            LIMIT 6
+        ");
+        $stmt_act->bind_param("i", $user_id);
+        $stmt_act->execute();
+        $activities = $stmt_act->get_result();
+        ?>
 
-                <div class="flex-1 p-5 overflow-hidden">
-                    <?php if ($activities->num_rows > 0): ?>
-                        <div class="space-y-3 h-full overflow-hidden hover:overflow-y-auto no-scrollbar">
-                            <?php while ($act = $activities->fetch_assoc()): ?>
-                                <?php
-                                // Default icon & color
-                                $icon  = 'fa-circle-check';
-                                $color = 'text-gray-500';
-                                $bgColor = 'bg-white';
-                                $desc  = strtolower($act['description'] ?? '');
+        <div class="flex-1 p-5 overflow-hidden">
+            <?php if ($activities->num_rows > 0): ?>
+                <div class="space-y-3 h-full overflow-hidden hover:overflow-y-auto no-scrollbar">
+                    <?php while ($act = $activities->fetch_assoc()): ?>
+                        <?php
+                        // Default icon & color
+                        $icon  = 'fa-circle-info';
+                        $color = 'text-gray-500';
+                        $bgColor = 'bg-gray-50'; // New background for better distinction
+                        $desc  = strtolower($act['description'] ?? '');
 
-                                // Smart icon mapping
-                                switch ($act['action_type']) {
-                                    case 'profile_updated':
-                                    case 'profile_saved':
-                                        $icon = 'fa-user-pen';
-                                        $color = 'text-orange-500';
-                                        break;
+                        // Smart icon mapping
+                        switch ($act['action_type']) {
+                            case 'profile_updated':
+                            case 'profile_saved':
+                                $icon = 'fa-user-pen';
+                                $color = 'text-amber-600'; // Darker amber
+                                break;
 
-                                    case 'profile_photo_updated':
-                                        $icon = 'fa-image';
-                                        $color = 'text-purple-500';
-                                        break;
+                            case 'profile_photo_updated':
+                                $icon = 'fa-image';
+                                $color = 'text-pink-600'; // Darker pink
+                                break;
 
-                                    case 'profile_submitted':
-                                        $icon = 'fa-paper-plane';
-                                        $color = 'text-blue-500';
-                                        break;
+                            case 'profile_submitted':
+                                $icon = 'fa-paper-plane';
+                                $color = 'text-blue-600'; // Darker blue
+                                break;
 
-                                    case 'profile_approved':
-                                        $icon = 'fa-badge-check';
-                                        $color = 'text-emerald-500';
-                                        break;
+                            case 'profile_approved':
+                                $icon = 'fa-badge-check';
+                                $color = 'text-emerald-500'; // Emerald
+                                $bgColor = 'bg-emerald-50'; // Light green background for success
+                                break;
 
-                                    case 'profile_rejected':
-                                        $icon = 'fa-circle-xmark';
-                                        $color = 'text-red-500';
-                                        break;
+                            case 'profile_rejected':
+                                $icon = 'fa-circle-xmark';
+                                $color = 'text-red-600'; // Darker red
+                                $bgColor = 'bg-red-50'; // Light red background for rejection
+                                break;
 
-                                    case 'document_uploaded':
-                                    case (strpos($act['action_type'], 'uploaded_') === 0):
-                                        $icon = 'fa-file-arrow-up';
-                                        $color = 'text-blue-500';
+                            case 'document_uploaded':
+                            case (strpos($act['action_type'], 'uploaded_') === 0):
+                                $icon = 'fa-file-arrow-up';
+                                $color = 'text-blue-500';
 
-                                        // Specific document icons based on description
-                                        if (str_contains($desc, 'coe') || str_contains($desc, 'certificate of employment')) {
-                                            $icon = 'fa-file-contract';
-                                            $color = 'text-cyan-500';
-                                        } elseif (str_contains($desc, 'tor') || str_contains($desc, 'transcript')) {
-                                            $icon = 'fa-file-lines';
-                                            $color = 'text-indigo-500';
-                                        } elseif (str_contains($desc, 'diploma')) {
-                                            $icon = 'fa-graduation-cap';
-                                            $color = 'text-emerald-500';
-                                        } elseif (str_contains($desc, 'resume') || str_contains($desc, 'cv')) {
-                                            $icon = 'fa-file-user';
-                                            $color = 'text-purple-500';
-                                        } elseif (str_contains($desc, 'id') || str_contains($desc, 'identification') || str_contains($desc, 'valid id')) {
-                                            $icon = 'fa-id-card';
-                                            $color = 'text-amber-500';
-                                        } elseif (str_contains($desc, '2x2') || str_contains($desc, 'photo')) {
-                                            $icon = 'fa-image';
-                                            $color = 'text-pink-500';
-                                        }
-                                        break;
-
-                                    case 'document_deleted':
-                                        $icon = 'fa-file-slash';
-                                        $color = 'text-red-500';
-                                        break;
-
-                                    case 'login':
-                                    case 'logged_in':
-                                        $icon = 'fa-right-to-bracket';
-                                        $color = 'text-gray-500';
-                                        break;
-
-                                    default:
-                                        $icon = 'fa-bell';
-                                        $color = 'text-teal-500';
+                                // Specific document icons based on description
+                                if (str_contains($desc, 'coe') || str_contains($desc, 'certificate of employment')) {
+                                    $icon = 'fa-file-contract';
+                                    $color = 'text-cyan-500';
+                                } elseif (str_contains($desc, 'tor') || str_contains($desc, 'transcript')) {
+                                    $icon = 'fa-file-lines';
+                                    $color = 'text-indigo-500';
+                                } elseif (str_contains($desc, 'diploma')) {
+                                    $icon = 'fa-graduation-cap';
+                                    $color = 'text-emerald-500';
+                                } elseif (str_contains($desc, 'resume') || str_contains($desc, 'cv')) {
+                                    $icon = 'fa-file-user';
+                                    $color = 'text-purple-500';
+                                } elseif (str_contains($desc, 'id') || str_contains($desc, 'identification') || str_contains($desc, 'valid id')) {
+                                    $icon = 'fa-id-card';
+                                    $color = 'text-amber-500';
+                                } elseif (str_contains($desc, '2x2') || str_contains($desc, 'photo')) {
+                                    $icon = 'fa-image';
+                                    $color = 'text-pink-500';
                                 }
-                                ?>
+                                break;
 
-                                <div class="flex items-start space-x-3 p-3 rounded-lg bg-white border border-gray-200 hover:border-gray-300 transition-all duration-300">
-                                    <div class="w-8 h-8 <?php echo $color; ?> flex items-center justify-center rounded-md flex-shrink-0 mt-0.5">
-                                        <i class="fas <?= $icon ?> text-sm"></i>
-                                    </div>
-                                    <div class="flex-1 min-w-0">
-                                        <p class="text-sm font-medium text-gray-800 leading-snug">
-                                            <?= htmlspecialchars($act['description'] ?: ucwords(str_replace('_', ' ', $act['action_type']))) ?>
-                                        </p>
-                                        <p class="text-xs text-gray-500 font-medium mt-1">
-                                            <?= date('M j, Y \a\t g:i A', strtotime($act['created_at'])) ?>
-                                        </p>
-                                    </div>
-                                </div>
-                            <?php endwhile; ?>
-                        </div>
-                    <?php else: ?>
-                        <div class="text-center py-10 text-gray-400 h-full flex items-center justify-center">
-                            <div>
-                                <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 border border-gray-200">
-                                    <i class="fas fa-history text-lg opacity-40"></i>
-                                </div>
-                                <p class="text-sm font-semibold">No recent activity</p>
-                                <p class="text-xs mt-1">Your actions will appear here</p>
+                            case 'document_deleted':
+                                $icon = 'fa-file-slash';
+                                $color = 'text-red-500';
+                                break;
+
+                            case 'login':
+                            case 'logged_in':
+                                $icon = 'fa-right-to-bracket';
+                                $color = 'text-gray-600';
+                                break;
+
+                            default:
+                                $icon = 'fa-bell';
+                                $color = 'text-teal-500';
+                        }
+                        ?>
+
+                        <div class="flex items-start space-x-3 p-3 rounded-lg <?= $bgColor ?> border border-gray-200 hover:bg-gradient-to-r hover:from-white hover:to-indigo-50 hover:border-indigo-300 transition-all duration-300">
+                            <div class="w-8 h-8 <?= $color ?> flex items-center justify-center rounded-full flex-shrink-0 mt-0.5 border border-current bg-white shadow-sm">
+                                <i class="fas <?= $icon ?> text-sm"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-semibold text-gray-900 leading-snug">
+                                    <?= htmlspecialchars($act['description'] ?: ucwords(str_replace('_', ' ', $act['action_type']))) ?>
+                                </p>
+                                <p class="text-xs text-gray-500 font-medium mt-1 italic">
+                                    <i class="far fa-clock mr-1"></i>
+                                    <?= date('M j, Y \a\t g:i A', strtotime($act['created_at'])) ?>
+                                </p>
                             </div>
                         </div>
-                    <?php endif; ?>
-
-                    <?php $stmt_act->close(); ?>
+                    <?php endwhile; ?>
                 </div>
-            </div>
+            <?php else: ?>
+                <div class="text-center py-10 text-gray-400 h-full flex items-center justify-center">
+                    <div>
+                        <div class="w-12 h-12 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-3 border border-indigo-200 text-indigo-400">
+                            <i class="fas fa-box-open text-xl opacity-80"></i>
+                        </div>
+                        <p class="text-sm font-semibold text-gray-600">No Recent Activity</p>
+                        <p class="text-xs mt-1 text-gray-500">Your actions will appear here when you interact with your profile or documents.</p>
+                    </div>
+                </div>
+            <?php endif; ?>
+
+            <?php $stmt_act->close(); ?>
         </div>
     </div>
 </div>
