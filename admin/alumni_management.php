@@ -59,31 +59,27 @@ if (isset($_POST['update_submission_status'])) {
             close_date = NULL");
         $_SESSION['success_message'] = "Alumni submissions are now OPEN indefinitely.";
        
-                // ==================== NOTIFICATION API INTEGRATION ====================
+        // ==================== NOTIFICATION API INTEGRATION ====================
         // Notify alumni who need to update (haven't updated in 6 months)
         $alumni_to_notify = $conn->query("
             SELECT u.user_id, u.name as alumni_name, u.email as alumni_email, 
-                   u.batch_year as graduation_year, ap.employment_status,
-                   ap.last_profile_update, ap.submission_status
+                u.batch_year as graduation_year, ap.employment_status,
+                ap.last_profile_update, ap.submission_status
             FROM users u 
             INNER JOIN alumni_profile ap ON u.user_id = ap.user_id 
             WHERE u.role = 'alumni' 
             AND ap.submission_status != 'Approved'
             AND (ap.last_profile_update IS NULL OR 
-                 ap.last_profile_update < DATE_SUB(NOW(), INTERVAL 6 MONTH))
+                ap.last_profile_update < DATE_SUB(NOW(), INTERVAL 6 MONTH))
         ");
-        
+
         $notification_count = 0;
         while ($alumni = $alumni_to_notify->fetch_assoc()) {
-            // Include the notification functions
-            require_once $_SERVER['DOCUMENT_ROOT'] . '/Alumni-Employment-Tracking-and-Reminder-System/api/notification/notification_functions.php';
-            
-            // Send profile update reminder
-            $result = sendProfileUpdateReminder(
+            // Send profile update reminder using unified service
+            $result = send_profile_update_reminder(
                 $alumni['alumni_email'],
                 $alumni['alumni_name'],
-                $alumni['graduation_year'],
-                '/alumni/alumni_dashboard.php'
+                $alumni['graduation_year']
             );
             
             if ($result['success']) {
