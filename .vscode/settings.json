@@ -7,8 +7,19 @@
     "intelephense.diagnostics.undefinedClassConstants": false,
     "intelephense.diagnostics.undefinedVariables": false,
     "intelephense.diagnostics.undefinedFields": false,
+    "intelephense.diagnostics.duplicateSymbols": false,
+    "intelephense.diagnostics.undefinedSymbols": false,
     "intelephense.files.exclude": [
-        "**/vendor/**"
+        "**/vendor/**",
+        "**/node_modules/**"
     ],
+    "files.watcherExclude": {
+        "**/vendor/**": true,
+        "**/node_modules/**": true
+    },
+    "search.exclude": {
+        "**/vendor/**": true,
+        "**/node_modules/**": true
+    },
     "php.validate.executablePath": "C:/xampp/php/php.exe"
 }
