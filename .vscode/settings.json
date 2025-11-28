@@ -1,15 +1,18 @@
 {
     "intelephense.files.exclude": [
-        "**/vendor/**"
+        "**/vendor/squizlabs/**",
+        "**/vendor/pheromone/**",
+        "**/vendor/composer/**"
     ],
-    "files.exclude": {
-        "**/vendor/**": true
-    },
-    "files.watcherExclude": {
-        "**/vendor/**": true
-    },
-    "search.exclude": {
-        "**/vendor/**": true
-    },
-    "php.validate.executablePath": "C:/xampp/php/php.exe"
+    "intelephense.environment.includePaths": [
+        "vendor"
+    ],
+    "intelephense.stubs": [
+        "apcu",
+        "curl",
+        "json",
+        "mbstring"
+    ],
+    "php.validate.executablePath": "C:/xampp/php/php.exe",
+    "intelephense.environment.phpVersion": "8.0"
 }
