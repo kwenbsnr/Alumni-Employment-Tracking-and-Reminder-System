@@ -1,6 +1,8 @@
 <?php
 
-namespace NotificationAPI;
+namespace App\Notification;
+
+use NotificationAPI\NotificationAPI as OriginalNotificationAPI;
 
 class NotificationAPIWrapper
 {
@@ -17,7 +19,7 @@ class NotificationAPIWrapper
             throw new \InvalidArgumentException('Bad clientSecret');
         }
         
-        $this->notificationAPI = new \NotificationAPI\NotificationAPI($clientId, $clientSecret, $baseURL);
+        $this->notificationAPI = new OriginalNotificationAPI($clientId, $clientSecret, $baseURL);
     }
     
     public function __call($method, $arguments)

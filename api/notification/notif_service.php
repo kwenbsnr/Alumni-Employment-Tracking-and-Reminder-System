@@ -11,7 +11,7 @@ use NotificationAPI\NotificationAPI;
 
 // Initialize NotificationAPI with your credentials
 function init_notification_api() {
-    return new NotificationAPI(
+    return new \NotificationAPI\NotificationAPI(
         "ls4kt1i6t2hhh7rxd51k00rjj3",
         "rtdiclclahiqxqr692c86zyk9in81pmlc2kol4j3n9x3gk7dyy3qco19av"
     );
