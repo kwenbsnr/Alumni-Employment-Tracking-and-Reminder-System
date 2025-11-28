@@ -1,8 +1,6 @@
 <div class="email-wrapper" data-uid="019a7678-b52d-7de2-898e-b44877cc5517" style="background: white; padding: 0px; border-radius: 8px; max-width: 600px; margin: 0px auto; box-shadow: rgba(0, 0, 0, 0.1) 0px 2px 8px; font-family: Arial, sans-serif;">
     <div class="email-wrapper" data-uid="019a7678-b52d-7de2-898e-b449e238d03b" style="background: #15803d; padding: 15px; color: white; display: flex; align-items: center;">
-        <p data-uid="019a7678-b52d-7de2-898e-b44a811129ad" style="width: 50px; height: 50px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px; font-weight: bold; font-size: 20px; color: #15803d;">
-            J
-        </p>
+        <img src="./../login/images/favicon.png" alt="JHCSC Logo" style="width: 50px; height: 50px; border-radius: 50%; margin-right: 15px; object-fit: contain;">
         <div class="email-wrapper" data-uid="019a7678-b52d-7de2-898e-b44b1d14150c">
             <p data-uid="019a7678-b52d-7de2-898e-b44c4a59f16a" style="font-size: 18px; font-weight: bold;">
                 JH Cerilles State College
@@ -38,12 +36,52 @@
                     <p data-uid="019a7678-b52d-7de2-898e-b45973f511d2" style="margin: 0px 0px 8px;">
                         <strong>Submission Date:</strong> {{submission_date}}
                     </p>
-                    <p data-uid="019a7678-b52d-7de2-898e-b45a98631e3d" style="margin: 0px 0px 8px;">
-                        <strong>Current Employment:</strong> {{current_position}} at {{current_company}}
-                    </p>
-                    <p data-uid="019a7678-b52d-7de2-898e-b45bc8c28d33" style="margin: 0px 0px 8px;">
-                        <strong>Employment Status:</strong> {{employment_status}}
-                    </p>
+                    
+                    <!-- Dynamic Employment Status Section -->
+                    <div data-uid="employment-status-section">
+                        <p data-uid="019a7678-b52d-7de2-898e-b45bc8c28d33" style="margin: 0px 0px 8px;">
+                            <strong>Employment Status:</strong> {{employment_status}}
+                        </p>
+                        
+                        <!-- Employed -->
+                        {{#if employment_status=="employed"}}
+                        <p data-uid="employed-details" style="margin: 0px 0px 8px; padding-left: 15px; border-left: 2px solid #22c55e;">
+                            <strong>Position:</strong> {{current_position}} at {{current_company}}
+                        </p>
+                        {{/if}}
+                        
+                        <!-- Self-Employed -->
+                        {{#if employment_status=="self-employed"}}
+                        <p data-uid="self-employed-details" style="margin: 0px 0px 8px; padding-left: 15px; border-left: 2px solid #f59e0b;">
+                            <strong>Business/Work:</strong> {{current_work}}
+                        </p>
+                        {{/if}}
+                        
+                        <!-- Student -->
+                        {{#if employment_status=="student"}}
+                        <p data-uid="student-details" style="margin: 0px 0px 8px; padding-left: 15px; border-left: 2px solid #3b82f6;">
+                            <strong>Currently Studying at:</strong> {{current_school}}
+                        </p>
+                        {{/if}}
+                        
+                        <!-- Employed & Student -->
+                        {{#if employment_status=="employed & student"}}
+                        <p data-uid="employed-student-work" style="margin: 0px 0px 8px; padding-left: 15px; border-left: 2px solid #8b5cf6;">
+                            <strong>Position:</strong> {{current_position}} at {{current_company}}
+                        </p>
+                        <p data-uid="employed-student-school" style="margin: 0px 0px 8px; padding-left: 15px; border-left: 2px solid #8b5cf6;">
+                            <strong>Also Studying at:</strong> {{current_school}}
+                        </p>
+                        {{/if}}
+                        
+                        <!-- Unemployed -->
+                        {{#if employment_status=="unemployed"}}
+                        <p data-uid="unemployed-note" style="margin: 0px 0px 8px; padding-left: 15px; border-left: 2px solid #ef4444; font-style: italic; color: #666;">
+                            Currently seeking employment opportunities
+                        </p>
+                        {{/if}}
+                    </div>
+                    
                     <p data-uid="019a7678-b52d-7de2-898e-b45c77dad509" style="margin: 0px;">
                         <strong>Contact Email:</strong> {{alumni_email}}
                     </p>
@@ -53,14 +91,15 @@
                 <p data-uid="019a7678-b52d-7de2-898e-b45e8a25086e" style="font-weight: bold; margin-bottom: 10px; color: #0369a1;">
                     Required Action:
                 </p>
-                <ul data-uid="019a7678-b52d-7de2-898e-b45f782d5add">
-                    <li>Review the updated alumni information for accuracy</li>
-                    <li>Approve or reject the annual update</li>
+                <ul data-uid="019a7678-b52d-7de2-898e-b45f782d5add" style="margin: 0; padding-left: 20px;">
+                    <li style="margin-bottom: 5px;">Review the updated alumni information for accuracy</li>
+                    <li style="margin-bottom: 5px;">Verify employment/education details match the status</li>
+                    <li style="margin-bottom: 5px;">Approve or reject the annual update</li>
                     <li>Process within 3-5 business days</li>
                 </ul>
             </div>
             <p data-uid="019a7678-b52d-7de2-898e-b46083a9adf9" style="text-align: center; margin: 25px 0px;">
-                <a href="{{admin_review_link}}" style="background: #d97706; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+                <a href="{{admin_review_link}}" style="background: #d97706; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; transition: background-color 0.3s;">
                 Review Annual Update
                 </a>
             </p>
@@ -73,7 +112,7 @@
             <!-- Twitter Icon -->
             <a href="https://x.com/" style="display: inline-block; width: 32px; height: 32px; background: #1DA1F2; border-radius: 50%; line-height: 32px; margin: 0 4px; color: white; text-decoration: none; font-weight: bold; font-size: 14px;">𝕏</a>
             <!-- LinkedIn Icon -->
-            <a href="https://www.linkedin.com/" style="display: inline-block; width: 32px; height: 32px; background: #0A66C2; border-radius: 50%; line-height: 32px; margin: 0 4px; color: white; text-decoration: none; font-weight: bold; font-size: 14px;">in</a>
+            <a href="https://www.linkedin.com/" style="display: inline-block; width: 32px; height: 32px; background: #0A66C2; border-radius: 50%; line-height: 32px; margin: 0 4px; color: white; texterscript-decoration: none; font-weight: bold; font-size: 14px;">in</a>
         </p>
         <div class="email-wrapper" data-uid="019a7678-b52d-7de2-898e-b46302098914" style="line-height: 1.4;">
             <p data-uid="019a7678-b52d-7de2-898e-b4646bd749e0">
