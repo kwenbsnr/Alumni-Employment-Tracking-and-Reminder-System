@@ -2,6 +2,7 @@
 
 // NotificationId: alumni_employment_tracking_update_your_profile
 
+// Use relative paths for better compatibility
 $root_path = dirname(__FILE__) . '/../../';
 require_once $root_path . 'vendor/autoload.php';
 
@@ -202,7 +203,7 @@ function send_profile_update_reminder($conn, $user_id, $closing_date = '') {
     $parameters = [
         "alumni_name" => $alumni_data['alumni_name'],
         "graduation_year" => $alumni_data['graduation_year'],
-        "alumni_portal_link" => "/alumni/alumni_dashboard.php",
+        "alumni_portal_link" => "#", 
         "name" => $alumni_data['alumni_name'],
         "submission_date" => date('Y-m-d H:i:s')
     ];
@@ -248,7 +249,7 @@ function send_rejection_notification($conn, $user_id, $rejection_reason) {
         "alumni_name" => $alumni_data['alumni_name'],
         "graduation_year" => $alumni_data['graduation_year'],
         "rejection_reason" => $rejection_reason,
-        "resubmission_link" => "/alumni/update_profile.php",
+        "resubmission_link" => "#",
         "name" => $alumni_data['alumni_name'],
         "submission_date" => date('Y-m-d H:i:s')
     ];
@@ -274,7 +275,7 @@ function send_resubmission_admin_notification($conn, $user_id) {
         "alumni_name" => $alumni_data['alumni_name'],
         "alumni_email" => $alumni_data['alumni_email'],
         "graduation_year" => $alumni_data['graduation_year'],
-        "admin_review_link" => "/admin/batch_alumni.php",
+        "admin_review_link" => "#", 
         "name" => "Administrator",
         "previous_rejection_reason" => $rejection_info ? $rejection_info['reason'] : 'No specific reason provided',
         "employment_status" => $alumni_data['employment_status'],
@@ -315,7 +316,7 @@ function send_update_admin_notification($conn, $user_id) {
         "alumni_name" => $alumni_data['alumni_name'],
         "alumni_email" => $alumni_data['alumni_email'],
         "graduation_year" => $alumni_data['graduation_year'],
-        "admin_review_link" => "/admin/batch_alumni.php",
+        "admin_review_link" => "#", 
         "name" => "Administrator",
         "employment_status" => $alumni_data['employment_status'],
         "submission_date" => date('Y-m-d H:i:s'),
@@ -354,7 +355,7 @@ function send_new_submission_admin_notification($conn, $user_id) {
         "alumni_name" => $alumni_data['alumni_name'],
         "alumni_email" => $alumni_data['alumni_email'],
         "graduation_year" => $alumni_data['graduation_year'],
-        "admin_review_link" => "/admin/batch_alumni.php",
+        "admin_review_link" => "#", 
         "name" => "Administrator",
         "employment_status" => $alumni_data['employment_status'],
         "submission_date" => date('Y-m-d H:i:s'),
@@ -520,7 +521,7 @@ function test_notification_service() {
 
 // Auto-run test if this file is executed directly
 if (basename($_SERVER['PHP_SELF']) == 'notif_service.php') {
-    require_once $_SERVER['DOCUMENT_ROOT'] . '/Alumni-Employment-Tracking-and-Reminder-System/connect.php';
+    require_once $root_path . 'connect.php';
     test_notification_service();
 }
 ?>
