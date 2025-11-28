@@ -3,7 +3,7 @@
 echo "<!DOCTYPE html>
 <html>
 <head>
-    <title>Defense Presentation - Notification System Proof</title>
+    <title> Notification System is Working </title>
     <style>
         body { font-family: Arial, sans-serif; margin: 40px; }
         .proof { background: #ECFDF5; padding: 20px; margin: 15px 0; border-radius: 8px; border-left: 5px solid #10B981; }
