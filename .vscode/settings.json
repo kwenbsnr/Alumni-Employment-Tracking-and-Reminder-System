@@ -1,20 +1,14 @@
 {
     "intelephense.files.exclude": [
-        "**/vendor/composer/**",
-        "**/vendor/squizlabs/**",
-        "**/vendor/pheromone/phpcs-security-audit/**",
-        "**/vendor/**/tests/**",
-        "**/vendor/**/test/**",
-        "**/node_modules/**",
-        "**/tcpdf/**"
+        "**/vendor/**"
     ],
+    "files.exclude": {
+        "**/vendor/**": true
+    },
     "files.watcherExclude": {
-        "**/vendor/**": true,
-        "**/node_modules/**": true
+        "**/vendor/**": true
     },
     "search.exclude": {
-        "**/vendor/**": true,
-        "**/node_modules/**": true
-    },
-    "php.validate.executablePath": "C:/xampp/php/php.exe"
+        "**/vendor/**": true
+    }
 }
