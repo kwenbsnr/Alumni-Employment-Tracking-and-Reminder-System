@@ -15,16 +15,16 @@
     "intelephense.diagnostics.languageMismatch": false,
     "intelephense.diagnostics.typeErrors": false,
     
-    // ===== EXCLUDE ONLY VENDOR FILES (YOUR CODE STAYS VISIBLE) =====
+    // ===== EXCLUDE ONLY VENDOR FILES =====
     "intelephense.files.exclude": [
         "**/vendor/**",
         "**/node_modules/**",
         "**/tcpdf/**"
     ],
     
-    // ===== KEEP YOUR PROJECT FILES FULLY FUNCTIONAL =====
+    // ===== KEEP PROJECT FILES FULLY FUNCTIONAL =====
     "intelephense.environment.includePaths": [
-        "vendor"  // This allows autoloader to work for YOUR code
+        "vendor"  // allows autoloader to work for my code
     ],
     "intelephense.stubs": [
         "apcu",
@@ -32,8 +32,7 @@
         "json",
         "mbstring",
         "mysqli",
-        "PDO",
-        "pdo_mysql"
+        "PDO"
     ],
     
     // ===== VS CODE FILE EXCLUSIONS (VISUAL ONLY) =====
@@ -53,7 +52,7 @@
         "**/tcpdf/**": true
     },
     
-    // ===== CONFIGURE PHP TO ENSURE MY CODE WORKS =====
+    // ===== PHP CONFIGURATION - ENSURES MY CODE WORKS =====
     "php.validate.executablePath": "C:/xampp/php/php.exe",
     "intelephense.environment.phpVersion": "8.0",
     

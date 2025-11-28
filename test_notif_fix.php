@@ -9,6 +9,7 @@ try {
         "rtdiclclahiqxqr692c86zyk9in81pmlc2kol4j3n9x3gk7dyy3qco19av"
     );
     
+    echo "✅ Ignore da yellow line bec its harmless ra. it's just IDE limitations.<br>";
     echo "✅ NotificationAPI class loaded successfully!<br>";
     echo "✅ Composer autoloader is working!<br>";
     echo "✅ Your credentials are valid!<br>";
