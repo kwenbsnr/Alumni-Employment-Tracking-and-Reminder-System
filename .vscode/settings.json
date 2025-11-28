@@ -1,0 +1,12 @@
+{
+    "intelephense.files.exclude": [
+        "**/vendor/**",
+        "**/node_modules/**",
+        "**/tcpdf/**"
+    ],
+    "intelephense.environment.includePaths": [
+        "vendor"
+    ],
+    "php.validate.executablePath": "C:/xampp/php/php.exe",
+    "intelephense.environment.phpVersion": "8.0"
+}
