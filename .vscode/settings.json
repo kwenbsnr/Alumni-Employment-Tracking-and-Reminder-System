@@ -1,6 +1,10 @@
 {
     "intelephense.files.exclude": [
-        "**/vendor/**",
+        "**/vendor/composer/**",
+        "**/vendor/squizlabs/**",
+        "**/vendor/pheromone/phpcs-security-audit/**",
+        "**/vendor/**/tests/**",
+        "**/vendor/**/test/**",
         "**/node_modules/**",
         "**/tcpdf/**"
     ],
