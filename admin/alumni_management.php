@@ -126,6 +126,17 @@ if (isset($_POST['update_submission_status'])) {
                 ");
                 
                 // Add notification count to success message
+                $notification_count = 0;
+                while ($alumni = $alumni_to_notify->fetch_assoc()) {
+                    // Send profile update reminder using CORRECT function signature
+                    $result = send_profile_update_reminder($conn, $alumni['user_id']);
+                    
+                    if ($result['success']) {
+                        $notification_count++;
+                    }
+                }
+
+                // Add notification count to success message
                 if ($notification_count > 0) {
                     $_SESSION['success_message'] .= " Sent scheduled update reminders to {$notification_count} alumni.";
                 }
@@ -168,6 +179,17 @@ if (!$manual_override && $open_date && $close_date) {
                      ap.last_profile_update < DATE_SUB(NOW(), INTERVAL 6 MONTH))
             ");
             
+            // Log the automatic notifications
+            $notification_count = 0;
+            while ($alumni = $alumni_to_notify->fetch_assoc()) {
+                // Send profile update reminder using CORRECT function signature
+                $result = send_profile_update_reminder($conn, $alumni['user_id']);
+                
+                if ($result['success']) {
+                    $notification_count++;
+                }
+            }
+
             // Log the automatic notifications
             if ($notification_count > 0) {
                 error_log("[" . date('Y-m-d H:i:s') . "] Automatically sent profile update reminders to {$notification_count} alumni when submissions opened on schedule.");
