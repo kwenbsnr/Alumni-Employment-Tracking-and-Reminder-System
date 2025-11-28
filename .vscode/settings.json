@@ -1,18 +1,10 @@
 {
+    "intelephense.diagnostics.undefinedTypes": false,
+    "intelephense.diagnostics.undefinedFunctions": false,
+    "intelephense.diagnostics.undefinedConstants": false,
+    "intelephense.diagnostics.undefinedMethods": false,
+    "intelephense.diagnostics.undefinedProperties": false,
     "intelephense.files.exclude": [
-        "**/vendor/squizlabs/**",
-        "**/vendor/pheromone/**",
-        "**/vendor/composer/**"
-    ],
-    "intelephense.environment.includePaths": [
-        "vendor"
-    ],
-    "intelephense.stubs": [
-        "apcu",
-        "curl",
-        "json",
-        "mbstring"
-    ],
-    "php.validate.executablePath": "C:/xampp/php/php.exe",
-    "intelephense.environment.phpVersion": "8.0"
+        "**/vendor/**"
+    ]
 }
