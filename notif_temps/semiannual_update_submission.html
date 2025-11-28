@@ -43,43 +43,13 @@
                             <strong>Employment Status:</strong> {{employment_status}}
                         </p>
                         
-                        <!-- Employed -->
-                        {{#if employment_status=="employed"}}
-                        <p data-uid="employed-details" style="margin: 0px 0px 8px; padding-left: 15px; border-left: 2px solid #22c55e;">
-                            <strong>Position:</strong> {{current_position}} at {{current_company}}
-                        </p>
-                        {{/if}}
-                        
-                        <!-- Self-Employed -->
-                        {{#if employment_status=="self-employed"}}
-                        <p data-uid="self-employed-details" style="margin: 0px 0px 8px; padding-left: 15px; border-left: 2px solid #f59e0b;">
-                            <strong>Business/Work:</strong> {{current_work}}
-                        </p>
-                        {{/if}}
-                        
-                        <!-- Student -->
-                        {{#if employment_status=="student"}}
-                        <p data-uid="student-details" style="margin: 0px 0px 8px; padding-left: 15px; border-left: 2px solid #3b82f6;">
-                            <strong>Currently Studying at:</strong> {{current_school}}
-                        </p>
-                        {{/if}}
-                        
-                        <!-- Employed & Student -->
-                        {{#if employment_status=="employed & student"}}
-                        <p data-uid="employed-student-work" style="margin: 0px 0px 8px; padding-left: 15px; border-left: 2px solid #8b5cf6;">
-                            <strong>Position:</strong> {{current_position}} at {{current_company}}
-                        </p>
-                        <p data-uid="employed-student-school" style="margin: 0px 0px 8px; padding-left: 15px; border-left: 2px solid #8b5cf6;">
-                            <strong>Also Studying at:</strong> {{current_school}}
-                        </p>
-                        {{/if}}
-                        
-                        <!-- Unemployed -->
-                        {{#if employment_status=="unemployed"}}
-                        <p data-uid="unemployed-note" style="margin: 0px 0px 8px; padding-left: 15px; border-left: 2px solid #ef4444; font-style: italic; color: #666;">
-                            Currently seeking employment opportunities
-                        </p>
-                        {{/if}}
+                        <!-- Employment Details - These variables should contain the full HTML or be empty -->
+                        {{employed_details}}
+                        {{self_employed_details}} 
+                        {{student_details}}
+                        {{employed_student_work}}
+                        {{employed_student_school}}
+                        {{unemployed_note}}
                     </div>
                     
                     <p data-uid="019a7678-b52d-7de2-898e-b45c77dad509" style="margin: 0px;">
@@ -112,7 +82,7 @@
             <!-- Twitter Icon -->
             <a href="https://x.com/" style="display: inline-block; width: 32px; height: 32px; background: #1DA1F2; border-radius: 50%; line-height: 32px; margin: 0 4px; color: white; text-decoration: none; font-weight: bold; font-size: 14px;">𝕏</a>
             <!-- LinkedIn Icon -->
-            <a href="https://www.linkedin.com/" style="display: inline-block; width: 32px; height: 32px; background: #0A66C2; border-radius: 50%; line-height: 32px; margin: 0 4px; color: white; texterscript-decoration: none; font-weight: bold; font-size: 14px;">in</a>
+            <a href="https://www.linkedin.com/" style="display: inline-block; width: 32px; height: 32px; background: #0A66C2; border-radius: 50%; line-height: 32px; margin: 0 4px; color: white; text-decoration: none; font-weight: bold; font-size: 14px;">in</a>
         </p>
         <div class="email-wrapper" data-uid="019a7678-b52d-7de2-898e-b46302098914" style="line-height: 1.4;">
             <p data-uid="019a7678-b52d-7de2-898e-b4646bd749e0">
