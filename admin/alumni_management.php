@@ -75,12 +75,8 @@ if (isset($_POST['update_submission_status'])) {
 
         $notification_count = 0;
         while ($alumni = $alumni_to_notify->fetch_assoc()) {
-            // Send profile update reminder using unified service
-            $result = send_profile_update_reminder(
-                $alumni['alumni_email'],
-                $alumni['alumni_name'],
-                $alumni['graduation_year']
-            );
+            // Send profile update reminder using CORRECT function signature
+            $result = send_profile_update_reminder($conn, $alumni['user_id']);
             
             if ($result['success']) {
                 $notification_count++;
