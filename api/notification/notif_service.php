@@ -115,8 +115,11 @@ function send_resubmission_admin_notification($admin_email, $alumni_name, $alumn
     return send_notification('alum_resubmit_admin_notif', $admin_email, $parameters);
 }
 
-// Send update notification to admin (alum_update_admin_notif)
-function send_update_admin_notification($admin_email, $alumni_name, $alumni_email, $graduation_year, $employment_status = '') {
+// Send update notification to admin (alum_update_admin_notif) - ENHANCED VERSION
+function send_update_admin_notification($admin_email, $alumni_name, $alumni_email, $graduation_year, $employment_status = '', $employment_data = []) {
+    // Generate employment details based on status
+    $employment_details = generate_employment_details($employment_status, $employment_data);
+    
     $parameters = [
         "alumni_name" => $alumni_name,
         "alumni_email" => $alumni_email,
@@ -124,14 +127,24 @@ function send_update_admin_notification($admin_email, $alumni_name, $alumni_emai
         "admin_review_link" => "/admin/batch_alumni.php",
         "name" => "Administrator",
         "employment_status" => $employment_status,
-        "submission_date" => date('Y-m-d H:i:s')
+        "submission_date" => date('Y-m-d H:i:s'),
+        // Employment detail variables for the template
+        "employed_details" => $employment_details['employed_details'],
+        "self_employed_details" => $employment_details['self_employed_details'],
+        "student_details" => $employment_details['student_details'],
+        "employed_student_work" => $employment_details['employed_student_work'],
+        "employed_student_school" => $employment_details['employed_student_school'],
+        "unemployed_note" => $employment_details['unemployed_note']
     ];
     
     return send_notification('alum_update_admin_notif', $admin_email, $parameters);
 }
 
-// Send new submission notification to admin (template_admin_notif)
-function send_new_submission_admin_notification($admin_email, $alumni_name, $alumni_email, $graduation_year, $employment_status = '') {
+// Send new submission notification to admin (template_admin_notif) - ENHANCED VERSION
+function send_new_submission_admin_notification($admin_email, $alumni_name, $alumni_email, $graduation_year, $employment_status = '', $employment_data = []) {
+    // Generate employment details based on status
+    $employment_details = generate_employment_details($employment_status, $employment_data);
+    
     $parameters = [
         "alumni_name" => $alumni_name,
         "alumni_email" => $alumni_email,
@@ -139,10 +152,106 @@ function send_new_submission_admin_notification($admin_email, $alumni_name, $alu
         "admin_review_link" => "/admin/batch_alumni.php",
         "name" => "Administrator",
         "employment_status" => $employment_status,
-        "submission_date" => date('Y-m-d H:i:s')
+        "submission_date" => date('Y-m-d H:i:s'),
+        // Employment detail variables for the template
+        "employed_details" => $employment_details['employed_details'],
+        "self_employed_details" => $employment_details['self_employed_details'],
+        "student_details" => $employment_details['student_details'],
+        "employed_student_work" => $employment_details['employed_student_work'],
+        "employed_student_school" => $employment_details['employed_student_school'],
+        "unemployed_note" => $employment_details['unemployed_note']
     ];
     
     return send_notification('template_admin_notif', $admin_email, $parameters);
+}
+
+// ==================== EMPLOYMENT STATUS HELPER FUNCTIONS ====================
+
+// Generate employment details HTML based on employment status
+function generate_employment_details($employment_status, $employment_data = []) {
+    $employed_details = '';
+    $self_employed_details = '';
+    $student_details = '';
+    $employed_student_work = '';
+    $employed_student_school = '';
+    $unemployed_note = '';
+
+    switch($employment_status) {
+        case 'employed':
+            $position = $employment_data['current_position'] ?? '';
+            $company = $employment_data['current_company'] ?? '';
+            if ($position && $company) {
+                $employed_details = '<p style="margin: 0px 0px 8px; padding-left: 15px; border-left: 2px solid #22c55e;"><strong>Position:</strong> ' . htmlspecialchars($position) . ' at ' . htmlspecialchars($company) . '</p>';
+            }
+            break;
+            
+        case 'self-employed':
+            $work = $employment_data['current_work'] ?? '';
+            if ($work) {
+                $self_employed_details = '<p style="margin: 0px 0px 8px; padding-left: 15px; border-left: 2px solid #f59e0b;"><strong>Business/Work:</strong> ' . htmlspecialchars($work) . '</p>';
+            }
+            break;
+            
+        case 'student':
+            $school = $employment_data['current_school'] ?? '';
+            if ($school) {
+                $student_details = '<p style="margin: 0px 0px 8px; padding-left: 15px; border-left: 2px solid #3b82f6;"><strong>Currently Studying at:</strong> ' . htmlspecialchars($school) . '</p>';
+            }
+            break;
+            
+        case 'employed & student':
+            $position = $employment_data['current_position'] ?? '';
+            $company = $employment_data['current_company'] ?? '';
+            $school = $employment_data['current_school'] ?? '';
+            
+            if ($position && $company) {
+                $employed_student_work = '<p style="margin: 0px 0px 8px; padding-left: 15px; border-left: 2px solid #8b5cf6;"><strong>Position:</strong> ' . htmlspecialchars($position) . ' at ' . htmlspecialchars($company) . '</p>';
+            }
+            if ($school) {
+                $employed_student_school = '<p style="margin: 0px 0px 8px; padding-left: 15px; border-left: 2px solid #8b5cf6;"><strong>Also Studying at:</strong> ' . htmlspecialchars($school) . '</p>';
+            }
+            break;
+            
+        case 'unemployed':
+            $unemployed_note = '<p style="margin: 0px 0px 8px; padding-left: 15px; border-left: 2px solid #ef4444; font-style: italic; color: #666;">Currently seeking employment opportunities</p>';
+            break;
+    }
+
+    return [
+        'employed_details' => $employed_details,
+        'self_employed_details' => $self_employed_details,
+        'student_details' => $student_details,
+        'employed_student_work' => $employed_student_work,
+        'employed_student_school' => $employed_student_school,
+        'unemployed_note' => $unemployed_note
+    ];
+}
+
+// Get complete alumni employment data for notifications
+function get_alumni_employment_data($conn, $user_id) {
+    $query = "
+        SELECT 
+            u.name, 
+            u.email, 
+            u.batch_year, 
+            ap.employment_status,
+            ap.current_position,
+            ap.current_company,
+            ap.current_work,
+            ap.current_school,
+            ap.submission_status,
+            ap.last_profile_update
+        FROM users u 
+        INNER JOIN alumni_profile ap ON u.user_id = ap.user_id 
+        WHERE u.user_id = ?
+    ";
+    
+    $stmt = $conn->prepare($query);
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    return $result->fetch_assoc();
 }
 
 // ==================== HELPER FUNCTIONS ====================
@@ -252,7 +361,20 @@ function test_notification_service() {
     
     foreach ($tests as $test) {
         echo "Testing: {$test[1]}... ";
-        $result = send_notification($test[0], $test_email, ['alumni_name' => 'Test User', 'graduation_year' => '2020']);
+        
+        // For admin notifications, test with employment data
+        if (in_array($test[0], ['alum_update_admin_notif', 'template_admin_notif'])) {
+            $employment_data = [
+                'current_position' => 'Software Developer',
+                'current_company' => 'Tech Corp Inc',
+                'current_school' => 'Graduate University',
+                'current_work' => 'Freelance Web Development'
+            ];
+            $result = send_update_admin_notification($test_email, 'Test User', 'test@example.com', '2020', 'employed', $employment_data);
+        } else {
+            $result = send_notification($test[0], $test_email, ['alumni_name' => 'Test User', 'graduation_year' => '2020']);
+        }
+        
         echo $result['success'] ? "✅ SUCCESS<br>" : "❌ FAILED<br>";
         sleep(1); // Avoid rate limiting
     }
