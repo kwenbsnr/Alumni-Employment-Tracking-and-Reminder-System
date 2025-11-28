@@ -5,8 +5,16 @@
  * No database logging required
  */
 
+// Explicitly require the NotificationAPI SDK
 require_once $_SERVER['DOCUMENT_ROOT'] . '/Alumni-Employment-Tracking-and-Reminder-System/vendor/autoload.php';
 
+// If the above doesn't work, try this direct path:
+$sdkPath = $_SERVER['DOCUMENT_ROOT'] . '/Alumni-Employment-Tracking-and-Reminder-System/vendor/notificationapi/notificationapi-php-server-sdk/src/NotificationAPI.php';
+if (file_exists($sdkPath)) {
+    require_once $sdkPath;
+}
+
+// Use the class
 use NotificationAPI\NotificationAPI;
 
 // Initialize NotificationAPI with your credentials

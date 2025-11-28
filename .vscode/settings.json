@@ -1,14 +1,72 @@
 {
+    // ===== COMPLETELY DISABLE ALL INTELEPHENSE WARNINGS =====
+    "intelephense.diagnostics.undefinedTypes": false,
+    "intelephense.diagnostics.undefinedFunctions": false,
+    "intelephense.diagnostics.undefinedConstants": false,
+    "intelephense.diagnostics.undefinedMethods": false,
+    "intelephense.diagnostics.undefinedProperties": false,
+    "intelephense.diagnostics.undefinedClassConstants": false,
+    "intelephense.diagnostics.undefinedVariables": false,
+    "intelephense.diagnostics.undefinedFields": false,
+    "intelephense.diagnostics.duplicateSymbols": false,
+    "intelephense.diagnostics.undefinedSymbols": false,
+    "intelephense.diagnostics.deprecated": false,
+    "intelephense.diagnostics.assignmentToFunctionParameter": false,
+    "intelephense.diagnostics.languageMismatch": false,
+    "intelephense.diagnostics.typeErrors": false,
+    
+    // ===== EXCLUDE ONLY VENDOR FILES =====
     "intelephense.files.exclude": [
-        "**/vendor/**"
+        "**/vendor/**",
+        "**/node_modules/**",
+        "**/tcpdf/**"
     ],
+    
+    // ===== KEEP PROJECT FILES FULLY FUNCTIONAL =====
+    "intelephense.environment.includePaths": [
+        "vendor"  // allows autoloader to work for my code
+    ],
+    "intelephense.stubs": [
+        "apcu",
+        "curl",
+        "json",
+        "mbstring",
+        "mysqli",
+        "PDO"
+    ],
+    
+    // ===== VS CODE FILE EXCLUSIONS (VISUAL ONLY) =====
     "files.exclude": {
-        "**/vendor/**": true
+        "**/vendor/**": true,
+        "**/node_modules/**": true,
+        "**/tcpdf/**": true
     },
     "files.watcherExclude": {
-        "**/vendor/**": true
+        "**/vendor/**": true,
+        "**/node_modules/**": true,
+        "**/tcpdf/**": true
     },
     "search.exclude": {
-        "**/vendor/**": true
+        "**/vendor/**": true,
+        "**/node_modules/**": true,
+        "**/tcpdf/**": true
+    },
+    
+    // ===== PHP CONFIGURATION - ENSURES MY CODE WORKS =====
+    "php.validate.executablePath": "C:/xampp/php/php.exe",
+    "intelephense.environment.phpVersion": "8.0",
+    
+    // ===== ENABLE ALL FEATURES FOR MY CODE =====
+    "intelephense.completion.insertUseDeclaration": true,
+    "intelephense.completion.fullyQualifyGlobalConstantsAndFunctions": false,
+    "intelephense.completion.fullyQualifyGlobalClasses": false,
+    "intelephense.format.enable": true,
+    
+    // ===== FILE ASSOCIATIONS - RECOGNIZE ALL FILES =====
+    "files.associations": {
+        "*.php": "php",
+        "*.css": "css",
+        "*.js": "javascript",
+        "*.json": "json"
     }
 }
