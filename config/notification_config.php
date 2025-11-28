@@ -1,5 +1,4 @@
 <?php
-// config/notification_config.php
 
 define('NOTIFICATIONAPI_CLIENT_ID', 'ls4kt1i6t2hhh7rxd51k00rjj3');
 define('NOTIFICATIONAPI_CLIENT_SECRET', 'rtdiclclahiqxqr692c86zyk9in81pmlc2kol4j3n9x3gk7dyy3qco19av');
