@@ -4,7 +4,11 @@
     "intelephense.diagnostics.undefinedConstants": false,
     "intelephense.diagnostics.undefinedMethods": false,
     "intelephense.diagnostics.undefinedProperties": false,
+    "intelephense.diagnostics.undefinedClassConstants": false,
+    "intelephense.diagnostics.undefinedVariables": false,
+    "intelephense.diagnostics.undefinedFields": false,
     "intelephense.files.exclude": [
         "**/vendor/**"
-    ]
+    ],
+    "php.validate.executablePath": "C:/xampp/php/php.exe"
 }
