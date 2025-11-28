@@ -101,7 +101,10 @@ function send_rejection_notification($alumni_email, $alumni_name, $graduation_ye
 // ==================== ADMIN NOTIFICATIONS ====================
 
 // Send resubmission notification to admin (alum_resubmit_admin_notif)
-function send_resubmission_admin_notification($admin_email, $alumni_name, $alumni_email, $graduation_year, $previous_rejection_reason = '') {
+function send_resubmission_admin_notification($admin_email, $alumni_name, $alumni_email, $graduation_year, $previous_rejection_reason = '', $employment_status = '', $employment_data = []) {
+    // Generate employment details based on status
+    $employment_details = generate_employment_details($employment_status, $employment_data);
+    
     $parameters = [
         "alumni_name" => $alumni_name,
         "alumni_email" => $alumni_email,
@@ -109,7 +112,16 @@ function send_resubmission_admin_notification($admin_email, $alumni_name, $alumn
         "admin_review_link" => "/admin/batch_alumni.php",
         "name" => "Administrator",
         "previous_rejection_reason" => $previous_rejection_reason,
-        "submission_date" => date('Y-m-d H:i:s')
+        "employment_status" => $employment_status,
+        "submission_date" => date('Y-m-d H:i:s'),
+        "original_rejection_date" => date('Y-m-d', strtotime('-1 week')), // You might want to get this from DB
+        // Employment detail variables for the template
+        "employed_details" => $employment_details['employed_details'],
+        "self_employed_details" => $employment_details['self_employed_details'],
+        "student_details" => $employment_details['student_details'],
+        "employed_student_work" => $employment_details['employed_student_work'],
+        "employed_student_school" => $employment_details['employed_student_school'],
+        "unemployed_note" => $employment_details['unemployed_note']
     ];
     
     return send_notification('alum_resubmit_admin_notif', $admin_email, $parameters);
