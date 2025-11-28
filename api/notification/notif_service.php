@@ -2,14 +2,8 @@
 
 // NotificationId: alumni_employment_tracking_update_your_profile
 
-// Explicitly require the NotificationAPI SDK
-require_once $_SERVER['DOCUMENT_ROOT'] . '/Alumni-Employment-Tracking-and-Reminder-System/vendor/autoload.php';
-
-// If the above doesn't work, try this direct path:
-$sdkPath = $_SERVER['DOCUMENT_ROOT'] . '/Alumni-Employment-Tracking-and-Reminder-System/vendor/notificationapi/notificationapi-php-server-sdk/src/NotificationAPI.php';
-if (file_exists($sdkPath)) {
-    require_once $sdkPath;
-}
+$root_path = dirname(__FILE__) . '/../../';
+require_once $root_path . 'vendor/autoload.php';
 
 // Use the class
 use NotificationAPI\NotificationAPI;
