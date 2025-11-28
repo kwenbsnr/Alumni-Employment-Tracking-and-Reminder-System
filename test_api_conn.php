@@ -1,8 +1,4 @@
 <?php
-/**
- * Test NotificationAPI Connection and Credentials
- * Run this first to check basic connectivity
- */
 
 require_once $_SERVER['DOCUMENT_ROOT'] . '/Alumni-Employment-Tracking-and-Reminder-System/vendor/autoload.php';
 

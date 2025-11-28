@@ -499,59 +499,25 @@ if ($can_update) {
         $conn->commit();
 
         // === NOTIFICATION INTEGRATION ===
-        // Get user details for notification
-        $user_stmt = $conn->prepare("SELECT u.name, u.email, u.batch_year FROM users u WHERE u.user_id = ?");
-        $user_stmt->bind_param("i", $user_id);
-        $user_stmt->execute();
-        $user_data = $user_stmt->get_result()->fetch_assoc();
-        $user_stmt->close();
-
-        if ($user_data) {
-            $alumni_name = $user_data['name'];
-            $alumni_email = $user_data['email'];
-            $graduation_year = $user_data['batch_year'];
-            $employment_status = $_POST['employment_status'] ?? '';
-            
-            // Get admin emails
-            $admin_emails = get_admin_emails($conn);
-            
-            // Check if this is first-time submission
-            $is_first_time = is_first_time_submission($conn, $user_id);
-            
-            // Check if this is a resubmission after rejection
-            $is_resubmission = was_submission_rejected($conn, $user_id);
-            
-            // Send appropriate notifications to admins
-            foreach ($admin_emails as $admin_email) {
-                if ($is_first_time) {
-                    // First-time submission - send template_admin_notif
-                    send_new_submission_admin_notification(
-                        $admin_email,
-                        $alumni_name,
-                        $alumni_email,
-                        $graduation_year,
-                        $employment_status
-                    );
-                } elseif ($is_resubmission) {
-                    // Resubmission after rejection - send alum_resubmit_admin_notif
-                    send_resubmission_admin_notification(
-                        $admin_email,
-                        $alumni_name,
-                        $alumni_email,
-                        $graduation_year,
-                        '' // previous rejection reason - you can add this if stored
-                    );
-                } else {
-                    // Regular update - send alum_update_admin_notif
-                    send_update_admin_notification(
-                        $admin_email,
-                        $alumni_name,
-                        $alumni_email,
-                        $graduation_year,
-                        $employment_status
-                    );
-                }
-            }
+        // Check if this is first-time submission
+        $is_first_time = is_first_time_submission($conn, $user_id);
+        
+        // Check if this is a resubmission after rejection
+        $is_resubmission = was_submission_rejected($conn, $user_id);
+        
+        // Send appropriate notifications to admins - USING UPDATED FUNCTIONS
+        if ($is_first_time) {
+            // First-time submission - send template_admin_notif
+            $result = send_new_submission_admin_notification($conn, $user_id);
+            error_log("First-time submission notification sent for user: $user_id");
+        } elseif ($is_resubmission) {
+            // Resubmission after rejection - send alum_resubmit_admin_notif
+            $result = send_resubmission_admin_notification($conn, $user_id);
+            error_log("Resubmission notification sent for user: $user_id");
+        } else {
+            // Regular update - send alum_update_admin_notif
+            $result = send_update_admin_notification($conn, $user_id);
+            error_log("Regular update notification sent for user: $user_id");
         }
 
         // Clear any rejection session flags

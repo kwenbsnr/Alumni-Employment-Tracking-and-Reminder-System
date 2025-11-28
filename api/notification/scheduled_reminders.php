@@ -5,21 +5,17 @@ require_once '../../vendor/autoload.php';
 require_once '../../config/notification_config.php';
 require_once 'notif_service.php';
 
-// Simple function to send profile update reminder
-function sendProfileUpdateReminder($alumni_email, $alumni_name, $graduation_year, $reminder_type = 'initial') {
+// Simple function to send profile update reminder - FIXED SIGNATURE
+function sendProfileUpdateReminder($conn, $alumni_email, $alumni_name, $graduation_year, $user_id, $reminder_type = 'initial') {
     try {
-        // Use the unified notification service instead of creating new NotificationAPI
-        $result = send_profile_update_reminder(
-            $alumni_email,
-            $alumni_name,
-            $graduation_year
-        );
+        // Use the unified notification service with correct signature
+        $result = send_profile_update_reminder($conn, $user_id);
         
-        logNotification($alumni_email, 'template_one', 'sent');
+        logNotification($conn, $alumni_email, 'template_one', 'sent');
         return $result;
         
     } catch (Exception $e) {
-        logNotification($alumni_email, 'template_one', 'failed', $e->getMessage());
+        logNotification($conn, $alumni_email, 'template_one', 'failed', $e->getMessage());
         return ['success' => false, 'error' => $e->getMessage()];
     }
 }
@@ -75,10 +71,8 @@ function isSubmissionsOpen($conn) {
     return false;
 }
 
-// Simple notification logger
-function logNotification($email, $template_id, $status, $error_message = '') {
-    global $conn;
-    
+// Simple notification logger - FIXED WITH CONN PARAMETER
+function logNotification($conn, $email, $template_id, $status, $error_message = '') {
     if (!$conn) {
         error_log("Notification: $email | $template_id | $status | $error_message");
         return;
@@ -98,7 +92,7 @@ function logNotification($email, $template_id, $status, $error_message = '') {
     }
 }
 
-// Main scheduled reminder function
+// Main scheduled reminder function - FIXED FUNCTION CALLS
 function runScheduledReminders($conn) {
     $schedule = getSubmissionSchedule($conn);
     if (!$schedule) {
@@ -118,7 +112,7 @@ function runScheduledReminders($conn) {
             $alumni = getAlumniForReminders($conn);
             $count = 0;
             foreach ($alumni as $a) {
-                $result = sendProfileUpdateReminder($a['alumni_email'], $a['alumni_name'], $a['graduation_year'], '2-day');
+                $result = sendProfileUpdateReminder($conn, $a['alumni_email'], $a['alumni_name'], $a['graduation_year'], $a['user_id'], '2-day');
                 if ($result['success']) $count++;
             }
             $results[] = "Sent {$count} 2-day closing reminders";
@@ -133,7 +127,7 @@ function runScheduledReminders($conn) {
             $alumni = getAlumniForReminders($conn);
             $count = 0;
             foreach ($alumni as $a) {
-                $result = sendProfileUpdateReminder($a['alumni_email'], $a['alumni_name'], $a['graduation_year'], '1-day');
+                $result = sendProfileUpdateReminder($conn, $a['alumni_email'], $a['alumni_name'], $a['graduation_year'], $a['user_id'], '1-day');
                 if ($result['success']) $count++;
             }
             $results[] = "Sent {$count} 1-day closing reminders";
@@ -146,7 +140,7 @@ function runScheduledReminders($conn) {
         $alumni = getAlumniForReminders($conn);
         $count = 0;
         foreach ($alumni as $a) {
-            $result = sendProfileUpdateReminder($a['alumni_email'], $a['alumni_name'], $a['graduation_year'], 'semi-annual');
+            $result = sendProfileUpdateReminder($conn, $a['alumni_email'], $a['alumni_name'], $a['graduation_year'], $a['user_id'], 'semi-annual');
             if ($result['success']) $count++;
         }
         $results[] = "Sent {$count} semi-annual reminders";
@@ -155,7 +149,7 @@ function runScheduledReminders($conn) {
     return empty($results) ? "No reminders sent." : implode(" | ", $results);
 }
 
-// TEST FUNCTION - Run this file directly to test
+// TEST FUNCTION - Run file directly to test
 function testScheduledReminders() {
     global $conn;
     echo "=== Testing Scheduled Reminders ===\n";

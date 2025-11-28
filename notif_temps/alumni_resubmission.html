@@ -1,8 +1,6 @@
 <div class="email-wrapper" data-uid="019a7680-4094-7877-bee6-b7bb9df5a0e7" style="background: white; padding: 0px; border-radius: 8px; max-width: 600px; margin: 0px auto; box-shadow: rgba(0, 0, 0, 0.1) 0px 2px 8px; font-family: Arial, sans-serif;">
     <div class="email-wrapper" data-uid="019a7680-4094-7877-bee6-b7bc1cfe2cf8" style="background: #15803d; padding: 15px; color: white; display: flex; align-items: center;">
-        <p data-uid="019a7680-4094-7877-bee6-b7bd428ec6f9" style="width: 50px; height: 50px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px; font-weight: bold; font-size: 20px; color: #15803d;">
-            J
-        </p>
+        <img src="https://www.google.com/url?sa=i&url=https%3A%2F%2Fjhcsc.edu.ph%2F%3Fpage_id%3D147&psig=AOvVaw26GmvBHnx9FKW83Drl33iO&ust=1764425204364000&source=images&cd=vfe&opi=89978449&ved=0CBUQjRxqFwoTCJiRr52ClZEDFQAAAAAdAAAAABAE" alt="JHCSC Logo" style="width: 50px; height: 50px; border-radius: 50%; margin-right: 15px; object-fit: contain;">
         <div class="email-wrapper" data-uid="019a7680-4094-7877-bee6-b7be946add5b">
             <p data-uid="019a7680-4094-7877-bee6-b7bf71d8cac7" style="font-size: 18px; font-weight: bold;">
                 JH Cerilles State College
@@ -41,10 +39,23 @@
                     <p data-uid="019a7680-4094-7877-bee6-b7cd933b5764" style="margin: 0px 0px 8px;">
                         <strong>Resubmission Date:</strong> {{submission_date}}
                     </p>
-                    <p data-uid="019a7680-4094-7877-bee6-b7ce0afe7505" style="margin: 0px 0px 8px;">
-                        <strong>Current Employment:</strong> {{current_position}} at {{current_company}}
-                    </p>
-                    <p data-uid="019a7680-4094-7877-bee6-b7cf2150ab7a" style="margin: 0px;">
+                    
+                    <!-- Dynamic Employment Status Section -->
+                    <div data-uid="employment-status-section">
+                        <p data-uid="employment-status-main" style="margin: 0px 0px 8px;">
+                            <strong>Employment Status:</strong> {{employment_status}}
+                        </p>
+                        
+                        <!-- Employment Details - These variables should contain the full HTML or be empty -->
+                        {{employed_details}}
+                        {{self_employed_details}}
+                        {{student_details}}
+                        {{employed_student_work}}
+                        {{employed_student_school}}
+                        {{unemployed_note}}
+                    </div>
+                    
+                    <p data-uid="019a7680-4094-7877-bee6-b7ce0afe7505" style="margin: 0px;">
                         <strong>Contact Email:</strong> {{alumni_email}}
                     </p>
                 </div>
@@ -63,15 +74,16 @@
                 <p data-uid="019a7680-4094-7877-bee6-b7d56e42c1cb" style="font-weight: bold; margin-bottom: 10px; color: #0369a1;">
                     Required Action:
                 </p>
-                <ul data-uid="019a7680-4094-7877-bee6-b7d6d8640ce0">
-                    <li>Review the resubmitted information for accuracy</li>
-                    <li>Verify that previous rejection issues have been addressed</li>
-                    <li>Approve or reject the resubmission based on corrections</li>
+                <ul data-uid="019a7680-4094-7877-bee6-b7d6d8640ce0" style="margin: 0; padding-left: 20px;">
+                    <li style="margin-bottom: 5px;">Review the resubmitted information for accuracy</li>
+                    <li style="margin-bottom: 5px;">Verify that previous rejection issues have been addressed</li>
+                    <li style="margin-bottom: 5px;">Check employment/education details for consistency</li>
+                    <li style="margin-bottom: 5px;">Approve or reject the resubmission based on corrections</li>
                     <li>Process within 3-5 business days</li>
                 </ul>
             </div>
             <p data-uid="019a7680-4094-7877-bee6-b7d7f2119e26" style="text-align: center; margin: 25px 0px;">
-                <a href="{{admin_review_link}}" style="background: #d97706; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+                <a href="{{admin_review_link}}" style="background: #d97706; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; transition: background-color 0.3s;">
                 Review Resubmission
                 </a>
             </p>
