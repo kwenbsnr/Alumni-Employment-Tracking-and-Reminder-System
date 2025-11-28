@@ -125,24 +125,6 @@ if (isset($_POST['update_submission_status'])) {
                          ap.last_profile_update < DATE_SUB(NOW(), INTERVAL 6 MONTH))
                 ");
                 
-                $notification_count = 0;
-                while ($alumni = $alumni_to_notify->fetch_assoc()) {
-                    // Include the notification functions
-                    require_once $_SERVER['DOCUMENT_ROOT'] . '/Alumni-Employment-Tracking-and-Reminder-System/api/notification/notification_functions.php';
-                    
-                    // Send profile update reminder
-                    $result = sendProfileUpdateReminder(
-                        $alumni['alumni_email'],
-                        $alumni['alumni_name'],
-                        $alumni['graduation_year'],
-                        '/alumni/alumni_dashboard.php'
-                    );
-                    
-                    if ($result['success']) {
-                        $notification_count++;
-                    }
-                }
-                
                 // Add notification count to success message
                 if ($notification_count > 0) {
                     $_SESSION['success_message'] .= " Sent scheduled update reminders to {$notification_count} alumni.";
@@ -185,24 +167,6 @@ if (!$manual_override && $open_date && $close_date) {
                 AND (ap.last_profile_update IS NULL OR 
                      ap.last_profile_update < DATE_SUB(NOW(), INTERVAL 6 MONTH))
             ");
-            
-            $notification_count = 0;
-            while ($alumni = $alumni_to_notify->fetch_assoc()) {
-                // Include the notification functions
-                require_once $_SERVER['DOCUMENT_ROOT'] . '/Alumni-Employment-Tracking-and-Reminder-System/api/notification/notification_functions.php';
-                
-                // Send profile update reminder
-                $result = sendProfileUpdateReminder(
-                    $alumni['alumni_email'],
-                    $alumni['alumni_name'],
-                    $alumni['graduation_year'],
-                    'http://localhost/Alumni-Employment-Tracking-and-Reminder-System/alumni/alumni_dashboard.php'
-                );
-                
-                if ($result['success']) {
-                    $notification_count++;
-                }
-            }
             
             // Log the automatic notifications
             if ($notification_count > 0) {
