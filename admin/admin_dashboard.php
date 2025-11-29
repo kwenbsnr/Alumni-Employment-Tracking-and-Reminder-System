@@ -371,41 +371,63 @@ ob_start();
                 </div>
                 
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <!-- Employment Status Distribution -->
+                    <!-- Employment Status Distribution Card -->
                     <div class="stats-card bg-gray-50 rounded-xl border border-gray-200 p-4 hover:shadow-md transition-all duration-300">
                         <div class="flex items-center justify-between mb-4">
                             <h3 class="text-lg font-bold text-gray-800 flex items-center">
                                 <i class="fas fa-chart-pie text-purple-500 mr-2"></i>
                                 Employment Status Distribution
                             </h3>
-                            <span class="text-xs font-semibold bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
-                                <?php echo array_sum($careerData); ?> Alumni
-                            </span>
+                            <div class="flex items-center space-x-2">
+                                <span class="text-xs font-semibold bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
+                                    <?php echo $totalWithProfiles; ?> with profiles
+                                </span>
+                                <?php if ($withoutProfiles > 0): ?>
+                                <span class="text-xs font-semibold bg-gray-100 text-gray-700 px-2 py-1 rounded-full">
+                                    <?php echo $withoutProfiles; ?> no profile
+                                </span>
+                                <?php endif; ?>
+                            </div>
                         </div>
-                        <?php if (array_sum($careerData) > 0): ?>
+                        <?php if ($totalAlumni > 0): ?>
                             <div class="h-72"><canvas id="employmentChart"></canvas></div>
+                            <div class="mt-3 text-center">
+                                <p class="text-xs text-gray-600">
+                                    Showing data for <?php echo $totalWithProfiles; ?> alumni with profiles 
+                                    (<?php echo round(($totalWithProfiles / $totalAlumni) * 100, 1); ?>% of total)
+                                </p>
+                            </div>
                         <?php else: ?>
                             <div class="flex flex-col items-center justify-center h-72 text-gray-400">
                                 <i class="fas fa-chart-pie text-5xl mb-3"></i>
-                                <p class="text-sm font-medium">No employment data available</p>
+                                <p class="text-sm font-medium">No alumni data available</p>
                                 <p class="text-xs mt-1">Employment data will appear here once alumni submit profiles</p>
                             </div>
                         <?php endif; ?>
                     </div>
 
-                    <!-- Graduates per Year -->
+                    <!-- Graduates per Year Card -->
                     <div class="stats-card bg-gray-50 rounded-xl border border-gray-200 p-4 hover:shadow-md transition-all duration-300">
                         <div class="flex items-center justify-between mb-4">
                             <h3 class="text-lg font-bold text-gray-800 flex items-center">
                                 <i class="fas fa-chart-line text-blue-500 mr-2"></i>
-                                Graduates per Year
+                                Graduation Trends
                             </h3>
-                            <span class="text-xs font-semibold bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                                <?php echo count($gradYears); ?> Years
-                            </span>
+                            <div class="flex items-center space-x-2">
+                                <span class="text-xs font-semibold bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                                    <?php echo count($gradYears); ?> batches
+                                </span>
+                                <span class="text-xs font-semibold bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                                    <?php echo array_sum($gradCounts); ?> total
+                                </span>
+                            </div>
                         </div>
                         <?php if (!empty($gradYears)): ?>
                             <div class="h-72"><canvas id="graduationChart"></canvas></div>
+                            <div class="mt-3 flex justify-between text-xs text-gray-600">
+                                <span>Peak: <?php echo max($gradCounts); ?> graduates</span>
+                                <span>Average: <?php echo round(array_sum($gradCounts) / count($gradCounts), 1); ?>/year</span>
+                            </div>
                         <?php else: ?>
                             <div class="flex flex-col items-center justify-center h-72 text-gray-400">
                                 <i class="fas fa-chart-line text-5xl mb-3"></i>
