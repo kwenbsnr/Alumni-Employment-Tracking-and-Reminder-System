@@ -30,41 +30,41 @@ $notif_count = 0;
 $notifications = [];
 
 // Check for profile submission status
-if ($profile && isset($profile['status'])) {
-    $status = $profile['status'] ?? 'incomplete';
-    $submission_date = $profile['submission_date'] ?? null;
+if ($profile) {
+    $submission_status = $profile['submission_status'] ?? 'Not Submitted';
+    $submitted_at = $profile['submitted_at'] ?? null;
     
-    switch ($status) {
-        case 'pending':
+    switch ($submission_status) {
+        case 'Pending':
             $notifications[] = [
                 'title' => 'Profile Under Review',
                 'message' => 'Your profile submission is currently being reviewed by administrators.',
-                'timestamp' => $submission_date,
+                'timestamp' => $submitted_at,
                 'type' => 'warning'
             ];
             $notif_count++;
             break;
             
-        case 'approved':
+        case 'Approved':
             $notifications[] = [
                 'title' => 'Profile Approved',
                 'message' => 'Your alumni profile has been approved and is now active.',
-                'timestamp' => $submission_date,
+                'timestamp' => $submitted_at,
                 'type' => 'success'
             ];
             break;
             
-        case 'rejected':
+        case 'Rejected':
             $notifications[] = [
                 'title' => 'Profile Requires Updates',
                 'message' => 'Your profile submission needs additional information. Please review and resubmit.',
-                'timestamp' => $submission_date,
+                'timestamp' => $submitted_at,
                 'type' => 'error'
             ];
             $notif_count++;
             break;
             
-        case 'incomplete':
+        case 'Not Submitted':
         default:
             $notifications[] = [
                 'title' => 'Profile Setup Required',
@@ -76,13 +76,16 @@ if ($profile && isset($profile['status'])) {
             break;
     }
     
-    // Check for employment status updates
-    if (($profile['employment_verified'] ?? 0) == 0 && !empty($profile['employment_status'])) {
+    // Check if profile needs completion (based on your dashboard logic)
+    $has_basic_info = !empty($profile['contact_number']) && !empty($profile['employment_status']);
+    $needs_completion = !$has_basic_info || empty($profile['photo_path']);
+    
+    if ($needs_completion && $submission_status === 'Not Submitted') {
         $notifications[] = [
-            'title' => 'Employment Verification',
-            'message' => 'Your employment information is pending verification.',
+            'title' => 'Complete Your Profile',
+            'message' => 'Your profile is incomplete. Please fill in all required information.',
             'timestamp' => null,
-            'type' => 'warning'
+            'type' => 'info'
         ];
         $notif_count++;
     }
@@ -97,7 +100,6 @@ if ($profile && isset($profile['status'])) {
     $notif_count++;
 }
 
-// Page title fallback
 $page_title = $page_title ?? "Alumni Page";
 ?>
 <!DOCTYPE html>
