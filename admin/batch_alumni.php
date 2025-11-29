@@ -20,22 +20,29 @@ $search = $_GET['search'] ?? '';
 $employment_status = $_GET['employment_status'] ?? '';
 $submission_status = $_GET['submission_status'] ?? '';
 
-// Fetch batch statistics - FIXED
+// Fetch batch statistics - include all alumni
 $statsQuery = "SELECT
+    COUNT(*) as total_alumni,
     SUM(CASE WHEN ap.submission_status = 'Approved' THEN 1 ELSE 0 END) as approved_count,
     SUM(CASE WHEN ap.submission_status = 'Pending' THEN 1 ELSE 0 END) as pending_count,
-    SUM(CASE WHEN ap.submission_status = 'Rejected' THEN 1 ELSE 0 END) as rejected_count
-    FROM alumni_profile ap
-    INNER JOIN users u ON ap.user_id = u.user_id
-    WHERE u.batch_year = ?";
+    SUM(CASE WHEN ap.submission_status = 'Rejected' THEN 1 ELSE 0 END) as rejected_count,
+    SUM(CASE WHEN ap.user_id IS NULL THEN 1 ELSE 0 END) as no_profile_count
+    FROM users u
+    LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id
+    WHERE u.role = 'alumni' AND u.batch_year = ?";
 $statsStmt = $conn->prepare($statsQuery);
 $statsStmt->bind_param('s', $batch_year);
 $statsStmt->execute();
 $statsResult = $statsStmt->get_result();
 $batchStats = $statsResult->fetch_assoc();
 
-// Build query with filters - FIXED
-$whereConditions = ["u.batch_year = ?"];
+// Calculate profile completion rate
+$total_alumni = $batchStats['total_alumni'] ?? 0;
+$with_profiles = ($batchStats['approved_count'] ?? 0) + ($batchStats['pending_count'] ?? 0) + ($batchStats['rejected_count'] ?? 0);
+$completion_rate = $total_alumni > 0 ? round(($with_profiles / $total_alumni) * 100, 1) : 0;
+
+// Build query with filters - UPDATED to include ALL alumni
+$whereConditions = ["u.role = 'alumni'", "u.batch_year = ?"];
 $params = [$batch_year];
 $types = 's';
 
@@ -51,18 +58,28 @@ if (!empty($employment_status)) {
     $types .= 's';
 }
 if (!empty($submission_status)) {
-    $whereConditions[] = "ap.submission_status = ?";
-    $params[] = $submission_status;
-    $types .= 's';
+    if ($submission_status === 'No Profile') {
+        $whereConditions[] = "ap.user_id IS NULL";
+    } else {
+        $whereConditions[] = "ap.submission_status = ?";
+        $params[] = $submission_status;
+        $types .= 's';
+    }
 }
 
 $whereClause = implode(" AND ", $whereConditions);
 
 $alumniQuery = "
-    SELECT ap.user_id, u.name, u.batch_year,
-           ap.employment_status, ap.submission_status, ap.photo_path, u.email
-    FROM alumni_profile ap
-    INNER JOIN users u ON ap.user_id = u.user_id
+    SELECT 
+        u.user_id, 
+        u.name, 
+        u.batch_year,
+        u.email,
+        ap.employment_status, 
+        ap.submission_status, 
+        ap.photo_path
+    FROM users u
+    LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id
     WHERE $whereClause
     ORDER BY u.name ASC
 ";
@@ -86,10 +103,19 @@ ob_start();
                     <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight">
                         Batch <span class="text-indigo-600"><?= htmlspecialchars($batch_year) ?></span> Alumni
                     </h1>
+                    <p class="text-sm text-gray-600 mt-1">
+                        Total: <span class="font-semibold"><?= $total_alumni ?></span> graduates • 
+                        Profile Completion: <span class="font-semibold <?= $completion_rate >= 80 ? 'text-green-600' : ($completion_rate >= 50 ? 'text-yellow-600' : 'text-red-600') ?>"><?= $completion_rate ?>%</span>
+                    </p>
                 </div>
             </div>
             
             <div class="flex flex-wrap items-center space-x-3">
+                <!-- Total Alumni Badge -->
+                <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold bg-blue-50 text-blue-700 shadow-sm border border-blue-200 transition duration-150 ease-in-out hover:bg-blue-100">
+                    <i class="fas fa-users mr-2 text-base"></i> 
+                    Total: <span class="ml-1 font-bold"><?= $total_alumni ?></span>
+                </span>
                 
                 <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-200 transition duration-150 ease-in-out hover:bg-emerald-100">
                     <i class="fas fa-check-circle mr-2 text-base"></i> 
@@ -105,6 +131,13 @@ ob_start();
                     <i class="fas fa-times-circle mr-2 text-base"></i> 
                     Rejected: <span class="ml-1 font-bold"><?= $batchStats['rejected_count'] ?? 0 ?></span>
                 </span>
+                
+                <?php if (($batchStats['no_profile_count'] ?? 0) > 0): ?>
+                <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold bg-gray-50 text-gray-700 shadow-sm border border-gray-200 transition duration-150 ease-in-out hover:bg-gray-100">
+                    <i class="fas fa-user-clock mr-2 text-base"></i> 
+                    No Profile: <span class="ml-1 font-bold"><?= $batchStats['no_profile_count'] ?? 0 ?></span>
+                </span>
+                <?php endif; ?>
             </div>
         </div>
     </div>
@@ -134,6 +167,7 @@ ob_start();
                     <option value="Pending" <?= $submission_status === 'Pending' ? 'selected' : '' ?>>Pending</option>
                     <option value="Approved" <?= $submission_status === 'Approved' ? 'selected' : '' ?>>Approved</option>
                     <option value="Rejected" <?= $submission_status === 'Rejected' ? 'selected' : '' ?>>Rejected</option>
+                    <option value="No Profile" <?= $submission_status === 'No Profile' ? 'selected' : '' ?>>No Profile</option>
                 </select>
             </div>
             <div class="flex gap-2">
@@ -194,13 +228,13 @@ ob_start();
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <span class="px-3 py-1.5 inline-flex text-sm font-semibold rounded-full <?= getEmploymentStatusColor($alumni['employment_status']) ?> border <?= getEmploymentStatusBorder($alumni['employment_status']) ?> shadow-sm">
                                     <i class="<?= getEmploymentStatusIcon($alumni['employment_status']) ?> mr-2"></i>
-                                    <?= htmlspecialchars($alumni['employment_status']) ?>
+                                    <?= empty($alumni['employment_status']) ? 'No Profile' : htmlspecialchars($alumni['employment_status']) ?>
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <span class="px-3 py-1.5 inline-flex text-sm font-semibold rounded-full <?= getSubmissionStatusColor($alumni['submission_status']) ?> border <?= getSubmissionStatusBorder($alumni['submission_status']) ?> shadow-sm">
                                     <i class="<?= getSubmissionStatusIcon($alumni['submission_status']) ?> mr-2"></i>
-                                    <?= htmlspecialchars($alumni['submission_status']) ?>
+                                    <?= empty($alumni['submission_status']) ? 'No Profile' : htmlspecialchars($alumni['submission_status']) ?>
                                 </span>
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-500">
@@ -224,7 +258,14 @@ ob_start();
                                 <?php endif; ?>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <?php if ($alumni['submission_status'] === 'Pending'): ?>
+                                <?php if (empty($alumni['submission_status']) || $alumni['submission_status'] === 'Not Started'): ?>
+                                    <div class="flex justify-left">
+                                        <span class="px-3 py-1.5 inline-flex text-sm font-semibold rounded-full bg-gray-100 text-gray-800 border border-gray-200 shadow-sm">
+                                            <i class="fas fa-clock mr-2 text-gray-600"></i>
+                                            No Profile
+                                        </span>
+                                    </div>
+                                <?php elseif ($alumni['submission_status'] === 'Pending'): ?>
                                     <div class="flex gap-2">
                                         <button onclick="showApproveModal(<?= $alumni['user_id'] ?>, '<?= htmlspecialchars($alumni['name'], ENT_QUOTES) ?>')"
                                                 class="text-green-600 hover:text-green-900 px-3 py-1 border border-green-600 rounded-lg hover:bg-green-50">
@@ -384,13 +425,37 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeAppro
 </script>
 
 <?php
-// Helper Functions
-function getEmploymentStatusColor($s) { return ['Unemployed'=>'bg-red-100 text-red-800','Self-Employed'=>'bg-blue-100 text-blue-800','Employed'=>'bg-green-100 text-green-800','Student'=>'bg-purple-100 text-purple-800','Employed & Student'=>'bg-yellow-100 text-yellow-800'][$s] ?? 'bg-gray-100 text-gray-800'; }
-function getEmploymentStatusBorder($s) { return ['Unemployed'=>'border-red-200','Self-Employed'=>'border-blue-200','Employed'=>'border-green-200','Student'=>'border-purple-200','Employed & Student'=>'border-yellow-200'][$s] ?? 'border-gray-200'; }
-function getEmploymentStatusIcon($s) { return ['Unemployed'=>'fas fa-user-slash text-red-600','Self-Employed'=>'fas fa-briefcase text-blue-600','Employed'=>'fas fa-building text-green-600','Student'=>'fas fa-graduation-cap text-purple-600','Employed & Student'=>'fas fa-user-graduate text-yellow-600'][$s] ?? 'fas fa-question text-gray-600'; }
-function getSubmissionStatusColor($s) { return ['Approved'=>'bg-green-100 text-green-800','Pending'=>'bg-yellow-100 text-yellow-800','Rejected'=>'bg-red-100 text-red-800'][$s] ?? 'bg-gray-100 text-gray-800'; }
-function getSubmissionStatusBorder($s) { return ['Approved'=>'border-green-200','Pending'=>'border-yellow-200','Rejected'=>'border-red-200'][$s] ?? 'border-gray-200'; }
-function getSubmissionStatusIcon($s) { return ['Approved'=>'fas fa-check-circle text-green-600','Pending'=>'fas fa-clock text-yellow-600','Rejected'=>'fas fa-times-circle text-red-600'][$s] ?? 'fas fa-question text-gray-600'; }
+
+// Enhanced helper functions for "No Profile" status
+function getEmploymentStatusColor($s) { 
+    if (empty($s)) return 'bg-gray-100 text-gray-800';
+    return ['Unemployed'=>'bg-red-100 text-red-800','Self-Employed'=>'bg-blue-100 text-blue-800','Employed'=>'bg-green-100 text-green-800','Student'=>'bg-purple-100 text-purple-800','Employed & Student'=>'bg-yellow-100 text-yellow-800'][$s] ?? 'bg-gray-100 text-gray-800'; 
+}
+
+function getEmploymentStatusBorder($s) { 
+    if (empty($s)) return 'border-gray-200';
+    return ['Unemployed'=>'border-red-200','Self-Employed'=>'border-blue-200','Employed'=>'border-green-200','Student'=>'border-purple-200','Employed & Student'=>'border-yellow-200'][$s] ?? 'border-gray-200'; 
+}
+
+function getEmploymentStatusIcon($s) { 
+    if (empty($s)) return 'fas fa-user-clock text-gray-600';
+    return ['Unemployed'=>'fas fa-user-slash text-red-600','Self-Employed'=>'fas fa-briefcase text-blue-600','Employed'=>'fas fa-building text-green-600','Student'=>'fas fa-graduation-cap text-purple-600','Employed & Student'=>'fas fa-user-graduate text-yellow-600'][$s] ?? 'fas fa-user-clock text-gray-600'; 
+}
+
+function getSubmissionStatusColor($s) { 
+    if (empty($s)) return 'bg-gray-100 text-gray-800';
+    return ['Approved'=>'bg-green-100 text-green-800','Pending'=>'bg-yellow-100 text-yellow-800','Rejected'=>'bg-red-100 text-red-800'][$s] ?? 'bg-gray-100 text-gray-800'; 
+}
+
+function getSubmissionStatusBorder($s) { 
+    if (empty($s)) return 'border-gray-200';
+    return ['Approved'=>'border-green-200','Pending'=>'border-yellow-200','Rejected'=>'border-red-200'][$s] ?? 'border-gray-200'; 
+}
+
+function getSubmissionStatusIcon($s) { 
+    if (empty($s)) return 'fas fa-user-clock text-gray-600';
+    return ['Approved'=>'fas fa-check-circle text-green-600','Pending'=>'fas fa-clock text-yellow-600','Rejected'=>'fas fa-times-circle text-red-600'][$s] ?? 'fas fa-user-clock text-gray-600'; 
+}
 
 $page_content = ob_get_clean();
 include("admin_format.php");

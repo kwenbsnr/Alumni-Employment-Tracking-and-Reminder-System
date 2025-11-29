@@ -17,15 +17,15 @@ $search = $_GET['search'] ?? '';
 $employment_status = $_GET['employment_status'] ?? '';
 $submission_status = $_GET['submission_status'] ?? '';
 
-// Fetch all alumni records with filters - FIXED
-$whereConditions = ["1=1"];
+// Fetch all alumni records with filters - UPDATED to include ALL alumni users
+$whereConditions = ["u.role = 'alumni'"]; // Only alumni role users
 $params = [];
 $types = '';
 
 if (!empty($search)) {
     $whereConditions[] = "(u.name LIKE ? OR u.email LIKE ?)";
-    $searchTerm = "%$search%";
-    $params = array_merge($params, [$searchTerm, $searchTerm]);
+    $term = "%$search%";
+    $params = array_merge($params, [$term, $term]);
     $types .= 'ss';
 }
 
@@ -45,7 +45,7 @@ $whereClause = implode(" AND ", $whereConditions);
 
 $query = "
     SELECT 
-        ap.user_id,
+        u.user_id,
         u.name,
         u.batch_year,
         ap.employment_status,
@@ -53,11 +53,11 @@ $query = "
         ap.photo_path,
         u.email,
         COUNT(ad.doc_id) as document_count
-    FROM alumni_profile ap
-    INNER JOIN users u ON ap.user_id = u.user_id
-    LEFT JOIN alumni_documents ad ON ap.user_id = ad.user_id
+    FROM users u
+    LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id  -- Changed to LEFT JOIN
+    LEFT JOIN alumni_documents ad ON u.user_id = ad.user_id
     WHERE $whereClause
-    GROUP BY ap.user_id
+    GROUP BY u.user_id
     ORDER BY u.batch_year DESC, u.name ASC
 ";
 
@@ -214,26 +214,26 @@ ob_start();
                                         </div>
                                     </td>
                                    <td class="px-6 py-4 whitespace-nowrap">
-    <div class="flex items-center">
-        <span class="px-3 py-1.5 inline-flex text-sm font-semibold rounded-full 
-            <?= getEmploymentStatusColor($alumni['employment_status']) ?> 
-            border <?= getEmploymentStatusBorder($alumni['employment_status']) ?>
-            shadow-sm">
-            <i class="<?= getEmploymentStatusIcon($alumni['employment_status']) ?> mr-2 mt-0.5"></i>
-            <?= $alumni['employment_status'] ?>
-        </span>
-    </div>
-</td><td class="px-6 py-4 whitespace-nowrap">
-    <div class="flex items-center">
-        <span class="px-3 py-1.5 inline-flex text-sm font-semibold rounded-full 
-            <?= getSubmissionStatusColor($alumni['submission_status']) ?> 
-            border <?= getSubmissionStatusBorder($alumni['submission_status']) ?>
-            shadow-sm">
-            <i class="<?= getSubmissionStatusIcon($alumni['submission_status']) ?> mr-2 mt-0.5"></i>
-            <?= $alumni['submission_status'] ?>
-        </span>
-    </div>
-</td>
+                                    <div class="flex items-center">
+                                        <span class="px-3 py-1.5 inline-flex text-sm font-semibold rounded-full 
+                                            <?= empty($alumni['employment_status']) ? 'bg-gray-100 text-gray-800 border border-gray-200' : getEmploymentStatusColor($alumni['employment_status']) ?> 
+                                            <?= empty($alumni['employment_status']) ? 'border-gray-200' : getEmploymentStatusBorder($alumni['employment_status']) ?>
+                                            shadow-sm">
+                                            <i class="<?= empty($alumni['employment_status']) ? 'fas fa-user-clock text-gray-600' : getEmploymentStatusIcon($alumni['employment_status']) ?> mr-2 mt-0.5"></i>
+                                            <?= empty($alumni['employment_status']) ? 'No Profile' : $alumni['employment_status'] ?>
+                                        </span>
+                                    </div>
+                                    </td><td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <span class="px-3 py-1.5 inline-flex text-sm font-semibold rounded-full 
+                                            <?= empty($alumni['submission_status']) ? 'bg-gray-100 text-gray-800 border border-gray-200' : getSubmissionStatusColor($alumni['submission_status']) ?> 
+                                            <?= empty($alumni['submission_status']) ? 'border-gray-200' : getSubmissionStatusBorder($alumni['submission_status']) ?>
+                                            shadow-sm">
+                                            <i class="<?= empty($alumni['submission_status']) ? 'fas fa-user-clock text-gray-600' : getSubmissionStatusIcon($alumni['submission_status']) ?> mr-2 mt-0.5"></i>
+                                            <?= empty($alumni['submission_status']) ? 'No Profile' : $alumni['submission_status'] ?>
+                                        </span>
+                                    </div>
+                                    </td>
                                     <td class="px-6 py-4 text-sm text-gray-500">
                                         <?php if (!empty($documents)): ?>
                                             <div class="space-y-1">
@@ -259,27 +259,34 @@ ob_start();
                                             <span class="text-gray-400 text-sm">No documents</span>
                                         <?php endif; ?>
                                     </td>
-<td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-    <?php if ($alumni['submission_status'] == 'Pending'): ?>
-        <div class="flex gap-2">
-            <button onclick="showApproveModal(<?= $alumni['user_id'] ?>, '<?= htmlspecialchars($alumni['name']) ?>')" 
-                    class="text-green-600 hover:text-green-900 px-3 py-1 border border-green-600 rounded-lg hover:bg-green-50 transition-colors">
-                <i class="fas fa-check mr-1"></i> Approve
-            </button>
-            <button onclick="showRejectModal(<?= $alumni['user_id'] ?>, '<?= htmlspecialchars($alumni['name']) ?>', '<?= $alumni['employment_status'] ?>')" 
-                    class="text-red-600 hover:text-red-900 px-3 py-1 border border-red-600 rounded-lg hover:bg-red-50 transition-colors">
-                <i class="fas fa-times mr-1"></i> Reject
-            </button>
-        </div>
-    <?php else: ?>
-        <div class="flex justify-left">
-            <button onclick="showRevertModal(<?= $alumni['user_id'] ?>, '<?= htmlspecialchars($alumni['name']) ?>')" 
-                    class="text-orange-600 hover:text-orange-900 px-3 py-1 border border-orange-600 rounded-lg hover:bg-orange-50 transition-colors">
-                <i class="fas fa-undo mr-1"></i> Undo
-            </button>
-        </div>
-    <?php endif; ?>
-</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <?php if (empty($alumni['submission_status']) || $alumni['submission_status'] == 'No Profile'): ?>
+                                            <div class="flex justify-left">
+                                                <span class="px-3 py-1.5 inline-flex text-sm font-semibold rounded-full bg-gray-100 text-gray-800 border border-gray-200 shadow-sm">
+                                                    <i class="fas fa-clock mr-2 mt-0.5 text-gray-600"></i>
+                                                    No Profile
+                                                </span>
+                                            </div>
+                                        <?php elseif ($alumni['submission_status'] == 'Pending'): ?>
+                                            <div class="flex gap-2">
+                                                <button onclick="showApproveModal(<?= $alumni['user_id'] ?>, '<?= htmlspecialchars($alumni['name']) ?>')" 
+                                                        class="text-green-600 hover:text-green-900 px-3 py-1 border border-green-600 rounded-lg hover:bg-green-50 transition-colors">
+                                                    <i class="fas fa-check mr-1"></i> Approve
+                                                </button>
+                                                <button onclick="showRejectModal(<?= $alumni['user_id'] ?>, '<?= htmlspecialchars($alumni['name']) ?>', '<?= $alumni['employment_status'] ?>')" 
+                                                        class="text-red-600 hover:text-red-900 px-3 py-1 border border-red-600 rounded-lg hover:bg-red-50 transition-colors">
+                                                    <i class="fas fa-times mr-1"></i> Reject
+                                                </button>
+                                            </div>
+                                        <?php else: ?>
+                                            <div class="flex justify-left">
+                                                <button onclick="showRevertModal(<?= $alumni['user_id'] ?>, '<?= htmlspecialchars($alumni['name']) ?>')" 
+                                                        class="text-orange-600 hover:text-orange-900 px-3 py-1 border border-orange-600 rounded-lg hover:bg-orange-50 transition-colors">
+                                                    <i class="fas fa-undo mr-1"></i> Undo
+                                                </button>
+                                            </div>
+                                        <?php endif; ?>
+                                    </td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
@@ -647,8 +654,9 @@ document.addEventListener('keydown', function(e) {
 </script>
 
 <?php
-// Helper functions for status colors
+// Helper functions for status colors and icons
 function getEmploymentStatusColor($status) {
+    if (empty($status)) return 'bg-gray-100 text-gray-800';
     switch ($status) {
         case 'Unemployed': return 'bg-red-100 text-red-800';
         case 'Self-Employed': return 'bg-blue-100 text-blue-800';
@@ -659,17 +667,8 @@ function getEmploymentStatusColor($status) {
     }
 }
 
-function getSubmissionStatusColor($status) {
-    switch ($status) {
-        case 'Approved': return 'bg-green-100 text-green-800';
-        case 'Pending': return 'bg-yellow-100 text-yellow-800';
-        case 'Rejected': return 'bg-red-100 text-red-800';
-        default: return 'bg-gray-100 text-gray-800';
-    }
-}
-
-// Enhanced helper functions for status styling
 function getEmploymentStatusBorder($status) {
+    if (empty($status)) return 'border-gray-200';
     switch ($status) {
         case 'Unemployed': return 'border-red-200';
         case 'Self-Employed': return 'border-blue-200';
@@ -681,6 +680,7 @@ function getEmploymentStatusBorder($status) {
 }
 
 function getEmploymentStatusIcon($status) {
+    if (empty($status)) return 'fas fa-question text-gray-600';
     switch ($status) {
         case 'Unemployed': return 'fas fa-user-slash text-red-600';
         case 'Self-Employed': return 'fas fa-briefcase text-blue-600';
@@ -691,7 +691,18 @@ function getEmploymentStatusIcon($status) {
     }
 }
 
+function getSubmissionStatusColor($status) {
+    if (empty($status)) return 'bg-gray-100 text-gray-800';
+    switch ($status) {
+        case 'Approved': return 'bg-green-100 text-green-800';
+        case 'Pending': return 'bg-yellow-100 text-yellow-800';
+        case 'Rejected': return 'bg-red-100 text-red-800';
+        default: return 'bg-gray-100 text-gray-800';
+    }
+}
+
 function getSubmissionStatusBorder($status) {
+    if (empty($status)) return 'border-gray-200';
     switch ($status) {
         case 'Approved': return 'border-green-200';
         case 'Pending': return 'border-yellow-200';
@@ -701,6 +712,7 @@ function getSubmissionStatusBorder($status) {
 }
 
 function getSubmissionStatusIcon($status) {
+    if (empty($status)) return 'fas fa-question text-gray-600';
     switch ($status) {
         case 'Approved': return 'fas fa-check-circle text-green-600';
         case 'Pending': return 'fas fa-clock text-yellow-600';

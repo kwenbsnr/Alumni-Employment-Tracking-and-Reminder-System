@@ -209,11 +209,11 @@ if (!$manual_override && $open_date && $close_date) {
     $schedule_info = "<span class='text-xs block text-gray-600'>Scheduled: $from – $to</span>";
 }
 
-// Fetch batches - FIXED
+// Fetch batches - count all alumni users
 $batchQuery = "SELECT u.batch_year, COUNT(*) as total_count 
                FROM users u 
-               INNER JOIN alumni_profile ap ON u.user_id = ap.user_id 
-               WHERE u.batch_year IS NOT NULL 
+               WHERE u.role = 'alumni' 
+               AND u.batch_year IS NOT NULL 
                GROUP BY u.batch_year 
                ORDER BY u.batch_year DESC";
 $batchResult = $conn->query($batchQuery);
@@ -425,7 +425,7 @@ if (isset($_SESSION['error_message'])) {
             <?php
             // Only show "All Alumni" card when NOT searching
             if (empty($search)):
-                $totalQuery = "SELECT COUNT(*) as total FROM alumni_profile";
+                $totalQuery = "SELECT COUNT(*) as total FROM users WHERE role = 'alumni'";
                 $totalAll = $conn->query($totalQuery)->fetch_assoc()['total'];
             ?>
                 <a href="all_alumni.php" class="bg-gradient-to-br from-purple-50 to-white p-6 rounded-xl shadow-lg border-2 border-purple-300 hover:shadow-xl hover:border-purple-500 transform hover:scale-105 transition-all duration-300 group text-center">
