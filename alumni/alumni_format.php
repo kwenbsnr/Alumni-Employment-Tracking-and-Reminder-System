@@ -309,7 +309,7 @@ $page_title = $page_title ?? "Alumni Page";
                     <?php if (($active_page ?? '') === 'profile'): ?>
                         Review and update your personal and academic information.
                     <?php else: ?>
-                        Welcome back, <span class="font-semibold text-green-700"><?php echo htmlspecialchars($full_name); ?></span>!
+                        Welcome back, <span class="font-semibold text-green-700"><?php echo htmlspecialchars($full_name); ?></span>! All alumni records, notifications, and status information are accessible through this dashboard.
                     <?php endif; ?>
                 </p>
             </div>
