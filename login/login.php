@@ -2,11 +2,6 @@
 session_start();
 include("../connect.php");
 
-// Static stats 
-//$total_alumni = 2847;
-//$emp_rate = 94;
-//$years = 50; 
-
 // Get last attempted email and role for pre-filling
 $last_email = $_SESSION['last_attempt_email'] ?? '';
 $last_role = $_SESSION['last_attempt_role'] ?? '';
@@ -56,12 +51,11 @@ unset($_SESSION['last_attempt_role']);
 
     <!-- Login Page Content -->
     <div id="loginPage" class="login-container">
-        <!-- Left Side - School Branding (Now uses the building image with black overlay) -->
-         <div class="school-branding flex items-center justify-center p-8">
+        <!-- Left Side - School Branding -->
+        <div class="school-branding flex items-center justify-center p-8">
             <img src="images/jh-building.png" alt="JHCSC Building" class="absolute inset-0 w-full h-full object-cover opacity-30">
             <div class="text-center text-white z-10 p-4 max-w-lg">
-                <!-- School Logo/Emblem - Using Icons as Placeholder -->
-                 <div class="flex items-center justify-center gap-6 mb-18">
+                <div class="flex items-center justify-center gap-6 mb-18">
                     <div class="w-32 h-32 rounded-full flex items-center justify-center shadow-lg">
                         <img src="images/favicon.png" alt="JHCSC Logo" class="h-full object-cover rounded-xl">
                     </div>
@@ -73,25 +67,7 @@ unset($_SESSION['last_attempt_role']);
                 <h1 class="text-4xl font-extrabold mb-7">JHCSC BSIT Alumni Monitoring System</h1>
                 <p class="text-xl mb-30 opacity-95">Connecting Graduates, Building Futures</p>
 
-                <!-- School Stats (Static/Hardcoded) -->
-               <!-- <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-12">
-                    <div class="text-center">
-                        <div class="text-3xl font-bold"><?php echo $total_alumni; ?></div>
-                        <div class="text-sm opacity-80">Alumni</div>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-3xl font-bold"><?php echo $years; ?>+</div>
-                        <div class="text-sm opacity-80">Years</div>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-3xl font-bold"><?php echo $emp_rate; ?>%</div>
-                        <div class="text-sm opacity-80">Employment</div>
-                    </div>
-                </div> -->
-                
-                
-                <!-- School Images Placeholder (Visual accents) -->
-                 <div class="mt-12 grid grid-cols-2 gap-4">
+                <div class="mt-12 grid grid-cols-2 gap-4">
                     <div class="h-24 bg-white bg-opacity-20 rounded-xl flex items-center justify-center shadow-inner">
                         <i class="fas fa-graduation-cap text-3xl"></i>
                     </div>
@@ -101,7 +77,6 @@ unset($_SESSION['last_attempt_role']);
                 </div>
             </div>
         </div>
-                
 
         <!-- Right Side - Login Form -->
         <div class="login-right">
@@ -112,12 +87,11 @@ unset($_SESSION['last_attempt_role']);
                 </div>
 
                 <!-- Role Selection -->
-                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
                     <div class="role-selector p-4 rounded-lg cursor-pointer text-center bg-gray-50 <?php echo ($last_role === 'alumni') ? 'selected' : ''; ?>" data-role="alumni">
                         <i class="fas fa-user-graduate text-3xl text-green-600 mb-2"></i>
                         <h3 class="font-bold text-gray-800">Alumni</h3>
                     </div>
-                    
                     <div class="role-selector admin-role-selector p-4 rounded-lg cursor-pointer text-center bg-gray-50 <?php echo ($last_role === 'admin') ? 'selected' : ''; ?>" data-role="admin">
                         <i class="fas fa-user-shield text-3xl text-blue-600 mb-2"></i>
                         <h3 class="font-bold text-gray-800">Administrator</h3>
@@ -173,22 +147,55 @@ unset($_SESSION['last_attempt_role']);
                         <?php endif; ?>
                     </div>
 
-                    <button type="submit" id="loginButton" class="w-full py-3 font-medium" <?php echo ($last_role) ? '' : 'disabled'; ?>>
+                    <button type="submit" id="loginButton" class="w-full py-3 font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 transition <?php echo ($last_role) ? '' : 'opacity-50 cursor-not-allowed'; ?>" <?php echo ($last_role) ? '' : 'disabled'; ?>>
                         <?php if ($login_attempts > 0): ?>
                             <i class="fas fa-redo-alt mr-2"></i> Try Again
                         <?php else: ?>
                             Sign In
                         <?php endif; ?>
                     </button>
-
-                    <!-- <p class="text-center text-sm pt-4">
-                        Don't have an account?
-                        <a href="#" class="font-medium text-green-600 hover:text-green-800 transition">Register Here</a>
-                    </p> -->
                 </form>
             </div>
         </div>
     </div>
+
+    <!-- Inline Script: Enable Enter Key to Submit Form -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const emailInput = document.getElementById('loginEmail');
+            const passwordInput = document.getElementById('loginPassword');
+            const loginButton = document.getElementById('loginButton');
+            const selectedRole = document.getElementById('selectedRole');
+
+            // Press Enter in Email → Go to Password
+            emailInput.addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    passwordInput.focus();
+                }
+            });
+
+            // Press Enter in Password → Submit (only if role selected)
+            passwordInput.addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (selectedRole.value && !loginButton.disabled) {
+                        loginButton.click(); // Triggers form submit
+                    }
+                }
+            });
+
+            // Optional: Also allow Enter anywhere on the page when inputs are focused
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter' && (document.activeElement === emailInput || document.activeElement === passwordInput)) {
+                    if (selectedRole.value && !loginButton.disabled) {
+                        e.preventDefault();
+                        loginButton.click();
+                    }
+                }
+            });
+        });
+    </script>
 
     <script src="login.js"></script>
 </body>
