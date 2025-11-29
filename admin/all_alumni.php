@@ -259,27 +259,34 @@ ob_start();
                                             <span class="text-gray-400 text-sm">No documents</span>
                                         <?php endif; ?>
                                     </td>
-<td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-    <?php if ($alumni['submission_status'] == 'Pending'): ?>
-        <div class="flex gap-2">
-            <button onclick="showApproveModal(<?= $alumni['user_id'] ?>, '<?= htmlspecialchars($alumni['name']) ?>')" 
-                    class="text-green-600 hover:text-green-900 px-3 py-1 border border-green-600 rounded-lg hover:bg-green-50 transition-colors">
-                <i class="fas fa-check mr-1"></i> Approve
-            </button>
-            <button onclick="showRejectModal(<?= $alumni['user_id'] ?>, '<?= htmlspecialchars($alumni['name']) ?>', '<?= $alumni['employment_status'] ?>')" 
-                    class="text-red-600 hover:text-red-900 px-3 py-1 border border-red-600 rounded-lg hover:bg-red-50 transition-colors">
-                <i class="fas fa-times mr-1"></i> Reject
-            </button>
-        </div>
-    <?php else: ?>
-        <div class="flex justify-left">
-            <button onclick="showRevertModal(<?= $alumni['user_id'] ?>, '<?= htmlspecialchars($alumni['name']) ?>')" 
-                    class="text-orange-600 hover:text-orange-900 px-3 py-1 border border-orange-600 rounded-lg hover:bg-orange-50 transition-colors">
-                <i class="fas fa-undo mr-1"></i> Undo
-            </button>
-        </div>
-    <?php endif; ?>
-</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <?php if (empty($alumni['submission_status']) || $alumni['submission_status'] == 'Not Started'): ?>
+                                            <div class="flex justify-left">
+                                                <span class="px-3 py-1.5 inline-flex text-sm font-semibold rounded-full bg-gray-100 text-gray-800 border border-gray-200 shadow-sm">
+                                                    <i class="fas fa-clock mr-2 mt-0.5 text-gray-600"></i>
+                                                    Not Started
+                                                </span>
+                                            </div>
+                                        <?php elseif ($alumni['submission_status'] == 'Pending'): ?>
+                                            <div class="flex gap-2">
+                                                <button onclick="showApproveModal(<?= $alumni['user_id'] ?>, '<?= htmlspecialchars($alumni['name']) ?>')" 
+                                                        class="text-green-600 hover:text-green-900 px-3 py-1 border border-green-600 rounded-lg hover:bg-green-50 transition-colors">
+                                                    <i class="fas fa-check mr-1"></i> Approve
+                                                </button>
+                                                <button onclick="showRejectModal(<?= $alumni['user_id'] ?>, '<?= htmlspecialchars($alumni['name']) ?>', '<?= $alumni['employment_status'] ?>')" 
+                                                        class="text-red-600 hover:text-red-900 px-3 py-1 border border-red-600 rounded-lg hover:bg-red-50 transition-colors">
+                                                    <i class="fas fa-times mr-1"></i> Reject
+                                                </button>
+                                            </div>
+                                        <?php else: ?>
+                                            <div class="flex justify-left">
+                                                <button onclick="showRevertModal(<?= $alumni['user_id'] ?>, '<?= htmlspecialchars($alumni['name']) ?>')" 
+                                                        class="text-orange-600 hover:text-orange-900 px-3 py-1 border border-orange-600 rounded-lg hover:bg-orange-50 transition-colors">
+                                                    <i class="fas fa-undo mr-1"></i> Undo
+                                                </button>
+                                            </div>
+                                        <?php endif; ?>
+                                    </td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
