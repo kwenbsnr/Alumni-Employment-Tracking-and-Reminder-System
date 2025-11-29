@@ -52,16 +52,17 @@ $stmt->close();
 // ---- 2. Profile Permissions --------------------------------------------------------
 $is_profile_rejected = !empty($profile) && ($profile['submission_status'] ?? '') === 'Rejected';
 $is_profile_pending = !empty($profile) && ($profile['submission_status'] ?? '') === 'Pending';
-$can_update_yearly = empty($profile) || 
-                    ($profile && ($profile['last_profile_update'] === null || 
-                    strtotime($profile['last_profile_update'] . ' +1 year') <= time()));
 
-$can_update = $can_update_yearly || $is_profile_rejected || $is_profile_pending;
+$can_update_semiannual = empty($profile) || 
+                        ($profile && ($profile['last_profile_update'] === null || 
+                        strtotime($profile['last_profile_update'] . ' +6 months') <= time()));
+
+$can_update = $can_update_semiannual || $is_profile_rejected || $is_profile_pending;
 
 // PERMISSION CHECK - PREVENT UNAUTHORIZED UPDATES
 if (!$can_update) {
     header("Location: alumni_profile.php?error=" . urlencode(
-        "You can only update once per year unless your submission was rejected."
+        "You can only update every 6 months unless your submission was rejected."
     ));
     exit;
 }
