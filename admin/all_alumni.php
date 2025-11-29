@@ -214,26 +214,26 @@ ob_start();
                                         </div>
                                     </td>
                                    <td class="px-6 py-4 whitespace-nowrap">
-    <div class="flex items-center">
-        <span class="px-3 py-1.5 inline-flex text-sm font-semibold rounded-full 
-            <?= getEmploymentStatusColor($alumni['employment_status']) ?> 
-            border <?= getEmploymentStatusBorder($alumni['employment_status']) ?>
-            shadow-sm">
-            <i class="<?= getEmploymentStatusIcon($alumni['employment_status']) ?> mr-2 mt-0.5"></i>
-            <?= $alumni['employment_status'] ?>
-        </span>
-    </div>
-</td><td class="px-6 py-4 whitespace-nowrap">
-    <div class="flex items-center">
-        <span class="px-3 py-1.5 inline-flex text-sm font-semibold rounded-full 
-            <?= getSubmissionStatusColor($alumni['submission_status']) ?> 
-            border <?= getSubmissionStatusBorder($alumni['submission_status']) ?>
-            shadow-sm">
-            <i class="<?= getSubmissionStatusIcon($alumni['submission_status']) ?> mr-2 mt-0.5"></i>
-            <?= $alumni['submission_status'] ?>
-        </span>
-    </div>
-</td>
+                                    <div class="flex items-center">
+                                        <span class="px-3 py-1.5 inline-flex text-sm font-semibold rounded-full 
+                                            <?= empty($alumni['employment_status']) ? 'bg-gray-100 text-gray-800 border border-gray-200' : getEmploymentStatusColor($alumni['employment_status']) ?> 
+                                            <?= empty($alumni['employment_status']) ? 'border-gray-200' : getEmploymentStatusBorder($alumni['employment_status']) ?>
+                                            shadow-sm">
+                                            <i class="<?= empty($alumni['employment_status']) ? 'fas fa-question text-gray-600' : getEmploymentStatusIcon($alumni['employment_status']) ?> mr-2 mt-0.5"></i>
+                                            <?= empty($alumni['employment_status']) ? 'Not Started' : $alumni['employment_status'] ?>
+                                        </span>
+                                    </div>
+                                    </td><td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <span class="px-3 py-1.5 inline-flex text-sm font-semibold rounded-full 
+                                            <?= empty($alumni['submission_status']) ? 'bg-gray-100 text-gray-800 border border-gray-200' : getSubmissionStatusColor($alumni['submission_status']) ?> 
+                                            <?= empty($alumni['submission_status']) ? 'border-gray-200' : getSubmissionStatusBorder($alumni['submission_status']) ?>
+                                            shadow-sm">
+                                            <i class="<?= empty($alumni['submission_status']) ? 'fas fa-question text-gray-600' : getSubmissionStatusIcon($alumni['submission_status']) ?> mr-2 mt-0.5"></i>
+                                            <?= empty($alumni['submission_status']) ? 'Not Started' : $alumni['submission_status'] ?>
+                                        </span>
+                                    </div>
+                                    </td>
                                     <td class="px-6 py-4 text-sm text-gray-500">
                                         <?php if (!empty($documents)): ?>
                                             <div class="space-y-1">
