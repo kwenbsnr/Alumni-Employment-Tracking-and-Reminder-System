@@ -647,8 +647,9 @@ document.addEventListener('keydown', function(e) {
 </script>
 
 <?php
-// Helper functions for status colors
+// Helper functions for status colors and icons
 function getEmploymentStatusColor($status) {
+    if (empty($status)) return 'bg-gray-100 text-gray-800';
     switch ($status) {
         case 'Unemployed': return 'bg-red-100 text-red-800';
         case 'Self-Employed': return 'bg-blue-100 text-blue-800';
@@ -659,17 +660,8 @@ function getEmploymentStatusColor($status) {
     }
 }
 
-function getSubmissionStatusColor($status) {
-    switch ($status) {
-        case 'Approved': return 'bg-green-100 text-green-800';
-        case 'Pending': return 'bg-yellow-100 text-yellow-800';
-        case 'Rejected': return 'bg-red-100 text-red-800';
-        default: return 'bg-gray-100 text-gray-800';
-    }
-}
-
-// Enhanced helper functions for status styling
 function getEmploymentStatusBorder($status) {
+    if (empty($status)) return 'border-gray-200';
     switch ($status) {
         case 'Unemployed': return 'border-red-200';
         case 'Self-Employed': return 'border-blue-200';
@@ -681,6 +673,7 @@ function getEmploymentStatusBorder($status) {
 }
 
 function getEmploymentStatusIcon($status) {
+    if (empty($status)) return 'fas fa-question text-gray-600';
     switch ($status) {
         case 'Unemployed': return 'fas fa-user-slash text-red-600';
         case 'Self-Employed': return 'fas fa-briefcase text-blue-600';
@@ -691,7 +684,18 @@ function getEmploymentStatusIcon($status) {
     }
 }
 
+function getSubmissionStatusColor($status) {
+    if (empty($status)) return 'bg-gray-100 text-gray-800';
+    switch ($status) {
+        case 'Approved': return 'bg-green-100 text-green-800';
+        case 'Pending': return 'bg-yellow-100 text-yellow-800';
+        case 'Rejected': return 'bg-red-100 text-red-800';
+        default: return 'bg-gray-100 text-gray-800';
+    }
+}
+
 function getSubmissionStatusBorder($status) {
+    if (empty($status)) return 'border-gray-200';
     switch ($status) {
         case 'Approved': return 'border-green-200';
         case 'Pending': return 'border-yellow-200';
@@ -701,6 +705,7 @@ function getSubmissionStatusBorder($status) {
 }
 
 function getSubmissionStatusIcon($status) {
+    if (empty($status)) return 'fas fa-question text-gray-600';
     switch ($status) {
         case 'Approved': return 'fas fa-check-circle text-green-600';
         case 'Pending': return 'fas fa-clock text-yellow-600';
