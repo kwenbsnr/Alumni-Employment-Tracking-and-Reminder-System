@@ -17,15 +17,15 @@ $search = $_GET['search'] ?? '';
 $employment_status = $_GET['employment_status'] ?? '';
 $submission_status = $_GET['submission_status'] ?? '';
 
-// Fetch all alumni records with filters - FIXED
-$whereConditions = ["1=1"];
+// Fetch all alumni records with filters - UPDATED to include ALL alumni users
+$whereConditions = ["u.role = 'alumni'"]; // Only alumni role users
 $params = [];
 $types = '';
 
 if (!empty($search)) {
     $whereConditions[] = "(u.name LIKE ? OR u.email LIKE ?)";
-    $searchTerm = "%$search%";
-    $params = array_merge($params, [$searchTerm, $searchTerm]);
+    $term = "%$search%";
+    $params = array_merge($params, [$term, $term]);
     $types .= 'ss';
 }
 
@@ -45,7 +45,7 @@ $whereClause = implode(" AND ", $whereConditions);
 
 $query = "
     SELECT 
-        ap.user_id,
+        u.user_id,
         u.name,
         u.batch_year,
         ap.employment_status,
@@ -53,11 +53,11 @@ $query = "
         ap.photo_path,
         u.email,
         COUNT(ad.doc_id) as document_count
-    FROM alumni_profile ap
-    INNER JOIN users u ON ap.user_id = u.user_id
-    LEFT JOIN alumni_documents ad ON ap.user_id = ad.user_id
+    FROM users u
+    LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id  -- Changed to LEFT JOIN
+    LEFT JOIN alumni_documents ad ON u.user_id = ad.user_id
     WHERE $whereClause
-    GROUP BY ap.user_id
+    GROUP BY u.user_id
     ORDER BY u.batch_year DESC, u.name ASC
 ";
 
