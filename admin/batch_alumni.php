@@ -20,19 +20,26 @@ $search = $_GET['search'] ?? '';
 $employment_status = $_GET['employment_status'] ?? '';
 $submission_status = $_GET['submission_status'] ?? '';
 
-// Fetch batch statistics - FIXED
+// Fetch batch statistics - include all alumni
 $statsQuery = "SELECT
+    COUNT(*) as total_alumni,
     SUM(CASE WHEN ap.submission_status = 'Approved' THEN 1 ELSE 0 END) as approved_count,
     SUM(CASE WHEN ap.submission_status = 'Pending' THEN 1 ELSE 0 END) as pending_count,
-    SUM(CASE WHEN ap.submission_status = 'Rejected' THEN 1 ELSE 0 END) as rejected_count
-    FROM alumni_profile ap
-    INNER JOIN users u ON ap.user_id = u.user_id
-    WHERE u.batch_year = ?";
+    SUM(CASE WHEN ap.submission_status = 'Rejected' THEN 1 ELSE 0 END) as rejected_count,
+    SUM(CASE WHEN ap.user_id IS NULL THEN 1 ELSE 0 END) as no_profile_count
+    FROM users u
+    LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id
+    WHERE u.role = 'alumni' AND u.batch_year = ?";
 $statsStmt = $conn->prepare($statsQuery);
 $statsStmt->bind_param('s', $batch_year);
 $statsStmt->execute();
 $statsResult = $statsStmt->get_result();
 $batchStats = $statsResult->fetch_assoc();
+
+// Calculate profile completion rate
+$total_alumni = $batchStats['total_alumni'] ?? 0;
+$with_profiles = ($batchStats['approved_count'] ?? 0) + ($batchStats['pending_count'] ?? 0) + ($batchStats['rejected_count'] ?? 0);
+$completion_rate = $total_alumni > 0 ? round(($with_profiles / $total_alumni) * 100, 1) : 0;
 
 // Build query with filters - FIXED
 $whereConditions = ["u.batch_year = ?"];
@@ -86,10 +93,19 @@ ob_start();
                     <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight">
                         Batch <span class="text-indigo-600"><?= htmlspecialchars($batch_year) ?></span> Alumni
                     </h1>
+                    <p class="text-sm text-gray-600 mt-1">
+                        Total: <span class="font-semibold"><?= $total_alumni ?></span> graduates • 
+                        Profile Completion: <span class="font-semibold <?= $completion_rate >= 80 ? 'text-green-600' : ($completion_rate >= 50 ? 'text-yellow-600' : 'text-red-600') ?>"><?= $completion_rate ?>%</span>
+                    </p>
                 </div>
             </div>
             
             <div class="flex flex-wrap items-center space-x-3">
+                <!-- Total Alumni Badge -->
+                <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold bg-blue-50 text-blue-700 shadow-sm border border-blue-200 transition duration-150 ease-in-out hover:bg-blue-100">
+                    <i class="fas fa-users mr-2 text-base"></i> 
+                    Total: <span class="ml-1 font-bold"><?= $total_alumni ?></span>
+                </span>
                 
                 <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-200 transition duration-150 ease-in-out hover:bg-emerald-100">
                     <i class="fas fa-check-circle mr-2 text-base"></i> 
@@ -105,6 +121,13 @@ ob_start();
                     <i class="fas fa-times-circle mr-2 text-base"></i> 
                     Rejected: <span class="ml-1 font-bold"><?= $batchStats['rejected_count'] ?? 0 ?></span>
                 </span>
+                
+                <?php if (($batchStats['no_profile_count'] ?? 0) > 0): ?>
+                <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold bg-gray-50 text-gray-700 shadow-sm border border-gray-200 transition duration-150 ease-in-out hover:bg-gray-100">
+                    <i class="fas fa-user-clock mr-2 text-base"></i> 
+                    No Profile: <span class="ml-1 font-bold"><?= $batchStats['no_profile_count'] ?? 0 ?></span>
+                </span>
+                <?php endif; ?>
             </div>
         </div>
     </div>
