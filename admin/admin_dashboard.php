@@ -138,8 +138,9 @@ ob_start();
 
 <div class="dashboard-grid">
     <div class="main-content">
-        <!-- Stats Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- Enhanced Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Total Alumni Card (All Graduates) -->
             <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #3b82f6;">
                 <div class="p-4">
                     <div class="flex items-center justify-between">
@@ -159,25 +160,38 @@ ob_start();
                 </div>
             </div>
 
+            <!-- Active Alumni Card (Completed Requirements) -->
             <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #10b981;">
                 <div class="p-4">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Approved Profiles</p>
+                            <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Active Alumni</p>
                             <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['approved_profiles']; ?></p>
-                            <p class="text-xs text-gray-500 mt-1">Verified & active alumni</p>
+                            <p class="text-xs text-gray-500 mt-1">Completed tracking requirements</p>
                         </div>
                         <div class="p-3 rounded-xl bg-green-50 card-icon">
-                            <i class="fas fa-check-circle text-xl text-green-500"></i>
+                            <i class="fas fa-user-check text-xl text-green-500"></i>
                         </div>
                     </div>
                     <div class="mt-2 flex items-center text-xs text-green-600">
                         <i class="fas fa-shield-check mr-1"></i>
-                        <span>Fully verified</span>
+                        <span>Fully verified & active</span>
                     </div>
+                    <?php if ($stats['total_alumni'] > 0): ?>
+                        <div class="mt-2">
+                            <div class="flex justify-between text-xs text-gray-600 mb-1">
+                                <span>Completion Rate</span>
+                                <span><?php echo round(($stats['approved_profiles'] / $stats['total_alumni']) * 100, 1); ?>%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-1.5">
+                                <div class="bg-green-500 h-1.5 rounded-full" style="width: <?php echo min(100, ($stats['approved_profiles'] / $stats['total_alumni']) * 100); ?>%"></div>
+                            </div>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
 
+            <!-- Pending Reviews Card -->
             <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #f59e0b;">
                 <div class="p-4">
                     <div class="flex items-center justify-between">
@@ -194,6 +208,42 @@ ob_start();
                         <i class="fas fa-hourglass-half mr-1"></i>
                         <span>Requires review</span>
                     </div>
+                    <?php if ($stats['pending_profiles'] > 0): ?>
+                        <div class="mt-2">
+                            <div class="flex items-center text-xs text-yellow-700 bg-yellow-50 px-2 py-1 rounded border border-yellow-200">
+                                <i class="fas fa-exclamation-circle mr-1"></i>
+                                <span>Needs attention</span>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- Rejected Profiles Card -->
+            <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #ef4444;">
+                <div class="p-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Rejected Profiles</p>
+                            <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['rejected_profiles']; ?></p>
+                            <p class="text-xs text-gray-500 mt-1">Need corrections & resubmission</p>
+                        </div>
+                        <div class="p-3 rounded-xl bg-red-50 card-icon">
+                            <i class="fas fa-times-circle text-xl text-red-500"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2 flex items-center text-xs text-red-600">
+                        <i class="fas fa-exclamation-triangle mr-1"></i>
+                        <span>Requires updates</span>
+                    </div>
+                    <?php if ($stats['rejected_profiles'] > 0): ?>
+                        <div class="mt-2">
+                            <div class="flex items-center text-xs text-red-700 bg-red-50 px-2 py-1 rounded border border-red-200">
+                                <i class="fas fa-sync-alt mr-1"></i>
+                                <span>Awaiting resubmission</span>
+                            </div>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
