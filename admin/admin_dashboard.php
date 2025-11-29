@@ -146,15 +146,15 @@ ob_start();
                         <div>
                             <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Total Alumni</p>
                             <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['total_alumni']; ?></p>
-                            <p class="text-xs text-gray-500 mt-1">Alumni who submitted profiles</p>
+                            <p class="text-xs text-gray-500 mt-1">All graduated alumni in system</p>
                         </div>
                         <div class="p-3 rounded-xl bg-blue-50 card-icon">
                             <i class="fas fa-users text-xl text-blue-500"></i>
                         </div>
                     </div>
                     <div class="mt-2 flex items-center text-xs text-blue-600">
-                        <i class="fas fa-user-check mr-1"></i>
-                        <span>Have profile records</span>
+                        <i class="fas fa-graduation-cap mr-1"></i>
+                        <span>All graduated students</span>
                     </div>
                 </div>
             </div>
