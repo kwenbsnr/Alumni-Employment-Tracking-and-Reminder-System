@@ -548,8 +548,16 @@ new Chart(document.getElementById('employmentChart'), {
             ],
             borderWidth: 3,
             borderColor: '#fff',
-            hoverOffset: 15,
-            hoverBorderWidth: 4
+            hoverOffset: 20,
+            hoverBorderWidth: 4,
+            hoverBackgroundColor: [
+                '#357ABD', // Darker Blue
+                '#6BC120', // Darker Green
+                '#E6951F', // Darker Orange
+                '#B8021A', // Darker Red
+                '#8A46D4', // Darker Purple
+                '#7F8C8D'  // Darker Gray
+            ]
         }]
     },
     options: {
@@ -562,27 +570,65 @@ new Chart(document.getElementById('employmentChart'), {
                 labels: { 
                     usePointStyle: true, 
                     padding: 20,
-                    font: { size: 11, weight: '600' },
+                    font: { 
+                        size: 11, 
+                        weight: '600',
+                        family: "'Inter', 'Segoe UI', sans-serif"
+                    },
                     color: '#374151'
                 } 
             },
             tooltip: {
-                callbacks: {
-                    label: function(ctx) {
-                        const value = ctx.raw || 0;
-                        const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
-                        const percentage = ((value / total) * 100).toFixed(1);
-                        return `${ctx.label}: ${value} alumni (${percentage}%)`;
-                    }
-                },
-                backgroundColor: 'rgba(255,255,255,0.98)',
-                borderColor: '#e5e7eb',
+                enabled: true,
+                backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                borderColor: '#4B5563',
                 borderWidth: 2,
                 cornerRadius: 12,
-                padding: 12,
-                titleFont: { size: 13, weight: '600' },
-                bodyFont: { size: 12, weight: '500' },
-                boxPadding: 8
+                padding: 16,
+                titleFont: { 
+                    size: 14, 
+                    weight: '700',
+                    family: "'Inter', 'Segoe UI', sans-serif"
+                },
+                bodyFont: { 
+                    size: 13, 
+                    weight: '600',
+                    family: "'Inter', 'Segoe UI', sans-serif"
+                },
+                footerFont: {
+                    size: 11,
+                    weight: '500',
+                    family: "'Inter', 'Segoe UI', sans-serif"
+                },
+                titleColor: '#F9FAFB',
+                bodyColor: '#E5E7EB',
+                footerColor: '#9CA3AF',
+                boxPadding: 10,
+                callbacks: {
+                    title: function(tooltipItems) {
+                        return tooltipItems[0].label;
+                    },
+                    label: function(context) {
+                        const value = context.raw || 0;
+                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                        const percentage = ((value / total) * 100).toFixed(1);
+                        return `
+                            ${value} alumni • ${percentage}% of total
+                        `.trim();
+                    },
+                    afterLabel: function(context) {
+                        const label = context.label;
+                        if (label === 'No Profile Submitted') {
+                            return '📝 Profile not yet started';
+                        } else {
+                            return '✅ Profile submitted';
+                        }
+                    }
+                },
+                displayColors: true,
+                usePointStyle: true,
+                caretSize: 8,
+                caretPadding: 12
             }
         },
         animation: {
@@ -590,13 +636,18 @@ new Chart(document.getElementById('employmentChart'), {
             animateRotate: true,
             duration: 2000,
             easing: 'easeOutQuart'
+        },
+        hover: {
+            mode: 'nearest',
+            intersect: true,
+            animationDuration: 300
         }
     }
 });
 <?php endif; ?>
 
 <?php if (!empty($gradYears)): ?>
-// Enhanced Graduates per Year Chart
+// Enhanced Graduates per Year Chart with Clear Hover Text
 const gradCtx = document.getElementById('graduationChart').getContext('2d');
 
 // Create enhanced gradient
@@ -605,7 +656,13 @@ gradient.addColorStop(0, 'rgba(139, 92, 246, 0.4)');
 gradient.addColorStop(0.7, 'rgba(139, 92, 246, 0.15)');
 gradient.addColorStop(1, 'rgba(139, 92, 246, 0.05)');
 
-// Calculate statistics for the chart
+// Hover gradient
+const hoverGradient = gradCtx.createLinearGradient(0, 0, 0, 400);
+hoverGradient.addColorStop(0, 'rgba(139, 92, 246, 0.6)');
+hoverGradient.addColorStop(0.7, 'rgba(139, 92, 246, 0.25)');
+hoverGradient.addColorStop(1, 'rgba(139, 92, 246, 0.1)');
+
+// Calculate statistics
 const gradData = <?php echo json_encode($gradCounts); ?>;
 const totalGrads = gradData.reduce((a, b) => a + b, 0);
 const maxGrads = Math.max(...gradData);
@@ -627,10 +684,11 @@ new Chart(gradCtx, {
             pointBorderColor: '#fff',
             pointBorderWidth: 3,
             pointRadius: 6,
-            pointHoverRadius: 9,
+            pointHoverRadius: 10,
             pointHoverBackgroundColor: '#7c3aed',
             pointHoverBorderColor: '#fff',
-            pointHoverBorderWidth: 4
+            pointHoverBorderWidth: 4,
+            hoverBackgroundColor: hoverGradient
         }]
     },
     options: {
@@ -641,66 +699,106 @@ new Chart(gradCtx, {
                 display: false 
             },
             tooltip: {
-                backgroundColor: 'rgba(255,255,255,0.98)',
-                borderColor: '#8b5cf6',
-                borderWidth: 2,
-                cornerRadius: 12,
-                padding: 12,
-                titleFont: { size: 13, weight: '600' },
-                bodyFont: { size: 12, weight: '500' },
+                enabled: true,
+                backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                borderColor: '#7c3aed',
+                borderWidth: 3,
+                cornerRadius: 14,
+                padding: 18,
+                titleFont: { 
+                    size: 15, 
+                    weight: '700',
+                    family: "'Inter', 'Segoe UI', sans-serif"
+                },
+                bodyFont: { 
+                    size: 14, 
+                    weight: '600',
+                    family: "'Inter', 'Segoe UI', sans-serif"
+                },
+                footerFont: {
+                    size: 12,
+                    weight: '500',
+                    family: "'Inter', 'Segoe UI', sans-serif"
+                },
+                titleColor: '#F9FAFB',
+                bodyColor: '#E5E7EB',
+                footerColor: '#9CA3AF',
+                boxPadding: 12,
                 callbacks: {
                     title: function(tooltipItems) {
-                        return `Batch ${tooltipItems[0].label}`;
+                        return `🎓 Batch ${tooltipItems[0].label}`;
                     },
                     label: function(context) {
-                        return `Graduates: ${context.parsed.y}`;
+                        const value = context.parsed.y;
+                        const percentage = ((value / totalGrads) * 100).toFixed(1);
+                        return `${value} graduates • ${percentage}% of total alumni`;
                     },
                     afterLabel: function(context) {
-                        const percentage = ((context.parsed.y / totalGrads) * 100).toFixed(1);
-                        return `${percentage}% of total alumni`;
+                        const year = context.label;
+                        const index = context.dataIndex;
+                        const prevYear = index > 0 ? gradData[index - 1] : null;
+                        
+                        if (prevYear !== null) {
+                            const change = context.parsed.y - prevYear;
+                            const changePercent = ((change / prevYear) * 100).toFixed(1);
+                            if (change > 0) {
+                                return `📈 +${change} from previous year (+${changePercent}%)`;
+                            } else if (change < 0) {
+                                return `📉 ${change} from previous year (${changePercent}%)`;
+                            } else {
+                                return `➡️ No change from previous year`;
+                            }
+                        }
+                        return `⭐ First recorded batch`;
                     }
-                }
-            },
-            subtitle: {
-                display: true,
-                text: `Total: ${totalGrads} alumni | Average: ${avgGrads}/year | Peak: ${maxGrads}`,
-                font: { size: 12, weight: '500' },
-                color: '#6B7280',
-                padding: { bottom: 15 }
+                },
+                displayColors: false,
+                caretSize: 10,
+                caretPadding: 15
             }
         },
         scales: {
             y: { 
                 beginAtZero: true, 
                 grid: { 
-                    color: 'rgba(0,0,0,0.06)',
-                    drawBorder: false
+                    color: 'rgba(0,0,0,0.08)',
+                    drawBorder: false,
+                    lineWidth: 1
                 }, 
                 ticks: { 
                     stepSize: Math.ceil(maxGrads / 5),
-                    font: { size: 11, weight: '500' },
+                    font: { 
+                        size: 12, 
+                        weight: '600',
+                        family: "'Inter', 'Segoe UI', sans-serif"
+                    },
                     color: '#6B7280',
-                    padding: 8
+                    padding: 10
                 },
                 border: { display: false }
             },
             x: { 
                 grid: { 
-                    color: 'rgba(0,0,0,0.06)',
-                    drawBorder: false
+                    color: 'rgba(0,0,0,0.08)',
+                    drawBorder: false,
+                    lineWidth: 1
                 },
                 ticks: {
-                    font: { size: 11, weight: '500' },
+                    font: { 
+                        size: 12, 
+                        weight: '600',
+                        family: "'Inter', 'Segoe UI', sans-serif"
+                    },
                     color: '#6B7280',
                     maxRotation: 45,
-                    padding: 10
+                    padding: 12
                 },
                 border: { display: false }
             }
         },
         interaction: {
             intersect: false,
-            mode: 'index'
+            mode: 'nearest'
         },
         animation: {
             duration: 2000,
@@ -709,24 +807,27 @@ new Chart(gradCtx, {
         elements: {
             line: {
                 tension: 0.3
+            },
+            point: {
+                hoverBackgroundColor: '#7c3aed',
+                hoverBorderColor: '#fff'
             }
+        },
+        hover: {
+            mode: 'nearest',
+            intersect: false,
+            animationDuration: 300
         }
     }
 });
 <?php endif; ?>
 
-// Toast notification
+// Enhanced hover effects for chart containers
 document.addEventListener("DOMContentLoaded", () => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.has('success') && typeof showToast === 'function') {
-        showToast(params.get('success'), 'success');
-    } else if (params.has('error') && typeof showToast === 'function') {
-        showToast(params.get('error'), 'error');
-    }
-    
-    // Add smooth animations to chart containers
     const chartContainers = document.querySelectorAll('.stats-card');
+    
     chartContainers.forEach(container => {
+        // Initial animation
         container.style.opacity = '0';
         container.style.transform = 'translateY(20px)';
         
@@ -735,7 +836,26 @@ document.addEventListener("DOMContentLoaded", () => {
             container.style.opacity = '1';
             container.style.transform = 'translateY(0)';
         }, 100);
+        
+        // Enhanced hover effects
+        container.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-5px) scale(1.02)';
+            this.style.boxShadow = '0 25px 50px -12px rgba(0, 0, 0, 0.25)';
+        });
+        
+        container.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0) scale(1)';
+            this.style.boxShadow = '';
+        });
     });
+    
+    // Toast notification
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('success') && typeof showToast === 'function') {
+        showToast(params.get('success'), 'success');
+    } else if (params.has('error') && typeof showToast === 'function') {
+        showToast(params.get('error'), 'error');
+    }
 });
 </script>
 
