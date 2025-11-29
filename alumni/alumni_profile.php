@@ -401,11 +401,15 @@ ob_start();
             <?php if (($profile['employment_status'] ?? '') !== 'Self-Employed'): ?>
                 <div class="flex flex-col">
                     <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Job Title</dt>
-                    <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($employment['job_title'] ?? 'N/A'); ?></dd>
+                    <dd class="font-semibold text-gray-700" style="font-size: 15px;">
+                        <?php echo !empty($employment['job_title']) ? htmlspecialchars($employment['job_title'], ENT_QUOTES, 'UTF-8') : 'N/A'; ?>
+                    </dd>
                 </div>
                 <div class="flex flex-col">
                     <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Company Name</dt>
-                    <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($employment['company_name'] ?? 'N/A'); ?></dd>
+                    <dd class="font-semibold text-gray-700" style="font-size: 15px;">
+                        <?php echo !empty($employment['company_name']) ? htmlspecialchars($employment['company_name'], ENT_QUOTES, 'UTF-8') : 'N/A'; ?>
+                    </dd>
                 </div>
                 <div class="flex flex-col">
                     <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;"><?php echo (($profile['employment_status'] ?? '') === 'Self-Employed') ? 'Monthly Income Range' : 'Salary Range'; ?></dt>
@@ -413,19 +417,23 @@ ob_start();
                 </div>
                 <div class="flex flex-col md:col-span-2">
                     <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Company Address</dt>
-                    <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($employment['company_address'] ?? 'N/A'); ?></dd>
+                    <dd class="font-semibold text-gray-700" style="font-size: 15px;">
+                        <?php echo !empty($employment['company_address']) ? htmlspecialchars($employment['company_address'], ENT_QUOTES, 'UTF-8') : 'N/A'; ?>
+                    </dd>
                 </div>
             <?php endif; ?>
             <?php if (($profile['employment_status'] ?? '') === 'Self-Employed'): ?>
                 <div class="flex flex-col">
                     <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Business Type</dt>
-                    <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php
+                    <dd class="font-semibold text-gray-700" style="font-size: 15px;">
+                        <?php
                         $display_business_type = $employment['business_type'] ?? 'N/A';
                         if (strpos($display_business_type, 'Others: ') === 0) {
                             $display_business_type = 'Others: ' . substr($display_business_type, 8);
                         }
-                        echo htmlspecialchars($display_business_type);
-                    ?></dd>
+                        echo !empty($display_business_type) ? htmlspecialchars($display_business_type, ENT_QUOTES, 'UTF-8') : 'N/A';
+                        ?>
+                    </dd>
                 </div>
                 <div class="flex flex-col">
                     <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Monthly Income Range</dt>
@@ -436,11 +444,27 @@ ob_start();
         <?php if (in_array($profile['employment_status'] ?? '', ['Student', 'Employed & Student'])): ?>
             <div class="flex flex-col">
                 <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">School Name</dt>
-                <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($education['school_name'] ?? 'N/A'); ?></dd>
+                <dd class="font-semibold text-gray-700" style="font-size: 15px;">
+                    <?php echo !empty($education['school_name']) ? htmlspecialchars($education['school_name'], ENT_QUOTES, 'UTF-8') : 'N/A'; ?>
+                </dd>
+            </div>
+            <div class="flex flex-col">
+                <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Start Year</dt>
+                <dd class="font-semibold text-gray-700" style="font-size: 15px;">
+                    <?php echo !empty($education['start_year']) ? htmlspecialchars($education['start_year']) : 'N/A'; ?>
+                </dd>
+            </div>
+            <div class="flex flex-col">
+                <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">End Year (Expected)</dt>
+                <dd class="font-semibold text-gray-700" style="font-size: 15px;">
+                    <?php echo !empty($education['end_year']) ? htmlspecialchars($education['end_year']) : 'N/A'; ?>
+                </dd>
             </div>
             <div class="flex flex-col">
                 <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Degree Pursued</dt>
-                <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($education['degree_pursued'] ?? 'N/A'); ?></dd>
+                <dd class="font-semibold text-gray-700" style="font-size: 15px;">
+                    <?php echo !empty($education['degree_pursued']) ? htmlspecialchars($education['degree_pursued'], ENT_QUOTES, 'UTF-8') : 'N/A'; ?>
+                </dd>
             </div>
         <?php endif; ?>
         <?php if (($profile['employment_status'] ?? '') === 'Unemployed'): ?>
@@ -1056,7 +1080,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Employment status toggle - COMPLETELY FIXED LOGIC
+    // Employment status toggle
     function toggleEmploymentSections(status) {
         console.log('Toggling employment sections for:', status);
         
