@@ -156,6 +156,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     $conn->begin_transaction();
     
+    // Debug: Check what's being received
+error_log("Raw POST degree_pursued: " . ($_POST['degree_pursued'] ?? 'NULL'));
+error_log("Raw POST school_name: " . ($_POST['school_name'] ?? 'NULL'));
+
+// After processing, log what will be stored
+error_log("Processed degree_pursued: " . $degree);
+error_log("Processed school_name: " . $school);
+
     try {
         // ---- 5.1 Retrieve & sanitise --------------------------------------------
         $contact = htmlspecialchars(trim($_POST['contact_number'] ?? ''));
