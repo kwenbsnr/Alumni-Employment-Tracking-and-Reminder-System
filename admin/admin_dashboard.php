@@ -49,12 +49,14 @@ $statsQuery = "
 $statsResult = $conn->query($statsQuery);
 $stats = $statsResult->fetch_assoc();
 
-// Fetch graduation trends
+// Fetch graduation trends - include all alumni
 $graduatesQuery = "
     SELECT u.batch_year, COUNT(*) as count 
     FROM users u
-    INNER JOIN alumni_profile ap ON u.user_id = ap.user_id
-    WHERE u.batch_year IS NOT NULL AND u.batch_year != '' AND u.batch_year != '0000'
+    WHERE u.role = 'alumni' 
+    AND u.batch_year IS NOT NULL 
+    AND u.batch_year != '' 
+    AND u.batch_year != '0000'
     GROUP BY u.batch_year 
     ORDER BY u.batch_year
 ";
@@ -67,6 +69,31 @@ if ($graduatesResult && $graduatesResult->num_rows > 0) {
         $gradCounts[] = $row['count'];
     }
 }
+
+// Fetch employment status for ALL alumni with profiles
+$careerQuery = "SELECT employment_status, COUNT(*) as total 
+                FROM alumni_profile 
+                WHERE employment_status IS NOT NULL AND employment_status != ''
+                GROUP BY employment_status";
+$result = $conn->query($careerQuery);
+
+$careerLabels = ['Employed', 'Self-Employed', 'Unemployed', 'Student', 'Employed & Student'];
+$careerData = [0, 0, 0, 0, 0];
+
+if ($result && $result->num_rows > 0) {
+    $statusCounts = array_fill_keys($careerLabels, 0);
+    while ($row = $result->fetch_assoc()) {
+        if (in_array($row['employment_status'], $careerLabels)) {
+            $statusCounts[$row['employment_status']] = $row['total'];
+        }
+    }
+    $careerData = array_values($statusCounts);
+}
+
+// Calculate total alumni with profiles for employment chart
+$totalWithProfiles = array_sum($careerData);
+$totalAlumni = $stats['total_alumni'];
+$withoutProfiles = $totalAlumni - $totalWithProfiles;
 
 // Fetch recent activity
 $recentActivityQuery = "
@@ -139,215 +166,272 @@ ob_start();
 <div class="dashboard-grid">
     <div class="main-content">
         <!-- Enhanced Stats Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <!-- Total Alumni Card (All Graduates) -->
-            <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #3b82f6;">
-                <div class="p-4">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Total Alumni</p>
-                            <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['total_alumni']; ?></p>
-                            <p class="text-xs text-gray-500 mt-1">All graduated alumni in system</p>
+        <div class="space-y-4">
+            <!-- Total Alumni, Active Alumni & Employment Rate -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <!-- Total Alumni Card (All Graduates) -->
+                <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #3b82f6;">
+                    <div class="p-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Total Alumni</p>
+                                <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['total_alumni']; ?></p>
+                                <p class="text-xs text-gray-500 mt-1">All graduated alumni in system</p>
+                            </div>
+                            <div class="p-3 rounded-xl bg-blue-50 card-icon">
+                                <i class="fas fa-users text-xl text-blue-500"></i>
+                            </div>
                         </div>
-                        <div class="p-3 rounded-xl bg-blue-50 card-icon">
-                            <i class="fas fa-users text-xl text-blue-500"></i>
+                        <div class="mt-2 flex items-center text-xs text-blue-600">
+                            <i class="fas fa-graduation-cap mr-1"></i>
+                            <span>All graduated students</span>
                         </div>
                     </div>
-                    <div class="mt-2 flex items-center text-xs text-blue-600">
-                        <i class="fas fa-graduation-cap mr-1"></i>
-                        <span>All graduated students</span>
+                </div>
+
+                <!-- Active Alumni Card (Completed Requirements) -->
+                <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #10b981;">
+                    <div class="p-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Active Alumni</p>
+                                <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['approved_profiles']; ?></p>
+                                <p class="text-xs text-gray-500 mt-1">Completed tracking requirements</p>
+                            </div>
+                            <div class="p-3 rounded-xl bg-green-50 card-icon">
+                                <i class="fas fa-user-check text-xl text-green-500"></i>
+                            </div>
+                        </div>
+                        <div class="mt-2 flex items-center text-xs text-green-600">
+                            <i class="fas fa-shield-check mr-1"></i>
+                            <span>Fully verified & active</span>
+                        </div>
+                        <?php if ($stats['total_alumni'] > 0): ?>
+                            <div class="mt-2">
+                                <div class="flex justify-between text-xs text-gray-600 mb-1">
+                                    <span>Completion Rate</span>
+                                    <span><?php echo round(($stats['approved_profiles'] / $stats['total_alumni']) * 100, 1); ?>%</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-1.5">
+                                    <div class="bg-green-500 h-1.5 rounded-full" style="width: <?php echo min(100, ($stats['approved_profiles'] / $stats['total_alumni']) * 100); ?>%"></div>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <!-- Employment Rate Card -->
+                <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #8b5cf6;">
+                    <div class="p-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Employment Rate</p>
+                                <p class="text-2xl font-bold text-gray-900 mt-1">
+                                    <?php 
+                                    $total_employed = $stats['employed_count'];
+                                    $active_alumni = $stats['approved_profiles'];
+                                    $employment_rate = $active_alumni > 0 ? round(($total_employed / $active_alumni) * 100, 1) : 0;
+                                    echo $employment_rate; 
+                                    ?>%
+                                </p>
+                                <p class="text-xs text-gray-500 mt-1">Of active alumni</p>
+                            </div>
+                            <div class="p-3 rounded-xl bg-purple-50 card-icon">
+                                <i class="fas fa-briefcase text-xl text-purple-500"></i>
+                            </div>
+                        </div>
+                        <div class="mt-2 flex items-center text-xs text-purple-600">
+                            <i class="fas fa-chart-line mr-1"></i>
+                            <span><?php echo $total_employed; ?> employed alumni</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Active Alumni Card (Completed Requirements) -->
-            <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #10b981;">
-                <div class="p-4">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Active Alumni</p>
-                            <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['approved_profiles']; ?></p>
-                            <p class="text-xs text-gray-500 mt-1">Completed tracking requirements</p>
-                        </div>
-                        <div class="p-3 rounded-xl bg-green-50 card-icon">
-                            <i class="fas fa-user-check text-xl text-green-500"></i>
-                        </div>
-                    </div>
-                    <div class="mt-2 flex items-center text-xs text-green-600">
-                        <i class="fas fa-shield-check mr-1"></i>
-                        <span>Fully verified & active</span>
-                    </div>
-                    <?php if ($stats['total_alumni'] > 0): ?>
-                        <div class="mt-2">
-                            <div class="flex justify-between text-xs text-gray-600 mb-1">
-                                <span>Completion Rate</span>
-                                <span><?php echo round(($stats['approved_profiles'] / $stats['total_alumni']) * 100, 1); ?>%</span>
+            <!-- Pending Reviews & Rejected Profiles -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <!-- Pending Reviews Card -->
+                <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #f59e0b;">
+                    <div class="p-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Pending Reviews</p>
+                                <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['pending_profiles']; ?></p>
+                                <p class="text-xs text-gray-500 mt-1">Awaiting admin approval</p>
                             </div>
-                            <div class="w-full bg-gray-200 rounded-full h-1.5">
-                                <div class="bg-green-500 h-1.5 rounded-full" style="width: <?php echo min(100, ($stats['approved_profiles'] / $stats['total_alumni']) * 100); ?>%"></div>
+                            <div class="p-3 rounded-xl bg-yellow-50 card-icon">
+                                <i class="fas fa-clock text-xl text-yellow-500"></i>
                             </div>
                         </div>
-                    <?php endif; ?>
+                        <div class="mt-2 flex items-center text-xs text-yellow-600">
+                            <i class="fas fa-hourglass-half mr-1"></i>
+                            <span>Requires review</span>
+                        </div>
+                        <?php if ($stats['pending_profiles'] > 0): ?>
+                            <div class="mt-2">
+                                <div class="flex items-center text-xs text-yellow-700 bg-yellow-50 px-2 py-1 rounded border border-yellow-200">
+                                    <i class="fas fa-exclamation-circle mr-1"></i>
+                                    <span>Needs attention</span>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <!-- Rejected Profiles Card -->
+                <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #ef4444;">
+                    <div class="p-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Rejected Profiles</p>
+                                <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['rejected_profiles']; ?></p>
+                                <p class="text-xs text-gray-500 mt-1">Need corrections & resubmission</p>
+                            </div>
+                            <div class="p-3 rounded-xl bg-red-50 card-icon">
+                                <i class="fas fa-times-circle text-xl text-red-500"></i>
+                            </div>
+                        </div>
+                        <div class="mt-2 flex items-center text-xs text-red-600">
+                            <i class="fas fa-exclamation-triangle mr-1"></i>
+                            <span>Requires updates</span>
+                        </div>
+                        <?php if ($stats['rejected_profiles'] > 0): ?>
+                            <div class="mt-2">
+                                <div class="flex items-center text-xs text-red-700 bg-red-50 px-2 py-1 rounded border border-red-200">
+                                    <i class="fas fa-sync-alt mr-1"></i>
+                                    <span>Awaiting resubmission</span>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                    </div>
                 </div>
             </div>
 
-            <!-- Pending Reviews Card -->
-            <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #f59e0b;">
-                <div class="p-4">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Pending Reviews</p>
-                            <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['pending_profiles']; ?></p>
-                            <p class="text-xs text-gray-500 mt-1">Awaiting admin approval</p>
-                        </div>
-                        <div class="p-3 rounded-xl bg-yellow-50 card-icon">
-                            <i class="fas fa-clock text-xl text-yellow-500"></i>
-                        </div>
-                    </div>
-                    <div class="mt-2 flex items-center text-xs text-yellow-600">
-                        <i class="fas fa-hourglass-half mr-1"></i>
-                        <span>Requires review</span>
-                    </div>
-                    <?php if ($stats['pending_profiles'] > 0): ?>
-                        <div class="mt-2">
-                            <div class="flex items-center text-xs text-yellow-700 bg-yellow-50 px-2 py-1 rounded border border-yellow-200">
-                                <i class="fas fa-exclamation-circle mr-1"></i>
-                                <span>Needs attention</span>
+            <!-- Additional Metrics -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Documents Card -->
+                <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #06b6d4;">
+                    <div class="p-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Documents</p>
+                                <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['total_documents']; ?></p>
+                                <p class="text-xs text-gray-500 mt-1">Uploaded & verified</p>
+                            </div>
+                            <div class="p-3 rounded-xl bg-cyan-50 card-icon">
+                                <i class="fas fa-file-alt text-xl text-cyan-500"></i>
                             </div>
                         </div>
-                    <?php endif; ?>
+                        <div class="mt-2 flex items-center text-xs text-cyan-600">
+                            <i class="fas fa-archive mr-1"></i>
+                            <span>Supporting documents</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Batch Diversity Card -->
+                <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #f97316;">
+                    <div class="p-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Graduation Years</p>
+                                <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['unique_graduation_years']; ?></p>
+                                <p class="text-xs text-gray-500 mt-1">Different batches</p>
+                            </div>
+                            <div class="p-3 rounded-xl bg-orange-50 card-icon">
+                                <i class="fas fa-calendar-alt text-xl text-orange-500"></i>
+                            </div>
+                        </div>
+                        <div class="mt-2 flex items-center text-xs text-orange-600">
+                            <i class="fas fa-layer-group mr-1"></i>
+                            <span>Batch diversity</span>
+                        </div>
+                    </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Rejected Profiles Card -->
-            <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #ef4444;">
-                <div class="p-4">
-                    <div class="flex items-center justify-between">
+        <!-- Enhanced Analytics Section -->
+        <div class="stats-card bg-white rounded-xl shadow-sm border border-gray-100 mt-4">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center space-x-3">
+                        <div class="p-3 rounded-xl bg-blue-50">
+                            <i class="fas fa-chart-bar text-xl text-blue-500"></i>
+                        </div>
                         <div>
-                            <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Rejected Profiles</p>
-                            <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['rejected_profiles']; ?></p>
-                            <p class="text-xs text-gray-500 mt-1">Need corrections & resubmission</p>
-                        </div>
-                        <div class="p-3 rounded-xl bg-red-50 card-icon">
-                            <i class="fas fa-times-circle text-xl text-red-500"></i>
+                            <h2 class="text-xl font-bold text-gray-900">Alumni Analytics</h2>
+                            <p class="text-sm text-gray-500 mt-1">Visual data insights and trends</p>
                         </div>
                     </div>
-                    <div class="mt-2 flex items-center text-xs text-red-600">
-                        <i class="fas fa-exclamation-triangle mr-1"></i>
-                        <span>Requires updates</span>
+                    <div class="flex items-center space-x-2 text-sm text-gray-500">
+                        <i class="fas fa-info-circle"></i>
+                        <span>Real-time data visualization</span>
                     </div>
-                    <?php if ($stats['rejected_profiles'] > 0): ?>
-                        <div class="mt-2">
-                            <div class="flex items-center text-xs text-red-700 bg-red-50 px-2 py-1 rounded border border-red-200">
+                </div>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Employment Status Distribution -->
+                    <div class="stats-card bg-gray-50 rounded-xl border border-gray-200 p-4 hover:shadow-md transition-all duration-300">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-bold text-gray-800 flex items-center">
+                                <i class="fas fa-chart-pie text-purple-500 mr-2"></i>
+                                Employment Status Distribution
+                            </h3>
+                            <span class="text-xs font-semibold bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
+                                <?php echo array_sum($careerData); ?> Alumni
+                            </span>
+                        </div>
+                        <?php if (array_sum($careerData) > 0): ?>
+                            <div class="h-72"><canvas id="employmentChart"></canvas></div>
+                        <?php else: ?>
+                            <div class="flex flex-col items-center justify-center h-72 text-gray-400">
+                                <i class="fas fa-chart-pie text-5xl mb-3"></i>
+                                <p class="text-sm font-medium">No employment data available</p>
+                                <p class="text-xs mt-1">Employment data will appear here once alumni submit profiles</p>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+
+                    <!-- Graduates per Year -->
+                    <div class="stats-card bg-gray-50 rounded-xl border border-gray-200 p-4 hover:shadow-md transition-all duration-300">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-bold text-gray-800 flex items-center">
+                                <i class="fas fa-chart-line text-blue-500 mr-2"></i>
+                                Graduates per Year
+                            </h3>
+                            <span class="text-xs font-semibold bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                                <?php echo count($gradYears); ?> Years
+                            </span>
+                        </div>
+                        <?php if (!empty($gradYears)): ?>
+                            <div class="h-72"><canvas id="graduationChart"></canvas></div>
+                        <?php else: ?>
+                            <div class="flex flex-col items-center justify-center h-72 text-gray-400">
+                                <i class="fas fa-chart-line text-5xl mb-3"></i>
+                                <p class="text-sm font-medium">No graduation data available</p>
+                                <p class="text-xs mt-1">Graduation trends will appear here</p>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                
+                <div class="mt-4 pt-4 border-t border-gray-200">
+                    <div class="flex items-center justify-between text-xs text-gray-500">
+                        <div class="flex items-center space-x-4">
+                            <span class="flex items-center">
                                 <i class="fas fa-sync-alt mr-1"></i>
-                                <span>Awaiting resubmission</span>
-                            </div>
+                                Auto-updates every 5 minutes
+                            </span>
+                            <span class="flex items-center">
+                                <i class="fas fa-database mr-1"></i>
+                                Based on verified alumni data
+                            </span>
                         </div>
-                    <?php endif; ?>
-                </div>
-            </div>
-        </div>
-
-        <!-- Additional Metrics Row -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-            <!-- Employment Rate Card -->
-            <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #8b5cf6;">
-                <div class="p-4">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Employment Rate</p>
-                            <p class="text-2xl font-bold text-gray-900 mt-1">
-                                <?php 
-                                $total_employed = $stats['employed_count'];
-                                $active_alumni = $stats['approved_profiles'];
-                                $employment_rate = $active_alumni > 0 ? round(($total_employed / $active_alumni) * 100, 1) : 0;
-                                echo $employment_rate; 
-                                ?>%
-                            </p>
-                            <p class="text-xs text-gray-500 mt-1">Of active alumni</p>
-                        </div>
-                        <div class="p-3 rounded-xl bg-purple-50 card-icon">
-                            <i class="fas fa-briefcase text-xl text-purple-500"></i>
-                        </div>
+                        <span class="text-gray-400">
+                            Last updated: <?php echo date('M j, Y g:i A'); ?>
+                        </span>
                     </div>
-                    <div class="mt-2 flex items-center text-xs text-purple-600">
-                        <i class="fas fa-chart-line mr-1"></i>
-                        <span><?php echo $total_employed; ?> employed alumni</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Documents Card -->
-            <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #06b6d4;">
-                <div class="p-4">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Documents</p>
-                            <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['total_documents']; ?></p>
-                            <p class="text-xs text-gray-500 mt-1">Uploaded & verified</p>
-                        </div>
-                        <div class="p-3 rounded-xl bg-cyan-50 card-icon">
-                            <i class="fas fa-file-alt text-xl text-cyan-500"></i>
-                        </div>
-                    </div>
-                    <div class="mt-2 flex items-center text-xs text-cyan-600">
-                        <i class="fas fa-archive mr-1"></i>
-                        <span>Supporting documents</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Batch Diversity Card -->
-            <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #f97316;">
-                <div class="p-4">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Graduation Years</p>
-                            <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['unique_graduation_years']; ?></p>
-                            <p class="text-xs text-gray-500 mt-1">Different batches</p>
-                        </div>
-                        <div class="p-3 rounded-xl bg-orange-50 card-icon">
-                            <i class="fas fa-calendar-alt text-xl text-orange-500"></i>
-                        </div>
-                    </div>
-                    <div class="mt-2 flex items-center text-xs text-orange-600">
-                        <i class="fas fa-layer-group mr-1"></i>
-                        <span>Batch diversity</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Analytics Section -->
-        <div class="bg-white rounded-xl shadow-lg border border-gray-100 p-3">
-            <div class="mb-5 border-b pb-3">
-                <h2 class="text-xl font-ex Learn more about alumni analytics-extrabold text-bold-gray-900 flex items-center">
-                    <i class="fas fa-chart-bar mr-1 text-blue-600"></i> Alumni Analytics
-                </h2>
-            </div>
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="rounded-xl border border-gray-200 p-3 shadow-sm hover:shadow-md transition">
-                    <h3 class="text-lg font-bold text-gray-800 mb-2 border-b pb-2">Employment Status Distribution</h3>
-                    <?php if (array_sum($careerData) > 0): ?>
-                        <div class="h-80"><canvas id="employmentChart"></canvas></div>
-                    <?php else: ?>
-                        <div class="flex flex-col items-center justify-center h-80 text-gray-400">
-                            <i class="fas fa-chart-pie text-5xl mb-3"></i>
-                            <p class="text-sm">No employment data available</p>
-                        </div>
-                    <?php endif; ?>
-                </div>
-
-                <div class="rounded-xl border border-gray-200 p-3 shadow-sm hover:shadow-md transition">
-                    <h3 class="text-lg font-bold text-gray-800 mb-2 border-b pb-2">Graduates per Year</h3>
-                    <?php if (!empty($gradYears)): ?>
-                        <div class="h-80"><canvas id="graduationChart"></canvas></div>
-                    <?php else: ?>
-                        <div class="flex flex-col items-center justify-center h-80 text-gray-400">
-                            <i class="fas fa-chart-line text-5xl mb-3"></i>
-                            <p class="text-sm">No graduation data available</p>
-                        </div>
-                    <?php endif; ?>
                 </div>
             </div>
         </div>
