@@ -672,20 +672,11 @@ ob_start();
                 <button id="cancelHelp" class="px-4 py-2 text-gray-600 hover:text-gray-800 font-semibold transition-colors duration-200 rounded-md hover:bg-gray-100 text-sm">
                     Close
                 </button>
-                <a href="mailto:support@alumniportal.edu" class="px-4 py-2 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-semibold transition-all duration-300 rounded-md shadow-md hover:shadow-lg transform hover:-translate-y-0.5 text-sm">
+                <a href="mailto:alumtrak@jhcsc.edu.ph" class="px-4 py-2 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-semibold transition-all duration-300 rounded-md shadow-md hover:shadow-lg transform hover:-translate-y-0.5 text-sm">
                     Contact Now
                 </a>
             </div>
         </div>
-    </div>
-
-    <div class="bg-gray-50 px-6 py-4 rounded-b-2xl flex justify-end space-x-3 -mx-6 -mb-6 mt-6 border-t">
-        <button id="cancelHelp" class="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium transition-colors duration-200">
-            Close
-        </button>
-        <a href="mailto:alumtrak@jhcsc.edu.ph" class="px-6 py-2 bg-gradient-to-r from-green-600 to-emerald-700 hover:from-green-700 hover:to-emerald-800 text-white font-semibold rounded-lg transition-all duration-300 shadow-md hover:shadow-lg">
-            Contact Now
-        </a>
     </div>
 </div>
 
