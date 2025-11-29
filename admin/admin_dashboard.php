@@ -498,75 +498,196 @@ ob_start();
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-<?php if (array_sum($careerData) > 0): ?>
+<?php if ($totalAlumni > 0): ?>
+// Enhanced Employment Status Distribution Chart
 new Chart(document.getElementById('employmentChart'), {
     type: 'doughnut',
     data: {
-        labels: <?php echo json_encode($careerLabels); ?>,
+        labels: [
+            <?php 
+            echo implode(', ', array_map(function($label) {
+                return "'" . $label . "'";
+            }, $careerLabels));
+            ?>,
+            'No Profile Submitted'
+        ],
         datasets: [{
-            data: <?php echo json_encode($careerData); ?>,
-            backgroundColor: ['#4A90E2', '#7ED321', '#F5A623', '#D0021B', '#9B51E0'],
-            borderWidth: 2,
+            data: [
+                <?php echo implode(', ', $careerData); ?>,
+                <?php echo $withoutProfiles; ?>
+            ],
+            backgroundColor: [
+                '#4A90E2', // Employed - Blue
+                '#7ED321', // Self-Employed - Green
+                '#F5A623', // Unemployed - Orange
+                '#D0021B', // Student - Red
+                '#9B51E0', // Employed & Student - Purple
+                '#95A5A6'  // No Profile - Gray
+            ],
+            borderWidth: 3,
             borderColor: '#fff',
-            hoverOffset: 10
+            hoverOffset: 15,
+            hoverBorderWidth: 4
         }]
     },
     options: {
         responsive: true,
         maintainAspectRatio: false,
-        cutout: '65%',
+        cutout: '60%',
         plugins: {
-            legend: { position: 'right', labels: { usePointStyle: true, padding: 15 } },
+            legend: { 
+                position: 'right', 
+                labels: { 
+                    usePointStyle: true, 
+                    padding: 20,
+                    font: { size: 11, weight: '600' },
+                    color: '#374151'
+                } 
+            },
             tooltip: {
                 callbacks: {
-                    label: ctx => {
+                    label: function(ctx) {
                         const value = ctx.raw || 0;
-                        const total = ctx.dataset.data.reduce((a,b) => a+b, 0);
-                        const percentage = ((value/total)*100).toFixed(1);
-                        return `${ctx.label}: ${value} (${percentage}%)`;
+                        const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                        const percentage = ((value / total) * 100).toFixed(1);
+                        return `${ctx.label}: ${value} alumni (${percentage}%)`;
                     }
                 },
-                backgroundColor: 'rgba(255,255,255,0.95)',
+                backgroundColor: 'rgba(255,255,255,0.98)',
                 borderColor: '#e5e7eb',
-                borderWidth: 1,
-                cornerRadius: 8
+                borderWidth: 2,
+                cornerRadius: 12,
+                padding: 12,
+                titleFont: { size: 13, weight: '600' },
+                bodyFont: { size: 12, weight: '500' },
+                boxPadding: 8
             }
+        },
+        animation: {
+            animateScale: true,
+            animateRotate: true,
+            duration: 2000,
+            easing: 'easeOutQuart'
         }
     }
 });
 <?php endif; ?>
 
 <?php if (!empty($gradYears)): ?>
+// Enhanced Graduates per Year Chart
 const gradCtx = document.getElementById('graduationChart').getContext('2d');
+
+// Create enhanced gradient
 const gradient = gradCtx.createLinearGradient(0, 0, 0, 400);
-gradient.addColorStop(0, 'rgba(139, 92, 246, 0.3)');
+gradient.addColorStop(0, 'rgba(139, 92, 246, 0.4)');
+gradient.addColorStop(0.7, 'rgba(139, 92, 246, 0.15)');
 gradient.addColorStop(1, 'rgba(139, 92, 246, 0.05)');
+
+// Calculate statistics for the chart
+const gradData = <?php echo json_encode($gradCounts); ?>;
+const totalGrads = gradData.reduce((a, b) => a + b, 0);
+const maxGrads = Math.max(...gradData);
+const avgGrads = Math.round(totalGrads / gradData.length);
+
 new Chart(gradCtx, {
     type: 'line',
     data: {
         labels: <?php echo json_encode($gradYears); ?>,
         datasets: [{
-            label: 'Graduates per Year',
-            data: <?php echo json_encode($gradCounts); ?>,
+            label: 'Graduates',
+            data: gradData,
             borderColor: '#8b5cf6',
             backgroundColor: gradient,
-            borderWidth: 3,
+            borderWidth: 4,
             fill: true,
-            tension: 0.4,
+            tension: 0.3,
             pointBackgroundColor: '#8b5cf6',
             pointBorderColor: '#fff',
-            pointBorderWidth: 2,
-            pointRadius: 5,
-            pointHoverRadius: 7
+            pointBorderWidth: 3,
+            pointRadius: 6,
+            pointHoverRadius: 9,
+            pointHoverBackgroundColor: '#7c3aed',
+            pointHoverBorderColor: '#fff',
+            pointHoverBorderWidth: 4
         }]
     },
     options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
+        plugins: {
+            legend: { 
+                display: false 
+            },
+            tooltip: {
+                backgroundColor: 'rgba(255,255,255,0.98)',
+                borderColor: '#8b5cf6',
+                borderWidth: 2,
+                cornerRadius: 12,
+                padding: 12,
+                titleFont: { size: 13, weight: '600' },
+                bodyFont: { size: 12, weight: '500' },
+                callbacks: {
+                    title: function(tooltipItems) {
+                        return `Batch ${tooltipItems[0].label}`;
+                    },
+                    label: function(context) {
+                        return `Graduates: ${context.parsed.y}`;
+                    },
+                    afterLabel: function(context) {
+                        const percentage = ((context.parsed.y / totalGrads) * 100).toFixed(1);
+                        return `${percentage}% of total alumni`;
+                    }
+                }
+            },
+            subtitle: {
+                display: true,
+                text: `Total: ${totalGrads} alumni | Average: ${avgGrads}/year | Peak: ${maxGrads}`,
+                font: { size: 12, weight: '500' },
+                color: '#6B7280',
+                padding: { bottom: 15 }
+            }
+        },
         scales: {
-            y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { stepSize: 1 } },
-            x: { grid: { color: 'rgba(0,0,0,0.05)' } }
+            y: { 
+                beginAtZero: true, 
+                grid: { 
+                    color: 'rgba(0,0,0,0.06)',
+                    drawBorder: false
+                }, 
+                ticks: { 
+                    stepSize: Math.ceil(maxGrads / 5),
+                    font: { size: 11, weight: '500' },
+                    color: '#6B7280',
+                    padding: 8
+                },
+                border: { display: false }
+            },
+            x: { 
+                grid: { 
+                    color: 'rgba(0,0,0,0.06)',
+                    drawBorder: false
+                },
+                ticks: {
+                    font: { size: 11, weight: '500' },
+                    color: '#6B7280',
+                    maxRotation: 45,
+                    padding: 10
+                },
+                border: { display: false }
+            }
+        },
+        interaction: {
+            intersect: false,
+            mode: 'index'
+        },
+        animation: {
+            duration: 2000,
+            easing: 'easeOutQuart'
+        },
+        elements: {
+            line: {
+                tension: 0.3
+            }
         }
     }
 });
@@ -580,6 +701,19 @@ document.addEventListener("DOMContentLoaded", () => {
     } else if (params.has('error') && typeof showToast === 'function') {
         showToast(params.get('error'), 'error');
     }
+    
+    // Add smooth animations to chart containers
+    const chartContainers = document.querySelectorAll('.stats-card');
+    chartContainers.forEach(container => {
+        container.style.opacity = '0';
+        container.style.transform = 'translateY(20px)';
+        
+        setTimeout(() => {
+            container.style.transition = 'all 0.6s ease-out';
+            container.style.opacity = '1';
+            container.style.transform = 'translateY(0)';
+        }, 100);
+    });
 });
 </script>
 
