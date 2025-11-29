@@ -425,13 +425,37 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeAppro
 </script>
 
 <?php
-// Helper Functions
-function getEmploymentStatusColor($s) { return ['Unemployed'=>'bg-red-100 text-red-800','Self-Employed'=>'bg-blue-100 text-blue-800','Employed'=>'bg-green-100 text-green-800','Student'=>'bg-purple-100 text-purple-800','Employed & Student'=>'bg-yellow-100 text-yellow-800'][$s] ?? 'bg-gray-100 text-gray-800'; }
-function getEmploymentStatusBorder($s) { return ['Unemployed'=>'border-red-200','Self-Employed'=>'border-blue-200','Employed'=>'border-green-200','Student'=>'border-purple-200','Employed & Student'=>'border-yellow-200'][$s] ?? 'border-gray-200'; }
-function getEmploymentStatusIcon($s) { return ['Unemployed'=>'fas fa-user-slash text-red-600','Self-Employed'=>'fas fa-briefcase text-blue-600','Employed'=>'fas fa-building text-green-600','Student'=>'fas fa-graduation-cap text-purple-600','Employed & Student'=>'fas fa-user-graduate text-yellow-600'][$s] ?? 'fas fa-question text-gray-600'; }
-function getSubmissionStatusColor($s) { return ['Approved'=>'bg-green-100 text-green-800','Pending'=>'bg-yellow-100 text-yellow-800','Rejected'=>'bg-red-100 text-red-800'][$s] ?? 'bg-gray-100 text-gray-800'; }
-function getSubmissionStatusBorder($s) { return ['Approved'=>'border-green-200','Pending'=>'border-yellow-200','Rejected'=>'border-red-200'][$s] ?? 'border-gray-200'; }
-function getSubmissionStatusIcon($s) { return ['Approved'=>'fas fa-check-circle text-green-600','Pending'=>'fas fa-clock text-yellow-600','Rejected'=>'fas fa-times-circle text-red-600'][$s] ?? 'fas fa-question text-gray-600'; }
+
+// Enhanced helper functions for "No Profile" status
+function getEmploymentStatusColor($s) { 
+    if (empty($s)) return 'bg-gray-100 text-gray-800';
+    return ['Unemployed'=>'bg-red-100 text-red-800','Self-Employed'=>'bg-blue-100 text-blue-800','Employed'=>'bg-green-100 text-green-800','Student'=>'bg-purple-100 text-purple-800','Employed & Student'=>'bg-yellow-100 text-yellow-800'][$s] ?? 'bg-gray-100 text-gray-800'; 
+}
+
+function getEmploymentStatusBorder($s) { 
+    if (empty($s)) return 'border-gray-200';
+    return ['Unemployed'=>'border-red-200','Self-Employed'=>'border-blue-200','Employed'=>'border-green-200','Student'=>'border-purple-200','Employed & Student'=>'border-yellow-200'][$s] ?? 'border-gray-200'; 
+}
+
+function getEmploymentStatusIcon($s) { 
+    if (empty($s)) return 'fas fa-question text-gray-600';
+    return ['Unemployed'=>'fas fa-user-slash text-red-600','Self-Employed'=>'fas fa-briefcase text-blue-600','Employed'=>'fas fa-building text-green-600','Student'=>'fas fa-graduation-cap text-purple-600','Employed & Student'=>'fas fa-user-graduate text-yellow-600'][$s] ?? 'fas fa-question text-gray-600'; 
+}
+
+function getSubmissionStatusColor($s) { 
+    if (empty($s)) return 'bg-gray-100 text-gray-800';
+    return ['Approved'=>'bg-green-100 text-green-800','Pending'=>'bg-yellow-100 text-yellow-800','Rejected'=>'bg-red-100 text-red-800'][$s] ?? 'bg-gray-100 text-gray-800'; 
+}
+
+function getSubmissionStatusBorder($s) { 
+    if (empty($s)) return 'border-gray-200';
+    return ['Approved'=>'border-green-200','Pending'=>'border-yellow-200','Rejected'=>'border-red-200'][$s] ?? 'border-gray-200'; 
+}
+
+function getSubmissionStatusIcon($s) { 
+    if (empty($s)) return 'fas fa-clock text-gray-600';
+    return ['Approved'=>'fas fa-check-circle text-green-600','Pending'=>'fas fa-clock text-yellow-600','Rejected'=>'fas fa-times-circle text-red-600'][$s] ?? 'fas fa-question text-gray-600'; 
+}
 
 $page_content = ob_get_clean();
 include("admin_format.php");
