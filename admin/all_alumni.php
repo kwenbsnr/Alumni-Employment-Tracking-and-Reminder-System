@@ -219,7 +219,7 @@ ob_start();
                                             <?= empty($alumni['employment_status']) ? 'bg-gray-100 text-gray-800 border border-gray-200' : getEmploymentStatusColor($alumni['employment_status']) ?> 
                                             <?= empty($alumni['employment_status']) ? 'border-gray-200' : getEmploymentStatusBorder($alumni['employment_status']) ?>
                                             shadow-sm">
-                                            <i class="<?= empty($alumni['employment_status']) ? 'fas fa-clock text-gray-600' : getEmploymentStatusIcon($alumni['employment_status']) ?> mr-2 mt-0.5"></i>
+                                            <i class="<?= empty($alumni['employment_status']) ? 'fas fa-user-clock text-gray-600' : getEmploymentStatusIcon($alumni['employment_status']) ?> mr-2 mt-0.5"></i>
                                             <?= empty($alumni['employment_status']) ? 'No Profile' : $alumni['employment_status'] ?>
                                         </span>
                                     </div>
@@ -229,7 +229,7 @@ ob_start();
                                             <?= empty($alumni['submission_status']) ? 'bg-gray-100 text-gray-800 border border-gray-200' : getSubmissionStatusColor($alumni['submission_status']) ?> 
                                             <?= empty($alumni['submission_status']) ? 'border-gray-200' : getSubmissionStatusBorder($alumni['submission_status']) ?>
                                             shadow-sm">
-                                            <i class="<?= empty($alumni['submission_status']) ? 'fas fa-clock text-gray-600' : getSubmissionStatusIcon($alumni['submission_status']) ?> mr-2 mt-0.5"></i>
+                                            <i class="<?= empty($alumni['submission_status']) ? 'fas fa-user-clock text-gray-600' : getSubmissionStatusIcon($alumni['submission_status']) ?> mr-2 mt-0.5"></i>
                                             <?= empty($alumni['submission_status']) ? 'No Profile' : $alumni['submission_status'] ?>
                                         </span>
                                     </div>

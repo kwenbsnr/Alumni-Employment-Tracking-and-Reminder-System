@@ -228,13 +228,13 @@ ob_start();
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <span class="px-3 py-1.5 inline-flex text-sm font-semibold rounded-full <?= getEmploymentStatusColor($alumni['employment_status']) ?> border <?= getEmploymentStatusBorder($alumni['employment_status']) ?> shadow-sm">
                                     <i class="<?= getEmploymentStatusIcon($alumni['employment_status']) ?> mr-2"></i>
-                                    <?= htmlspecialchars($alumni['employment_status']) ?>
+                                    <?= empty($alumni['employment_status']) ? 'No Profile' : htmlspecialchars($alumni['employment_status']) ?>
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <span class="px-3 py-1.5 inline-flex text-sm font-semibold rounded-full <?= getSubmissionStatusColor($alumni['submission_status']) ?> border <?= getSubmissionStatusBorder($alumni['submission_status']) ?> shadow-sm">
                                     <i class="<?= getSubmissionStatusIcon($alumni['submission_status']) ?> mr-2"></i>
-                                    <?= htmlspecialchars($alumni['submission_status']) ?>
+                                    <?= empty($alumni['submission_status']) ? 'No Profile' : htmlspecialchars($alumni['submission_status']) ?>
                                 </span>
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-500">
@@ -438,8 +438,8 @@ function getEmploymentStatusBorder($s) {
 }
 
 function getEmploymentStatusIcon($s) { 
-    if (empty($s)) return 'fas fa-clock text-gray-600';
-    return ['Unemployed'=>'fas fa-user-slash text-red-600','Self-Employed'=>'fas fa-briefcase text-blue-600','Employed'=>'fas fa-building text-green-600','Student'=>'fas fa-graduation-cap text-purple-600','Employed & Student'=>'fas fa-user-graduate text-yellow-600'][$s] ?? 'fas fa-clock text-gray-600'; 
+    if (empty($s)) return 'fas fa-user-clock text-gray-600';
+    return ['Unemployed'=>'fas fa-user-slash text-red-600','Self-Employed'=>'fas fa-briefcase text-blue-600','Employed'=>'fas fa-building text-green-600','Student'=>'fas fa-graduation-cap text-purple-600','Employed & Student'=>'fas fa-user-graduate text-yellow-600'][$s] ?? 'fas fa-user-clock text-gray-600'; 
 }
 
 function getSubmissionStatusColor($s) { 
@@ -453,8 +453,8 @@ function getSubmissionStatusBorder($s) {
 }
 
 function getSubmissionStatusIcon($s) { 
-    if (empty($s)) return 'fas fa-clock text-gray-600';
-    return ['Approved'=>'fas fa-check-circle text-green-600','Pending'=>'fas fa-clock text-yellow-600','Rejected'=>'fas fa-times-circle text-red-600'][$s] ?? 'fas fa-clock text-gray-600'; 
+    if (empty($s)) return 'fas fa-user-clock text-gray-600';
+    return ['Approved'=>'fas fa-check-circle text-green-600','Pending'=>'fas fa-clock text-yellow-600','Rejected'=>'fas fa-times-circle text-red-600'][$s] ?? 'fas fa-user-clock text-gray-600'; 
 }
 
 $page_content = ob_get_clean();
