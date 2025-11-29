@@ -32,7 +32,7 @@ if ($result && $result->num_rows > 0) {
 // Fetch ACCURATE dashboard statistics
 $statsQuery = "
     SELECT
-        (SELECT COUNT(*) FROM alumni_profile) AS total_alumni,
+        (SELECT COUNT(*) FROM users WHERE role = 'alumni') AS total_alumni,
         (SELECT COUNT(*) FROM alumni_profile WHERE submission_status = 'Approved') AS approved_profiles,
         (SELECT COUNT(*) FROM alumni_profile WHERE submission_status = 'Pending') AS pending_profiles,
         (SELECT COUNT(*) FROM alumni_profile WHERE submission_status = 'Rejected') AS rejected_profiles,
@@ -41,8 +41,8 @@ $statsQuery = "
          AND employment_status IN ('Employed', 'Self-Employed', 'Employed & Student')) AS employed_count,
         (SELECT COUNT(DISTINCT u.batch_year) 
          FROM users u 
-         INNER JOIN alumni_profile ap ON u.user_id = ap.user_id 
-         WHERE u.batch_year IS NOT NULL AND u.batch_year != '' AND u.batch_year != '0000') AS unique_graduation_years,
+         WHERE u.role = 'alumni' 
+         AND u.batch_year IS NOT NULL AND u.batch_year != '' AND u.batch_year != '0000') AS unique_graduation_years,
         (SELECT COUNT(*) FROM alumni_documents 
          WHERE user_id IN (SELECT user_id FROM alumni_profile WHERE submission_status = 'Approved')) AS total_documents
 ";
