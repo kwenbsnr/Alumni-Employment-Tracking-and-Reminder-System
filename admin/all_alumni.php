@@ -219,8 +219,8 @@ ob_start();
                                             <?= empty($alumni['employment_status']) ? 'bg-gray-100 text-gray-800 border border-gray-200' : getEmploymentStatusColor($alumni['employment_status']) ?> 
                                             <?= empty($alumni['employment_status']) ? 'border-gray-200' : getEmploymentStatusBorder($alumni['employment_status']) ?>
                                             shadow-sm">
-                                            <i class="<?= empty($alumni['employment_status']) ? 'fas fa-question text-gray-600' : getEmploymentStatusIcon($alumni['employment_status']) ?> mr-2 mt-0.5"></i>
-                                            <?= empty($alumni['employment_status']) ? 'Not Started' : $alumni['employment_status'] ?>
+                                            <i class="<?= empty($alumni['employment_status']) ? 'fas fa-clock text-gray-600' : getEmploymentStatusIcon($alumni['employment_status']) ?> mr-2 mt-0.5"></i>
+                                            <?= empty($alumni['employment_status']) ? 'No Profile' : $alumni['employment_status'] ?>
                                         </span>
                                     </div>
                                     </td><td class="px-6 py-4 whitespace-nowrap">
@@ -229,8 +229,8 @@ ob_start();
                                             <?= empty($alumni['submission_status']) ? 'bg-gray-100 text-gray-800 border border-gray-200' : getSubmissionStatusColor($alumni['submission_status']) ?> 
                                             <?= empty($alumni['submission_status']) ? 'border-gray-200' : getSubmissionStatusBorder($alumni['submission_status']) ?>
                                             shadow-sm">
-                                            <i class="<?= empty($alumni['submission_status']) ? 'fas fa-question text-gray-600' : getSubmissionStatusIcon($alumni['submission_status']) ?> mr-2 mt-0.5"></i>
-                                            <?= empty($alumni['submission_status']) ? 'Not Started' : $alumni['submission_status'] ?>
+                                            <i class="<?= empty($alumni['submission_status']) ? 'fas fa-clock text-gray-600' : getSubmissionStatusIcon($alumni['submission_status']) ?> mr-2 mt-0.5"></i>
+                                            <?= empty($alumni['submission_status']) ? 'No Profile' : $alumni['submission_status'] ?>
                                         </span>
                                     </div>
                                     </td>
@@ -260,11 +260,11 @@ ob_start();
                                         <?php endif; ?>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                        <?php if (empty($alumni['submission_status']) || $alumni['submission_status'] == 'Not Started'): ?>
+                                        <?php if (empty($alumni['submission_status']) || $alumni['submission_status'] == 'No Profile'): ?>
                                             <div class="flex justify-left">
                                                 <span class="px-3 py-1.5 inline-flex text-sm font-semibold rounded-full bg-gray-100 text-gray-800 border border-gray-200 shadow-sm">
                                                     <i class="fas fa-clock mr-2 mt-0.5 text-gray-600"></i>
-                                                    Not Started
+                                                    No Profile
                                                 </span>
                                             </div>
                                         <?php elseif ($alumni['submission_status'] == 'Pending'): ?>
