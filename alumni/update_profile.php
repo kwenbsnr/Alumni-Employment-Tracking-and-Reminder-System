@@ -156,14 +156,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     $conn->begin_transaction();
     
-    // Debug: Check what's being received
-error_log("Raw POST degree_pursued: " . ($_POST['degree_pursued'] ?? 'NULL'));
-error_log("Raw POST school_name: " . ($_POST['school_name'] ?? 'NULL'));
-
-// After processing, log what will be stored
-error_log("Processed degree_pursued: " . $degree);
-error_log("Processed school_name: " . $school);
-
     try {
         // ---- 5.1 Retrieve & sanitise --------------------------------------------
         $contact = htmlspecialchars(trim($_POST['contact_number'] ?? ''));
@@ -188,11 +180,23 @@ error_log("Processed school_name: " . $school);
             $business_type = 'Others: ' . htmlspecialchars(trim($_POST['business_type_other'] ?? ''));
         }
 
-        // Education fields
-        $school = htmlspecialchars(trim($_POST['school_name'] ?? ''));
-        $degree = htmlspecialchars(trim($_POST['degree_pursued'] ?? ''));
+        // Education fields - FIXED: Use proper UTF-8 encoding
+        $school = !empty($_POST['school_name']) ? 
+            htmlspecialchars(trim($_POST['school_name']), ENT_QUOTES, 'UTF-8') : '';
+        
+        $degree = !empty($_POST['degree_pursued']) ? 
+            htmlspecialchars(trim($_POST['degree_pursued']), ENT_QUOTES, 'UTF-8') : '';
+        
         $start_year = htmlspecialchars(trim($_POST['start_year'] ?? ''));
         $end_year = htmlspecialchars(trim($_POST['end_year'] ?? ''));
+
+        // Debug: Check what's being received - MOVED TO AFTER VARIABLES ARE DEFINED
+        error_log("Raw POST degree_pursued: " . ($_POST['degree_pursued'] ?? 'NULL'));
+        error_log("Raw POST school_name: " . ($_POST['school_name'] ?? 'NULL'));
+
+        // After processing, log what will be stored
+        error_log("Processed degree_pursued: " . $degree);
+        error_log("Processed school_name: " . $school);
 
         // Validate year format for student statuses
         if (in_array($status, ['Student', 'Employed & Student'])) {
