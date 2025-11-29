@@ -248,6 +248,76 @@ ob_start();
             </div>
         </div>
 
+        <!-- Additional Metrics Row -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+            <!-- Employment Rate Card -->
+            <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #8b5cf6;">
+                <div class="p-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Employment Rate</p>
+                            <p class="text-2xl font-bold text-gray-900 mt-1">
+                                <?php 
+                                $total_employed = $stats['employed_count'];
+                                $active_alumni = $stats['approved_profiles'];
+                                $employment_rate = $active_alumni > 0 ? round(($total_employed / $active_alumni) * 100, 1) : 0;
+                                echo $employment_rate; 
+                                ?>%
+                            </p>
+                            <p class="text-xs text-gray-500 mt-1">Of active alumni</p>
+                        </div>
+                        <div class="p-3 rounded-xl bg-purple-50 card-icon">
+                            <i class="fas fa-briefcase text-xl text-purple-500"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2 flex items-center text-xs text-purple-600">
+                        <i class="fas fa-chart-line mr-1"></i>
+                        <span><?php echo $total_employed; ?> employed alumni</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Documents Card -->
+            <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #06b6d4;">
+                <div class="p-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Documents</p>
+                            <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['total_documents']; ?></p>
+                            <p class="text-xs text-gray-500 mt-1">Uploaded & verified</p>
+                        </div>
+                        <div class="p-3 rounded-xl bg-cyan-50 card-icon">
+                            <i class="fas fa-file-alt text-xl text-cyan-500"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2 flex items-center text-xs text-cyan-600">
+                        <i class="fas fa-archive mr-1"></i>
+                        <span>Supporting documents</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Batch Diversity Card -->
+            <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #f97316;">
+                <div class="p-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Graduation Years</p>
+                            <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['unique_graduation_years']; ?></p>
+                            <p class="text-xs text-gray-500 mt-1">Different batches</p>
+                        </div>
+                        <div class="p-3 rounded-xl bg-orange-50 card-icon">
+                            <i class="fas fa-calendar-alt text-xl text-orange-500"></i>
+                        </div>
+                    </div>
+                    <div class="mt-2 flex items-center text-xs text-orange-600">
+                        <i class="fas fa-layer-group mr-1"></i>
+                        <span>Batch diversity</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Analytics Section -->
         <div class="bg-white rounded-xl shadow-lg border border-gray-100 p-3">
             <div class="mb-5 border-b pb-3">
