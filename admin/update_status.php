@@ -1,5 +1,4 @@
 <?php
-// update_status.php
 session_start();
 
 if (!isset($_SESSION["user_id"]) || $_SESSION["role"] !== "admin") {
@@ -8,6 +7,7 @@ if (!isset($_SESSION["user_id"]) || $_SESSION["role"] !== "admin") {
 }
 
 include("../connect.php");
+require_once '../api/notification/notif_service.php';
 
 // Get referrer to determine which page the action came from
 $referrer = $_SERVER['HTTP_REFERER'] ?? '';
@@ -90,6 +90,20 @@ if (isset($_GET['user_id']) && isset($_GET['status'])) {
             }
             $stmt->close();
             
+            // === NOTIFICATION INTEGRATION ===
+            if ($status === 'Approved' || $status === 'Rejected') {
+                if ($status === 'Approved') {
+                    // Send approval notification to alumni - USING UPDATED FUNCTION
+                    $result = send_approval_notification($conn, $user_id);
+                } elseif ($status === 'Rejected') {
+                    // Send rejection notification to alumni - USING UPDATED FUNCTION
+                    $result = send_rejection_notification($conn, $user_id, $reason);
+                }
+                
+                // Log notification results
+                error_log("Notification sent for user $user_id, status: $status");
+            }
+
         } catch (Exception $e) {
             // Rollback on any error
             $conn->rollback();

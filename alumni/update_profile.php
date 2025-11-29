@@ -2,6 +2,7 @@
 ob_start();
 session_start();
 include("../connect.php");
+require_once '../api/notification/notif_service.php';
 
 function log_alumni_activity($conn, $user_id, $action_type, $description = '') {
     $stmt = $conn->prepare("INSERT INTO alumni_activity_log (user_id, action_type, description) VALUES (?, ?, ?)");
@@ -524,6 +525,28 @@ if ($can_update) {
         }
 
         $conn->commit();
+
+        // === NOTIFICATION INTEGRATION ===
+        // Check if this is first-time submission
+        $is_first_time = is_first_time_submission($conn, $user_id);
+        
+        // Check if this is a resubmission after rejection
+        $is_resubmission = was_submission_rejected($conn, $user_id);
+        
+        // Send appropriate notifications to admins - USING UPDATED FUNCTIONS
+        if ($is_first_time) {
+            // First-time submission - send template_admin_notif
+            $result = send_new_submission_admin_notification($conn, $user_id);
+            error_log("First-time submission notification sent for user: $user_id");
+        } elseif ($is_resubmission) {
+            // Resubmission after rejection - send alum_resubmit_admin_notif
+            $result = send_resubmission_admin_notification($conn, $user_id);
+            error_log("Resubmission notification sent for user: $user_id");
+        } else {
+            // Regular update - send alum_update_admin_notif
+            $result = send_update_admin_notification($conn, $user_id);
+            error_log("Regular update notification sent for user: $user_id");
+        }
 
         // Clear any rejection session flags
         if (isset($_SESSION['profile_rejected'])) {

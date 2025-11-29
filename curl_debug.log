@@ -1,0 +1,45 @@
+*   Trying 3.165.63.56:443...
+* Connected to api.notificationapi.com (3.165.63.56) port 443
+* ALPN: curl offers h2,http/1.1
+*  CAfile: C:\xampp\apache\bin\curl-ca-bundle.crt
+*  CApath: none
+* SSL connection using TLSv1.3 / TLS_AES_128_GCM_SHA256
+* ALPN: server accepted h2
+* Server certificate:
+*  subject: CN=*.notificationapi.com
+*  start date: Jun 24 00:00:00 2025 GMT
+*  expire date: Jul 22 23:59:59 2026 GMT
+*  subjectAltName: host "api.notificationapi.com" matched cert's "*.notificationapi.com"
+*  issuer: C=US; O=Amazon; CN=Amazon RSA 2048 M03
+*  SSL certificate verify ok.
+* using HTTP/2
+* [HTTP/2] [1] OPENED stream for https://api.notificationapi.com/ls4kt1i6t2hhh7rxd51k00rjj3/sender
+* [HTTP/2] [1] [:method: POST]
+* [HTTP/2] [1] [:scheme: https]
+* [HTTP/2] [1] [:authority: api.notificationapi.com]
+* [HTTP/2] [1] [:path: /ls4kt1i6t2hhh7rxd51k00rjj3/sender]
+* [HTTP/2] [1] [accept: */*]
+* [HTTP/2] [1] [authorization: Basic bHM0a3QxaTZ0MmhoaDdyeGQ1MWswMHJqajM6cnRkaWNsY2xhaGlxeHFyNjkyYzg2enlrOWluODFwbWxjMmtvbDRqM245eDNnazdkeXkzcWNvMTlhdg==]
+* [HTTP/2] [1] [content-type: application/json]
+* [HTTP/2] [1] [content-length: 429]
+> POST /ls4kt1i6t2hhh7rxd51k00rjj3/sender HTTP/2
+Host: api.notificationapi.com
+Accept: */*
+Authorization: Basic bHM0a3QxaTZ0MmhoaDdyeGQ1MWswMHJqajM6cnRkaWNsY2xhaGlxeHFyNjkyYzg2enlrOWluODFwbWxjMmtvbDRqM245eDNnazdkeXkzcWNvMTlhdg==
+Content-Type: application/json
+Content-Length: 429
+
+< HTTP/2 202 
+< content-type: application/json
+< content-length: 219
+< date: Thu, 27 Nov 2025 12:49:06 GMT
+< x-amzn-trace-id: Root=1-692848c2-47cefd4f166ca33a50979dd8;Parent=0bb0a9f46a5d8526;Sampled=0
+< x-amzn-requestid: 9cf230fa-c504-4b0f-a9fa-429482c0bd93
+< access-control-allow-origin: *
+< x-amz-apigw-id: UtBOfFpXIAMEC_g=
+< x-cache: Miss from cloudfront
+< via: 1.1 92cdfc0bad3c64cc372dc9b56628aa34.cloudfront.net (CloudFront)
+< x-amz-cf-pop: MNL52-P3
+< x-amz-cf-id: ScQ75l0ELc8tGSY_JafO0nsllw2gvUlOtmDcIrxW1J5PeBBKXZojdw==
+< 
+* Connection #0 to host api.notificationapi.com left intact

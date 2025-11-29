@@ -8,6 +8,7 @@ include("../connect.php");
 
 // Load TCPDF library
 require_once '../tcpdf/tcpdf.php';
+require_once '../api/notification/notif_service.php';
 
 $page_title = "Alumni Records";
 $active_page = "alumni_management";
@@ -57,16 +58,36 @@ if (isset($_POST['update_submission_status'])) {
             open_date = NULL, 
             close_date = NULL");
         $_SESSION['success_message'] = "Alumni submissions are now OPEN indefinitely.";
+       
+        // ==================== NOTIFICATION API INTEGRATION ====================
+        // Notify alumni who need to update (haven't updated in 6 months)
+        $alumni_to_notify = $conn->query("
+            SELECT u.user_id, u.name as alumni_name, u.email as alumni_email, 
+                u.batch_year as graduation_year, ap.employment_status,
+                ap.last_profile_update, ap.submission_status
+            FROM users u 
+            INNER JOIN alumni_profile ap ON u.user_id = ap.user_id 
+            WHERE u.role = 'alumni' 
+            AND ap.submission_status != 'Approved'
+            AND (ap.last_profile_update IS NULL OR 
+                ap.last_profile_update < DATE_SUB(NOW(), INTERVAL 6 MONTH))
+        ");
+
+        $notification_count = 0;
+        while ($alumni = $alumni_to_notify->fetch_assoc()) {
+            // Send profile update reminder using CORRECT function signature
+            $result = send_profile_update_reminder($conn, $alumni['user_id']);
+            
+            if ($result['success']) {
+                $notification_count++;
+            }
+        }
         
-    } elseif ($action === 'close_now') {
-        $conn->query("UPDATE submission_status SET 
-            is_open = 0, 
-            manual_override = 1, 
-            open_date = NULL, 
-            close_date = NULL");
-        $_SESSION['success_message'] = "Alumni submissions are now CLOSED.";
-        
-    } elseif ($action === 'schedule') {
+        // Add notification count to success message
+        if ($notification_count > 0) {
+            $_SESSION['success_message'] .= " Sent profile update reminders to {$notification_count} alumni.";
+        }
+         } elseif ($action === 'schedule') {
         $open_date_input  = $_POST['open_date'] ?? null;
         $close_date_input = $_POST['close_date'] ?? null;
 
@@ -85,6 +106,42 @@ if (isset($_POST['update_submission_status'])) {
                 is_open = 0");  
 
             $_SESSION['success_message'] = "Submissions scheduled — Opens: $from | Closes: $to";
+            
+            // ==================== NOTIFICATION API INTEGRATION FOR SCHEDULED OPENING ====================
+            // Check if this is a new opening schedule (not just updating existing schedule)
+            $is_new_schedule = true; // You might want to add logic to detect if this is a new schedule
+            
+            if ($is_new_schedule) {
+                // Notify alumni who need to update when submissions open on schedule
+                $alumni_to_notify = $conn->query("
+                    SELECT u.user_id, u.name as alumni_name, u.email as alumni_email, 
+                           u.batch_year as graduation_year, ap.employment_status,
+                           ap.last_profile_update, ap.submission_status
+                    FROM users u 
+                    INNER JOIN alumni_profile ap ON u.user_id = ap.user_id 
+                    WHERE u.role = 'alumni' 
+                    AND ap.submission_status != 'Approved'
+                    AND (ap.last_profile_update IS NULL OR 
+                         ap.last_profile_update < DATE_SUB(NOW(), INTERVAL 6 MONTH))
+                ");
+                
+                // Add notification count to success message
+                $notification_count = 0;
+                while ($alumni = $alumni_to_notify->fetch_assoc()) {
+                    // Send profile update reminder using CORRECT function signature
+                    $result = send_profile_update_reminder($conn, $alumni['user_id']);
+                    
+                    if ($result['success']) {
+                        $notification_count++;
+                    }
+                }
+
+                // Add notification count to success message
+                if ($notification_count > 0) {
+                    $_SESSION['success_message'] .= " Sent scheduled update reminders to {$notification_count} alumni.";
+                }
+            }
+            
         } else {
             $_SESSION['error_message'] = "Invalid schedule: Closing date & time must be after opening date & time.";
         }
@@ -106,6 +163,38 @@ if (!$manual_override && $open_date && $close_date) {
     if ($new_status != $is_open) {
         $conn->query("UPDATE submission_status SET is_open = $new_status");
         $is_open = $new_status;
+
+                // ==================== AUTOMATIC NOTIFICATION WHEN SCHEDULE OPENS ====================
+        if ($new_status == 1) {
+            // Notify alumni when submissions automatically open per schedule
+            $alumni_to_notify = $conn->query("
+                SELECT u.user_id, u.name as alumni_name, u.email as alumni_email, 
+                       u.batch_year as graduation_year, ap.employment_status,
+                       ap.last_profile_update, ap.submission_status
+                FROM users u 
+                INNER JOIN alumni_profile ap ON u.user_id = ap.user_id 
+                WHERE u.role = 'alumni' 
+                AND ap.submission_status != 'Approved'
+                AND (ap.last_profile_update IS NULL OR 
+                     ap.last_profile_update < DATE_SUB(NOW(), INTERVAL 6 MONTH))
+            ");
+            
+            // Log the automatic notifications
+            $notification_count = 0;
+            while ($alumni = $alumni_to_notify->fetch_assoc()) {
+                // Send profile update reminder using CORRECT function signature
+                $result = send_profile_update_reminder($conn, $alumni['user_id']);
+                
+                if ($result['success']) {
+                    $notification_count++;
+                }
+            }
+
+            // Log the automatic notifications
+            if ($notification_count > 0) {
+                error_log("[" . date('Y-m-d H:i:s') . "] Automatically sent profile update reminders to {$notification_count} alumni when submissions opened on schedule.");
+            }
+        }
     }
 }
 
@@ -120,11 +209,11 @@ if (!$manual_override && $open_date && $close_date) {
     $schedule_info = "<span class='text-xs block text-gray-600'>Scheduled: $from – $to</span>";
 }
 
-// Fetch batches - FIXED
+// Fetch batches - count all alumni users
 $batchQuery = "SELECT u.batch_year, COUNT(*) as total_count 
                FROM users u 
-               INNER JOIN alumni_profile ap ON u.user_id = ap.user_id 
-               WHERE u.batch_year IS NOT NULL 
+               WHERE u.role = 'alumni' 
+               AND u.batch_year IS NOT NULL 
                GROUP BY u.batch_year 
                ORDER BY u.batch_year DESC";
 $batchResult = $conn->query($batchQuery);
@@ -336,7 +425,7 @@ if (isset($_SESSION['error_message'])) {
             <?php
             // Only show "All Alumni" card when NOT searching
             if (empty($search)):
-                $totalQuery = "SELECT COUNT(*) as total FROM alumni_profile";
+                $totalQuery = "SELECT COUNT(*) as total FROM users WHERE role = 'alumni'";
                 $totalAll = $conn->query($totalQuery)->fetch_assoc()['total'];
             ?>
                 <a href="all_alumni.php" class="bg-gradient-to-br from-purple-50 to-white p-6 rounded-xl shadow-lg border-2 border-purple-300 hover:shadow-xl hover:border-purple-500 transform hover:scale-105 transition-all duration-300 group text-center">

@@ -13,7 +13,7 @@ $user_id = $_SESSION['user_id'];
 $page_title = "Profile Management";
 $active_page = "profile";
 
-// Fetch profile data WITH SCHOOL INFO - UPDATED to remove name dependencies
+// Fetch profile data WITH SCHOOL INFO 
 $stmt = $conn->prepare("
     SELECT 
         u.user_id, u.email, u.student_id, u.date_of_birth, u.gender, u.program, u.name as official_name, u.batch_year,
@@ -300,7 +300,7 @@ ob_start();
 
         $last_update = $profile['last_profile_update'] ?? null;
 
-        $next_update = $last_update ? date('F j, Y', strtotime($last_update . ' +1 year')) : 'one year from approval';
+        $next_update = $last_update ? date('F j, Y', strtotime($last_update . ' +6 months')) : 'six months from approval';
 
         ?>
 
@@ -312,58 +312,21 @@ ob_start();
 
     <?php endif; ?>
 
-    <!-- Action Button - Only when editable (Prominent & Modern) -->
-
-    <?php if ($is_profile_rejected || $can_update || $is_profile_new): ?>
-
-        <div class="mt-5">
-
-            <button type="button" class="w-full <?php
-
-                echo $is_profile_rejected ? 'bg-red-600 hover:bg-red-700 focus:ring-red-300' : 'bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-300';
-
-            ?> text-white font-semibold text-base py-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center gap-3 transform hover:scale-[1.02] active:scale-100">
-
-                <i class="fas <?php echo $is_profile_rejected ? 'fa-tools' : 'fa-edit'; ?> text-lg"></i>
-
-                <span class="tracking-tight">
-
-                    <?php echo $is_profile_rejected ? 'Edit & Resubmit Profile' : ($is_profile_new ? 'Create My Profile Now' : 'Update Profile Information'); ?>
-
-                </span>
-
-            </button>
-
-            <p class="text-center text-xs text-gray-500 mt-3 font-medium">
-
-                <?php echo $is_profile_rejected ? 'Make corrections to get approved quickly' : 'Keep your information up to date'; ?>
-
-            </p>
-
-        </div>
-   <?php else: ?>
-    <!-- Non-actionable description -->
-    <p class="text-sm leading-tight font-medium text-yellow-800">
-        <?php
-        if (!$submission_open) {
-            echo 'Profile updates are currently <strong>closed by the administrator</strong>. ';
-            echo 'You will be able to update your profile when submissions are reopened.';
-        } elseif ($is_profile_approved) {
-            $last_update = $profile['last_profile_update'] ?? null;
-            if ($last_update) {
-                $formatted_date = date('M j, Y', strtotime($last_update));
-                $next_update = date('M j, Y', strtotime($last_update . ' +6 months'));
-                echo "Approved on <strong>$formatted_date</strong>. Next update allowed after <strong>$next_update</strong>.";
-            } else {
-                echo 'Your profile is approved. You can update again after 6 months from your last update.';
-            }
-        } elseif ($is_profile_pending) {
-            echo 'Your submission is under review. Please wait for approval.';
-        } else {
-            echo 'Profile updates are currently not allowed.';
-        }
-        ?>
-    </p>
+ <!-- Action Button - Only when editable (Prominent & Modern) -->
+<?php if ($is_profile_rejected || $can_update || $is_profile_new): ?>
+    <div class="mt-5">
+        <button type="button" class="w-full <?php
+            echo $is_profile_rejected ? 'bg-red-600 hover:bg-red-700 focus:ring-red-300' : 'bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-300';
+        ?> text-white font-semibold text-base py-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center gap-3 transform hover:scale-[1.02] active:scale-100">
+            <i class="fas <?php echo $is_profile_rejected ? 'fa-tools' : 'fa-edit'; ?> text-lg"></i>
+            <span class="tracking-tight">
+                <?php echo $is_profile_rejected ? 'Edit & Resubmit Profile' : ($is_profile_new ? 'Create My Profile Now' : 'Update Profile Information'); ?>
+            </span>
+        </button>
+        <p class="text-center text-xs text-gray-500 mt-3 font-medium">
+            <?php echo $is_profile_rejected ? 'Make corrections to get approved quickly' : 'Keep your information up to date'; ?>
+        </p>
+    </div>
 <?php endif; ?>
 </div>
 

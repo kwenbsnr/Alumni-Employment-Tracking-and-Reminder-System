@@ -32,7 +32,7 @@ if ($result && $result->num_rows > 0) {
 // Fetch ACCURATE dashboard statistics
 $statsQuery = "
     SELECT
-        (SELECT COUNT(*) FROM alumni_profile) AS total_alumni,
+        (SELECT COUNT(*) FROM users WHERE role = 'alumni') AS total_alumni,
         (SELECT COUNT(*) FROM alumni_profile WHERE submission_status = 'Approved') AS approved_profiles,
         (SELECT COUNT(*) FROM alumni_profile WHERE submission_status = 'Pending') AS pending_profiles,
         (SELECT COUNT(*) FROM alumni_profile WHERE submission_status = 'Rejected') AS rejected_profiles,
@@ -41,20 +41,22 @@ $statsQuery = "
          AND employment_status IN ('Employed', 'Self-Employed', 'Employed & Student')) AS employed_count,
         (SELECT COUNT(DISTINCT u.batch_year) 
          FROM users u 
-         INNER JOIN alumni_profile ap ON u.user_id = ap.user_id 
-         WHERE u.batch_year IS NOT NULL AND u.batch_year != '' AND u.batch_year != '0000') AS unique_graduation_years,
+         WHERE u.role = 'alumni' 
+         AND u.batch_year IS NOT NULL AND u.batch_year != '' AND u.batch_year != '0000') AS unique_graduation_years,
         (SELECT COUNT(*) FROM alumni_documents 
          WHERE user_id IN (SELECT user_id FROM alumni_profile WHERE submission_status = 'Approved')) AS total_documents
 ";
 $statsResult = $conn->query($statsQuery);
 $stats = $statsResult->fetch_assoc();
 
-// Fetch graduation trends
+// Fetch graduation trends - include all alumni
 $graduatesQuery = "
     SELECT u.batch_year, COUNT(*) as count 
     FROM users u
-    INNER JOIN alumni_profile ap ON u.user_id = ap.user_id
-    WHERE u.batch_year IS NOT NULL AND u.batch_year != '' AND u.batch_year != '0000'
+    WHERE u.role = 'alumni' 
+    AND u.batch_year IS NOT NULL 
+    AND u.batch_year != '' 
+    AND u.batch_year != '0000'
     GROUP BY u.batch_year 
     ORDER BY u.batch_year
 ";
@@ -67,6 +69,31 @@ if ($graduatesResult && $graduatesResult->num_rows > 0) {
         $gradCounts[] = $row['count'];
     }
 }
+
+// Fetch employment status for ALL alumni with profiles
+$careerQuery = "SELECT employment_status, COUNT(*) as total 
+                FROM alumni_profile 
+                WHERE employment_status IS NOT NULL AND employment_status != ''
+                GROUP BY employment_status";
+$result = $conn->query($careerQuery);
+
+$careerLabels = ['Employed', 'Self-Employed', 'Unemployed', 'Student', 'Employed & Student'];
+$careerData = [0, 0, 0, 0, 0];
+
+if ($result && $result->num_rows > 0) {
+    $statusCounts = array_fill_keys($careerLabels, 0);
+    while ($row = $result->fetch_assoc()) {
+        if (in_array($row['employment_status'], $careerLabels)) {
+            $statusCounts[$row['employment_status']] = $row['total'];
+        }
+    }
+    $careerData = array_values($statusCounts);
+}
+
+// Calculate total alumni with profiles for employment chart
+$totalWithProfiles = array_sum($careerData);
+$totalAlumni = $stats['total_alumni'];
+$withoutProfiles = $totalAlumni - $totalWithProfiles;
 
 // Fetch recent activity
 $recentActivityQuery = "
@@ -138,97 +165,295 @@ ob_start();
 
 <div class="dashboard-grid">
     <div class="main-content">
-        <!-- Stats Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #3b82f6;">
-                <div class="p-4">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Total Alumni</p>
-                            <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['total_alumni']; ?></p>
-                            <p class="text-xs text-gray-500 mt-1">Alumni who submitted profiles</p>
+        <!-- Enhanced Stats Cards -->
+        <div class="space-y-4">
+            <!-- Total Alumni, Active Alumni & Employment Rate -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <!-- Total Alumni Card (All Graduates) -->
+                <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #3b82f6;">
+                    <div class="p-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Total Alumni</p>
+                                <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['total_alumni']; ?></p>
+                                <p class="text-xs text-gray-500 mt-1">All graduated alumni in system</p>
+                            </div>
+                            <div class="p-3 rounded-xl bg-blue-50 card-icon">
+                                <i class="fas fa-users text-xl text-blue-500"></i>
+                            </div>
                         </div>
-                        <div class="p-3 rounded-xl bg-blue-50 card-icon">
-                            <i class="fas fa-users text-xl text-blue-500"></i>
+                        <div class="mt-2 flex items-center text-xs text-blue-600">
+                            <i class="fas fa-graduation-cap mr-1"></i>
+                            <span>All graduated students</span>
                         </div>
                     </div>
-                    <div class="mt-2 flex items-center text-xs text-blue-600">
-                        <i class="fas fa-user-check mr-1"></i>
-                        <span>Have profile records</span>
+                </div>
+
+                <!-- Active Alumni Card (Completed Requirements) -->
+                <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #10b981;">
+                    <div class="p-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Active Alumni</p>
+                                <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['approved_profiles']; ?></p>
+                                <p class="text-xs text-gray-500 mt-1">Completed tracking requirements</p>
+                            </div>
+                            <div class="p-3 rounded-xl bg-green-50 card-icon">
+                                <i class="fas fa-user-check text-xl text-green-500"></i>
+                            </div>
+                        </div>
+                        <div class="mt-2 flex items-center text-xs text-green-600">
+                            <i class="fas fa-shield-check mr-1"></i>
+                            <span>Fully verified & active</span>
+                        </div>
+                        <?php if ($stats['total_alumni'] > 0): ?>
+                            <div class="mt-2">
+                                <div class="flex justify-between text-xs text-gray-600 mb-1">
+                                    <span>Completion Rate</span>
+                                    <span><?php echo round(($stats['approved_profiles'] / $stats['total_alumni']) * 100, 1); ?>%</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-1.5">
+                                    <div class="bg-green-500 h-1.5 rounded-full" style="width: <?php echo min(100, ($stats['approved_profiles'] / $stats['total_alumni']) * 100); ?>%"></div>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <!-- Employment Rate Card -->
+                <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #8b5cf6;">
+                    <div class="p-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Employment Rate</p>
+                                <p class="text-2xl font-bold text-gray-900 mt-1">
+                                    <?php 
+                                    $total_employed = $stats['employed_count'];
+                                    $active_alumni = $stats['approved_profiles'];
+                                    $employment_rate = $active_alumni > 0 ? round(($total_employed / $active_alumni) * 100, 1) : 0;
+                                    echo $employment_rate; 
+                                    ?>%
+                                </p>
+                                <p class="text-xs text-gray-500 mt-1">Of active alumni</p>
+                            </div>
+                            <div class="p-3 rounded-xl bg-purple-50 card-icon">
+                                <i class="fas fa-briefcase text-xl text-purple-500"></i>
+                            </div>
+                        </div>
+                        <div class="mt-2 flex items-center text-xs text-purple-600">
+                            <i class="fas fa-chart-line mr-1"></i>
+                            <span><?php echo $total_employed; ?> employed alumni</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #10b981;">
-                <div class="p-4">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Approved Profiles</p>
-                            <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['approved_profiles']; ?></p>
-                            <p class="text-xs text-gray-500 mt-1">Verified & active alumni</p>
+            <!-- Pending Reviews & Rejected Profiles -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <!-- Pending Reviews Card -->
+                <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #f59e0b;">
+                    <div class="p-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Pending Reviews</p>
+                                <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['pending_profiles']; ?></p>
+                                <p class="text-xs text-gray-500 mt-1">Awaiting admin approval</p>
+                            </div>
+                            <div class="p-3 rounded-xl bg-yellow-50 card-icon">
+                                <i class="fas fa-clock text-xl text-yellow-500"></i>
+                            </div>
                         </div>
-                        <div class="p-3 rounded-xl bg-green-50 card-icon">
-                            <i class="fas fa-check-circle text-xl text-green-500"></i>
+                        <div class="mt-2 flex items-center text-xs text-yellow-600">
+                            <i class="fas fa-hourglass-half mr-1"></i>
+                            <span>Requires review</span>
                         </div>
+                        <?php if ($stats['pending_profiles'] > 0): ?>
+                            <div class="mt-2">
+                                <div class="flex items-center text-xs text-yellow-700 bg-yellow-50 px-2 py-1 rounded border border-yellow-200">
+                                    <i class="fas fa-exclamation-circle mr-1"></i>
+                                    <span>Needs attention</span>
+                                </div>
+                            </div>
+                        <?php endif; ?>
                     </div>
-                    <div class="mt-2 flex items-center text-xs text-green-600">
-                        <i class="fas fa-shield-check mr-1"></i>
-                        <span>Fully verified</span>
+                </div>
+
+                <!-- Rejected Profiles Card -->
+                <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #ef4444;">
+                    <div class="p-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Rejected Profiles</p>
+                                <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['rejected_profiles']; ?></p>
+                                <p class="text-xs text-gray-500 mt-1">Need corrections & resubmission</p>
+                            </div>
+                            <div class="p-3 rounded-xl bg-red-50 card-icon">
+                                <i class="fas fa-times-circle text-xl text-red-500"></i>
+                            </div>
+                        </div>
+                        <div class="mt-2 flex items-center text-xs text-red-600">
+                            <i class="fas fa-exclamation-triangle mr-1"></i>
+                            <span>Requires updates</span>
+                        </div>
+                        <?php if ($stats['rejected_profiles'] > 0): ?>
+                            <div class="mt-2">
+                                <div class="flex items-center text-xs text-red-700 bg-red-50 px-2 py-1 rounded border border-red-200">
+                                    <i class="fas fa-sync-alt mr-1"></i>
+                                    <span>Awaiting resubmission</span>
+                                </div>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
 
-            <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #f59e0b;">
-                <div class="p-4">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Pending Reviews</p>
-                            <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['pending_profiles']; ?></p>
-                            <p class="text-xs text-gray-500 mt-1">Awaiting admin approval</p>
+            <!-- Additional Metrics -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Documents Card -->
+                <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #06b6d4;">
+                    <div class="p-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Documents</p>
+                                <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['total_documents']; ?></p>
+                                <p class="text-xs text-gray-500 mt-1">Uploaded & verified</p>
+                            </div>
+                            <div class="p-3 rounded-xl bg-cyan-50 card-icon">
+                                <i class="fas fa-file-alt text-xl text-cyan-500"></i>
+                            </div>
                         </div>
-                        <div class="p-3 rounded-xl bg-yellow-50 card-icon">
-                            <i class="fas fa-clock text-xl text-yellow-500"></i>
+                        <div class="mt-2 flex items-center text-xs text-cyan-600">
+                            <i class="fas fa-archive mr-1"></i>
+                            <span>Supporting documents</span>
                         </div>
                     </div>
-                    <div class="mt-2 flex items-center text-xs text-yellow-600">
-                        <i class="fas fa-hourglass-half mr-1"></i>
-                        <span>Requires review</span>
+                </div>
+
+                <!-- Batch Diversity Card -->
+                <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #f97316;">
+                    <div class="p-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Graduation Years</p>
+                                <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['unique_graduation_years']; ?></p>
+                                <p class="text-xs text-gray-500 mt-1">Different batches</p>
+                            </div>
+                            <div class="p-3 rounded-xl bg-orange-50 card-icon">
+                                <i class="fas fa-calendar-alt text-xl text-orange-500"></i>
+                            </div>
+                        </div>
+                        <div class="mt-2 flex items-center text-xs text-orange-600">
+                            <i class="fas fa-layer-group mr-1"></i>
+                            <span>Batch diversity</span>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Analytics Section -->
-        <div class="bg-white rounded-xl shadow-lg border border-gray-100 p-3">
-            <div class="mb-5 border-b pb-3">
-                <h2 class="text-xl font-ex Learn more about alumni analytics-extrabold text-bold-gray-900 flex items-center">
-                    <i class="fas fa-chart-bar mr-1 text-blue-600"></i> Alumni Analytics
-                </h2>
-                <p class="text-sm text-gray-500 mt-1">Visual data for career status and graduation trends.</p>
-            </div>
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="rounded-xl border border-gray-200 p-3 shadow-sm hover:shadow-md transition">
-                    <h3 class="text-lg font-bold text-gray-800 mb-2 border-b pb-2">Employment Status Distribution</h3>
-                    <?php if (array_sum($careerData) > 0): ?>
-                        <div class="h-80"><canvas id="employmentChart"></canvas></div>
-                    <?php else: ?>
-                        <div class="flex flex-col items-center justify-center h-80 text-gray-400">
-                            <i class="fas fa-chart-pie text-5xl mb-3"></i>
-                            <p class="text-sm">No employment data available</p>
+        <!-- Enhanced Analytics Section -->
+        <div class="stats-card bg-white rounded-xl shadow-sm border border-gray-100 mt-4">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center space-x-3">
+                        <div class="p-3 rounded-xl bg-blue-50">
+                            <i class="fas fa-chart-bar text-xl text-blue-500"></i>
                         </div>
-                    <?php endif; ?>
+                        <div>
+                            <h2 class="text-xl font-bold text-gray-900">Alumni Analytics</h2>
+                            <p class="text-sm text-gray-500 mt-1">Visual data insights and trends</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2 text-sm text-gray-500">
+                        <i class="fas fa-info-circle"></i>
+                        <span>Real-time data visualization</span>
+                    </div>
                 </div>
-
-                <div class="rounded-xl border border-gray-200 p-3 shadow-sm hover:shadow-md transition">
-                    <h3 class="text-lg font-bold text-gray-800 mb-2 border-b pb-2">Graduates per Year</h3>
-                    <?php if (!empty($gradYears)): ?>
-                        <div class="h-80"><canvas id="graduationChart"></canvas></div>
-                    <?php else: ?>
-                        <div class="flex flex-col items-center justify-center h-80 text-gray-400">
-                            <i class="fas fa-chart-line text-5xl mb-3"></i>
-                            <p class="text-sm">No graduation data available</p>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Employment Status Distribution Card -->
+                    <div class="stats-card bg-gray-50 rounded-xl border border-gray-200 p-4 hover:shadow-md transition-all duration-300">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-bold text-gray-800 flex items-center">
+                                <i class="fas fa-chart-pie text-purple-500 mr-2"></i>
+                                Employment Status Distribution
+                            </h3>
+                            <div class="flex items-center space-x-2">
+                                <span class="text-xs font-semibold bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
+                                    <?php echo $totalWithProfiles; ?> with profiles
+                                </span>
+                                <?php if ($withoutProfiles > 0): ?>
+                                <span class="text-xs font-semibold bg-gray-100 text-gray-700 px-2 py-1 rounded-full">
+                                    <?php echo $withoutProfiles; ?> no profile
+                                </span>
+                                <?php endif; ?>
+                            </div>
                         </div>
-                    <?php endif; ?>
+                        <?php if ($totalAlumni > 0): ?>
+                            <div class="h-72"><canvas id="employmentChart"></canvas></div>
+                            <div class="mt-3 text-center">
+                                <p class="text-xs text-gray-600">
+                                    Showing data for <?php echo $totalWithProfiles; ?> alumni with profiles 
+                                    (<?php echo round(($totalWithProfiles / $totalAlumni) * 100, 1); ?>% of total)
+                                </p>
+                            </div>
+                        <?php else: ?>
+                            <div class="flex flex-col items-center justify-center h-72 text-gray-400">
+                                <i class="fas fa-chart-pie text-5xl mb-3"></i>
+                                <p class="text-sm font-medium">No alumni data available</p>
+                                <p class="text-xs mt-1">Employment data will appear here once alumni submit profiles</p>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+
+                    <!-- Graduates per Year Card -->
+                    <div class="stats-card bg-gray-50 rounded-xl border border-gray-200 p-4 hover:shadow-md transition-all duration-300">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-bold text-gray-800 flex items-center">
+                                <i class="fas fa-chart-line text-blue-500 mr-2"></i>
+                                Graduation Trends
+                            </h3>
+                            <div class="flex items-center space-x-2">
+                                <span class="text-xs font-semibold bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                                    <?php echo count($gradYears); ?> batches
+                                </span>
+                                <span class="text-xs font-semibold bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                                    <?php echo array_sum($gradCounts); ?> total
+                                </span>
+                            </div>
+                        </div>
+                        <?php if (!empty($gradYears)): ?>
+                            <div class="h-72"><canvas id="graduationChart"></canvas></div>
+                            <div class="mt-3 flex justify-between text-xs text-gray-600">
+                                <span>Peak: <?php echo max($gradCounts); ?> graduates</span>
+                                <span>Average: <?php echo round(array_sum($gradCounts) / count($gradCounts), 1); ?>/year</span>
+                            </div>
+                        <?php else: ?>
+                            <div class="flex flex-col items-center justify-center h-72 text-gray-400">
+                                <i class="fas fa-chart-line text-5xl mb-3"></i>
+                                <p class="text-sm font-medium">No graduation data available</p>
+                                <p class="text-xs mt-1">Graduation trends will appear here</p>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                
+                <div class="mt-4 pt-4 border-t border-gray-200">
+                    <div class="flex items-center justify-between text-xs text-gray-500">
+                        <div class="flex items-center space-x-4">
+                            <span class="flex items-center">
+                                <i class="fas fa-sync-alt mr-1"></i>
+                                Auto-updates every 5 minutes
+                            </span>
+                            <span class="flex items-center">
+                                <i class="fas fa-database mr-1"></i>
+                                Based on verified alumni data
+                            </span>
+                        </div>
+                        <span class="text-gray-400">
+                            Last updated: <?php echo date('M j, Y g:i A'); ?>
+                        </span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -295,82 +520,336 @@ ob_start();
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-<?php if (array_sum($careerData) > 0): ?>
+<?php if ($totalAlumni > 0): ?>
+// Enhanced Employment Status Distribution Chart
 new Chart(document.getElementById('employmentChart'), {
     type: 'doughnut',
     data: {
-        labels: <?php echo json_encode($careerLabels); ?>,
+        labels: [
+            <?php 
+            echo implode(', ', array_map(function($label) {
+                return "'" . $label . "'";
+            }, $careerLabels));
+            ?>,
+            'No Profile Submitted'
+        ],
         datasets: [{
-            data: <?php echo json_encode($careerData); ?>,
-            backgroundColor: ['#4A90E2', '#7ED321', '#F5A623', '#D0021B', '#9B51E0'],
-            borderWidth: 2,
+            data: [
+                <?php echo implode(', ', $careerData); ?>,
+                <?php echo $withoutProfiles; ?>
+            ],
+            backgroundColor: [
+                '#4A90E2', // Employed - Blue
+                '#7ED321', // Self-Employed - Green
+                '#F5A623', // Unemployed - Orange
+                '#D0021B', // Student - Red
+                '#9B51E0', // Employed & Student - Purple
+                '#95A5A6'  // No Profile - Gray
+            ],
+            borderWidth: 3,
             borderColor: '#fff',
-            hoverOffset: 10
+            hoverOffset: 20,
+            hoverBorderWidth: 4,
+            hoverBackgroundColor: [
+                '#357ABD', // Darker Blue
+                '#6BC120', // Darker Green
+                '#E6951F', // Darker Orange
+                '#B8021A', // Darker Red
+                '#8A46D4', // Darker Purple
+                '#7F8C8D'  // Darker Gray
+            ]
         }]
     },
     options: {
         responsive: true,
         maintainAspectRatio: false,
-        cutout: '65%',
+        cutout: '60%',
         plugins: {
-            legend: { position: 'right', labels: { usePointStyle: true, padding: 15 } },
+            legend: { 
+                position: 'right', 
+                labels: { 
+                    usePointStyle: true, 
+                    padding: 20,
+                    font: { 
+                        size: 11, 
+                        weight: '600',
+                        family: "'Inter', 'Segoe UI', sans-serif"
+                    },
+                    color: '#374151'
+                } 
+            },
             tooltip: {
+                enabled: true,
+                backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                borderColor: '#4B5563',
+                borderWidth: 2,
+                cornerRadius: 12,
+                padding: 16,
+                titleFont: { 
+                    size: 14, 
+                    weight: '700',
+                    family: "'Inter', 'Segoe UI', sans-serif"
+                },
+                bodyFont: { 
+                    size: 13, 
+                    weight: '600',
+                    family: "'Inter', 'Segoe UI', sans-serif"
+                },
+                footerFont: {
+                    size: 11,
+                    weight: '500',
+                    family: "'Inter', 'Segoe UI', sans-serif"
+                },
+                titleColor: '#F9FAFB',
+                bodyColor: '#E5E7EB',
+                footerColor: '#9CA3AF',
+                boxPadding: 10,
                 callbacks: {
-                    label: ctx => {
-                        const value = ctx.raw || 0;
-                        const total = ctx.dataset.data.reduce((a,b) => a+b, 0);
-                        const percentage = ((value/total)*100).toFixed(1);
-                        return `${ctx.label}: ${value} (${percentage}%)`;
+                    title: function(tooltipItems) {
+                        return tooltipItems[0].label;
+                    },
+                    label: function(context) {
+                        const value = context.raw || 0;
+                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                        const percentage = ((value / total) * 100).toFixed(1);
+                        return `
+                            ${value} alumni • ${percentage}% of total
+                        `.trim();
+                    },
+                    afterLabel: function(context) {
+                        const label = context.label;
+                        if (label === 'No Profile Submitted') {
+                            return '📝 Profile not yet started';
+                        } else {
+                            return '✅ Profile submitted';
+                        }
                     }
                 },
-                backgroundColor: 'rgba(255,255,255,0.95)',
-                borderColor: '#e5e7eb',
-                borderWidth: 1,
-                cornerRadius: 8
+                displayColors: true,
+                usePointStyle: true,
+                caretSize: 8,
+                caretPadding: 12
             }
+        },
+        animation: {
+            animateScale: true,
+            animateRotate: true,
+            duration: 2000,
+            easing: 'easeOutQuart'
+        },
+        hover: {
+            mode: 'nearest',
+            intersect: true,
+            animationDuration: 300
         }
     }
 });
 <?php endif; ?>
 
 <?php if (!empty($gradYears)): ?>
+// Enhanced Graduates per Year Chart with Clear Hover Text
 const gradCtx = document.getElementById('graduationChart').getContext('2d');
+
+// Create enhanced gradient
 const gradient = gradCtx.createLinearGradient(0, 0, 0, 400);
-gradient.addColorStop(0, 'rgba(139, 92, 246, 0.3)');
+gradient.addColorStop(0, 'rgba(139, 92, 246, 0.4)');
+gradient.addColorStop(0.7, 'rgba(139, 92, 246, 0.15)');
 gradient.addColorStop(1, 'rgba(139, 92, 246, 0.05)');
+
+// Hover gradient
+const hoverGradient = gradCtx.createLinearGradient(0, 0, 0, 400);
+hoverGradient.addColorStop(0, 'rgba(139, 92, 246, 0.6)');
+hoverGradient.addColorStop(0.7, 'rgba(139, 92, 246, 0.25)');
+hoverGradient.addColorStop(1, 'rgba(139, 92, 246, 0.1)');
+
+// Calculate statistics
+const gradData = <?php echo json_encode($gradCounts); ?>;
+const totalGrads = gradData.reduce((a, b) => a + b, 0);
+const maxGrads = Math.max(...gradData);
+const avgGrads = Math.round(totalGrads / gradData.length);
+
 new Chart(gradCtx, {
     type: 'line',
     data: {
         labels: <?php echo json_encode($gradYears); ?>,
         datasets: [{
-            label: 'Graduates per Year',
-            data: <?php echo json_encode($gradCounts); ?>,
+            label: 'Graduates',
+            data: gradData,
             borderColor: '#8b5cf6',
             backgroundColor: gradient,
-            borderWidth: 3,
+            borderWidth: 4,
             fill: true,
-            tension: 0.4,
+            tension: 0.3,
             pointBackgroundColor: '#8b5cf6',
             pointBorderColor: '#fff',
-            pointBorderWidth: 2,
-            pointRadius: 5,
-            pointHoverRadius: 7
+            pointBorderWidth: 3,
+            pointRadius: 6,
+            pointHoverRadius: 10,
+            pointHoverBackgroundColor: '#7c3aed',
+            pointHoverBorderColor: '#fff',
+            pointHoverBorderWidth: 4,
+            hoverBackgroundColor: hoverGradient
         }]
     },
     options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
+        plugins: {
+            legend: { 
+                display: false 
+            },
+            tooltip: {
+                enabled: true,
+                backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                borderColor: '#7c3aed',
+                borderWidth: 3,
+                cornerRadius: 14,
+                padding: 18,
+                titleFont: { 
+                    size: 15, 
+                    weight: '700',
+                    family: "'Inter', 'Segoe UI', sans-serif"
+                },
+                bodyFont: { 
+                    size: 14, 
+                    weight: '600',
+                    family: "'Inter', 'Segoe UI', sans-serif"
+                },
+                footerFont: {
+                    size: 12,
+                    weight: '500',
+                    family: "'Inter', 'Segoe UI', sans-serif"
+                },
+                titleColor: '#F9FAFB',
+                bodyColor: '#E5E7EB',
+                footerColor: '#9CA3AF',
+                boxPadding: 12,
+                callbacks: {
+                    title: function(tooltipItems) {
+                        return `🎓 Batch ${tooltipItems[0].label}`;
+                    },
+                    label: function(context) {
+                        const value = context.parsed.y;
+                        const percentage = ((value / totalGrads) * 100).toFixed(1);
+                        return `${value} graduates • ${percentage}% of total alumni`;
+                    },
+                    afterLabel: function(context) {
+                        const year = context.label;
+                        const index = context.dataIndex;
+                        const prevYear = index > 0 ? gradData[index - 1] : null;
+                        
+                        if (prevYear !== null) {
+                            const change = context.parsed.y - prevYear;
+                            const changePercent = ((change / prevYear) * 100).toFixed(1);
+                            if (change > 0) {
+                                return `📈 +${change} from previous year (+${changePercent}%)`;
+                            } else if (change < 0) {
+                                return `📉 ${change} from previous year (${changePercent}%)`;
+                            } else {
+                                return `➡️ No change from previous year`;
+                            }
+                        }
+                        return `⭐ First recorded batch`;
+                    }
+                },
+                displayColors: false,
+                caretSize: 10,
+                caretPadding: 15
+            }
+        },
         scales: {
-            y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { stepSize: 1 } },
-            x: { grid: { color: 'rgba(0,0,0,0.05)' } }
+            y: { 
+                beginAtZero: true, 
+                grid: { 
+                    color: 'rgba(0,0,0,0.08)',
+                    drawBorder: false,
+                    lineWidth: 1
+                }, 
+                ticks: { 
+                    stepSize: Math.ceil(maxGrads / 5),
+                    font: { 
+                        size: 12, 
+                        weight: '600',
+                        family: "'Inter', 'Segoe UI', sans-serif"
+                    },
+                    color: '#6B7280',
+                    padding: 10
+                },
+                border: { display: false }
+            },
+            x: { 
+                grid: { 
+                    color: 'rgba(0,0,0,0.08)',
+                    drawBorder: false,
+                    lineWidth: 1
+                },
+                ticks: {
+                    font: { 
+                        size: 12, 
+                        weight: '600',
+                        family: "'Inter', 'Segoe UI', sans-serif"
+                    },
+                    color: '#6B7280',
+                    maxRotation: 45,
+                    padding: 12
+                },
+                border: { display: false }
+            }
+        },
+        interaction: {
+            intersect: false,
+            mode: 'nearest'
+        },
+        animation: {
+            duration: 2000,
+            easing: 'easeOutQuart'
+        },
+        elements: {
+            line: {
+                tension: 0.3
+            },
+            point: {
+                hoverBackgroundColor: '#7c3aed',
+                hoverBorderColor: '#fff'
+            }
+        },
+        hover: {
+            mode: 'nearest',
+            intersect: false,
+            animationDuration: 300
         }
     }
 });
 <?php endif; ?>
 
-// Toast notification
+// Enhanced hover effects for chart containers
 document.addEventListener("DOMContentLoaded", () => {
+    const chartContainers = document.querySelectorAll('.stats-card');
+    
+    chartContainers.forEach(container => {
+        // Initial animation
+        container.style.opacity = '0';
+        container.style.transform = 'translateY(20px)';
+        
+        setTimeout(() => {
+            container.style.transition = 'all 0.6s ease-out';
+            container.style.opacity = '1';
+            container.style.transform = 'translateY(0)';
+        }, 100);
+        
+        // Enhanced hover effects
+        container.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-5px) scale(1.02)';
+            this.style.boxShadow = '0 25px 50px -12px rgba(0, 0, 0, 0.25)';
+        });
+        
+        container.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0) scale(1)';
+            this.style.boxShadow = '';
+        });
+    });
+    
+    // Toast notification
     const params = new URLSearchParams(window.location.search);
     if (params.has('success') && typeof showToast === 'function') {
         showToast(params.get('success'), 'success');
