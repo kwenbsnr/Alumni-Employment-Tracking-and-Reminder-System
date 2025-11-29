@@ -167,6 +167,7 @@ ob_start();
                     <option value="Pending" <?= $submission_status === 'Pending' ? 'selected' : '' ?>>Pending</option>
                     <option value="Approved" <?= $submission_status === 'Approved' ? 'selected' : '' ?>>Approved</option>
                     <option value="Rejected" <?= $submission_status === 'Rejected' ? 'selected' : '' ?>>Rejected</option>
+                    <option value="No Profile" <?= $submission_status === 'No Profile' ? 'selected' : '' ?>>No Profile</option>
                 </select>
             </div>
             <div class="flex gap-2">
