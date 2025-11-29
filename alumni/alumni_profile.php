@@ -335,7 +335,7 @@ ob_start();
         <!-- Always show profile cards -->
 
    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-<!-- Personal Information Card - UPDATED -->
+<!-- Personal Information Card -->
 <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-blue-500 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-blue-50">
     <div class="flex items-center space-x-3 mb-4 pb-2 border-b border-gray-100">
         <h3 class="text-xl font-bold text-gray-800">Personal Information</h3>
@@ -343,7 +343,9 @@ ob_start();
     <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="flex flex-col">
             <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Name</dt>
-            <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['official_name'] ?? 'N/A'); ?></dd>
+            <dd class="font-semibold text-gray-700" style="font-size: 15px;">
+                <?php echo !empty($profile['official_name']) ? htmlspecialchars($profile['official_name'], ENT_QUOTES, 'UTF-8') : 'N/A'; ?>
+            </dd>
         </div>
         <div class="flex flex-col md:ml-[-70px]">
             <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Email</dt>
@@ -367,7 +369,9 @@ ob_start();
         <dl class="grid grid-cols-2 gap-4">
             <div class="flex flex-col">
                 <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Barangay</dt>
-                <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['barangay_name'] ?? 'N/A'); ?></dd>
+                <dd class="font-semibold text-gray-700" style="font-size: 15px;">
+                    <?php echo !empty($profile['barangay_name']) ? htmlspecialchars($profile['barangay_name'], ENT_QUOTES, 'UTF-8') : 'N/A'; ?>
+                </dd>
             </div>
             <div class="flex flex-col">
                 <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Municipality/City</dt>
@@ -441,7 +445,7 @@ ob_start();
                 </div>
             <?php endif; ?>
         <?php endif; ?>
-        <?php if (in_array($profile['employment_status'] ?? '', ['Student', 'Employed & Student'])): ?>
+            <?php if (in_array($profile['employment_status'] ?? '', ['Student', 'Employed & Student'])): ?>
             <div class="flex flex-col">
                 <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">School Name</dt>
                 <dd class="font-semibold text-gray-700" style="font-size: 15px;">
@@ -718,7 +722,7 @@ ob_start();
                     </div>
                 </div>
 
-                <!-- Employment Details Section - ENHANCED -->
+                <!-- Employment Details Section -->
                 <div id="employmentDetailsSection" class="hidden bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
                     <h3 class="text-base font-semibold text-gray-800 mb-4 flex items-center">
                         <div class="bg-orange-100 rounded-lg p-2 mr-3">
@@ -753,11 +757,11 @@ ob_start();
                         </div>
                         <div id="companyField" class="hidden space-y-1">
                             <label class="block text-sm font-medium text-gray-700">Company Name</label>
-                            <input type="text" name="company_name" value="<?php echo !empty($employment['company_name']) ? htmlspecialchars($employment['company_name']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" autocomplete="organization">
+                            <input type="text" name="company_name" value="<?php echo !empty($employment['company_name']) ? htmlspecialchars($employment['company_name'], ENT_QUOTES, 'UTF-8') : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" autocomplete="organization">
                         </div>
                         <div id="companyAddressField" class="hidden space-y-1 md:col-span-2">
                             <label class="block text-sm font-medium text-gray-700">Company Address</label>
-                            <input type="text" name="company_address" value="<?php echo !empty($employment['company_address']) ? htmlspecialchars($employment['company_address']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" autocomplete="street-address">
+                            <input type="text" name="company_address" value="<?php echo !empty($employment['company_address']) ? htmlspecialchars($employment['company_address'], ENT_QUOTES, 'UTF-8') : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" autocomplete="street-address">
                         </div>
                         <div id="businessTypeField" class="hidden space-y-1">
                             <label class="block text-sm font-medium text-gray-700">Business Type</label>
@@ -793,7 +797,7 @@ ob_start();
                     </div>
                 </div>
 
-                <!-- Student Details Section - ENHANCED -->
+                <!-- Student Details Section -->
                 <div id="studentDetailsSection" class="hidden bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
                     <h3 class="text-base font-semibold text-gray-800 mb-4 flex items-center">
                         <div class="bg-indigo-100 rounded-lg p-2 mr-3">
@@ -804,11 +808,11 @@ ob_start();
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="space-y-1">
                             <label class="block text-sm font-medium text-gray-700">School Name</label>
-                            <input type="text" name="school_name" value="<?php echo !empty($education['school_name']) ? htmlspecialchars($education['school_name']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" autocomplete="organization">
+                            <input type="text" name="school_name" value="<?php echo !empty($education['school_name']) ? htmlspecialchars($education['school_name'], ENT_QUOTES, 'UTF-8') : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" autocomplete="organization">
                         </div>
                         <div class="space-y-1">
                             <label class="block text-sm font-medium text-gray-700">Degree Pursued</label>
-                            <input type="text" name="degree_pursued" value="<?php echo !empty($education['degree_pursued']) ? htmlspecialchars($education['degree_pursued']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" autocomplete="off">
+                            <input type="text" name="degree_pursued" value="<?php echo !empty($education['degree_pursued']) ? htmlspecialchars($education['degree_pursued'], ENT_QUOTES, 'UTF-8') : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" autocomplete="off">
                         </div>
                         <div class="space-y-1">
                             <label class="block text-sm font-medium text-gray-700">Start Year</label>
