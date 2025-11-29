@@ -158,7 +158,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     try {
         // ---- 5.1 Retrieve & sanitise --------------------------------------------
-        $contact = htmlspecialchars(trim($_POST['contact_number'] ?? ''));
+        $contact = !empty($_POST['contact_number']) ? trim($_POST['contact_number']) : '';
         $status = htmlspecialchars(trim($_POST['employment_status'] ?? ''));
 
         // Address fields
@@ -167,30 +167,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $municipality_id = htmlspecialchars(trim($_POST['municipality_id'] ?? ''));
         $barangay_id = htmlspecialchars(trim($_POST['barangay_id'] ?? ''));
 
-        // Employment fields
-        $job_title = htmlspecialchars(trim($_POST['job_title'] ?? ''));
-        if ($job_title === 'Other') $job_title = htmlspecialchars(trim($_POST['other_job_title'] ?? ''));
-
-        $company = htmlspecialchars(trim($_POST['company_name'] ?? ''));
-        $company_address = htmlspecialchars(trim($_POST['company_address'] ?? ''));
-        $salary = htmlspecialchars(trim($_POST['salary_range'] ?? ''));
-
-        $business_type = htmlspecialchars(trim($_POST['business_type'] ?? ''));
-        if ($business_type === 'Others (Please specify)') {
-            $business_type = 'Others: ' . htmlspecialchars(trim($_POST['business_type_other'] ?? ''));
+        // Employment fields - Store raw data
+        $job_title = !empty($_POST['job_title']) ? trim($_POST['job_title']) : '';
+        if ($job_title === 'Other') {
+            $job_title = !empty($_POST['other_job_title']) ? trim($_POST['other_job_title']) : '';
         }
 
-        // Education fields - FIXED: Use proper UTF-8 encoding
-        $school = !empty($_POST['school_name']) ? 
-            htmlspecialchars(trim($_POST['school_name']), ENT_QUOTES, 'UTF-8') : '';
-        
-        $degree = !empty($_POST['degree_pursued']) ? 
-            htmlspecialchars(trim($_POST['degree_pursued']), ENT_QUOTES, 'UTF-8') : '';
-        
-        $start_year = htmlspecialchars(trim($_POST['start_year'] ?? ''));
-        $end_year = htmlspecialchars(trim($_POST['end_year'] ?? ''));
+        $company = !empty($_POST['company_name']) ? trim($_POST['company_name']) : '';
+        $company_address = !empty($_POST['company_address']) ? trim($_POST['company_address']) : '';
+        $salary = !empty($_POST['salary_range']) ? trim($_POST['salary_range']) : '';
 
-        // Debug: Check what's being received - MOVED TO AFTER VARIABLES ARE DEFINED
+        $business_type = !empty($_POST['business_type']) ? trim($_POST['business_type']) : '';
+        if ($business_type === 'Others (Please specify)') {
+            $business_type = 'Others: ' . (!empty($_POST['business_type_other']) ? trim($_POST['business_type_other']) : '');
+        }
+
+        // Education fields - Store raw data, don't encode for database storage
+        $school = !empty($_POST['school_name']) ? trim($_POST['school_name']) : '';
+        $degree = !empty($_POST['degree_pursued']) ? trim($_POST['degree_pursued']) : '';
+        $start_year = !empty($_POST['start_year']) ? trim($_POST['start_year']) : '';
+        $end_year = !empty($_POST['end_year']) ? trim($_POST['end_year']) : '';
+
+        // Debug: Check what's being received
         error_log("Raw POST degree_pursued: " . ($_POST['degree_pursued'] ?? 'NULL'));
         error_log("Raw POST school_name: " . ($_POST['school_name'] ?? 'NULL'));
 
