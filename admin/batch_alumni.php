@@ -41,8 +41,8 @@ $total_alumni = $batchStats['total_alumni'] ?? 0;
 $with_profiles = ($batchStats['approved_count'] ?? 0) + ($batchStats['pending_count'] ?? 0) + ($batchStats['rejected_count'] ?? 0);
 $completion_rate = $total_alumni > 0 ? round(($with_profiles / $total_alumni) * 100, 1) : 0;
 
-// Build query with filters - FIXED
-$whereConditions = ["u.batch_year = ?"];
+// Build query with filters - UPDATED to include ALL alumni
+$whereConditions = ["u.role = 'alumni'", "u.batch_year = ?"];
 $params = [$batch_year];
 $types = 's';
 
@@ -58,18 +58,28 @@ if (!empty($employment_status)) {
     $types .= 's';
 }
 if (!empty($submission_status)) {
-    $whereConditions[] = "ap.submission_status = ?";
-    $params[] = $submission_status;
-    $types .= 's';
+    if ($submission_status === 'No Profile') {
+        $whereConditions[] = "ap.user_id IS NULL";
+    } else {
+        $whereConditions[] = "ap.submission_status = ?";
+        $params[] = $submission_status;
+        $types .= 's';
+    }
 }
 
 $whereClause = implode(" AND ", $whereConditions);
 
 $alumniQuery = "
-    SELECT ap.user_id, u.name, u.batch_year,
-           ap.employment_status, ap.submission_status, ap.photo_path, u.email
-    FROM alumni_profile ap
-    INNER JOIN users u ON ap.user_id = u.user_id
+    SELECT 
+        u.user_id, 
+        u.name, 
+        u.batch_year,
+        u.email,
+        ap.employment_status, 
+        ap.submission_status, 
+        ap.photo_path
+    FROM users u
+    LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id
     WHERE $whereClause
     ORDER BY u.name ASC
 ";
