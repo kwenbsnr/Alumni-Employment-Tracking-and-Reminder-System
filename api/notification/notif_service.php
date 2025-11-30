@@ -48,7 +48,13 @@ function get_complete_alumni_data($conn, $user_id) {
     $query = "
         SELECT 
             u.user_id,
-            u.name as alumni_name,
+            CONCAT(
+                u.first_name,
+                IF(u.middle_name IS NOT NULL AND u.middle_name != '', CONCAT(' ', u.middle_name), ''),
+                ' ',
+                u.last_name,
+                IF(u.suffix IS NOT NULL AND u.suffix != '', CONCAT(' ', u.suffix), '')
+            ) as alumni_name,
             u.email as alumni_email,
             u.batch_year as graduation_year,
             u.student_id,
@@ -72,9 +78,9 @@ function get_complete_alumni_data($conn, $user_id) {
             ed.end_year
         FROM users u 
         INNER JOIN alumni_profile ap ON u.user_id = ap.user_id 
-        LEFT JOIN employment_info ei ON u.user_id = ei.user_id
+        LEFT JOIN employment_info ei ON ap.user_id = ei.user_id
         LEFT JOIN job_titles jt ON ei.job_title_id = jt.job_title_id
-        LEFT JOIN education_info ed ON u.user_id = ed.user_id
+        LEFT JOIN education_info ed ON ap.user_id = ed.user_id
         WHERE u.user_id = ?
         ORDER BY ei.employment_id DESC, ed.education_id DESC
         LIMIT 1
@@ -386,7 +392,15 @@ function get_alumni_for_reminders($conn) {
     $alumni = [];
     
     $query = "
-        SELECT u.user_id, u.name as alumni_name, u.email as alumni_email, 
+        SELECT u.user_id, 
+               CONCAT(
+                   u.first_name,
+                   IF(u.middle_name IS NOT NULL AND u.middle_name != '', CONCAT(' ', u.middle_name), ''),
+                   ' ',
+                   u.last_name,
+                   IF(u.suffix IS NOT NULL AND u.suffix != '', CONCAT(' ', u.suffix), '')
+               ) as alumni_name,
+               u.email as alumni_email, 
                u.batch_year as graduation_year, ap.employment_status,
                ap.last_profile_update, ap.submission_status
         FROM users u 
@@ -395,7 +409,7 @@ function get_alumni_for_reminders($conn) {
         AND ap.submission_status != 'Approved'
         AND (ap.last_profile_update IS NULL OR 
              ap.last_profile_update < DATE_SUB(NOW(), INTERVAL 6 MONTH))
-        ORDER BY u.batch_year DESC, u.name
+        ORDER BY u.batch_year DESC, alumni_name
     ";
     
     $result = $conn->query($query);
