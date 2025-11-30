@@ -146,18 +146,21 @@ function upload_file($field, $dir, $user_id, $type, $allowed = ['application/pdf
     $user_result = $user_stmt->get_result();
     $user_data = $user_result->fetch_assoc();
     $user_stmt->close();
-    
+
     // DEBUG: Log database result
     error_log("DEBUG UPLOAD: Database result: " . print_r($user_data, true));
-    
-    $surname = 'unknown';
+
+    $surname = 'Unknown';
     if ($user_data && !empty($user_data['last_name'])) {
-        // Sanitize surname: remove spaces and special characters, convert to lowercase
+        // Sanitize surname: remove spaces and special characters, keep original case
         $surname = preg_replace("/[^a-zA-Z0-9]/", "", $user_data['last_name']);
-        $surname = strtolower($surname);
+        
+        // ✅ Capitalize first letter only, keep the rest as-is
+        $surname = ucfirst($surname);
+        
         error_log("DEBUG UPLOAD: Sanitized surname: " . $surname);
     } else {
-        error_log("DEBUG UPLOAD: Using default 'unknown' surname");
+        error_log("DEBUG UPLOAD: Using default 'Unknown' surname");
     }
 
     // Map type codes to document type names for filename
@@ -191,19 +194,9 @@ function upload_file($field, $dir, $user_id, $type, $allowed = ['application/pdf
     // Generate filename: surname_docType.extension
     $name = $surname . '_' . $doc_type . '.' . $ext;
     $target = rtrim($dir, '/') . '/' . $name;
-    
+
     error_log("DEBUG UPLOAD: Generated filename: " . $name);
     error_log("DEBUG UPLOAD: Target path: " . $target);
-
-    // Check if file exists and append counter if needed
-    $counter = 1;
-    $base_name = $surname . '_' . $doc_type;
-    while (file_exists($target)) {
-        $name = $base_name . '_' . $counter . '.' . $ext;
-        $target = rtrim($dir, '/') . '/' . $name;
-        $counter++;
-        error_log("DEBUG UPLOAD: File exists, trying: " . $name);
-    }
 
     if (!move_uploaded_file($file['tmp_name'], $target)) {
         error_log("DEBUG UPLOAD: move_uploaded_file FAILED for: " . $file['tmp_name'] . " to " . $target);
@@ -294,11 +287,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $business_type = 'Others: ' . (!empty($_POST['business_type_other']) ? trim($_POST['business_type_other']) : '');
         }
 
-        // Education fields - Store raw data, don't encode for database storage
+        // Education fields - Store raw data
         $school = !empty($_POST['school_name']) ? 
-            htmlspecialchars(trim($_POST['school_name']), ENT_QUOTES, 'UTF-8') : '';
+            trim($_POST['school_name']) : '';
         $degree = !empty($_POST['degree_pursued']) ? 
-            htmlspecialchars(trim($_POST['degree_pursued']), ENT_QUOTES, 'UTF-8') : '';
+            trim($_POST['degree_pursued']) : '';
         $start_year = !empty($_POST['start_year']) ? trim($_POST['start_year']) : '';
         $end_year = !empty($_POST['end_year']) ? trim($_POST['end_year']) : '';
 
