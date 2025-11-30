@@ -47,7 +47,7 @@ $params = [$batch_year];
 $types = 's';
 
 if (!empty($search)) {
-    $whereConditions[] = "u.name LIKE ?";
+    $whereConditions[] = "CONCAT(u.first_name, ' ', u.last_name) LIKE ?";
     $searchTerm = "%$search%";
     $params[] = $searchTerm;
     $types .= 's';
@@ -72,7 +72,13 @@ $whereClause = implode(" AND ", $whereConditions);
 $alumniQuery = "
     SELECT 
         u.user_id, 
-        u.name, 
+        CONCAT(
+            u.first_name,
+            IF(u.middle_name IS NOT NULL AND u.middle_name != '', CONCAT(' ', u.middle_name), ''),
+            ' ',
+            u.last_name,
+            IF(u.suffix IS NOT NULL AND u.suffix != '', CONCAT(' ', u.suffix), '')
+        ) as name, 
         u.batch_year,
         u.email,
         ap.employment_status, 

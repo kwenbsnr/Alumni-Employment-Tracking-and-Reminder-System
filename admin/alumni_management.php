@@ -346,11 +346,10 @@ if (isset($_SESSION['error_message'])) {
             <span>Showing results for: <strong>"<?= htmlspecialchars($search) ?>"</strong></span>
             <span class="ml-auto text-blue-600 font-medium">
                 <?php
-                $safe_search = $conn->real_escape_string($search);
-                $searchCount = $conn->query("SELECT COUNT(*) as count FROM alumni_profile ap
+                    $searchCount = $conn->query("SELECT COUNT(*) as count FROM alumni_profile ap
                     INNER JOIN users u ON ap.user_id = u.user_id
-                    WHERE u.name LIKE '%$safe_search%' 
-                       OR u.email LIKE '%$safe_search%'")->fetch_assoc()['count'];
+                    WHERE CONCAT(u.first_name, ' ', u.last_name) LIKE '%$safe_search%' 
+                    OR u.email LIKE '%$safe_search%'")->fetch_assoc()['count'];
                 echo "{$searchCount} result(s) found";
                 ?>
             </span>
@@ -444,12 +443,12 @@ if (isset($_SESSION['error_message'])) {
             $displayResult = $batchResult;
             if (!empty($search)) {
                 $stmt = $conn->prepare("SELECT DISTINCT u.batch_year 
-                                       FROM alumni_profile ap
-                                       INNER JOIN users u ON ap.user_id = u.user_id 
-                                       WHERE u.batch_year IS NOT NULL 
-                                       AND u.name LIKE ?");
+                                    FROM alumni_profile ap
+                                    INNER JOIN users u ON ap.user_id = u.user_id 
+                                    WHERE u.batch_year IS NOT NULL 
+                                    AND (CONCAT(u.first_name, ' ', u.last_name) LIKE ? OR u.email LIKE ?)");
                 $term = "%$search%";
-                $stmt->bind_param('s', $term);
+                $stmt->bind_param('ss', $term, $term);
                 $stmt->execute();
                 $displayResult = $stmt->get_result();
             }

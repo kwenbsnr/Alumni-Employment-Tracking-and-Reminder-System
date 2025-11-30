@@ -15,7 +15,13 @@ if (!$user_id || !is_numeric($user_id)) {
 
 $query = "
     SELECT
-        u.name as official_name,
+        CONCAT(
+            u.first_name,
+            IF(u.middle_name IS NOT NULL AND u.middle_name != '', CONCAT(' ', u.middle_name), ''),
+            ' ',
+            u.last_name,
+            IF(u.suffix IS NOT NULL AND u.suffix != '', CONCAT(' ', u.suffix), '')
+        ) as official_name,
         u.batch_year,
         u.email,
         u.student_id,
@@ -37,9 +43,9 @@ $query = "
         edu.start_year,
         edu.end_year,
         tb.barangay_name,
-tm.municipality_name, 
-tp.province_name,
-tr.region_name,
+        tm.municipality_name, 
+        tp.province_name,
+        tr.region_name,
         ad1.file_path as cor_path,
         ad2.file_path as coe_path,
         ad3.file_path as b_cert_path
