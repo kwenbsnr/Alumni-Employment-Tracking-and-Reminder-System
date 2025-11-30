@@ -427,39 +427,25 @@ let isModalHovered = false;
 // Employment status specific rejection reasons
 const rejectionReasons = {
     'Unemployed': [
-        'Incomplete employment history',
-        'Missing job search documentation',
-        'Unclear future employment plans',
-        'Insufficient supporting documents',
-        'Employment status verification needed'
     ],
     'Self-Employed': [
-        'Missing business registration documents',
-        'Insufficient business proof',
+        'Missing Business permit document',
+        'Incorrect document submitted',
         'Unclear business description',
-        'Missing financial documentation',
-        'Business verification required'
     ],
     'Employed': [
-        'Missing employment certificate',
+        'Missing Certificate of Employment document',
         'Incomplete company information',
-        'Employment verification needed',
         'Job position details unclear',
-        'Missing salary information'
     ],
     'Student': [
-        'Missing enrollment documents',
+        'Missing Certificate of Registration document',
         'Incomplete educational institution details',
-        'Course/program information unclear',
-        'Academic status verification needed',
-        'Missing student ID or registration proof'
+        'Degree pursued information unclear',
     ],
     'Employed & Student': [
-        'Missing employment or enrollment documents',
-        'Incomplete work-study balance information',
-        'Both statuses need verification',
-        'Schedule conflict information missing',
-        'Insufficient supporting documents for both statuses'
+        'Missing COE or COR documents',
+        'Insufficient/incorrect supporting documents for both statuses'
     ]
 };
 

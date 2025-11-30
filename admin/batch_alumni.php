@@ -368,12 +368,29 @@ let currentUserId = null;
 let hoverTimeout = null;
 let isModalHovered = false;
 
+// Employment status specific rejection reasons
 const rejectionReasons = {
-    'Unemployed': ['Incomplete employment history', 'Missing job search proof', 'Unclear plans'],
-    'Self-Employed': ['Missing business docs', 'Unclear business proof', 'Verification needed'],
-    'Employed': ['Missing COE', 'Incomplete company info', 'Verification needed'],
-    'Student': ['Missing enrollment', 'No student ID', 'Verification needed'],
-    'Employed & Student': ['Missing both docs', 'Conflict unclear', 'Verification needed']
+    'Unemployed': [
+    ],
+    'Self-Employed': [
+        'Missing Business permit document',
+        'Incorrect document submitted',
+        'Unclear business description',
+    ],
+    'Employed': [
+        'Missing Certificate of Employment document',
+        'Incomplete company information',
+        'Job position details unclear',
+    ],
+    'Student': [
+        'Missing Certificate of Registration document',
+        'Incomplete educational institution details',
+        'Degree pursued information unclear',
+    ],
+    'Employed & Student': [
+        'Missing COE or COR documents',
+        'Insufficient/incorrect supporting documents for both statuses'
+    ]
 };
 
 function showApproveModal(id, name) { currentUserId = id; document.getElementById('approveAlumniName').textContent = name; document.getElementById('approveModal').classList.remove('hidden'); }
