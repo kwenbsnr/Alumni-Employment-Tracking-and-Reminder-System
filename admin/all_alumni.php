@@ -23,7 +23,7 @@ $params = [];
 $types = '';
 
 if (!empty($search)) {
-    $whereConditions[] = "(u.name LIKE ? OR u.email LIKE ?)";
+    $whereConditions[] = "(CONCAT(u.first_name, ' ', u.last_name) LIKE ? OR u.email LIKE ?)";
     $term = "%$search%";
     $params = array_merge($params, [$term, $term]);
     $types .= 'ss';
@@ -46,7 +46,13 @@ $whereClause = implode(" AND ", $whereConditions);
 $query = "
     SELECT 
         u.user_id,
-        u.name,
+        CONCAT(
+            u.first_name,
+            IF(u.middle_name IS NOT NULL AND u.middle_name != '', CONCAT(' ', u.middle_name), ''),
+            ' ',
+            u.last_name,
+            IF(u.suffix IS NOT NULL AND u.suffix != '', CONCAT(' ', u.suffix), '')
+        ) as name,
         u.batch_year,
         ap.employment_status,
         ap.submission_status,
@@ -54,11 +60,11 @@ $query = "
         u.email,
         COUNT(ad.doc_id) as document_count
     FROM users u
-    LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id  -- Changed to LEFT JOIN
+    LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id
     LEFT JOIN alumni_documents ad ON u.user_id = ad.user_id
     WHERE $whereClause
     GROUP BY u.user_id
-    ORDER BY u.batch_year DESC, u.name ASC
+    ORDER BY u.batch_year DESC, name ASC
 ";
 
 $stmt = $conn->prepare($query);
@@ -126,7 +132,7 @@ ob_start();
                     <option value="Self-Employed" <?= $employment_status == 'Self-Employed' ? 'selected' : '' ?>>Self-Employed</option>
                     <option value="Employed" <?= $employment_status == 'Employed' ? 'selected' : '' ?>>Employed</option>
                     <option value="Student" <?= $employment_status == 'Student' ? 'selected' : '' ?>>Student</option>
-                    <option value="Employed & Student" <?= $employment_status == 'Employed & Student' ? 'selected' : '' ?>>Student & Employed</option>
+                    <option value="Employed & Student" <?= $employment_status == 'Employed & Student' ? 'selected' : '' ?>>Employed & Student</option>
                 </select>
             </div>
             

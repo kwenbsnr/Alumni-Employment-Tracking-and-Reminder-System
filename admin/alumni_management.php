@@ -346,11 +346,17 @@ if (isset($_SESSION['error_message'])) {
             <span>Showing results for: <strong>"<?= htmlspecialchars($search) ?>"</strong></span>
             <span class="ml-auto text-blue-600 font-medium">
                 <?php
-                $safe_search = $conn->real_escape_string($search);
-                $searchCount = $conn->query("SELECT COUNT(*) as count FROM alumni_profile ap
-                    INNER JOIN users u ON ap.user_id = u.user_id
-                    WHERE u.name LIKE '%$safe_search%' 
-                       OR u.email LIKE '%$safe_search%'")->fetch_assoc()['count'];
+                    // Use prepared statements
+                   $safe_search = $search; // Make sure this is defined earlier
+                   $stmt = $conn->prepare("SELECT DISTINCT u.batch_year 
+                        FROM users u
+                        WHERE u.role = 'alumni' 
+                        AND u.batch_year IS NOT NULL 
+                        AND (CONCAT(u.first_name, ' ', u.last_name) LIKE ? OR u.email LIKE ?)");
+                    $term = "%$search%";
+                    $stmt->bind_param('ss', $term, $term);
+                    $stmt->execute();
+                    $displayResult = $stmt->get_result();
                 echo "{$searchCount} result(s) found";
                 ?>
             </span>
@@ -444,12 +450,12 @@ if (isset($_SESSION['error_message'])) {
             $displayResult = $batchResult;
             if (!empty($search)) {
                 $stmt = $conn->prepare("SELECT DISTINCT u.batch_year 
-                                       FROM alumni_profile ap
-                                       INNER JOIN users u ON ap.user_id = u.user_id 
-                                       WHERE u.batch_year IS NOT NULL 
-                                       AND u.name LIKE ?");
+                                    FROM alumni_profile ap
+                                    INNER JOIN users u ON ap.user_id = u.user_id 
+                                    WHERE u.batch_year IS NOT NULL 
+                                    AND (CONCAT(u.first_name, ' ', u.last_name) LIKE ? OR u.email LIKE ?)");
                 $term = "%$search%";
-                $stmt->bind_param('s', $term);
+                $stmt->bind_param('ss', $term, $term);
                 $stmt->execute();
                 $displayResult = $stmt->get_result();
             }
@@ -657,30 +663,39 @@ function generateAlumniReport($selected_batches, $report_type, $conn) {
             CASE WHEN COUNT(*) > 0 THEN ROUND(100.0 * (
                 SUM(CASE WHEN LOWER(TRIM(ap.employment_status)) IN ('employed','self-employed','employed & student') THEN 1 ELSE 0 END)
             ) / COUNT(*), 2) ELSE 0 END AS employment_rate
-          FROM alumni_profile ap
-          INNER JOIN users u ON ap.user_id = u.user_id
-          WHERE u.batch_year IN ($placeholders)
-          GROUP BY u.batch_year
-          ORDER BY u.batch_year DESC",
+        FROM alumni_profile ap
+        INNER JOIN users u ON ap.user_id = u.user_id
+        WHERE u.batch_year IN ($placeholders)
+        GROUP BY u.batch_year
+        ORDER BY u.batch_year DESC",
 
-        'detailed' => "SELECT u.name, u.email, u.batch_year, 
-                          COALESCE(ap.employment_status, 'Not Updated') as employment_status,
-                          CASE 
-                              WHEN LOWER(TRIM(ap.employment_status)) = 'self-employed' THEN 'Self-Employed'
-                              WHEN jt.title IS NOT NULL THEN jt.title
-                              ELSE '-'
-                          END as current_job,
-                          CASE 
-                              WHEN LOWER(TRIM(ap.employment_status)) = 'self-employed' THEN COALESCE(ei.business_type, '-')
-                              WHEN ei.company_name IS NOT NULL THEN ei.company_name
-                              ELSE '-'
-                          END as current_employer
-                   FROM alumni_profile ap
-                   INNER JOIN users u ON ap.user_id = u.user_id
-                   LEFT JOIN employment_info ei ON ap.user_id = ei.user_id
-                   LEFT JOIN job_titles jt ON ei.job_title_id = jt.job_title_id
-                   WHERE u.batch_year IN ($placeholders)
-                   ORDER BY u.batch_year DESC, u.name"
+        'detailed' => "SELECT 
+            CONCAT(
+                u.first_name,
+                IF(u.middle_name IS NOT NULL AND u.middle_name != '', CONCAT(' ', u.middle_name), ''),
+                ' ',
+                u.last_name,
+                IF(u.suffix IS NOT NULL AND u.suffix != '', CONCAT(' ', u.suffix), '')
+            ) as name, 
+            u.email, 
+            u.batch_year, 
+            COALESCE(ap.employment_status, 'Not Updated') as employment_status,
+            CASE 
+                WHEN LOWER(TRIM(ap.employment_status)) = 'self-employed' THEN 'Self-Employed'
+                WHEN jt.title IS NOT NULL THEN jt.title
+                ELSE '-'
+            END as current_job,
+            CASE 
+                WHEN LOWER(TRIM(ap.employment_status)) = 'self-employed' THEN COALESCE(ei.business_type, '-')
+                WHEN ei.company_name IS NOT NULL THEN ei.company_name
+                ELSE '-'
+            END as current_employer
+    FROM alumni_profile ap
+    INNER JOIN users u ON ap.user_id = u.user_id
+    LEFT JOIN employment_info ei ON ap.user_id = ei.user_id
+    LEFT JOIN job_titles jt ON ei.job_title_id = jt.job_title_id
+    WHERE u.batch_year IN ($placeholders)
+    ORDER BY u.batch_year DESC, name"
     ];
 
     if (!isset($queries[$report_type])) {
@@ -707,7 +722,14 @@ function generateAlumniReport($selected_batches, $report_type, $conn) {
     }
     call_user_func_array([$stmt, 'bind_param'], $bind_names);
 
-    $stmt->execute();
+    // Execute with error handling
+    if (!$stmt->execute()) {
+        error_log("Report generation failed: " . $stmt->error);
+        $_SESSION['error_message'] = "Failed to generate report: " . $stmt->error;
+        header("Location: " . $_SERVER['PHP_SELF']);
+        exit();
+    }
+
     $result = $stmt->get_result();
     $data = $result->fetch_all(MYSQLI_ASSOC);
 

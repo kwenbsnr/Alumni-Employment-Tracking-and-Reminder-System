@@ -15,7 +15,13 @@ if (!$user_id || !is_numeric($user_id)) {
 
 $query = "
     SELECT
-        u.name as official_name,
+        CONCAT(
+            u.first_name,
+            IF(u.middle_name IS NOT NULL AND u.middle_name != '', CONCAT(' ', u.middle_name), ''),
+            ' ',
+            u.last_name,
+            IF(u.suffix IS NOT NULL AND u.suffix != '', CONCAT(' ', u.suffix), '')
+        ) as official_name,
         u.batch_year,
         u.email,
         u.student_id,
@@ -37,25 +43,25 @@ $query = "
         edu.start_year,
         edu.end_year,
         tb.barangay_name,
-tm.municipality_name, 
-tp.province_name,
-tr.region_name,
+        tm.municipality_name, 
+        tp.province_name,
+        tr.region_name,
         ad1.file_path as cor_path,
         ad2.file_path as coe_path,
         ad3.file_path as b_cert_path
     FROM users u
     LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id
-    LEFT JOIN employment_info ei ON u.user_id = ei.user_id
+    LEFT JOIN employment_info ei ON ap.user_id = ei.user_id
     LEFT JOIN job_titles jt ON ei.job_title_id = jt.job_title_id
-    LEFT JOIN education_info edu ON u.user_id = edu.user_id
+    LEFT JOIN education_info edu ON ap.user_id = edu.user_id
     LEFT JOIN address a ON ap.address_id = a.address_id
     LEFT JOIN table_barangay tb ON a.barangay_id = tb.barangay_id
     LEFT JOIN table_municipality tm ON tb.municipality_id = tm.municipality_id
     LEFT JOIN table_province tp ON tm.province_id = tp.province_id
     LEFT JOIN table_region tr ON tp.region_id = tr.region_id
-    LEFT JOIN alumni_documents ad1 ON u.user_id = ad1.user_id AND ad1.document_type = 'COR'
-    LEFT JOIN alumni_documents ad2 ON u.user_id = ad2.user_id AND ad2.document_type = 'COE'
-    LEFT JOIN alumni_documents ad3 ON u.user_id = ad3.user_id AND ad3.document_type = 'B_CERT'
+    LEFT JOIN alumni_documents ad1 ON ap.user_id = ad1.user_id AND ad1.document_type = 'COR'
+    LEFT JOIN alumni_documents ad2 ON ap.user_id = ad2.user_id AND ad2.document_type = 'COE'
+    LEFT JOIN alumni_documents ad3 ON ap.user_id = ad3.user_id AND ad3.document_type = 'B_CERT'
     WHERE u.user_id = ?
     LIMIT 1
 ";
