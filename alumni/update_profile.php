@@ -60,13 +60,24 @@ $user_stmt->execute();
 $profile = $user_stmt->get_result()->fetch_assoc() ?: [];
 $user_stmt->close();
 
-// ---- 2. Profile Permissions --------------------------------------------------------
-$is_profile_rejected = !empty($profile) && ($profile['submission_status'] ?? '') === 'Rejected';
-$is_profile_pending = !empty($profile) && ($profile['submission_status'] ?? '') === 'Pending';
+// ---- 2. Get complete alumni profile data -------------------------------------
+$alumni_stmt = $conn->prepare("
+    SELECT ap.submission_status, ap.last_profile_update, ap.address_id, ap.employment_status, ap.photo_path
+    FROM alumni_profile ap 
+    WHERE ap.user_id = ?
+");
+$alumni_stmt->bind_param("i", $user_id);
+$alumni_stmt->execute();
+$alumni_profile = $alumni_stmt->get_result()->fetch_assoc() ?: [];
+$alumni_stmt->close();
 
-$can_update_semiannual = empty($profile) || 
-                        ($profile && ($profile['last_profile_update'] === null || 
-                        strtotime($profile['last_profile_update'] . ' +6 months') <= time()));
+// ---- 3. Profile Permissions --------------------------------------------------------
+$is_profile_rejected = !empty($alumni_profile) && ($alumni_profile['submission_status'] ?? '') === 'Rejected';
+$is_profile_pending = !empty($alumni_profile) && ($alumni_profile['submission_status'] ?? '') === 'Pending';
+
+$can_update_semiannual = empty($alumni_profile) || 
+                        ($alumni_profile['last_profile_update'] === null || 
+                        strtotime($alumni_profile['last_profile_update'] . ' +6 months') <= time());
 
 $can_update = $can_update_semiannual || $is_profile_rejected || $is_profile_pending;
 
@@ -82,23 +93,30 @@ if ($is_profile_rejected && !isset($_SESSION['profile_rejected'])) {
     $_SESSION['profile_rejected'] = true;
 }
 
-$existing_address_id = $profile['address_id'] ?? null;
-$current_employment_status = $profile['employment_status'] ?? '';
+$existing_address_id = $alumni_profile['address_id'] ?? null;
+$current_employment_status = $alumni_profile['employment_status'] ?? '';
+$photo_path = $alumni_profile['photo_path'] ?? null;
 
 // ---- 3. Helper: file upload --------------------------------------------------
 function upload_file($field, $dir, $user_id, $type, $allowed = ['application/pdf']) {
     if (!isset($_FILES[$field]) || $_FILES[$field]['error'] !== UPLOAD_ERR_OK) {
         if ($_FILES[$field]['error'] === UPLOAD_ERR_INI_SIZE || $_FILES[$field]['error'] === UPLOAD_ERR_FORM_SIZE) {
-            throw new Exception("File size too large. Maximum allowed is 2MB.");
+            $doc_name = $field === 'coe_file' ? 'Certificate of Employment' : 
+                    ($field === 'business_file' ? 'Business Certificate' : 
+                    ($field === 'cor_file' ? 'Certificate of Registration' : 'File'));
+            throw new Exception("{$doc_name} is too large. Maximum allowed size is 2MB.");
         }
         return null;
     }
 
     $file = $_FILES[$field];
     $max_size = 2 * 1024 * 1024; // 2MB
-    
+
     if ($file['size'] > $max_size) {
-        throw new Exception("File size exceeds 2MB limit.");
+        $doc_name = $field === 'coe_file' ? 'Certificate of Employment' : 
+                ($field === 'business_file' ? 'Business Certificate' : 
+                ($field === 'cor_file' ? 'Certificate of Registration' : 'File'));
+        throw new Exception("{$doc_name} exceeds the 2MB size limit. Please choose a smaller file.");
     }
     
     // Verify MIME type using finfo for better security
@@ -192,10 +210,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $municipality_id = htmlspecialchars(trim($_POST['municipality_id'] ?? ''));
         $barangay_id = htmlspecialchars(trim($_POST['barangay_id'] ?? ''));
 
-        // Employment fields - Store raw data
+        // Employment fields
         $job_title = !empty($_POST['job_title']) ? trim($_POST['job_title']) : '';
         if ($job_title === 'Other') {
-            $job_title = !empty($_POST['other_job_title']) ? trim($_POST['other_job_title']) : '';
+            if (empty(trim($_POST['other_job_title'] ?? ''))) {
+                throw new Exception("Please specify your job title in the 'Other Job Title' field.");
+            }
+            $job_title = trim($_POST['other_job_title']);
         }
 
         $company = !empty($_POST['company_name']) ? trim($_POST['company_name']) : '';
@@ -208,8 +229,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // Education fields - Store raw data, don't encode for database storage
-        $school = !empty($_POST['school_name']) ? trim($_POST['school_name']) : '';
-        $degree = !empty($_POST['degree_pursued']) ? trim($_POST['degree_pursued']) : '';
+        $school = !empty($_POST['school_name']) ? 
+            htmlspecialchars(trim($_POST['school_name']), ENT_QUOTES, 'UTF-8') : '';
+        $degree = !empty($_POST['degree_pursued']) ? 
+            htmlspecialchars(trim($_POST['degree_pursued']), ENT_QUOTES, 'UTF-8') : '';
         $start_year = !empty($_POST['start_year']) ? trim($_POST['start_year']) : '';
         $end_year = !empty($_POST['end_year']) ? trim($_POST['end_year']) : '';
 
@@ -283,7 +306,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // ---- 5.3 Photo handling ---------------------------------------
-        $photo_path = $profile['photo_path'] ?? null;
 
         if (isset($_FILES['profile_photo']) && $_FILES['profile_photo']['error'] === UPLOAD_ERR_OK) {
             $file = $_FILES['profile_photo'];
