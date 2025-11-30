@@ -15,7 +15,6 @@ if (!isset($_SESSION["user_id"]) || $_SESSION["role"] !== "admin") {
     <title><?php echo $page_title ?? "Admin Dashboard"; ?></title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="../assets/js/phil-address/phil.min.js"></script>  
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         /* Custom CSS for modern design */
