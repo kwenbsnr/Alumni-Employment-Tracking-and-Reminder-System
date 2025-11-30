@@ -14,14 +14,25 @@ if (!$user_id) {
 }
 
 // Get alumni name for the header
-$alumniQuery = "SELECT first_name, last_name FROM alumni_profile WHERE user_id = ?";
+$alumniQuery = "
+    SELECT 
+        CONCAT(
+            u.first_name,
+            IF(u.middle_name IS NOT NULL AND u.middle_name != '', CONCAT(' ', u.middle_name), ''),
+            ' ',
+            u.last_name,
+            IF(u.suffix IS NOT NULL AND u.suffix != '', CONCAT(' ', u.suffix), '')
+        ) as name
+    FROM users u 
+    WHERE u.user_id = ?
+";
 $alumniStmt = $conn->prepare($alumniQuery);
 $alumniStmt->bind_param('i', $user_id);
 $alumniStmt->execute();
 $alumniResult = $alumniStmt->get_result();
 $alumni = $alumniResult->fetch_assoc();
 
-$page_title = "Alumni Documents - " . ($alumni ? htmlspecialchars($alumni['first_name'] . ' ' . $alumni['last_name']) : 'Unknown');
+$page_title = "Alumni Documents - " . ($alumni ? htmlspecialchars($alumni['name']) : 'Unknown');
 $active_page = "alumni_management";
 
 // Fetch documents - CORRECTED QUERY without document_status column
@@ -58,7 +69,7 @@ ob_start();
             <div>
                 <h1 class="text-2xl font-bold text-gray-800">Alumni Documents</h1>
                 <p class="text-gray-600">
-                    <?php echo $alumni ? htmlspecialchars($alumni['first_name'] . ' ' . $alumni['last_name']) : 'Unknown Alumni'; ?>
+                    <?php echo $alumni ? htmlspecialchars($alumni['name']) : 'Unknown Alumni'; ?>
                 </p>
             </div>
         </div>

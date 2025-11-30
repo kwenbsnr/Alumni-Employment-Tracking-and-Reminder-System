@@ -10,11 +10,16 @@ $page_title = "Dashboard";
 $active_page = "dashboard";
 $user_id = $_SESSION["user_id"];
 
-// ---- 1. UPDATE THE SQL QUERY (only the fields that really exist) ----
-// ---- UPDATED SQL QUERY ----
+// ---- 1. FETCH SQL QUERY ----
 $stmt = $conn->prepare("
     SELECT
-        u.name as official_name,
+        CONCAT(
+            u.first_name, 
+            IF(u.middle_name IS NOT NULL AND u.middle_name != '', CONCAT(' ', u.middle_name), ''),
+            ' ',
+            u.last_name,
+            IF(u.suffix IS NOT NULL AND u.suffix != '', CONCAT(' ', u.suffix), '')
+        ) as official_name,
         u.student_id,
         u.program,
         u.batch_year as year_graduated,
@@ -30,6 +35,7 @@ $stmt = $conn->prepare("
     WHERE u.user_id = ?
     GROUP BY u.user_id
 ");
+
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
 $result = $stmt->get_result();

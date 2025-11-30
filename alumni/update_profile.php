@@ -43,8 +43,18 @@ if (!empty($_FILES['profile_photo']['name'])) {
 log_alumni_activity($conn, $user_id, 'profile_updated', 'Updated personal information and address');
 
 // ---- 1. Profile & Permissions ------------------------------------------------
-$stmt = $conn->prepare("SELECT last_profile_update, user_id, photo_path, address_id, employment_status, submission_status, contact_number 
-                        FROM alumni_profile WHERE user_id = ?");
+$user_stmt = $conn->prepare("
+    SELECT 
+        CONCAT(
+            first_name, 
+            IF(middle_name IS NOT NULL AND middle_name != '', CONCAT(' ', middle_name), ''),
+            ' ',
+            last_name,
+            IF(suffix IS NOT NULL AND suffix != '', CONCAT(' ', suffix), '')
+        ) as name 
+    FROM users 
+    WHERE user_id = ?
+");
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
 $profile = $stmt->get_result()->fetch_assoc() ?: [];
@@ -84,25 +94,40 @@ function upload_file($field, $dir, $user_id, $type, $allowed = ['application/pdf
         return null;
     }
 
-    $fileType = $_FILES[$field]['type'];
-    $ext = strtolower(pathinfo($_FILES[$field]['name'], PATHINFO_EXTENSION));
-    $size = $_FILES[$field]['size'];
-
-    $extMap = [
-        'image/jpeg' => 'jpg', 'image/png' => 'png', 'application/pdf' => 'pdf'
-    ];
-    $allowedExt = array_map(fn($t) => $extMap[$t] ?? '', $allowed);
-
-    if (!in_array($fileType, $allowed, true)) {
-        throw new Exception("Invalid file type. Allowed: " . implode(', ', array_keys($extMap)));
-    }
+    $file = $_FILES[$field];
+    $max_size = 2 * 1024 * 1024; // 2MB
     
-    if (!in_array($ext, $allowedExt, true)) {
-        throw new Exception("Invalid file extension. Allowed: " . implode(', ', $allowedExt));
-    }
-    
-    if ($size > 2 * 1024 * 1024) {
+    if ($file['size'] > $max_size) {
         throw new Exception("File size exceeds 2MB limit.");
+    }
+    
+    // Verify MIME type using finfo for better security
+    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+    $mime_type = finfo_file($finfo, $file['tmp_name']);
+    finfo_close($finfo);
+    
+    if (!in_array($mime_type, $allowed)) {
+        throw new Exception("Invalid file type. Allowed: " . implode(', ', $allowed));
+    }
+    
+    // Sanitize filename
+    $original_name = $file['name'];
+    $safe_name = preg_replace("/[^a-zA-Z0-9\._-]/", "_", $original_name);
+    $safe_name = substr($safe_name, 0, 100); // Limit filename length
+    
+    $ext = strtolower(pathinfo($safe_name, PATHINFO_EXTENSION));
+    
+    // Validate extension matches MIME type
+    $extMap = [
+        'image/jpeg' => 'jpg', 
+        'image/jpg' => 'jpg',
+        'image/png' => 'png', 
+        'application/pdf' => 'pdf'
+    ];
+    
+    $expected_ext = $extMap[$mime_type] ?? '';
+    if ($expected_ext && $ext !== $expected_ext) {
+        throw new Exception("File extension does not match file type.");
     }
 
     if (!is_dir($dir)) {
@@ -114,7 +139,7 @@ function upload_file($field, $dir, $user_id, $type, $allowed = ['application/pdf
     $name = 'user_' . $user_id . '_' . $type . '_' . time() . '.' . $ext;
     $target = rtrim($dir, '/') . '/' . $name;
 
-    if (!move_uploaded_file($_FILES[$field]['tmp_name'], $target)) {
+    if (!move_uploaded_file($file['tmp_name'], $target)) {
         throw new Exception("File upload failed. Please try again.");
     }
     
@@ -352,34 +377,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->close();
         }
 
-// ---- 5.5 Profile INSERT / UPDATE ----------------------------------------
-if ($can_update) {
-    $original_status = trim($_POST['employment_status'] ?? '');
-    
-    // Get user's name from users table
-    $user_stmt = $conn->prepare("SELECT name FROM users WHERE user_id = ?");
-    $user_stmt->bind_param("i", $user_id);
-    $user_stmt->execute();
-    $user_data = $user_stmt->get_result()->fetch_assoc();
-    $user_stmt->close();
-    
-    $user_name = $user_data['name'] ?? '';
-    
-    if ($profile) {
-        $stmt = $conn->prepare("UPDATE alumni_profile SET 
-            name=?, contact_number=?, employment_status=?, photo_path=?, last_profile_update=NOW(), address_id=?,
-            submission_status='Pending', submitted_at=NOW()
-            WHERE user_id=?");
-        $stmt->bind_param("ssssii", $user_name, $contact, $original_status, $photo_path, $address_id, $user_id);
-    } else {
-        $stmt = $conn->prepare("INSERT INTO alumni_profile 
-            (user_id, name, contact_number, employment_status, photo_path, last_profile_update, address_id, submission_status, submitted_at)
-            VALUES (?,?,?,?,?,NOW(),?,'Pending',NOW())");
-        $stmt->bind_param("issssi", $user_id, $user_name, $contact, $original_status, $photo_path, $address_id);
-    }
-    $stmt->execute();
-    $stmt->close();
-}
+        // ---- 5.5 Profile INSERT / UPDATE ----------------------------------------
+        if ($can_update) {
+            $original_status = trim($_POST['employment_status'] ?? '');
+            
+            // Get user's name from users table - UPDATED
+            $user_stmt = $conn->prepare("
+                SELECT 
+                    CONCAT(
+                        first_name, 
+                        IF(middle_name IS NOT NULL AND middle_name != '', CONCAT(' ', middle_name), ''),
+                        ' ',
+                        last_name,
+                        IF(suffix IS NOT NULL AND suffix != '', CONCAT(' ', suffix), '')
+                    ) as name 
+                FROM users 
+                WHERE user_id = ?
+            ");
+            $user_stmt->bind_param("i", $user_id);
+            $user_stmt->execute();
+            $user_data = $user_stmt->get_result()->fetch_assoc();
+            $user_stmt->close();
+            
+            $user_name = $user_data['name'] ?? '';
+            
+            if ($profile) {
+                $stmt = $conn->prepare("UPDATE alumni_profile SET 
+                    name=?, contact_number=?, employment_status=?, photo_path=?, last_profile_update=NOW(), address_id=?,
+                    submission_status='Pending', submitted_at=NOW()
+                    WHERE user_id=?");
+                $stmt->bind_param("ssssii", $user_name, $contact, $original_status, $photo_path, $address_id, $user_id);
+            } else {
+                $stmt = $conn->prepare("INSERT INTO alumni_profile 
+                    (user_id, name, contact_number, employment_status, photo_path, last_profile_update, address_id, submission_status, submitted_at)
+                    VALUES (?,?,?,?,?,NOW(),?,'Pending',NOW())");
+                $stmt->bind_param("issssi", $user_id, $user_name, $contact, $original_status, $photo_path, $address_id);
+            }
+
+            if (!$stmt->execute()) {
+                error_log("Alumni profile update failed: " . $stmt->error);
+                throw new Exception("Failed to save profile information. Please try again.");
+            }
+            $stmt->close();
+        }
 
         // ---- 5.6 Employment ------------------------------------------------------
         if ($can_update) {
@@ -442,10 +482,10 @@ if ($can_update) {
                     $business_type,
                     $salary
                 );
-                
+
                 if (!$stmt->execute()) {
-                    error_log("Employment insert failed: " . $stmt->error);
-                    throw new Exception("Failed to save employment info: " . $stmt->error);
+                    error_log("Employment info insertion failed: " . $stmt->error);
+                    throw new Exception("Failed to save employment information. Please try again.");
                 }
                 $stmt->close();
                 
@@ -476,7 +516,11 @@ if ($can_update) {
                     (user_id, school_name, degree_pursued, start_year, end_year)
                     VALUES (?,?,?,?,?)");
                 $stmt->bind_param("issss", $user_id, $school, $degree, $start_year, $end_year);
-                $stmt->execute();
+
+                if (!$stmt->execute()) {
+                    error_log("Education info insertion failed: " . $stmt->error);
+                    throw new Exception("Failed to save education information. Please try again.");
+                }
                 $stmt->close();
                 error_log("Education info inserted for status: '{$original_status}'");
             } else {
