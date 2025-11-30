@@ -55,10 +55,10 @@ $user_stmt = $conn->prepare("
     FROM users 
     WHERE user_id = ?
 ");
-$stmt->bind_param("i", $user_id);
-$stmt->execute();
-$profile = $stmt->get_result()->fetch_assoc() ?: [];
-$stmt->close();
+$user_stmt->bind_param("i", $user_id);
+$user_stmt->execute();
+$profile = $user_stmt->get_result()->fetch_assoc() ?: [];
+$user_stmt->close();
 
 // ---- 2. Profile Permissions --------------------------------------------------------
 $is_profile_rejected = !empty($profile) && ($profile['submission_status'] ?? '') === 'Rejected';
@@ -403,15 +403,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             if ($profile) {
                 $stmt = $conn->prepare("UPDATE alumni_profile SET 
-                    name=?, contact_number=?, employment_status=?, photo_path=?, last_profile_update=NOW(), address_id=?,
+                    contact_number=?, employment_status=?, photo_path=?, last_profile_update=NOW(), address_id=?,
                     submission_status='Pending', submitted_at=NOW()
                     WHERE user_id=?");
-                $stmt->bind_param("ssssii", $user_name, $contact, $original_status, $photo_path, $address_id, $user_id);
+                $stmt->bind_param("sssii", $contact, $original_status, $photo_path, $address_id, $user_id);
             } else {
                 $stmt = $conn->prepare("INSERT INTO alumni_profile 
-                    (user_id, name, contact_number, employment_status, photo_path, last_profile_update, address_id, submission_status, submitted_at)
-                    VALUES (?,?,?,?,?,NOW(),?,'Pending',NOW())");
-                $stmt->bind_param("issssi", $user_id, $user_name, $contact, $original_status, $photo_path, $address_id);
+                    (user_id, contact_number, employment_status, photo_path, last_profile_update, address_id, submission_status, submitted_at)
+                    VALUES (?,?,?,?,NOW(),?,'Pending',NOW())");
+                $stmt->bind_param("isssi", $user_id, $contact, $original_status, $photo_path, $address_id);
             }
 
             if (!$stmt->execute()) {
