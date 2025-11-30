@@ -104,6 +104,8 @@ $photo_path = $alumni_profile['photo_path'] ?? null;
 
 // ---- 3. Helper: file upload --------------------------------------------------
 function upload_file($field, $dir, $user_id, $type, $allowed = ['application/pdf']) {
+    global $conn; // Add this line to access the database connection
+    
     if (!isset($_FILES[$field]) || $_FILES[$field]['error'] !== UPLOAD_ERR_OK) {
         if ($_FILES[$field]['error'] === UPLOAD_ERR_INI_SIZE || $_FILES[$field]['error'] === UPLOAD_ERR_FORM_SIZE) {
             $doc_name = $field === 'coe_file' ? 'Certificate of Employment' : 
@@ -159,8 +161,43 @@ function upload_file($field, $dir, $user_id, $type, $allowed = ['application/pdf
         }
     }
 
-    $name = 'user_' . $user_id . '_' . $type . '_' . time() . '.' . $ext;
+    // Get user's surname for filename
+    $user_stmt = $conn->prepare("SELECT last_name FROM users WHERE user_id = ?");
+    $user_stmt->bind_param("i", $user_id);
+    $user_stmt->execute();
+    $user_result = $user_stmt->get_result();
+    $user_data = $user_result->fetch_assoc();
+    $user_stmt->close();
+    
+    $surname = 'unknown';
+    if ($user_data && !empty($user_data['last_name'])) {
+        // Sanitize surname: remove spaces and special characters, convert to lowercase
+        $surname = preg_replace("/[^a-zA-Z0-9]/", "", $user_data['last_name']);
+        $surname = strtolower($surname);
+    }
+
+    // Map type codes to document type names for filename
+    $doc_type_map = [
+        'profile' => 'profile',
+        'coe' => 'COE',
+        'business' => 'B_CERT', 
+        'cor' => 'COR'
+    ];
+    
+    $doc_type = $doc_type_map[$type] ?? $type;
+    
+    // Generate filename: surname_docType.extension
+    $name = $surname . '_' . $doc_type . '.' . $ext;
     $target = rtrim($dir, '/') . '/' . $name;
+
+    // Check if file exists and append counter if needed
+    $counter = 1;
+    $base_name = $surname . '_' . $doc_type;
+    while (file_exists($target)) {
+        $name = $base_name . '_' . $counter . '.' . $ext;
+        $target = rtrim($dir, '/') . '/' . $name;
+        $counter++;
+    }
 
     if (!move_uploaded_file($file['tmp_name'], $target)) {
         throw new Exception("File upload failed. Please try again.");
@@ -327,7 +364,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             $new_photo = upload_file('profile_photo', '../uploads/photos/', $user_id, 'profile', 
-                ['image/jpeg','image/jpg','image/png','image/gif','image/webp']);
+            ['image/jpeg','image/jpg','image/png','image/gif','image/webp']);
 
             if (!$new_photo) {
                 throw new Exception("Photo upload failed. Please try again.");
