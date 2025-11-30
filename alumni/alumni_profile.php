@@ -16,7 +16,16 @@ $active_page = "profile";
 // Fetch profile data WITH SCHOOL INFO 
 $stmt = $conn->prepare("
     SELECT 
-        u.user_id, u.email, u.student_id, u.date_of_birth, u.gender, u.program, u.name as official_name, u.batch_year,
+        u.user_id, u.email, u.student_id, u.date_of_birth, u.gender, u.program, 
+        CONCAT(
+            u.first_name, 
+            IF(u.middle_name IS NOT NULL AND u.middle_name != '', CONCAT(' ', u.middle_name), ''),
+            ' ',
+            u.last_name,
+            IF(u.suffix IS NOT NULL AND u.suffix != '', CONCAT(' ', u.suffix), '')
+        ) as official_name,
+        u.batch_year,
+        u.first_name, u.middle_name, u.last_name, u.suffix,
         ap.contact_number, 
         ap.employment_status, ap.photo_path, ap.address_id,
         ap.submission_status, ap.last_profile_update, ap.rejection_reason,
