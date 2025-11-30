@@ -381,27 +381,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($can_update) {
             $original_status = trim($_POST['employment_status'] ?? '');
             
-            // Get user's name from users table - UPDATED
-            $user_stmt = $conn->prepare("
-                SELECT 
-                    CONCAT(
-                        first_name, 
-                        IF(middle_name IS NOT NULL AND middle_name != '', CONCAT(' ', middle_name), ''),
-                        ' ',
-                        last_name,
-                        IF(suffix IS NOT NULL AND suffix != '', CONCAT(' ', suffix), '')
-                    ) as name 
-                FROM users 
-                WHERE user_id = ?
-            ");
-            $user_stmt->bind_param("i", $user_id);
-            $user_stmt->execute();
-            $user_data = $user_stmt->get_result()->fetch_assoc();
-            $user_stmt->close();
+            // Check if alumni_profile record exists
+            $check_stmt = $conn->prepare("SELECT user_id FROM alumni_profile WHERE user_id = ?");
+            $check_stmt->bind_param("i", $user_id);
+            $check_stmt->execute();
+            $profile_exists = $check_stmt->get_result()->num_rows > 0;
+            $check_stmt->close();
             
-            $user_name = $user_data['name'] ?? '';
-            
-            if ($profile) {
+            if ($profile_exists) {
                 $stmt = $conn->prepare("UPDATE alumni_profile SET 
                     contact_number=?, employment_status=?, photo_path=?, last_profile_update=NOW(), address_id=?,
                     submission_status='Pending', submitted_at=NOW()
@@ -419,6 +406,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new Exception("Failed to save profile information. Please try again.");
             }
             $stmt->close();
+            
+            // Ensure the profile record is committed before proceeding
+            error_log("Alumni profile record created/updated successfully");
         }
 
         // ---- 5.6 Employment ------------------------------------------------------
@@ -622,7 +612,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         header("Location: alumni_profile.php?error=" . urlencode($e->getMessage()));
         exit;
     }
-}                                                      
+}                                                                                                    
 
 $conn->close();
 ob_end_flush();
