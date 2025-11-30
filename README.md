@@ -26,21 +26,11 @@
 ____________________
 # WHAT TO FIX: 
 ## ALUMNI:
-### 1. Apostrophe handling 
-### 2. Start & end year display for bth student and emp & stud
-### 3. modal shadow naay line above.
+### 1. modal shadow naay line above.
 ##
 ## ADMIN:
 ### 1. Unnecessary program field in the hover since da system is exclusively for da bsit prog.
 ### 2. Toast notif upon approval/rej.
-##
-## DB:
-### 1. filepath must be surname + filenm for clarity.
-### 2. it would be better perhaps if middle name is a separate column , since full midname is needed in reality, not only the initials man. 
-### 3. same for the entire name field, just to make the db atomic as well, thus satisfying 1NF.
-### 4. redudant name field - users.name & alumni_profile.name.
-### 5. add field for name xtnsions
-
 ____________________
 
 Summary of Changes Implemented
