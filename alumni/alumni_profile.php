@@ -453,6 +453,18 @@ ob_start();
                 </dd>
             </div>
             <div class="flex flex-col">
+                <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Start Year</dt>
+                <dd class="font-semibold text-gray-700" style="font-size: 15px;">
+                    <?php echo !empty($education['start_year']) ? htmlspecialchars($education['start_year']) : 'N/A'; ?>
+                </dd>
+            </div>
+            <div class="flex flex-col">
+                <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">End Year (Expected)</dt>
+                <dd class="font-semibold text-gray-700" style="font-size: 15px;">
+                    <?php echo !empty($education['end_year']) ? htmlspecialchars($education['end_year']) : 'N/A'; ?>
+                </dd>
+            </div>
+            <div class="flex flex-col">
                 <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Degree Pursued</dt>
                 <dd class="font-semibold text-gray-700" style="font-size: 15px;">
                     <?php echo !empty($education['degree_pursued']) ? htmlspecialchars($education['degree_pursued'], ENT_QUOTES, 'UTF-8') : 'N/A'; ?>
@@ -1072,7 +1084,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Employment status toggle - COMPLETELY FIXED LOGIC
+    // Employment status toggle
     function toggleEmploymentSections(status) {
         console.log('Toggling employment sections for:', status);
         
