@@ -51,17 +51,17 @@ $query = "
         ad3.file_path as b_cert_path
     FROM users u
     LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id
-    LEFT JOIN employment_info ei ON u.user_id = ei.user_id
+    LEFT JOIN employment_info ei ON ap.user_id = ei.user_id
     LEFT JOIN job_titles jt ON ei.job_title_id = jt.job_title_id
-    LEFT JOIN education_info edu ON u.user_id = edu.user_id
+    LEFT JOIN education_info edu ON ap.user_id = edu.user_id
     LEFT JOIN address a ON ap.address_id = a.address_id
     LEFT JOIN table_barangay tb ON a.barangay_id = tb.barangay_id
     LEFT JOIN table_municipality tm ON tb.municipality_id = tm.municipality_id
     LEFT JOIN table_province tp ON tm.province_id = tp.province_id
     LEFT JOIN table_region tr ON tp.region_id = tr.region_id
-    LEFT JOIN alumni_documents ad1 ON u.user_id = ad1.user_id AND ad1.document_type = 'COR'
-    LEFT JOIN alumni_documents ad2 ON u.user_id = ad2.user_id AND ad2.document_type = 'COE'
-    LEFT JOIN alumni_documents ad3 ON u.user_id = ad3.user_id AND ad3.document_type = 'B_CERT'
+    LEFT JOIN alumni_documents ad1 ON ap.user_id = ad1.user_id AND ad1.document_type = 'COR'
+    LEFT JOIN alumni_documents ad2 ON ap.user_id = ad2.user_id AND ad2.document_type = 'COE'
+    LEFT JOIN alumni_documents ad3 ON ap.user_id = ad3.user_id AND ad3.document_type = 'B_CERT'
     WHERE u.user_id = ?
     LIMIT 1
 ";

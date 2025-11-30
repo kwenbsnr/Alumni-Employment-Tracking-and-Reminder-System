@@ -64,7 +64,7 @@ $query = "
     LEFT JOIN alumni_documents ad ON u.user_id = ad.user_id
     WHERE $whereClause
     GROUP BY u.user_id
-    ORDER BY u.batch_year DESC, u.name ASC
+    ORDER BY u.batch_year DESC, name ASC
 ";
 
 $stmt = $conn->prepare($query);
@@ -132,7 +132,7 @@ ob_start();
                     <option value="Self-Employed" <?= $employment_status == 'Self-Employed' ? 'selected' : '' ?>>Self-Employed</option>
                     <option value="Employed" <?= $employment_status == 'Employed' ? 'selected' : '' ?>>Employed</option>
                     <option value="Student" <?= $employment_status == 'Student' ? 'selected' : '' ?>>Student</option>
-                    <option value="Employed & Student" <?= $employment_status == 'Employed & Student' ? 'selected' : '' ?>>Student & Employed</option>
+                    <option value="Employed & Student" <?= $employment_status == 'Employed & Student' ? 'selected' : '' ?>>Employed & Student</option>
                 </select>
             </div>
             

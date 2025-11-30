@@ -20,7 +20,7 @@ $search = $_GET['search'] ?? '';
 $employment_status = $_GET['employment_status'] ?? '';
 $submission_status = $_GET['submission_status'] ?? '';
 
-// Fetch batch statistics - include all alumni
+// Fetch batch statistics
 $statsQuery = "SELECT
     COUNT(*) as total_alumni,
     SUM(CASE WHEN ap.submission_status = 'Approved' THEN 1 ELSE 0 END) as approved_count,
@@ -87,7 +87,7 @@ $alumniQuery = "
     FROM users u
     LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id
     WHERE $whereClause
-    ORDER BY u.name ASC
+    ORDER BY name ASC
 ";
 
 $stmt = $conn->prepare($alumniQuery);
@@ -163,7 +163,7 @@ ob_start();
                     <option value="Self-Employed" <?= $employment_status === 'Self-Employed' ? 'selected' : '' ?>>Self-Employed</option>
                     <option value="Employed" <?= $employment_status === 'Employed' ? 'selected' : '' ?>>Employed</option>
                     <option value="Student" <?= $employment_status === 'Student' ? 'selected' : '' ?>>Student</option>
-                    <option value="Employed & Student" <?= $employment_status === 'Employed & Student' ? 'selected' : '' ?>>Student & Employed</option>
+                    <option value="Employed & Student" <?= $employment_status === 'Employed & Student' ? 'selected' : '' ?>>Employed & Student</option>
                 </select>
             </div>
             <div class="w-full sm:w-48">
