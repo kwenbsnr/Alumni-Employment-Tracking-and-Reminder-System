@@ -450,11 +450,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $job_title_id = null;
                     $company = '';
                     $company_address = '';
-                }
-
-                // Ensure salary range is set
-                if (empty($salary)) {
-                    throw new Exception("Salary range is required.");
+                    
+                    // Salary range is optional for Self-Employed
+                    if (empty($salary)) {
+                        $salary = null;
+                    }
+                } else {
+                    // For other employment statuses, salary range is required
+                    if (empty($salary)) {
+                        throw new Exception("Salary range is required.");
+                    }
                 }
 
                 // Insert employment info
