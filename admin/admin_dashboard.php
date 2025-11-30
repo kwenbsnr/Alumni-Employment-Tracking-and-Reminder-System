@@ -98,7 +98,21 @@ $withoutProfiles = $totalAlumni - $totalWithProfiles;
 // Fetch recent activity
 $recentActivityQuery = "
     SELECT ul.update_type, ul.updated_at, ul.update_details,
-           u.name as admin_name, u2.name as alumni_name, u2.batch_year
+           CONCAT(
+                u.first_name, 
+                IF(u.middle_name IS NOT NULL AND u.middle_name != '', CONCAT(' ', u.middle_name), ''),
+                ' ',
+                u.last_name,
+                IF(u.suffix IS NOT NULL AND u.suffix != '', CONCAT(' ', u.suffix), '')
+           ) as admin_name,
+           CONCAT(
+                u2.first_name, 
+                IF(u2.middle_name IS NOT NULL AND u2.middle_name != '', CONCAT(' ', u2.middle_name), ''),
+                ' ',
+                u2.last_name,
+                IF(u2.suffix IS NOT NULL AND u2.suffix != '', CONCAT(' ', u2.suffix), '')
+           ) as alumni_name,
+           u2.batch_year
     FROM update_log ul
     LEFT JOIN users u ON ul.updated_by = u.user_id
     LEFT JOIN users u2 ON ul.updated_id = u2.user_id

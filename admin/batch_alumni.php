@@ -20,7 +20,7 @@ $search = $_GET['search'] ?? '';
 $employment_status = $_GET['employment_status'] ?? '';
 $submission_status = $_GET['submission_status'] ?? '';
 
-// Fetch batch statistics - include all alumni
+// Fetch batch statistics
 $statsQuery = "SELECT
     COUNT(*) as total_alumni,
     SUM(CASE WHEN ap.submission_status = 'Approved' THEN 1 ELSE 0 END) as approved_count,
@@ -47,7 +47,7 @@ $params = [$batch_year];
 $types = 's';
 
 if (!empty($search)) {
-    $whereConditions[] = "u.name LIKE ?";
+    $whereConditions[] = "CONCAT(u.first_name, ' ', u.last_name) LIKE ?";
     $searchTerm = "%$search%";
     $params[] = $searchTerm;
     $types .= 's';
@@ -72,7 +72,13 @@ $whereClause = implode(" AND ", $whereConditions);
 $alumniQuery = "
     SELECT 
         u.user_id, 
-        u.name, 
+        CONCAT(
+            u.first_name,
+            IF(u.middle_name IS NOT NULL AND u.middle_name != '', CONCAT(' ', u.middle_name), ''),
+            ' ',
+            u.last_name,
+            IF(u.suffix IS NOT NULL AND u.suffix != '', CONCAT(' ', u.suffix), '')
+        ) as name, 
         u.batch_year,
         u.email,
         ap.employment_status, 
@@ -81,7 +87,7 @@ $alumniQuery = "
     FROM users u
     LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id
     WHERE $whereClause
-    ORDER BY u.name ASC
+    ORDER BY name ASC
 ";
 
 $stmt = $conn->prepare($alumniQuery);
@@ -157,7 +163,7 @@ ob_start();
                     <option value="Self-Employed" <?= $employment_status === 'Self-Employed' ? 'selected' : '' ?>>Self-Employed</option>
                     <option value="Employed" <?= $employment_status === 'Employed' ? 'selected' : '' ?>>Employed</option>
                     <option value="Student" <?= $employment_status === 'Student' ? 'selected' : '' ?>>Student</option>
-                    <option value="Employed & Student" <?= $employment_status === 'Employed & Student' ? 'selected' : '' ?>>Student & Employed</option>
+                    <option value="Employed & Student" <?= $employment_status === 'Employed & Student' ? 'selected' : '' ?>>Employed & Student</option>
                 </select>
             </div>
             <div class="w-full sm:w-48">
@@ -311,20 +317,34 @@ ob_start();
     </div>
 </div>
 
+<!-- Rejection Modal -->
 <div id="rejectModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
     <div class="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 p-6">
-        <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4"><i class="fas fa-times text-red-600 text-xl"></i></div>
+        <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <i class="fas fa-times text-red-600 text-xl"></i>
+        </div>
         <h3 class="text-lg font-bold text-center mb-2">Reject Profile</h3>
-        <p class="text-gray-600 text-center mb-4">Reason for rejecting <span id="rejectAlumniName" class="font-semibold"></span>:</p>
+        <p class="text-gray-600 text-center mb-4">
+            Reason for rejecting <span id="rejectAlumniName" class="font-semibold"></span>:
+        </p>
         <form id="rejectForm">
-            <input type="hidden" id="rejectUserId">
-            <div class="mb-4"><div id="commonReasons" class="space-y-2"></div></div>
+            <input type="hidden" id="rejectUserId" name="user_id">
             <div class="mb-4">
-                <textarea id="customReason" name="custom_reason" rows="3" class="w-full px-3 py-2 border rounded-lg" placeholder="Additional notes (optional)"></textarea>
+                <div id="commonReasons" class="space-y-2"></div>
+            </div>
+            <div class="mb-4">
+                <label for="customReason" class="block text-sm font-medium text-gray-700 mb-2">Additional Notes (Optional)</label>
+                <textarea id="customReason" name="custom_reason" rows="3" 
+                          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                          placeholder="Add any additional notes or specific reasons..."></textarea>
             </div>
             <div class="flex gap-3">
-                <button type="button" onclick="closeRejectModal()" class="flex-1 bg-gray-300 py-2 rounded-lg hover:bg-gray-400">Cancel</button>
-                <button type="submit" class="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700">Reject</button>
+                <button type="button" onclick="closeRejectModal()" class="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400 transition-colors">
+                    Cancel
+                </button>
+                <button type="submit" class="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors">
+                    Reject
+                </button>
             </div>
         </form>
     </div>
@@ -362,66 +382,261 @@ let currentUserId = null;
 let hoverTimeout = null;
 let isModalHovered = false;
 
+// Employment status specific rejection reasons
 const rejectionReasons = {
-    'Unemployed': ['Incomplete employment history', 'Missing job search proof', 'Unclear plans'],
-    'Self-Employed': ['Missing business docs', 'Unclear business proof', 'Verification needed'],
-    'Employed': ['Missing COE', 'Incomplete company info', 'Verification needed'],
-    'Student': ['Missing enrollment', 'No student ID', 'Verification needed'],
-    'Employed & Student': ['Missing both docs', 'Conflict unclear', 'Verification needed']
+    'Unemployed': [
+    ],
+    'Self-Employed': [
+        'Missing Business permit document',
+        'Incorrect document submitted',
+        'Unclear business description',
+    ],
+    'Employed': [
+        'Missing Certificate of Employment document',
+        'Incomplete company information',
+        'Job position details unclear',
+    ],
+    'Student': [
+        'Missing Certificate of Registration document',
+        'Incomplete institution details',
+        'Degree pursued information unclear',
+    ],
+    'Employed & Student': [
+        'Missing COE or COR documents',
+        'Insufficient/incorrect supporting documents for both statuses'
+    ]
 };
 
-function showApproveModal(id, name) { currentUserId = id; document.getElementById('approveAlumniName').textContent = name; document.getElementById('approveModal').classList.remove('hidden'); }
-function closeApproveModal() { document.getElementById('approveModal').classList.add('hidden'); currentUserId = null; }
-function processApproval() { if (currentUserId) window.location.href = `update_status.php?user_id=${currentUserId}&status=Approved&${new URLSearchParams(window.location.search)}`; }
+function showApproveModal(id, name) { 
+    currentUserId = id; 
+    document.getElementById('approveAlumniName').textContent = name; 
+    document.getElementById('approveModal').classList.remove('hidden'); 
+}
+
+function closeApproveModal() { 
+    document.getElementById('approveModal').classList.add('hidden'); 
+    currentUserId = null; 
+}
+
+function processApproval() { 
+    if (currentUserId) window.location.href = `update_status.php?user_id=${currentUserId}&status=Approved&${new URLSearchParams(window.location.search)}`; 
+}
 
 function showRejectModal(id, name, empStatus) {
+    console.log('showRejectModal called with:', id, name, empStatus);
+    
     currentUserId = id;
-    document.getElementById('rejectAlumniName').textContent = name;
-    document.getElementById('rejectUserId').value = id;
+    
+    // Safely set the alumni name
+    const alumniNameElement = document.getElementById('rejectAlumniName');
+    if (alumniNameElement) {
+        alumniNameElement.textContent = name;
+    } else {
+        console.error('Element with id "rejectAlumniName" not found');
+        return;
+    }
+    
+    // Safely set the user ID
+    const userIdElement = document.getElementById('rejectUserId');
+    if (userIdElement) {
+        userIdElement.value = id;
+    } else {
+        console.error('Element with id "rejectUserId" not found');
+        return;
+    }
+    
     const container = document.getElementById('commonReasons');
+    const customReason = document.getElementById('customReason');
+    
+    if (!container || !customReason) {
+        console.error('Required modal elements not found');
+        return;
+    }
+    
     container.innerHTML = '';
-    const reasons = rejectionReasons[empStatus] || rejectionReasons['Unemployed'];
-    reasons.forEach((r, i) => {
-        container.innerHTML += `<div class="flex items-start"><input type="radio" name="rejection_reason" value="${r}" id="r${i}" class="mt-1 mr-2"><label for="r${i}" class="text-sm cursor-pointer">${r}</label></div>`;
-    });
-    container.innerHTML += `<div class="flex items-start"><input type="radio" name="rejection_reason" value="custom" id="rcustom" class="mt-1 mr-2"><label for="rcustom" class="text-sm cursor-pointer">Other (specify below)</label></div>`;
-    document.getElementById('rejectModal').classList.remove('hidden');
+    
+    // Special handling for Unemployed status - show only textarea
+    if (empStatus === 'Unemployed') {
+        container.style.display = 'none';
+        const label = document.querySelector('label[for="customReason"]');
+        if (label) label.textContent = 'Reason for rejection:';
+        customReason.placeholder = 'Please specify the reason for rejection...';
+        customReason.required = true;
+    } else {
+        container.style.display = 'block';
+        const label = document.querySelector('label[for="customReason"]');
+        if (label) label.textContent = 'Additional Notes (Optional)';
+        customReason.placeholder = 'Add any additional notes or specific reasons...';
+        customReason.required = false;
+        
+        const reasons = rejectionReasons[empStatus] || [];
+        reasons.forEach((r, i) => {
+            container.innerHTML += `
+                <div class="flex items-start">
+                    <input type="radio" name="rejection_reason" value="${r}" id="r${i}" class="mt-1 mr-2">
+                    <label for="r${i}" class="text-sm cursor-pointer">${r}</label>
+                </div>
+            `;
+        });
+        
+        // Only add "Other" option if there are predefined reasons
+        if (reasons.length > 0) {
+            container.innerHTML += `
+                <div class="flex items-start">
+                    <input type="radio" name="rejection_reason" value="custom" id="rcustom" class="mt-1 mr-2">
+                    <label for="rcustom" class="text-sm cursor-pointer">Other (specify below)</label>
+                </div>
+            `;
+        }
+    }
+    
+    // Show the modal
+    const modal = document.getElementById('rejectModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+    } else {
+        console.error('Element with id "rejectModal" not found');
+    }
 }
-function closeRejectModal() { document.getElementById('rejectModal').classList.add('hidden'); document.getElementById('rejectForm').reset(); currentUserId = null; }
-document.getElementById('rejectForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const selected = document.querySelector('input[name="rejection_reason"]:checked');
-    if (!selected) return alert('Please select a reason');
-    let reason = selected.value === 'custom' ? document.getElementById('customReason').value.trim() || 'No reason given' : selected.value;
-    window.location.href = `update_status.php?user_id=${currentUserId}&status=Rejected&reason=${encodeURIComponent(reason)}&${new URLSearchParams(window.location.search)}`;
+
+function closeRejectModal() { 
+    document.getElementById('rejectModal').classList.add('hidden'); 
+    document.getElementById('rejectForm').reset();
+    // Reset form visibility
+    const container = document.getElementById('commonReasons');
+    container.style.display = 'block';
+    document.querySelector('label[for="customReason"]').textContent = 'Additional Notes (Optional)';
+    document.getElementById('customReason').placeholder = 'Add any additional notes or specific reasons...';
+    document.getElementById('customReason').required = false;
+    currentUserId = null; 
+}
+
+// Auto-select "Other" option when typing in custom reason
+document.addEventListener('DOMContentLoaded', function() {
+    const customReason = document.getElementById('customReason');
+    if (customReason) {
+        customReason.addEventListener('input', function(e) {
+            if (this.value.trim() !== '') {
+                const otherRadio = document.getElementById('rcustom');
+                if (otherRadio) {
+                    otherRadio.checked = true;
+                }
+            }
+        });
+    }
+
+    // Initialize rejection form event listener
+    const rejectForm = document.getElementById('rejectForm');
+    if (rejectForm) {
+        rejectForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const selected = document.querySelector('input[name="rejection_reason"]:checked');
+            const customReason = document.getElementById('customReason').value.trim();
+            
+            // Special validation for Unemployed status
+            if (document.getElementById('commonReasons').style.display === 'none') {
+                if (!customReason) {
+                    alert('Please provide a reason for rejection.');
+                    return;
+                }
+                let finalReason = customReason;
+                window.location.href = `update_status.php?user_id=${currentUserId}&status=Rejected&reason=${encodeURIComponent(finalReason)}&${new URLSearchParams(window.location.search)}`;
+                return;
+            }
+            
+            // Validation for other statuses
+            if (!selected) {
+                alert('Please select a rejection reason.');
+                return;
+            }
+            
+            let finalReason = selected.value === 'custom' ? customReason || 'No reason given' : selected.value;
+            
+            if (selected.value === 'custom' && !customReason) {
+                alert('Please provide a reason in the additional notes when selecting "Other".');
+                return;
+            }
+            
+            window.location.href = `update_status.php?user_id=${currentUserId}&status=Rejected&reason=${encodeURIComponent(finalReason)}&${new URLSearchParams(window.location.search)}`;
+        });
+    }
 });
 
-function showRevertModal(id, name) { currentUserId = id; document.getElementById('revertAlumniName').textContent = name; document.getElementById('revertModal').classList.remove('hidden'); }
-function closeRevertModal() { document.getElementById('revertModal').classList.add('hidden'); currentUserId = null; }
-function processRevert() { if (currentUserId) window.location.href = `update_status.php?user_id=${currentUserId}&status=Pending&${new URLSearchParams(window.location.search)}`; }
+function showRevertModal(id, name) { 
+    currentUserId = id; 
+    document.getElementById('revertAlumniName').textContent = name; 
+    document.getElementById('revertModal').classList.remove('hidden'); 
+}
+
+function closeRevertModal() { 
+    document.getElementById('revertModal').classList.add('hidden'); 
+    currentUserId = null; 
+}
+
+function processRevert() { 
+    if (currentUserId) window.location.href = `update_status.php?user_id=${currentUserId}&status=Pending&${new URLSearchParams(window.location.search)}`; 
+}
 
 // Hover details
 document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.alumni-name-hover').forEach(el => {
-        el.addEventListener('mouseenter', () => { clearTimeout(hoverTimeout); showAlumniDetails(el.dataset.userId); });
-        el.addEventListener('mouseleave', () => { hoverTimeout = setTimeout(() => { if (!isModalHovered) closeAlumniModal(); }, 300); });
+        el.addEventListener('mouseenter', () => { 
+            clearTimeout(hoverTimeout); 
+            showAlumniDetails(el.dataset.userId); 
+        });
+        el.addEventListener('mouseleave', () => { 
+            hoverTimeout = setTimeout(() => { 
+                if (!isModalHovered) closeAlumniModal(); 
+            }, 300); 
+        });
     });
 });
+
 function showAlumniDetails(id) {
     const modal = document.getElementById('alumniModal');
     const content = document.getElementById('alumniModalContent');
-    fetch(`get_alumni_details.php?user_id=${id}`).then(r => r.text()).then(html => {
-        content.innerHTML = html;
-        modal.classList.remove('hidden');
-        content.onmouseenter = () => { isModalHovered = true; clearTimeout(hoverTimeout); };
-        content.onmouseleave = () => { isModalHovered = false; hoverTimeout = setTimeout(closeAlumniModal, 300); };
-    });
+    fetch(`get_alumni_details.php?user_id=${id}`)
+        .then(r => r.text())
+        .then(html => {
+            content.innerHTML = html;
+            modal.classList.remove('hidden');
+            content.onmouseenter = () => { 
+                isModalHovered = true; 
+                clearTimeout(hoverTimeout); 
+            };
+            content.onmouseleave = () => { 
+                isModalHovered = false; 
+                hoverTimeout = setTimeout(closeAlumniModal, 300); 
+            };
+        })
+        .catch(error => {
+            console.error('Error loading alumni details:', error);
+            content.innerHTML = '<div class="text-center py-8 bg-white rounded-xl"><p class="text-red-500">Error loading alumni details.</p></div>';
+            modal.classList.remove('hidden');
+        });
 }
-function closeAlumniModal() { document.getElementById('alumniModal').classList.add('hidden'); }
+
+function closeAlumniModal() { 
+    document.getElementById('alumniModal').classList.add('hidden'); 
+}
 
 // Close on outside click / ESC
-document.addEventListener('click', e => { if (e.target.classList.contains('fixed')) { closeApproveModal(); closeRejectModal(); closeRevertModal(); } });
-document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeApproveModal(); closeRejectModal(); closeRevertModal(); } });
+document.addEventListener('click', e => { 
+    if (e.target.classList.contains('fixed')) { 
+        closeApproveModal(); 
+        closeRejectModal(); 
+        closeRevertModal(); 
+    } 
+});
+
+document.addEventListener('keydown', e => { 
+    if (e.key === 'Escape') { 
+        closeApproveModal(); 
+        closeRejectModal(); 
+        closeRevertModal(); 
+    } 
+});
 </script>
 
 <?php

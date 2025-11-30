@@ -16,7 +16,16 @@ $active_page = "profile";
 // Fetch profile data WITH SCHOOL INFO 
 $stmt = $conn->prepare("
     SELECT 
-        u.user_id, u.email, u.student_id, u.date_of_birth, u.gender, u.program, u.name as official_name, u.batch_year,
+        u.user_id, u.email, u.student_id, u.date_of_birth, u.gender, u.program, 
+        CONCAT(
+            u.first_name, 
+            IF(u.middle_name IS NOT NULL AND u.middle_name != '', CONCAT(' ', u.middle_name), ''),
+            ' ',
+            u.last_name,
+            IF(u.suffix IS NOT NULL AND u.suffix != '', CONCAT(' ', u.suffix), '')
+        ) as official_name,
+        u.batch_year,
+        u.first_name, u.middle_name, u.last_name, u.suffix,
         ap.contact_number, 
         ap.employment_status, ap.photo_path, ap.address_id,
         ap.submission_status, ap.last_profile_update, ap.rejection_reason,
@@ -114,12 +123,53 @@ if ($auto_open_modal) {
 ob_start();
 ?>
 
+<!-- Enhanced Success/Error Messages with Better Styling -->
 <?php if (isset($_GET['success'])): ?>
-    <div class="bg-green-100 p-4 rounded mb-4"><?php echo htmlspecialchars($_GET['success']); ?></div>
+    <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4 relative" role="alert">
+        <div class="flex items-center">
+            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+            </svg>
+            <strong class="font-bold">Success! </strong>
+            <span class="block sm:inline ml-1"><?php echo htmlspecialchars($_GET['success'], ENT_QUOTES, 'UTF-8'); ?></span>
+        </div>
+        <button type="button" class="absolute top-0 bottom-0 right-0 px-4 py-3" onclick="this.parentElement.remove()">
+            <svg class="w-4 h-4 fill-current" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+            </svg>
+        </button>
+    </div>
 <?php endif; ?>
+
 <?php if (isset($_GET['error'])): ?>
-    <div class="bg-red-100 p-4 rounded mb-4"><?php echo htmlspecialchars($_GET['error']); ?></div>
+    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 relative" role="alert">
+        <div class="flex items-center">
+            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+            </svg>
+            <strong class="font-bold">Error! </strong>
+            <span class="block sm:inline ml-1"><?php echo htmlspecialchars($_GET['error'], ENT_QUOTES, 'UTF-8'); ?></span>
+        </div>
+        <button type="button" class="absolute top-0 bottom-0 right-0 px-4 py-3" onclick="this.parentElement.remove()">
+            <svg class="w-4 h-4 fill-current" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+            </svg>
+        </button>
+    </div>
 <?php endif; ?>
+
+<!-- Clear URL parameters without page reload -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Remove success/error parameters from URL without reloading
+    const url = new URL(window.location);
+    if (url.searchParams.has('success') || url.searchParams.has('error')) {
+        url.searchParams.delete('success');
+        url.searchParams.delete('error');
+        window.history.replaceState({}, '', url);
+    }
+});
+</script>
 
 <div class="space-y-6 mt-3 mb-5">
 <!-- Status Card - Modern, Professional & Perfectly Balanced (2025 Design) -->
@@ -450,6 +500,18 @@ ob_start();
                 <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">School Name</dt>
                 <dd class="font-semibold text-gray-700" style="font-size: 15px;">
                     <?php echo !empty($education['school_name']) ? htmlspecialchars($education['school_name'], ENT_QUOTES, 'UTF-8') : 'N/A'; ?>
+                </dd>
+            </div>
+            <div class="flex flex-col">
+                <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Start Year</dt>
+                <dd class="font-semibold text-gray-700" style="font-size: 15px;">
+                    <?php echo !empty($education['start_year']) ? htmlspecialchars($education['start_year']) : 'N/A'; ?>
+                </dd>
+            </div>
+            <div class="flex flex-col">
+                <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">End Year (Expected)</dt>
+                <dd class="font-semibold text-gray-700" style="font-size: 15px;">
+                    <?php echo !empty($education['end_year']) ? htmlspecialchars($education['end_year']) : 'N/A'; ?>
                 </dd>
             </div>
             <div class="flex flex-col">
@@ -1072,7 +1134,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Employment status toggle - COMPLETELY FIXED LOGIC
+    // Employment status toggle
     function toggleEmploymentSections(status) {
         console.log('Toggling employment sections for:', status);
         

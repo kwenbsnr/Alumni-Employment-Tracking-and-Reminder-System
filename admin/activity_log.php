@@ -61,8 +61,20 @@ $activityQuery = "
         ul.update_type,
         ul.update_details,
         ul.updated_at,
-        u.name as admin_name,
-        u_updated.name as alumni_name,
+        CONCAT(
+            u.first_name, 
+            IF(u.middle_name IS NOT NULL AND u.middle_name != '', CONCAT(' ', u.middle_name), ''),
+            ' ',
+            u.last_name,
+            IF(u.suffix IS NOT NULL AND u.suffix != '', CONCAT(' ', u.suffix), '')
+        ) as admin_name,
+        CONCAT(
+            u_updated.first_name, 
+            IF(u_updated.middle_name IS NOT NULL AND u_updated.middle_name != '', CONCAT(' ', u_updated.middle_name), ''),
+            ' ',
+            u_updated.last_name,
+            IF(u_updated.suffix IS NOT NULL AND u_updated.suffix != '', CONCAT(' ', u_updated.suffix), '')
+        ) as alumni_name,
         u_updated.batch_year
     FROM update_log ul
     LEFT JOIN users u ON ul.updated_by = u.user_id

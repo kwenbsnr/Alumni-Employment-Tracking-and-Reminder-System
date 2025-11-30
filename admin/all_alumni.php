@@ -23,7 +23,7 @@ $params = [];
 $types = '';
 
 if (!empty($search)) {
-    $whereConditions[] = "(u.name LIKE ? OR u.email LIKE ?)";
+    $whereConditions[] = "(CONCAT(u.first_name, ' ', u.last_name) LIKE ? OR u.email LIKE ?)";
     $term = "%$search%";
     $params = array_merge($params, [$term, $term]);
     $types .= 'ss';
@@ -46,7 +46,13 @@ $whereClause = implode(" AND ", $whereConditions);
 $query = "
     SELECT 
         u.user_id,
-        u.name,
+        CONCAT(
+            u.first_name,
+            IF(u.middle_name IS NOT NULL AND u.middle_name != '', CONCAT(' ', u.middle_name), ''),
+            ' ',
+            u.last_name,
+            IF(u.suffix IS NOT NULL AND u.suffix != '', CONCAT(' ', u.suffix), '')
+        ) as name,
         u.batch_year,
         ap.employment_status,
         ap.submission_status,
@@ -54,11 +60,11 @@ $query = "
         u.email,
         COUNT(ad.doc_id) as document_count
     FROM users u
-    LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id  -- Changed to LEFT JOIN
+    LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id
     LEFT JOIN alumni_documents ad ON u.user_id = ad.user_id
     WHERE $whereClause
     GROUP BY u.user_id
-    ORDER BY u.batch_year DESC, u.name ASC
+    ORDER BY u.batch_year DESC, name ASC
 ";
 
 $stmt = $conn->prepare($query);
@@ -126,7 +132,7 @@ ob_start();
                     <option value="Self-Employed" <?= $employment_status == 'Self-Employed' ? 'selected' : '' ?>>Self-Employed</option>
                     <option value="Employed" <?= $employment_status == 'Employed' ? 'selected' : '' ?>>Employed</option>
                     <option value="Student" <?= $employment_status == 'Student' ? 'selected' : '' ?>>Student</option>
-                    <option value="Employed & Student" <?= $employment_status == 'Employed & Student' ? 'selected' : '' ?>>Student & Employed</option>
+                    <option value="Employed & Student" <?= $employment_status == 'Employed & Student' ? 'selected' : '' ?>>Employed & Student</option>
                 </select>
             </div>
             
@@ -421,39 +427,25 @@ let isModalHovered = false;
 // Employment status specific rejection reasons
 const rejectionReasons = {
     'Unemployed': [
-        'Incomplete employment history',
-        'Missing job search documentation',
-        'Unclear future employment plans',
-        'Insufficient supporting documents',
-        'Employment status verification needed'
     ],
     'Self-Employed': [
-        'Missing business registration documents',
-        'Insufficient business proof',
+        'Missing Business permit document',
+        'Incorrect document submitted',
         'Unclear business description',
-        'Missing financial documentation',
-        'Business verification required'
     ],
     'Employed': [
-        'Missing employment certificate',
+        'Missing Certificate of Employment document',
         'Incomplete company information',
-        'Employment verification needed',
         'Job position details unclear',
-        'Missing salary information'
     ],
     'Student': [
-        'Missing enrollment documents',
-        'Incomplete educational institution details',
-        'Course/program information unclear',
-        'Academic status verification needed',
-        'Missing student ID or registration proof'
+        'Missing Certificate of Registration document',
+        'Incomplete institution details',
+        'Degree pursued information unclear',
     ],
     'Employed & Student': [
-        'Missing employment or enrollment documents',
-        'Incomplete work-study balance information',
-        'Both statuses need verification',
-        'Schedule conflict information missing',
-        'Insufficient supporting documents for both statuses'
+        'Missing COE or COR documents',
+        'Insufficient/incorrect supporting documents for both statuses'
     ]
 };
 
@@ -483,31 +475,46 @@ function showRejectModal(userId, alumniName, employmentStatus) {
     
     // Populate rejection reasons based on employment status
     const commonReasonsContainer = document.getElementById('commonReasons');
+    const customReason = document.getElementById('customReason');
+    
     commonReasonsContainer.innerHTML = '';
     
-    const reasons = rejectionReasons[employmentStatus] || rejectionReasons['Unemployed'];
-    
-    reasons.forEach((reason, index) => {
-        const reasonId = `reason_${index}`;
-        const reasonHtml = `
+    // Special handling for Unemployed status - show only textarea
+    if (employmentStatus === 'Unemployed') {
+        commonReasonsContainer.style.display = 'none';
+        document.querySelector('label[for="customReason"]').textContent = 'Reason for rejection:';
+        customReason.placeholder = 'Please specify the reason for rejection...';
+        customReason.required = true;
+    } else {
+        commonReasonsContainer.style.display = 'block';
+        document.querySelector('label[for="customReason"]').textContent = 'Additional Notes (Optional)';
+        customReason.placeholder = 'Add any additional notes or specific reasons...';
+        customReason.required = false;
+        
+        const reasons = rejectionReasons[employmentStatus] || rejectionReasons['Unemployed'];
+        
+        reasons.forEach((reason, index) => {
+            const reasonId = `reason_${index}`;
+            const reasonHtml = `
+                <div class="flex items-start">
+                    <input type="radio" id="${reasonId}" name="rejection_reason" value="${reason}" 
+                           class="mt-1 mr-3 text-red-600 focus:ring-red-500">
+                    <label for="${reasonId}" class="text-sm text-gray-700 cursor-pointer">${reason}</label>
+                </div>
+            `;
+            commonReasonsContainer.innerHTML += reasonHtml;
+        });
+        
+        // Add custom reason option
+        const customReasonId = 'reason_custom';
+        commonReasonsContainer.innerHTML += `
             <div class="flex items-start">
-                <input type="radio" id="${reasonId}" name="rejection_reason" value="${reason}" 
+                <input type="radio" id="${customReasonId}" name="rejection_reason" value="custom" 
                        class="mt-1 mr-3 text-red-600 focus:ring-red-500">
-                <label for="${reasonId}" class="text-sm text-gray-700 cursor-pointer">${reason}</label>
+                <label for="${customReasonId}" class="text-sm text-gray-700 cursor-pointer">Other (specify in notes)</label>
             </div>
         `;
-        commonReasonsContainer.innerHTML += reasonHtml;
-    });
-    
-    // Add custom reason option
-    const customReasonId = 'reason_custom';
-    commonReasonsContainer.innerHTML += `
-        <div class="flex items-start">
-            <input type="radio" id="${customReasonId}" name="rejection_reason" value="custom" 
-                   class="mt-1 mr-3 text-red-600 focus:ring-red-500">
-            <label for="${customReasonId}" class="text-sm text-gray-700 cursor-pointer">Other (specify in notes)</label>
-        </div>
-    `;
+    }
     
     document.getElementById('rejectModal').classList.remove('hidden');
 }
@@ -515,17 +522,47 @@ function showRejectModal(userId, alumniName, employmentStatus) {
 function closeRejectModal() {
     document.getElementById('rejectModal').classList.add('hidden');
     document.getElementById('rejectForm').reset();
+    // Reset form visibility
+    document.getElementById('commonReasons').style.display = 'block';
+    document.querySelector('label[for="customReason"]').textContent = 'Additional Notes (Optional)';
+    document.getElementById('customReason').placeholder = 'Add any additional notes or specific reasons...';
+    document.getElementById('customReason').required = false;
     currentUserId = null;
 }
+
+// Auto-select "Other" option when typing in custom reason
+document.getElementById('customReason').addEventListener('input', function(e) {
+    if (this.value.trim() !== '') {
+        const otherRadio = document.getElementById('reason_custom');
+        if (otherRadio) {
+            otherRadio.checked = true;
+        }
+    }
+});
 
 // Handle rejection form submission
 document.getElementById('rejectForm').addEventListener('submit', function(e) {
     e.preventDefault();
     
+    const employmentStatus = document.querySelector('input[name="employment_status"]')?.value || '';
     const formData = new FormData(this);
     const rejectionReason = formData.get('rejection_reason');
     const customReason = formData.get('custom_reason');
     
+    // Special validation for Unemployed status
+    if (employmentStatus === 'Unemployed') {
+        if (!customReason) {
+            alert('Please provide a reason for rejection.');
+            return;
+        }
+        let finalReason = customReason;
+        if (currentUserId) {
+            window.location.href = `update_status.php?user_id=${currentUserId}&status=Rejected&reason=${encodeURIComponent(finalReason)}`;
+        }
+        return;
+    }
+    
+    // Validation for other statuses
     if (!rejectionReason) {
         alert('Please select a rejection reason.');
         return;

@@ -15,7 +15,6 @@ if (!isset($_SESSION["user_id"]) || $_SESSION["role"] !== "admin") {
     <title><?php echo $page_title ?? "Admin Dashboard"; ?></title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="../assets/js/phil-address/phil.min.js"></script>  
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         /* Custom CSS for modern design */
@@ -244,32 +243,42 @@ document.addEventListener("DOMContentLoaded", () => {
                         <!-- User Menu -->
                         <div class="relative">
                             <button id="userMenuButton" class="flex items-center space-x-3 focus:outline-none">
+                                <?php 
+                                // Fetch admin name from users table
+                                $stmt = $conn->prepare("SELECT first_name, last_name, middle_name, suffix FROM users WHERE user_id = ? AND role = 'admin'");
+                                $stmt->bind_param("i", $_SESSION["user_id"]);
+                                $stmt->execute();
+                                $result = $stmt->get_result();
+                                $admin_data = $result->fetch_assoc();
+                                $admin_name = 'AD';
+                                $full_admin_name = $_SESSION["email"]; // Default to email
+
+                                if ($admin_data) {
+                                    // Build full name from individual fields
+                                    $name_parts = [];
+                                    if (!empty($admin_data['first_name'])) $name_parts[] = $admin_data['first_name'];
+                                    if (!empty($admin_data['middle_name'])) $name_parts[] = $admin_data['middle_name'];
+                                    if (!empty($admin_data['last_name'])) $name_parts[] = $admin_data['last_name'];
+                                    if (!empty($admin_data['suffix'])) $name_parts[] = $admin_data['suffix'];
+                                    
+                                    $full_admin_name = implode(' ', $name_parts);
+                                    $admin_name = strtoupper(substr($admin_data['first_name'] ?? '', 0, 1) . substr($admin_data['last_name'] ?? '', 0, 1));
+                                }
+                                $stmt->close();
+                                ?>
+                                
                                 <div class="admin-avatar w-10 h-10 rounded-full flex items-center justify-center text-white font-bold">
-                                    <?php 
-                                    // Fetch admin name from users table
-                                    $stmt = $conn->prepare("SELECT name FROM users WHERE user_id = ? AND role = 'admin'");
-                                    $stmt->bind_param("i", $_SESSION["user_id"]);
-                                    $stmt->execute();
-                                    $result = $stmt->get_result();
-                                    $admin_name = 'AD';
-                                    if ($row = $result->fetch_assoc()) {
-                                        $admin_name = strtoupper(substr($row['name'], 0, 2)); // First 2 letters
-                                    }
-                                    $stmt->close();
-                                    echo htmlspecialchars($admin_name);
-                                    ?>
+                                    <?php echo htmlspecialchars($admin_name); ?>
                                 </div>
                                 <div class="hidden md:block text-left">
                                     <p class="font-medium text-gray-800 text-lg">
-                                        <?php 
-                                        // Display full name + email
-                                        echo htmlspecialchars($row['name'] ?? $_SESSION["email"]); 
-                                        ?>
+                                        <?php echo htmlspecialchars($full_admin_name); ?>
                                     </p>
                                     <p class="text-gray-500 text-base">
                                         <?php echo htmlspecialchars($_SESSION["email"]); ?>
                                     </p>
-
+                                </div>
+                            </button>
                         </div>
                     </div>
                 </div>
