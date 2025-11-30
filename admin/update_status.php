@@ -38,9 +38,15 @@ if (isset($_GET['user_id']) && isset($_GET['status'])) {
             $currentStatus = $currentStatusResult->fetch_assoc()['submission_status'] ?? '';
             $currentStatusQuery->close();
 
-            // Update the alumni profile status
-            $stmt = $conn->prepare("UPDATE alumni_profile SET submission_status = ? WHERE user_id = ?");
-            $stmt->bind_param("si", $status, $user_id);
+            // Update the alumni profile status with rejection reason and timestamp
+            if ($status === 'Rejected') {
+                $stmt = $conn->prepare("UPDATE alumni_profile SET submission_status = ?, rejection_reason = ?, rejected_at = NOW() WHERE user_id = ?");
+                $stmt->bind_param("ssi", $status, $reason, $user_id);
+            } else {
+                // For approved or pending, clear rejection data
+                $stmt = $conn->prepare("UPDATE alumni_profile SET submission_status = ?, rejection_reason = NULL, rejected_at = NULL WHERE user_id = ?");
+                $stmt->bind_param("si", $status, $user_id);
+            }
 
             if ($stmt->execute()) {
                 // LOG THE ACTION - Enhanced with better context
