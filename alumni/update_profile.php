@@ -1,6 +1,11 @@
 <?php
 ob_start();
 session_start();
+
+$is_development = $_SERVER['SERVER_NAME'] === 'localhost' || 
+                  $_SERVER['SERVER_NAME'] === '127.0.0.1' || 
+                  (isset($_ENV['APP_ENV']) && $_ENV['APP_ENV'] === 'development');
+
 include("../connect.php");
 require_once '../api/notification/notif_service.php';
 
@@ -192,10 +197,12 @@ function handle_document($field, $dir, $user_id, $code) {
 
 // ---- 5. POST handling --------------------------------------------------------
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    error_log("=== PROFILE UPDATE START ===");
-    error_log("POST Data: " . print_r($_POST, true));
-    error_log("FILES Data: " . print_r($_FILES, true));
-    error_log("User ID: " . $user_id);
+    if ($is_development) {
+        error_log("=== PROFILE UPDATE START ===");
+        error_log("POST Data: " . print_r($_POST, true));
+        error_log("FILES Data: " . print_r($_FILES, true));
+        error_log("User ID: " . $user_id);
+    }
     
     $conn->begin_transaction();
     
@@ -430,7 +437,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->close();
             
             // Ensure the profile record is committed before proceeding
-            error_log("Alumni profile record created/updated successfully");
+            if ($is_development) {
+                error_log("Alumni profile record created/updated successfully");
+            }
         }
 
         // ---- 5.6 Employment ------------------------------------------------------
@@ -442,7 +451,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->close();
 
             $original_status = trim($_POST['employment_status'] ?? '');
-            error_log("Processing employment for status: " . $original_status);
+            if ($is_development) {
+                error_log("Processing employment for status: $original_status");
+            }
             
             // Insert employment info ONLY for relevant statuses
             if (in_array($original_status, ['Employed', 'Self-Employed', 'Employed & Student'])) {
@@ -636,6 +647,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     } catch (Exception $e) {
         $conn->rollback();
+        
+        // For critical errors, always log regardless of environment
+        error_log("Critical: Alumni profile update failed for user $user_id - " . ($e->getMessage() ?? 'Unknown error'));
+        
         header("Location: alumni_profile.php?error=" . urlencode($e->getMessage()));
         exit;
     }
