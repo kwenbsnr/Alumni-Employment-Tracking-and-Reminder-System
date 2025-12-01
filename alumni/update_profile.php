@@ -104,6 +104,8 @@ $photo_path = $alumni_profile['photo_path'] ?? null;
 
 // ---- 3. Helper: file upload --------------------------------------------------
 function upload_file($field, $dir, $user_id, $type, $allowed = ['application/pdf']) {
+    global $conn;
+    
     if (!isset($_FILES[$field]) || $_FILES[$field]['error'] !== UPLOAD_ERR_OK) {
         if ($_FILES[$field]['error'] === UPLOAD_ERR_INI_SIZE || $_FILES[$field]['error'] === UPLOAD_ERR_FORM_SIZE) {
             $doc_name = $field === 'coe_file' ? 'Certificate of Employment' : 
@@ -133,14 +135,46 @@ function upload_file($field, $dir, $user_id, $type, $allowed = ['application/pdf
         throw new Exception("Invalid file type. Allowed: " . implode(', ', $allowed));
     }
     
-    // Sanitize filename
-    $original_name = $file['name'];
-    $safe_name = preg_replace("/[^a-zA-Z0-9\._-]/", "_", $original_name);
-    $safe_name = substr($safe_name, 0, 100); // Limit filename length
+    // DEBUG: Log original filename
+    error_log("DEBUG UPLOAD: Original filename: " . $file['name']);
+    error_log("DEBUG UPLOAD: User ID: " . $user_id . ", Type: " . $type);
     
-    $ext = strtolower(pathinfo($safe_name, PATHINFO_EXTENSION));
+    // Get user's surname for filename
+    $user_stmt = $conn->prepare("SELECT last_name FROM users WHERE user_id = ?");
+    $user_stmt->bind_param("i", $user_id);
+    $user_stmt->execute();
+    $user_result = $user_stmt->get_result();
+    $user_data = $user_result->fetch_assoc();
+    $user_stmt->close();
+
+    // DEBUG: Log database result
+    error_log("DEBUG UPLOAD: Database result: " . print_r($user_data, true));
+
+    $surname = 'Unknown';
+    if ($user_data && !empty($user_data['last_name'])) {
+        // Sanitize surname: remove spaces and special characters, keep original case
+        $surname = preg_replace("/[^a-zA-Z0-9]/", "", $user_data['last_name']);
+        
+        // ✅ Capitalize first letter only, keep the rest as-is
+        $surname = ucfirst($surname);
+        
+        error_log("DEBUG UPLOAD: Sanitized surname: " . $surname);
+    } else {
+        error_log("DEBUG UPLOAD: Using default 'Unknown' surname");
+    }
+
+    // Map type codes to document type names for filename
+    $doc_type_map = [
+        'profile' => 'profile',
+        'coe' => 'COE',
+        'business' => 'B_CERT', 
+        'cor' => 'COR'
+    ];
     
-    // Validate extension matches MIME type
+    $doc_type = $doc_type_map[$type] ?? $type;
+    error_log("DEBUG UPLOAD: Document type: " . $doc_type);
+    
+    // Get file extension from MIME type
     $extMap = [
         'image/jpeg' => 'jpg', 
         'image/jpg' => 'jpg',
@@ -148,10 +182,8 @@ function upload_file($field, $dir, $user_id, $type, $allowed = ['application/pdf
         'application/pdf' => 'pdf'
     ];
     
-    $expected_ext = $extMap[$mime_type] ?? '';
-    if ($expected_ext && $ext !== $expected_ext) {
-        throw new Exception("File extension does not match file type.");
-    }
+    $ext = $extMap[$mime_type] ?? 'file';
+    error_log("DEBUG UPLOAD: File extension: " . $ext);
 
     if (!is_dir($dir)) {
         if (!mkdir($dir, 0777, true)) {
@@ -159,14 +191,24 @@ function upload_file($field, $dir, $user_id, $type, $allowed = ['application/pdf
         }
     }
 
-    $name = 'user_' . $user_id . '_' . $type . '_' . time() . '.' . $ext;
+    // Generate filename: surname_docType.extension
+    $name = $surname . '_' . $doc_type . '.' . $ext;
     $target = rtrim($dir, '/') . '/' . $name;
 
+    error_log("DEBUG UPLOAD: Generated filename: " . $name);
+    error_log("DEBUG UPLOAD: Target path: " . $target);
+
     if (!move_uploaded_file($file['tmp_name'], $target)) {
+        error_log("DEBUG UPLOAD: move_uploaded_file FAILED for: " . $file['tmp_name'] . " to " . $target);
         throw new Exception("File upload failed. Please try again.");
     }
     
-    return str_replace('../', '', $target);
+    error_log("DEBUG UPLOAD: File successfully moved to: " . $target);
+    
+    $return_path = str_replace('../', '', $target);
+    error_log("DEBUG UPLOAD: Returning path: " . $return_path);
+    
+    return $return_path;
 }
 
 // ---- 4. Document handler (DRY) -----------------------------------------------
@@ -174,11 +216,17 @@ function handle_document($field, $dir, $user_id, $code) {
     global $conn;
     
     if (!isset($_FILES[$field]) || $_FILES[$field]['error'] !== UPLOAD_ERR_OK) {
+        error_log("DEBUG HANDLE_DOC: No file uploaded for field: " . $field);
         return null;
     }
 
+    error_log("DEBUG HANDLE_DOC: Processing document - Field: " . $field . ", Dir: " . $dir . ", User ID: " . $user_id . ", Code: " . $code);
+    
     $new_path = upload_file($field, $dir, $user_id, strtolower($code), ['application/pdf']);
+    
     if ($new_path) {
+        error_log("DEBUG HANDLE_DOC: upload_file returned: " . $new_path);
+        
         // Delete old document if exists
         $stmt = $conn->prepare("DELETE FROM alumni_documents WHERE user_id = ? AND document_type = ?");
         $stmt->bind_param("is", $user_id, $code);
@@ -190,7 +238,11 @@ function handle_document($field, $dir, $user_id, $code) {
         $stmt->bind_param("iss", $user_id, $code, $new_path);
         $stmt->execute();
         $stmt->close();
+        
+        error_log("DEBUG HANDLE_DOC: Document saved to database with path: " . $new_path);
         return true;
+    } else {
+        error_log("DEBUG HANDLE_DOC: upload_file returned NULL");
     }
     return false;
 }
@@ -235,11 +287,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $business_type = 'Others: ' . (!empty($_POST['business_type_other']) ? trim($_POST['business_type_other']) : '');
         }
 
-        // Education fields - Store raw data, don't encode for database storage
+        // Education fields - Store raw data
         $school = !empty($_POST['school_name']) ? 
-            htmlspecialchars(trim($_POST['school_name']), ENT_QUOTES, 'UTF-8') : '';
+            trim($_POST['school_name']) : '';
         $degree = !empty($_POST['degree_pursued']) ? 
-            htmlspecialchars(trim($_POST['degree_pursued']), ENT_QUOTES, 'UTF-8') : '';
+            trim($_POST['degree_pursued']) : '';
         $start_year = !empty($_POST['start_year']) ? trim($_POST['start_year']) : '';
         $end_year = !empty($_POST['end_year']) ? trim($_POST['end_year']) : '';
 
@@ -327,7 +379,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             $new_photo = upload_file('profile_photo', '../uploads/photos/', $user_id, 'profile', 
-                ['image/jpeg','image/jpg','image/png','image/gif','image/webp']);
+            ['image/jpeg','image/jpg','image/png','image/gif','image/webp']);
 
             if (!$new_photo) {
                 throw new Exception("Photo upload failed. Please try again.");
