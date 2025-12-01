@@ -514,7 +514,7 @@ ob_start();
                         </div>
                         <div class="mt-2">
                             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium <?php echo getActivityBadgeColor($activity['update_type']); ?>">
-                                <?php echo ucfirst($activity['update_type']); ?>
+                                <?php echo getActivityDisplayName($activity['update_type']); ?>
                             </span>
                         </div>
                     </div>
@@ -874,24 +874,67 @@ document.addEventListener("DOMContentLoaded", () => {
 </script>
 
 <?php
-function getActivityIcon($type) {
-    return $type === 'approve' ? 'check-circle' : ($type === 'reject' ? 'times-circle' : 'edit');
+// Helper functions - UPDATED to match activity log
+function getActivityIcon($update_type) {
+    switch ($update_type) {
+        case 'approve': return 'check-circle';
+        case 'reject':  return 'times-circle';
+        case 'update':  return 'undo-alt'; // Changed for undo/revert actions
+        default:        return 'sync';
+    }
 }
-function getActivityColor($type) {
-    return $type === 'approve' ? 'bg-green-100 text-green-500' :
-           ($type === 'reject' ? 'bg-red-100 text-red-500' : 'bg-blue-100 text-blue-500');
+
+function getActivityColor($update_type) {
+    switch ($update_type) {
+        case 'approve': return 'bg-green-100 text-green-600';
+        case 'reject':  return 'bg-red-100 text-red-600';
+        case 'update':  return 'bg-orange-100 text-orange-600'; // Orange for undo/revert
+        default:        return 'bg-purple-100 text-purple-600';
+    }
 }
-function getActivityBadgeColor($type) {
-    return $type === 'approve' ? 'bg-green-50 text-green-700 border border-green-200' :
-           ($type === 'reject' ? 'bg-red-50 text-red-700 border border-red-200' :
-           'bg-blue-50 text-blue-700 border border-blue-200');
+
+function getActivityBadgeColor($update_type) {
+    switch ($update_type) {
+        case 'approve': return 'bg-green-100 text-green-800 border border-green-200';
+        case 'reject':  return 'bg-red-100 text-red-800 border border-red-200';
+        case 'update':  return 'bg-orange-100 text-orange-800 border border-orange-200'; // Orange for undo/revert
+        default:        return 'bg-gray-100 text-gray-800 border border-gray-200';
+    }
 }
+
+function getActivityDisplayName($update_type) {
+    switch ($update_type) {
+        case 'approve': return 'Approve';
+        case 'reject':  return 'Reject';
+        case 'update':  return 'Undo/Revert'; // Display name shows "Undo/Revert"
+        default:        return ucfirst($update_type);
+    }
+}
+
 function getEnhancedActivityText($activity) {
     $name = !empty($activity['alumni_name']) ? htmlspecialchars($activity['alumni_name']) : "Alumni";
-    $batch = !empty($activity['batch_year']) ? " - Batch " . $activity['batch_year'] : "";
-    $details = !empty($activity['update_details']) ? htmlspecialchars($activity['update_details']) : ucfirst($activity['update_type']) . "d profile";
-    return $details . " for " . $name . $batch;
+    $batch = !empty($activity['batch_year']) ? " (Batch " . $activity['batch_year'] . ")" : "";
+    
+    switch ($activity['update_type']) {
+        case 'approve': 
+            return "Approved {$name}'s profile{$batch}";
+        case 'reject':  
+            $reason = !empty($activity['update_details']) ? ": " . htmlspecialchars($activity['update_details']) : "";
+            return "Rejected {$name}'s profile{$reason}{$batch}";
+        case 'update':  
+            // Check if this is an undo action by looking at details
+            if (strpos(strtolower($activity['update_details'] ?? ''), 'undo') !== false || 
+                strpos(strtolower($activity['update_details'] ?? ''), 'revert') !== false ||
+                strpos(strtolower($activity['update_details'] ?? ''), 'pending') !== false) {
+                return "Reverted {$name}'s status to Pending{$batch}";
+            } else {
+                return "Updated {$name}'s profile status{$batch}";
+            }
+        default:        
+            return "Modified {$name}'s profile{$batch}";
+    }
 }
+
 function time_elapsed_string($datetime) {
     $now = new DateTime('now', new DateTimeZone('Asia/Manila'));
     $ago = new DateTime($datetime, new DateTimeZone('Asia/Manila'));

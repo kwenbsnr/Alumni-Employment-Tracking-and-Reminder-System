@@ -1,4 +1,5 @@
 <?php
+date_default_timezone_set('Asia/Manila');
 // Fetch user data from users table
 $stmt = $conn->prepare("
     SELECT 
@@ -33,7 +34,7 @@ if (!empty($profile['official_name'])) {
 $user_email = $profile['email'] ?? '';
 $photo_path = $profile['photo_path'] ?? null;
 
-// Fetch notifications data
+// === DYNAMIC NOTIFICATIONS BASED ON REAL SUBMISSION STATUS (submission_status) ===
 $notif_count = 0;
 $notifications = [];
 
@@ -97,13 +98,14 @@ if ($profile) {
         ];
         $notif_count++;
     }
+
 } else {
-    // No profile data at all
+    // No profile submitted yet
     $notifications[] = [
-        'title' => 'Complete Your Profile',
-        'message' => 'Welcome! Please set up your alumni profile to get started.',
-        'timestamp' => null,
-        'type' => 'info'
+        'title'       => 'Complete Your Profile',
+        'message'     => 'Welcome! Please fill out your alumni profile to get started.',
+        'timestamp'   => $current_timestamp,
+        'type'        => 'info'
     ];
     $notif_count++;
 }
@@ -312,6 +314,7 @@ $page_title = $page_title ?? "Alumni Page";
     <div class="flex-1 flex flex-col">
         <!-- Header -->
         <div class="bg-white shadow-sm border-b border-gray-100 py-3 px-6 flex items-center justify-between sticky top-0 z-40">
+
             <div class="flex-1">
                 <h1 class="text-2xl font-bold text-gray-900">
                     <?php echo ($active_page ?? '') === 'profile' ? 'Profile Management' : 'Dashboard Overview'; ?>
@@ -405,7 +408,6 @@ $page_title = $page_title ?? "Alumni Page";
             <?php echo $page_content ?? ''; ?>
         </main>
     </div>
-
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Notification functionality
@@ -413,31 +415,72 @@ $page_title = $page_title ?? "Alumni Page";
         const notifPopup = document.getElementById('notifPopup');
         const notifBadge = document.getElementById('notificationBadge');
         
-        console.log('Notification button:', notifButton);
-        console.log('Notification popup:', notifPopup);
+        // Variables to track popup state
+        let isPopupOpen = false;
+        let isHoveringPopup = false;
+        let closeTimeout = null;
+        
+        // Function to open popup
+        function openPopup() {
+            if (notifPopup) {
+                notifPopup.classList.remove('hidden');
+                isPopupOpen = true;
+            }
+        }
         
         // Function to close popup
         function closePopup() {
-            if (notifPopup && notifPopup.classList.contains('open')) {
-                notifPopup.classList.remove('open');
+            if (notifPopup && isPopupOpen) {
+                notifPopup.classList.add('hidden');
+                isPopupOpen = false;
             }
         }
-
+        
+        // Function to schedule popup close (for auto-close when not hovered)
+        function scheduleClose() {
+            // Clear any existing timeout
+            if (closeTimeout) {
+                clearTimeout(closeTimeout);
+            }
+            
+            // Set new timeout to close after 1 second if not hovering
+            closeTimeout = setTimeout(() => {
+                if (!isHoveringPopup) {
+                    closePopup();
+                }
+            }, 1000);
+        }
+        
         // Notification button click handler
         if (notifButton && notifPopup) {
             notifButton.addEventListener('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('Notification button clicked');
                 
-                // Toggle the 'open' class
-                if (notifPopup.classList.contains('open')) {
-                    notifPopup.classList.remove('open');
+                // Toggle popup visibility
+                if (isPopupOpen) {
+                    closePopup();
                 } else {
-                    notifPopup.classList.add('open');
+                    openPopup();
                 }
             });
 
+            // Track when mouse enters the popup
+            notifPopup.addEventListener('mouseenter', function() {
+                isHoveringPopup = true;
+                
+                // Clear any pending close timeout when hovering
+                if (closeTimeout) {
+                    clearTimeout(closeTimeout);
+                }
+            });
+            
+            // Track when mouse leaves the popup
+            notifPopup.addEventListener('mouseleave', function() {
+                isHoveringPopup = false;
+                scheduleClose(); // Start close countdown
+            });
+            
             // Close popup when clicking outside
             document.addEventListener('click', function(e) {
                 if (!notifButton.contains(e.target) && !notifPopup.contains(e.target)) {
@@ -447,7 +490,7 @@ $page_title = $page_title ?? "Alumni Page";
 
             // Close on escape key
             document.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape') {
+                if (e.key === 'Escape' && isPopupOpen) {
                     closePopup();
                 }
             });
@@ -458,7 +501,6 @@ $page_title = $page_title ?? "Alumni Page";
                 markReadBtn.addEventListener('click', function(e) {
                     e.preventDefault();
                     e.stopPropagation();
-                    console.log('Mark all as read clicked');
                     
                     // Hide notification badge
                     if (notifBadge) {
@@ -492,21 +534,8 @@ $page_title = $page_title ?? "Alumni Page";
                     }
                 });
             }
-        } else {
-            console.error('Notification elements not found:', {
-                button: notifButton,
-                popup: notifPopup
-            });
-        }
-
-        // Prevent popup close when clicking inside popup
-        if (notifPopup) {
-            notifPopup.addEventListener('click', function(e) {
-                e.stopPropagation();
-            });
         }
     });
 </script>
-
 </body>
 </html>
