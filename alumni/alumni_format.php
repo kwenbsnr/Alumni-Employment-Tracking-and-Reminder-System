@@ -331,6 +331,7 @@ $page_title = $page_title ?? "Alumni Page";
     <div class="flex-1 flex flex-col">
         <!-- Header -->
         <div class="bg-white shadow-sm border-b border-gray-100 py-3 px-6 flex items-center justify-between sticky top-0 z-40">
+
             <div class="flex-1">
                 <h1 class="text-2xl font-bold text-gray-900">
                     <?php echo ($active_page ?? '') === 'profile' ? 'Profile Management' : 'Dashboard Overview'; ?>
