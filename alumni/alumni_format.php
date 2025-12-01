@@ -1,4 +1,5 @@
 <?php
+date_default_timezone_set('Asia/Manila');
 // Fetch user data from users table - FIXED QUERY
 $stmt = $conn->prepare("
     SELECT
@@ -25,6 +26,7 @@ if (!empty($profile['official_name'])) {
 
 $user_email = $profile['email'] ?? '';
 $photo_path = $profile['photo_path'] ?? null;
+
 // === DYNAMIC NOTIFICATIONS BASED ON REAL SUBMISSION STATUS (submission_status) ===
 $notif_count = 0;
 $notifications = [];
@@ -41,11 +43,12 @@ $submission_status = $profile['submission_status'] ?? null;
 $submission_date   = $profile['submission_date'] ?? null;
 
 // Notification 1: Submission period status (ALWAYS SHOW THIS)
+$current_timestamp = date('Y-m-d H:i:s');
 if (!$submissions_open) {
     $notifications[] = [
         'title'       => 'Submissions Currently Closed',
         'message'     => 'Profile submissions are currently closed. Please check back during the open submission period.',
-        'timestamp'   => null,
+        'timestamp'   => $current_timestamp,
         'type'        => 'error'
     ];
     $notif_count++;
@@ -53,7 +56,7 @@ if (!$submissions_open) {
     $notifications[] = [
         'title'       => 'Submissions Open',
         'message'     => 'Profile submissions are currently open. You can submit or update your alumni profile.',
-        'timestamp'   => null,
+        'timestamp'   => $current_timestamp,
         'type'        => 'success'
     ];
     $notif_count++;
@@ -67,7 +70,7 @@ if (!$submissions_open && $open_date && $close_date) {
     $notifications[] = [
         'title'       => 'Next Submission Period',
         'message'     => "Submissions will open from $from to $to",
-        'timestamp'   => null,
+        'timestamp'   => $current_timestamp,
         'type'        => 'info'
     ];
     $notif_count++;
@@ -79,7 +82,7 @@ if ($submission_status) {
         $notifications[] = [
             'title'       => 'Profile Under Review',
             'message'     => 'Your profile is currently being reviewed by the administrators.',
-            'timestamp'   => $submission_date,
+            'timestamp'   => $submission_date ?: $current_timestamp,
             'type'        => 'warning'
         ];
         $notif_count++;
@@ -88,7 +91,7 @@ if ($submission_status) {
         $notifications[] = [
             'title'       => 'Profile Approved',
             'message'     => 'Congratulations! Your alumni profile has been officially approved.',
-            'timestamp'   => $submission_date,
+            'timestamp'   => $submission_date ?: $current_timestamp,
             'type'        => 'success'
         ];
         // Optional: remove badge after approval (recommended)
@@ -99,7 +102,7 @@ if ($submission_status) {
         $notifications[] = [
             'title'       => 'Action Required: Profile Rejected',
             'message'     => 'Your profile was rejected. Please review the feedback and resubmit.',
-            'timestamp'   => $submission_date,
+            'timestamp'   => $submission_date ?: $current_timestamp,
             'type'        => 'error'
         ];
         $notif_count++;
@@ -110,7 +113,7 @@ if ($submission_status) {
         $notifications[] = [
             'title'       => 'Employment Verification Pending',
             'message'     => 'Your employment details are still under review.',
-            'timestamp'   => null,
+            'timestamp'   => $current_timestamp,
             'type'        => 'warning'
         ];
         $notif_count++;
@@ -121,11 +124,12 @@ if ($submission_status) {
     $notifications[] = [
         'title'       => 'Complete Your Profile',
         'message'     => 'Welcome! Please fill out your alumni profile to get started.',
-        'timestamp'   => null,
+        'timestamp'   => $current_timestamp,
         'type'        => 'info'
     ];
     $notif_count++;
 }
+
 // Page title fallback
 $page_title = $page_title ?? "Alumni Page";
 ?>
