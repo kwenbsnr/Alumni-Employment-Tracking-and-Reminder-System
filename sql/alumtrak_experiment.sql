@@ -2,8 +2,8 @@
 -- version 5.2.1
 -- https://www.phpmyadmin.net/
 --
--- Host: 127.0.0.1:3306
--- Generation Time: Nov 11, 2025 at 03:19 AM
+-- Host: 127.0.0.1
+-- Generation Time: Nov 24, 2025 at 10:24 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -38,24 +38,52 @@ CREATE TABLE `address` (
 
 INSERT INTO `address` (`address_id`, `barangay_id`) VALUES
 (33, '012801001'),
+(129, '012806007'),
 (73, '012902002'),
+(146, '012912011'),
+(127, '013304006'),
+(120, '021503004'),
 (54, '023137039'),
+(106, '025001003'),
 (74, '030801001'),
+(131, '034907003'),
+(116, '037701005'),
+(138, '042104006'),
 (79, '043419006'),
+(118, '051606011'),
 (99, '051610015'),
+(135, '051704004'),
+(133, '051711009'),
+(141, '052003005'),
 (75, '056208019'),
 (92, '060610017'),
-(94, '063034033'),
+(123, '060611009'),
+(110, '060612013'),
+(148, '060612015'),
+(150, '060614016'),
+(112, '071212018'),
+(105, '072202002'),
+(140, '072209010'),
+(130, '072216013'),
+(147, '072216019'),
 (88, '072217029'),
 (89, '074610011'),
+(132, '076105004'),
+(142, '082611011'),
 (90, '082618019'),
+(144, '083706006'),
+(149, '087805016'),
+(139, '097315012'),
+(102, '097322016'),
 (84, '097330006'),
 (82, '098313013'),
 (96, '099701040'),
 (49, '101301012'),
 (66, '101316017'),
 (24, '101318019'),
+(121, '101802002'),
 (98, '101802003'),
+(125, '101802005'),
 (77, '101805003'),
 (91, '103504008'),
 (58, '103504023'),
@@ -63,8 +91,8 @@ INSERT INTO `address` (`address_id`, `barangay_id`) VALUES
 (83, '104306015'),
 (97, '112301001'),
 (65, '112303015'),
-(13, '112406016'),
 (81, '118201013'),
+(143, '118604004'),
 (76, '128001006'),
 (12, '133901001'),
 (46, '133901001'),
@@ -77,6 +105,8 @@ INSERT INTO `address` (`address_id`, `barangay_id`) VALUES
 (63, '141110013'),
 (95, '148102001'),
 (87, '148102002'),
+(145, '148102009'),
+(114, '148103002'),
 (67, '150708001'),
 (68, '150708001'),
 (69, '150708001'),
@@ -88,6 +118,8 @@ INSERT INTO `address` (`address_id`, `barangay_id`) VALUES
 (56, '153633031'),
 (17, '153639001'),
 (85, '160212004'),
+(151, '175103003'),
+(128, '175204003'),
 (80, '175316025'),
 (55, '175910021');
 
@@ -109,9 +141,11 @@ CREATE TABLE `alumni_documents` (
 --
 
 INSERT INTO `alumni_documents` (`doc_id`, `user_id`, `document_type`, `file_path`) VALUES
-(31, 9, 'B_CERT', 'Uploads/business/_business.pdf'),
-(34, 14, 'COE', 'uploads/coe/_coe.pdf'),
-(36, 2, 'COR', 'uploads/cor/Bisnar_cor.pdf');
+(83, 8, 'COE', 'uploads/coe/user_8_coe_1763963998.pdf'),
+(84, 7, 'B_CERT', 'uploads/business/user_7_b_cert_1763964437.pdf'),
+(85, 27, 'COE', 'uploads/coe/user_27_coe_1763970143.pdf'),
+(86, 27, 'COR', 'uploads/cor/user_27_cor_1763970143.pdf'),
+(87, 26, 'COR', 'uploads/cor/user_26_cor_1763970210.pdf');
 
 -- --------------------------------------------------------
 
@@ -121,12 +155,9 @@ INSERT INTO `alumni_documents` (`doc_id`, `user_id`, `document_type`, `file_path
 
 CREATE TABLE `alumni_profile` (
   `user_id` int(11) NOT NULL,
+  `name` varchar(255) DEFAULT NULL,
   `address_id` int(11) DEFAULT NULL,
-  `first_name` varchar(100) NOT NULL,
-  `middle_name` varchar(100) DEFAULT NULL,
-  `last_name` varchar(100) NOT NULL,
   `contact_number` varchar(20) NOT NULL,
-  `year_graduated` year(4) DEFAULT NULL,
   `employment_status` enum('Employed','Self-Employed','Unemployed','Student','Employed & Student') DEFAULT NULL,
   `photo_path` varchar(255) DEFAULT NULL,
   `last_profile_update` timestamp NULL DEFAULT NULL,
@@ -140,13 +171,12 @@ CREATE TABLE `alumni_profile` (
 -- Dumping data for table `alumni_profile`
 --
 
-INSERT INTO `alumni_profile` (`user_id`, `address_id`, `first_name`, `middle_name`, `last_name`, `contact_number`, `year_graduated`, `employment_status`, `photo_path`, `last_profile_update`, `submission_status`, `rejection_reason`, `rejected_at`, `submitted_at`) VALUES
-(1, 13, 'Josie', 'Gumera', 'Oliveros', '09367891026', '2023', 'Employed', 'Uploads/photos/Oliveros_profile.jpg', '2025-10-17 14:15:29', 'Pending', NULL, NULL, '2025-11-08 04:28:16'),
-(2, 98, 'Quien', 'Bendula', 'Bisnar', '09121112124', '2022', 'Student', 'uploads/photos/Bisnar_profile.png', '2025-11-10 04:50:35', 'Pending', NULL, NULL, '2025-11-10 04:50:35'),
-(9, 90, 'Jaafar', '', 'Omar', '09121112121', '2023', 'Self-Employed', 'Uploads/photos/Omar_profile.png', '2025-11-06 08:12:11', 'Pending', NULL, NULL, '2025-11-08 04:28:16'),
-(10, 41, 'Reymark', '', 'Buhian', '09125124512', '2023', 'Employed', 'Uploads/photos/Buhian_profile.jpg', '2025-10-18 02:13:25', 'Rejected', 'No documents were submitted.', '2025-11-10 08:34:42', '2025-11-08 04:28:16'),
-(13, 24, 'Maureen', '', 'Guadalquiver', '09987654321', '2022', 'Student', 'Uploads/photos/Guadalquiver_profile.jpg', '2025-10-17 23:15:45', 'Pending', NULL, NULL, '2025-11-08 04:28:16'),
-(14, 94, 'Kia', 'Banac', 'Balucos', '09121112123', '2024', 'Employed', 'uploads/photos/Balucos_profile.png', '2025-11-07 06:48:38', 'Approved', NULL, NULL, '2025-11-08 04:28:16');
+INSERT INTO `alumni_profile` (`user_id`, `name`, `address_id`, `contact_number`, `employment_status`, `photo_path`, `last_profile_update`, `submission_status`, `rejection_reason`, `rejected_at`, `submitted_at`) VALUES
+(7, 'Joan Grace M. Patalinghug', 148, '09632467292', 'Self-Employed', 'uploads/photos/user_7_profile_1763964437.jpg', '2025-11-24 06:07:17', 'Rejected', NULL, NULL, '2025-11-24 06:07:17'),
+(8, 'Marian G. Marchan', 147, '09632467292', 'Employed', 'uploads/photos/user_8_profile_1763963998.jpg', '2025-11-24 05:59:58', 'Pending', NULL, NULL, '2025-11-24 05:59:58'),
+(12, 'John Marnel B. Asutilla', 150, '09632467292', 'Unemployed', 'uploads/photos/user_12_profile_1763970169.jpg', '2025-11-24 07:42:49', 'Pending', NULL, NULL, '2025-11-24 07:42:49'),
+(26, 'Dexene Bliss J. Kilat', 151, '09632467292', 'Student', 'uploads/photos/user_26_profile_1763970210.jpg', '2025-11-24 07:43:30', 'Pending', NULL, NULL, '2025-11-24 07:43:30'),
+(27, 'Anjo B. Fernandez', 149, '09632467292', 'Employed & Student', 'uploads/photos/user_27_profile_1763970143.jpg', '2025-11-24 07:42:23', 'Pending', NULL, NULL, '2025-11-24 07:42:23');
 
 -- --------------------------------------------------------
 
@@ -168,8 +198,8 @@ CREATE TABLE `education_info` (
 --
 
 INSERT INTO `education_info` (`education_id`, `user_id`, `school_name`, `degree_pursued`, `start_year`, `end_year`) VALUES
-(1, 13, 'Central Mindanao University', 'Doctor of Philosophy (PhD) in Information Technology', NULL, NULL),
-(14, 2, 'University of Sto. Tomas', 'Master&#039;s', '2023', '2026');
+(32, 27, 'Ateneo de Zamboanga', 'Masters in botbot', '2024', '2027'),
+(33, 26, 'Ateneo de Zamboanga', 'Masters in kuan', '2024', '2026');
 
 -- --------------------------------------------------------
 
@@ -192,10 +222,9 @@ CREATE TABLE `employment_info` (
 --
 
 INSERT INTO `employment_info` (`employment_id`, `user_id`, `job_title_id`, `company_name`, `salary_range`, `business_type`, `company_address`) VALUES
-(1, 1, 1, 'INCA', 'Above ₱50,000', 'Food Service / Catering', NULL),
-(2, 10, 2, 'Aztec Civilization', '₱20,000–₱30,000', 'Food Service / Catering', NULL),
-(28, 9, NULL, '', '₱30,000–₱40,000', 'Real Estate / Property Leasing', ''),
-(30, 14, 9, 'Meta', 'Above ₱50,000', '', 'USA');
+(66, 8, 18, 'Marchan Tech Corporation', '₱40,000–₱50,000', '', 'LIGH 428, APHB Colony, Moula Ali'),
+(67, 7, NULL, '', '₱20,000–₱30,000', 'Retail / Online Selling', ''),
+(68, 27, 6, 'Marchan Tech Corporation', '₱20,000–₱30,000', 'Freelancer', 'LIGH 428, APHB Colony, Moula Ali');
 
 -- --------------------------------------------------------
 
@@ -235,6 +264,28 @@ INSERT INTO `job_titles` (`job_title_id`, `title`) VALUES
 (3, 'Software Engineer'),
 (8, 'Systems Analyst'),
 (4, 'Web Developer');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `submission_status`
+--
+
+CREATE TABLE `submission_status` (
+  `id` int(11) NOT NULL,
+  `is_open` tinyint(1) DEFAULT 0,
+  `manual_override` tinyint(1) DEFAULT 0,
+  `open_date` datetime DEFAULT NULL,
+  `close_date` datetime DEFAULT NULL,
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `submission_status`
+--
+
+INSERT INTO `submission_status` (`id`, `is_open`, `manual_override`, `open_date`, `close_date`, `updated_at`) VALUES
+(1, 1, 1, NULL, NULL, '2025-11-24 07:41:13');
 
 -- --------------------------------------------------------
 
@@ -43270,7 +43321,40 @@ INSERT INTO `update_log` (`log_id`, `updated_by`, `updated_id`, `update_type`, `
 (14, 3, 5, '', '2025-10-17 23:22:03'),
 (15, 4, 2, '', '2025-10-28 08:26:57'),
 (16, 4, 14, 'approve', '2025-11-10 08:33:49'),
-(17, 4, 10, 'approve', '2025-11-10 08:34:42');
+(17, 4, 10, 'approve', '2025-11-10 08:34:42'),
+(18, 3, 7, 'approve', '2025-11-15 11:06:22'),
+(19, 3, 16, 'approve', '2025-11-15 13:22:28'),
+(20, 3, 12, 'approve', '2025-11-15 13:27:54'),
+(21, 3, 20, 'approve', '2025-11-15 13:33:07'),
+(22, 3, 7, 'reject', '2025-11-16 13:03:33'),
+(23, 3, 18, 'reject', '2025-11-16 13:05:27'),
+(24, 3, 18, 'reject', '2025-11-18 01:38:19'),
+(25, 3, 1, 'reject', '2025-11-18 01:39:37'),
+(26, 3, 8, 'reject', '2025-11-18 01:41:39'),
+(27, 3, 8, 'approve', '2025-11-18 01:46:57'),
+(28, 3, 18, 'approve', '2025-11-18 02:20:46'),
+(29, 3, 7, 'reject', '2025-11-18 02:21:09'),
+(30, 3, 7, 'reject', '2025-11-18 04:17:56'),
+(31, 3, 7, 'approve', '2025-11-18 06:25:57'),
+(32, 3, 8, 'reject', '2025-11-19 10:31:08'),
+(33, 3, 8, 'reject', '2025-11-19 13:00:14'),
+(34, 3, 8, 'reject', '2025-11-19 13:37:24'),
+(35, 3, 12, 'reject', '2025-11-19 15:05:56'),
+(36, 3, 2, 'approve', '2025-11-19 15:06:10'),
+(37, 3, 14, 'reject', '2025-11-20 04:06:55'),
+(38, 3, 9, 'reject', '2025-11-20 04:07:11'),
+(39, 3, 11, 'reject', '2025-11-21 02:14:13'),
+(40, 3, 25, 'approve', '2025-11-21 02:14:41'),
+(41, 3, 13, 'approve', '2025-11-21 05:15:06'),
+(42, 3, 8, 'approve', '2025-11-21 09:13:37'),
+(43, 3, 12, 'approve', '2025-11-21 09:25:06'),
+(44, 3, 13, 'reject', '2025-11-21 09:25:28'),
+(45, 3, 22, 'reject', '2025-11-21 09:28:30'),
+(46, 3, 7, 'approve', '2025-11-21 09:43:45'),
+(47, 3, 21, 'reject', '2025-11-21 09:44:41'),
+(48, 3, 2, 'approve', '2025-11-21 09:56:00'),
+(49, 3, 18, 'reject', '2025-11-21 09:56:46'),
+(50, 3, 1, 'approve', '2025-11-21 10:11:04');
 
 -- --------------------------------------------------------
 
@@ -43284,59 +43368,64 @@ CREATE TABLE `users` (
   `password` varchar(200) NOT NULL,
   `role` enum('admin','alumni') NOT NULL,
   `name` varchar(150) NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `student_id` varchar(20) DEFAULT NULL,
+  `date_of_birth` date DEFAULT NULL,
+  `gender` enum('Male','Female','Other') DEFAULT NULL,
+  `program` varchar(100) DEFAULT 'BSIT',
+  `batch_year` year(4) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`user_id`, `email`, `password`, `role`, `name`, `created_at`) VALUES
-(1, 'josieoliveros013@gmail.com', '$2y$10$ehX/E2zWveVcemhEh6PmLOGJM8HlV2g5jePA7LEfwgftW1DJZ8Uz.', 'alumni', 'Josie Oliveros', '2025-10-13 13:59:40'),
-(2, 'quienbisnar@gmail.com', '$2y$10$iVt2fcpR/Z19c8jTMKyA5OgBFCYb5GK44KCQMXmagMMxDstzdparC', 'alumni', 'Quien Bisnar', '2025-10-13 11:48:34'),
-(3, 'aseneroglaiza@gmail.com', '$2y$10$UHN1b.vJAkh26l4TdpkxT.Zfsvi3DgvgH5m41PRIGAnMefSpfufhO', 'admin', 'Glaiza Aseñero', '2025-10-13 14:01:10'),
-(4, 'glowentanamanmil08@gmail.com', '$2y$10$.X6JG2ZcAC.Oi3RLDciATehWeH1FxfvrB4NBhnT8Eqwy9dkcT1TL.', 'admin', 'Glowen Tanaman', '2025-10-17 08:59:39'),
-(5, 'repe.ronaldojr@gmail.com', '$2y$10$AV5HSa53xpJRPykHLCQhuei9q5Rtk7SMFfs.yS9riewWH/d0hylKC', 'admin', 'Ronaldo Repe', '2025-10-17 08:59:39'),
-(6, 'davelabadan1@gmail.com', '$2y$10$h6Xx10eFsuv0vhUk9ApM/OmLJ1YHyYRGx.lAb.0iSmuHFZ8NpwjO2', 'alumni', 'China Dave Labadan', '2025-10-17 08:59:39'),
-(7, 'joangracep@gmail.com', '$2y$10$M1kkyVDtSJHEBwXmuEwNmO.IHkK/S5jmHU7Xtx9lTJthD3qOuPZmG', 'alumni', 'Joan Grace Patalinghug', '2025-10-17 08:59:39'),
-(8, 'marchanmayang687@gmail.com', '$2y$10$PvYQQ4DZnVHa8Z5zqYxEEOGq7.5yI2TkUPbIoTVlPzcjCXzwX8OMG', 'alumni', 'Marian Marchan', '2025-10-17 08:59:39'),
-(9, 'jaafarj.omar@gmail.com', '$2y$10$aBrYT3wN51F1yKGoV/2age.qI5Mz3JXzD0j//TazqSLjsmsfBouMe', 'alumni', 'Jaafar Omar', '2025-11-05 13:21:52'),
-(10, 'buhianreymark@gmail.com', '$2y$10$rkACLYX4XRZkULTFpJefx..w..Cc0rre7xgsv0FpGc4Y070R6Aaiu', 'alumni', 'Reymark Buhian', '2025-10-17 09:01:25'),
-(11, 'sairabelarmino1@gmail.com', '$2y$10$pnjkHN4SA.MxIkO2YV3xFeHK7vTemeFy/FnswuVfDp4n/J8jDjG12', 'alumni', 'Saira Belarmino', '2025-10-17 09:05:44'),
-(12, 'asutillajohn445@gmail.com', '$2y$10$D9Y6u6QAcQfq6ZhPHOGwyOpeuQSBg.qXkzqdsrqZPtZR9ZtvSXVhS', 'alumni', 'John Marnel Asutilla', '2025-10-17 09:05:44'),
-(13, 'chlsywtnb001@gmail.com', '$2y$10$EvSxw6YxgkaV.E1NuSD1PetRgxiTdbDONJftJIEgevEZI65b3s7Te', 'alumni', 'Maureen Guadalquiver', '2025-10-17 09:05:44'),
-(14, 'madumbkiki@gmail.com', '$2y$10$HWCc9A8dNCQqEbE80YBQ/ead4ShMD7kRb0REUZq1U7xVDeZu9Asii', 'alumni', 'Kia Balucos', '2025-10-17 09:09:02'),
-(15, 'jesseltapdasan3@gmail.com', '$2y$10$LRuq4uVRQAHsnXUalvlV6uU139FmSMDUlT.B4LV/kb3u9m7TLyiOa', 'alumni', 'Jessel Tapdasan', '2025-10-17 09:09:02'),
-(16, 'yolemkieth@gmail.com', '$2y$10$LsoAByT1LT.asfHz.YNCAulAkYFF/255qOnX/ItjzCdbCDWemnJi2', 'alumni', 'Yolem Kieth Salarda', '2025-10-17 09:09:02'),
-(17, 'fuyaaa123@gmail.com', '$2y$10$z1SWM1/Da6eCA6rovryLk.hP3151/ug51ecvxo4I5R72rGt9BTjRG', 'alumni', 'Famme Tabaranza', '2025-10-17 09:09:02'),
-(18, 'ticmonmariel9@gmail.com', '$2y$10$v29n.z1o20nQbZRGhWGfSOKtzd0SVuRH7kuU.MXr/6lIbiocOA5Sa', 'alumni', 'Mariel Ticmon', '2025-10-17 09:23:41'),
-(19, 'jennethcorcelles@gmail.com', '$2y$10$EIS.HCxWmN0N0agHPDy2BeVvz/vvkaDm1D7GBi309m7KbPEMAArke', 'alumni', 'Jenneth Corcelles', '2025-10-17 12:01:39'),
-(20, 'drexzelescoreal@gmail.com', '$2y$10$nj7WTWt9ueBZF5YmZHa.F.9WGyNSzFh6WH93WFYAaIX1ZJSY7kHJ.', 'alumni', 'Drexzel Escoreal', '2025-10-17 12:01:39'),
-(21, 'danrylboncales@gmail.com', '$2y$10$EkIQueUtH4eI.KK.Ef49seYbAu6XCStVKjVk16X/33BuzsQTgt0s2', 'alumni', 'Danryl James Usa', '2025-10-17 12:01:39'),
-(22, 'davemadrazo7@gmail.com', '$2y$10$6U8i3VrEMwuhzax5GKUOi.JOZbWqok4/6hKld3CL44i.aYxTe12Mq', 'alumni', 'Dave Jay Madrazo', '2025-10-17 12:01:39'),
-(23, 'salvadorvincecyrus@gmail.com', '$2y$10$2rxmPdtdOr8NgmNmvVPiEOgxKeAC.OQTQw0C58EY5/CnEzoeCrKDi', 'alumni', 'Vince Cyrus Salvador', '2025-10-17 15:13:32'),
-(25, 'rthdbl672@gmail.com', '$2y$10$5MS6n8OUf8kJ2D3eHCAfwecHkuIAXKlkB8vrq5dCIwitcNfdyvcni', 'alumni', 'Arth Dablo', '2025-11-10 13:24:20'),
-(26, 'dexenebliskg@mail.com', '$2y$10$mLuf6qUWB59SVVpsu4fDg.5uVxsWeJ2sOnPHL8.4wOHcl2d.baQ7C', 'alumni', 'Dexene Bliss Kilat', '2025-11-10 13:24:20'),
-(27, 'anjofernandez0705@gmail.com', '$2y$10$mGcZLCHvtbYb0GpPPnq3v.eUFzKx.LxoPEtOBNUIg4dVSOSlt3YqW', 'alumni', 'Anjo Fernandez', '2025-11-10 13:24:20'),
-(28, 'jancarlorabe9@gmail.com', '$2y$10$JjvjQDB5HnysBAaExlAuvekp7UjkvxGJqaJt4FUe/Qr9OuDmiCLLy', 'alumni', 'Jan Carlo Rabe', '2025-11-10 13:24:20'),
-(29, 'catalanvincent222@gmail.com', '$2y$10$EjziH7HJLkjcO/t5w5CXy.a4mmAnYO..nZAbgDXLidU9iomVkcl3m', 'alumni', 'Vincent Catalan', '2025-11-10 13:24:20'),
-(30, 'keishasoler05@gmail.com', '$2y$10$4l6x1jQnh1fG3hThk/XGI.MjDqcygy44M./ZUC6HbEOd5Z/MaSg8e', 'alumni', 'Keisha Nicole Soler', '2025-11-11 01:57:53'),
-(31, 'reginpunay@gmail.com', '$2y$10$RPk4PT7LMcjzM9qhmqipuedvzOR5.CKxaJmGRZlkY7bbNlJ/FbvpO', 'alumni', 'Regin Angala', '2025-11-11 01:57:53'),
-(32, 'jylsam123@gmail.com', '$2y$10$EtUiAEv/t5icCn/S.0qbie3F2hSzJDmzPBrEW9Hbpj0zYYTvd2hrW', 'alumni', 'Jylsam Quirog', '2025-11-11 01:57:53'),
-(33, 'carlowedeala2020@gmail.com', '$2y$10$izxs4rpeIj7BKtUblvckLehRqyG8vdZ14MF8QK5eMdHTtUmk5hPuy', 'alumni', 'Carlowe Deala', '2025-11-11 01:57:53'),
-(34, 'nathanielpiraman@gmail.com', '$2y$10$HgZbThTHwqouQvhzhBWXGOKaQu/AgjMReSuRUb1gOEdnWegme15zm', 'alumni', 'Nathaniel Piraman', '2025-11-11 01:57:53'),
-(35, 'sebreroaxcylxyron@gmail.com', '$2y$10$Kr.PEnBlDQorPRkskBkGquNaB/cLV4u0Cq/J1NuSL.4zv0PasqJc2', 'alumni', 'Axcyl Xyron Sebrero', '2025-11-11 01:57:53'),
-(36, 'Khristenecruz@gmail.com', '$2y$10$zxAZtG0erkGI2BVIgl7mEuPWVDKUBd/fluIOmZmvJYHkyjM/kXmTm', 'alumni', 'Khristene Suyang', '2025-11-11 01:57:53'),
-(37, 'gaminghr209@gmail.com', '$2y$10$RNGAubZ1zm9LHYxZpbBKsuC.plR0ghVmB4SCYytILRtGwe8KEx5Ru', 'alumni', 'Raymart Upao', '2025-11-11 01:57:53'),
-(38, 'lloydandiason45@gmail.com', '$2y$10$ylZvPSFZyBhvORRKeFR3KOjpXZbZTLghao48NI0qWLZsaEye7vV9K', 'alumni', 'Lloyd Andiason', '2025-11-11 02:08:08'),
-(39, 'andrinairagrace@gmail.com', '$2y$10$ILdyOKViWrV68U5qt84iIe2C40709YneF/FxO.rq0Hwj2XOctTcgi', 'alumni', 'Aira Grace Andrin', '2025-11-11 02:08:08'),
-(40, 'liborwilfred@gmail.com', '$2y$10$mpsuvqiB/uw/aK0bRV5l4eS.IS9XepggwdQ4cx1U5JovWeXfHQB7S', 'alumni', 'Wilfred Libor', '2025-11-11 02:08:08'),
-(41, 'jonalyntabunyag5@gmail.com', '$2y$10$0Bz6kzL/yb7mQuRTR5jxJevKbsxIGJWdPv9bjoy8evLAegELgVib.', 'alumni', 'Jonalyn Tabunyag', '2025-11-11 02:08:08'),
-(42, 'rivenllego@gmail.com', '$2y$10$gFXPvwr4JX2UqZTVdhfNZuDaT/AzNwXbYay8vedvT0hEAErZAVpZG', 'alumni', 'Rizal Ven Llego', '2025-11-11 02:08:08'),
-(43, 'Renchauxtero24@gmail.com', '$2y$10$dHuhcVAve1NDNpgZ4Z9JoO1t6/r4z75kaDl6H47piwXw6Pgyomn2C', 'alumni', 'Rench Auxtero', '2025-11-11 02:08:08'),
-(44, 'ivannjadecmartel@gmail.com', '$2y$10$QiTGkhw4eZPgMOm/dfckQ.10QOwfE.cAFYBILTnXFw1rFyN/vGCc.', 'alumni', 'Ivann Jade Martel', '2025-11-11 02:08:08'),
-(45, 'ngllrosall@gmail.com', '$2y$10$k6yAD3V9isaZ/cO5cqtVzuMfs4pxCkxbmS0Iy4RUq0id.hSfOwZq2', 'alumni', 'Angel Rosal', '2025-11-11 02:08:08'),
-(46, 'johnmira911@gmail.com', '$2y$10$fFq50O9MRFubzmzh8Ad2m.Z7kKCgxfOX2Fx24agrRtnTTjMbnh3Cy', 'alumni', 'John Kristoffer Mira', '2025-11-11 02:08:08');
+INSERT INTO `users` (`user_id`, `email`, `password`, `role`, `name`, `created_at`, `student_id`, `date_of_birth`, `gender`, `program`, `batch_year`) VALUES
+(1, 'josieoliveros013@gmail.com', '$2y$10$ehX/E2zWveVcemhEh6PmLOGJM8HlV2g5jePA7LEfwgftW1DJZ8Uz.', 'alumni', 'Josie G. Oliveros', '2025-10-13 13:59:40', '2020-00123', '2005-05-15', 'Female', 'Bachelor of Science in Information Technology', '2024'),
+(2, 'quienbisnar@gmail.com', '$2y$10$iVt2fcpR/Z19c8jTMKyA5OgBFCYb5GK44KCQMXmagMMxDstzdparC', 'alumni', 'Quien B. Bisnar', '2025-10-13 11:48:34', '2020-00124', '2005-03-20', 'Female', 'Bachelor of Science in Information Technology', '2024'),
+(3, 'aseneroglaiza@gmail.com', '$2y$10$UHN1b.vJAkh26l4TdpkxT.Zfsvi3DgvgH5m41PRIGAnMefSpfufhO', 'admin', 'Glaiza E. Aseñero', '2025-10-13 14:01:10', '2020-00001', '2000-01-15', 'Female', 'Bachelor of Science in Information Technology', '2024'),
+(4, 'glowentanamanmil08@gmail.com', '$2y$10$.X6JG2ZcAC.Oi3RLDciATehWeH1FxfvrB4NBhnT8Eqwy9dkcT1TL.', 'admin', 'Glowen H. Tanaman', '2025-10-17 08:59:39', '2020-00002', '2000-02-20', 'Male', 'Bachelor of Science in Information Technology', '2024'),
+(5, 'repe.ronaldojr@gmail.com', '$2y$10$AV5HSa53xpJRPykHLCQhuei9q5Rtk7SMFfs.yS9riewWH/d0hylKC', 'admin', 'Ronaldo J. Repe', '2025-10-17 08:59:39', '2020-00003', '2000-03-10', 'Male', 'Bachelor of Science in Information Technology', '2024'),
+(6, 'davelabadan1@gmail.com', '$2y$10$h6Xx10eFsuv0vhUk9ApM/OmLJ1YHyYRGx.lAb.0iSmuHFZ8NpwjO2', 'alumni', 'China Dave K. Labadan', '2025-10-17 08:59:39', '2020-00004', '2000-04-25', 'Male', 'Bachelor of Science in Information Technology', '2024'),
+(7, 'joangracep@gmail.com', '$2y$10$M1kkyVDtSJHEBwXmuEwNmO.IHkK/S5jmHU7Xtx9lTJthD3qOuPZmG', 'alumni', 'Joan Grace M. Patalinghug', '2025-10-17 08:59:39', '2020-00005', '2000-05-30', 'Female', 'Bachelor of Science in Information Technology', '2024'),
+(8, 'marchanmayang687@gmail.com', '$2y$10$PvYQQ4DZnVHa8Z5zqYxEEOGq7.5yI2TkUPbIoTVlPzcjCXzwX8OMG', 'alumni', 'Marian G. Marchan', '2025-10-17 08:59:39', '2020-00006', '2000-06-12', 'Female', 'Bachelor of Science in Information Technology', '2024'),
+(9, 'jaafarj.omar@gmail.com', '$2y$10$aBrYT3wN51F1yKGoV/2age.qI5Mz3JXzD0j//TazqSLjsmsfBouMe', 'alumni', 'Jaafar O. Omar', '2025-11-05 13:21:52', '2020-00007', '2000-07-08', 'Male', 'Bachelor of Science in Information Technology', '2024'),
+(10, 'buhianreymark@gmail.com', '$2y$10$rkACLYX4XRZkULTFpJefx..w..Cc0rre7xgsv0FpGc4Y070R6Aaiu', 'alumni', 'Reymark C. Buhian', '2025-10-17 09:01:25', '2020-00008', '2000-08-18', 'Male', 'Bachelor of Science in Information Technology', '2024'),
+(11, 'sairabelarmino1@gmail.com', '$2y$10$pnjkHN4SA.MxIkO2YV3xFeHK7vTemeFy/FnswuVfDp4n/J8jDjG12', 'alumni', 'Saira L. Belarmino', '2025-10-17 09:05:44', '2020-00009', '2000-09-22', 'Female', 'Bachelor of Science in Information Technology', '2024'),
+(12, 'asutillajohn445@gmail.com', '$2y$10$D9Y6u6QAcQfq6ZhPHOGwyOpeuQSBg.qXkzqdsrqZPtZR9ZtvSXVhS', 'alumni', 'John Marnel B. Asutilla', '2025-10-17 09:05:44', '2020-00010', '2000-10-05', 'Male', 'Bachelor of Science in Information Technology', '2024'),
+(13, 'chlsywtnb001@gmail.com', '$2y$10$EvSxw6YxgkaV.E1NuSD1PetRgxiTdbDONJftJIEgevEZI65b3s7Te', 'alumni', 'Maureen D. Guadalquiver', '2025-10-17 09:05:44', '2020-00011', '2000-11-14', 'Female', 'Bachelor of Science in Information Technology', '2024'),
+(14, 'madumbkiki@gmail.com', '$2y$10$HWCc9A8dNCQqEbE80YBQ/ead4ShMD7kRb0REUZq1U7xVDeZu9Asii', 'alumni', 'Kia S. Balucos', '2025-10-17 09:09:02', '2020-00012', '2000-12-28', 'Female', 'Bachelor of Science in Information Technology', '2024'),
+(15, 'jesseltapdasan3@gmail.com', '$2y$10$LRuq4uVRQAHsnXUalvlV6uU139FmSMDUlT.B4LV/kb3u9m7TLyiOa', 'alumni', 'Jessel A. Tapdasan', '2025-10-17 09:09:02', '2020-00013', '2001-01-03', 'Female', 'Bachelor of Science in Information Technology', '2024'),
+(16, 'yolemkieth@gmail.com', '$2y$10$LsoAByT1LT.asfHz.YNCAulAkYFF/255qOnX/ItjzCdbCDWemnJi2', 'alumni', 'Yolem Kieth P. Salarda', '2025-10-17 09:09:02', '2020-00014', '2001-02-17', 'Male', 'Bachelor of Science in Information Technology', '2024'),
+(17, 'fuyaaa123@gmail.com', '$2y$10$z1SWM1/Da6eCA6rovryLk.hP3151/ug51ecvxo4I5R72rGt9BTjRG', 'alumni', 'Famme O. Tabaranza', '2025-10-17 09:09:02', '2020-00015', '2001-03-21', 'Female', 'Bachelor of Science in Information Technology', '2023'),
+(18, 'ticmonmariel9@gmail.com', '$2y$10$v29n.z1o20nQbZRGhWGfSOKtzd0SVuRH7kuU.MXr/6lIbiocOA5Sa', 'alumni', 'Mariel M. Ticmon', '2025-10-17 09:23:41', '2020-00016', '2001-04-09', 'Female', 'Bachelor of Science in Information Technology', '2023'),
+(19, 'jennethcorcelles@gmail.com', '$2y$10$EIS.HCxWmN0N0agHPDy2BeVvz/vvkaDm1D7GBi309m7KbPEMAArke', 'alumni', 'Jenneth C. Corcelles', '2025-10-17 12:01:39', '2020-00017', '2001-05-11', 'Female', 'Bachelor of Science in Information Technology', '2023'),
+(20, 'drexzelescoreal@gmail.com', '$2y$10$nj7WTWt9ueBZF5YmZHa.F.9WGyNSzFh6WH93WFYAaIX1ZJSY7kHJ.', 'alumni', 'Drexzel E. Escoreal', '2025-10-17 12:01:39', '2020-00018', '2001-06-19', 'Male', 'Bachelor of Science in Information Technology', '2023'),
+(21, 'danrylboncales@gmail.com', '$2y$10$EkIQueUtH4eI.KK.Ef49seYbAu6XCStVKjVk16X/33BuzsQTgt0s2', 'alumni', 'Danryl James O. Usa', '2025-10-17 12:01:39', '2020-00019', '2001-07-07', 'Male', 'Bachelor of Science in Information Technology', '2023'),
+(22, 'davemadrazo7@gmail.com', '$2y$10$6U8i3VrEMwuhzax5GKUOi.JOZbWqok4/6hKld3CL44i.aYxTe12Mq', 'alumni', 'Dave Jay U. Madrazo', '2025-10-17 12:01:39', '2020-00020', '2001-08-13', 'Male', 'Bachelor of Science in Information Technology', '2023'),
+(23, 'salvadorvincecyrus@gmail.com', '$2y$10$2rxmPdtdOr8NgmNmvVPiEOgxKeAC.OQTQw0C58EY5/CnEzoeCrKDi', 'alumni', 'Vince Cyrus L. Salvador', '2025-10-17 15:13:32', '2020-00021', '2001-09-26', 'Male', 'Bachelor of Science in Information Technology', '2023'),
+(25, 'rthdbl672@gmail.com', '$2y$10$5MS6n8OUf8kJ2D3eHCAfwecHkuIAXKlkB8vrq5dCIwitcNfdyvcni', 'alumni', 'Arth B. Dablo', '2025-11-10 13:24:20', '2020-00022', '2001-10-30', 'Male', 'Bachelor of Science in Information Technology', '2023'),
+(26, 'dexenebliskg@mail.com', '$2y$10$mLuf6qUWB59SVVpsu4fDg.5uVxsWeJ2sOnPHL8.4wOHcl2d.baQ7C', 'alumni', 'Dexene Bliss J. Kilat', '2025-11-10 13:24:20', '2020-00023', '2001-11-02', 'Female', 'Bachelor of Science in Information Technology', '2023'),
+(27, 'anjofernandez0705@gmail.com', '$2y$10$mGcZLCHvtbYb0GpPPnq3v.eUFzKx.LxoPEtOBNUIg4dVSOSlt3YqW', 'alumni', 'Anjo B. Fernandez', '2025-11-10 13:24:20', '2020-00024', '2001-12-15', 'Male', 'Bachelor of Science in Information Technology', '2023'),
+(28, 'jancarlorabe9@gmail.com', '$2y$10$JjvjQDB5HnysBAaExlAuvekp7UjkvxGJqaJt4FUe/Qr9OuDmiCLLy', 'alumni', 'Jan Carlo N. Rabe', '2025-11-10 13:24:20', '2020-00025', '2002-01-08', 'Female', 'Bachelor of Science in Information Technology', '2023'),
+(29, 'catalanvincent222@gmail.com', '$2y$10$EjziH7HJLkjcO/t5w5CXy.a4mmAnYO..nZAbgDXLidU9iomVkcl3m', 'alumni', 'Vincent M. Catalan', '2025-11-10 13:24:20', '2020-00026', '2002-02-14', 'Male', 'Bachelor of Science in Information Technology', '2023'),
+(30, 'keishasoler05@gmail.com', '$2y$10$4l6x1jQnh1fG3hThk/XGI.MjDqcygy44M./ZUC6HbEOd5Z/MaSg8e', 'alumni', 'Keisha Nicole H. Soler', '2025-11-11 01:57:53', '2020-00027', '2002-03-23', 'Male', 'Bachelor of Science in Information Technology', '2023'),
+(31, 'reginpunay@gmail.com', '$2y$10$RPk4PT7LMcjzM9qhmqipuedvzOR5.CKxaJmGRZlkY7bbNlJ/FbvpO', 'alumni', 'Regin G. Angala', '2025-11-11 01:57:53', '2020-00028', '2002-04-17', 'Female', 'Bachelor of Science in Information Technology', '2022'),
+(32, 'jylsam123@gmail.com', '$2y$10$EtUiAEv/t5icCn/S.0qbie3F2hSzJDmzPBrEW9Hbpj0zYYTvd2hrW', 'alumni', 'Jylsam F. Quirog', '2025-11-11 01:57:53', '2020-00029', '2002-05-29', 'Female', 'Bachelor of Science in Information Technology', '2022'),
+(33, 'carlowedeala2020@gmail.com', '$2y$10$izxs4rpeIj7BKtUblvckLehRqyG8vdZ14MF8QK5eMdHTtUmk5hPuy', 'alumni', 'Carlowe E. Deala', '2025-11-11 01:57:53', '2020-00030', '2002-06-04', 'Male', 'Bachelor of Science in Information Technology', '2022'),
+(34, 'nathanielpiraman@gmail.com', '$2y$10$HgZbThTHwqouQvhzhBWXGOKaQu/AgjMReSuRUb1gOEdnWegme15zm', 'alumni', 'Nathaniel D. Piraman', '2025-11-11 01:57:53', '2020-00031', '2002-07-11', 'Male', 'Bachelor of Science in Information Technology', '2022'),
+(35, 'sebreroaxcylxyron@gmail.com', '$2y$10$Kr.PEnBlDQorPRkskBkGquNaB/cLV4u0Cq/J1NuSL.4zv0PasqJc2', 'alumni', 'Axcyl Xyron V. Sebrero', '2025-11-11 01:57:53', '2020-00032', '2002-08-22', 'Male', 'Bachelor of Science in Information Technology', '2022'),
+(36, 'Khristenecruz@gmail.com', '$2y$10$zxAZtG0erkGI2BVIgl7mEuPWVDKUBd/fluIOmZmvJYHkyjM/kXmTm', 'alumni', 'Khristene G. Suyang', '2025-11-11 01:57:53', '2020-00033', '2002-09-16', 'Male', 'Bachelor of Science in Information Technology', '2022'),
+(37, 'gaminghr209@gmail.com', '$2y$10$RNGAubZ1zm9LHYxZpbBKsuC.plR0ghVmB4SCYytILRtGwe8KEx5Ru', 'alumni', 'Raymart O. Upao', '2025-11-11 01:57:53', '2020-00034', '2002-10-19', 'Female', 'Bachelor of Science in Information Technology', '2022'),
+(38, 'lloydandiason45@gmail.com', '$2y$10$ylZvPSFZyBhvORRKeFR3KOjpXZbZTLghao48NI0qWLZsaEye7vV9K', 'alumni', 'Lloyd R. Andiason', '2025-11-11 02:08:08', '2020-00035', '2002-11-25', 'Male', 'Bachelor of Science in Information Technology', '2022'),
+(39, 'andrinairagrace@gmail.com', '$2y$10$ILdyOKViWrV68U5qt84iIe2C40709YneF/FxO.rq0Hwj2XOctTcgi', 'alumni', 'Aira Grace D. Andrin', '2025-11-11 02:08:08', '2020-00036', '2002-12-31', 'Female', 'Bachelor of Science in Information Technology', '2022'),
+(40, 'liborwilfred@gmail.com', '$2y$10$mpsuvqiB/uw/aK0bRV5l4eS.IS9XepggwdQ4cx1U5JovWeXfHQB7S', 'alumni', 'Wilfred E. Libor', '2025-11-11 02:08:08', '2020-00037', '2003-01-06', 'Male', 'Bachelor of Science in Information Technology', '2022'),
+(41, 'jonalyntabunyag5@gmail.com', '$2y$10$0Bz6kzL/yb7mQuRTR5jxJevKbsxIGJWdPv9bjoy8evLAegELgVib.', 'alumni', 'Jonalyn L. Tabunyag', '2025-11-11 02:08:08', '2020-00038', '2003-02-27', 'Female', 'Bachelor of Science in Information Technology', '2022'),
+(42, 'rivenllego@gmail.com', '$2y$10$gFXPvwr4JX2UqZTVdhfNZuDaT/AzNwXbYay8vedvT0hEAErZAVpZG', 'alumni', 'Rizal Ven G. Llego', '2025-11-11 02:08:08', '2020-00039', '2003-03-14', 'Male', 'Bachelor of Science in Information Technology', '2022'),
+(43, 'Renchauxtero24@gmail.com', '$2y$10$dHuhcVAve1NDNpgZ4Z9JoO1t6/r4z75kaDl6H47piwXw6Pgyomn2C', 'alumni', 'Rench G. Auxtero', '2025-11-11 02:08:08', '2020-00040', '2003-04-18', 'Male', 'Bachelor of Science in Information Technology', '2022'),
+(44, 'ivannjadecmartel@gmail.com', '$2y$10$QiTGkhw4eZPgMOm/dfckQ.10QOwfE.cAFYBILTnXFw1rFyN/vGCc.', 'alumni', 'Ivann Jade F. Martel', '2025-11-11 02:08:08', '2020-00041', '2003-05-21', 'Male', 'Bachelor of Science in Information Technology', '2022'),
+(45, 'ngllrosall@gmail.com', '$2y$10$k6yAD3V9isaZ/cO5cqtVzuMfs4pxCkxbmS0Iy4RUq0id.hSfOwZq2', 'alumni', 'Angel E. Rosal', '2025-11-11 02:08:08', '2020-00042', '2003-06-24', 'Female', 'Bachelor of Science in Information Technology', '2022'),
+(46, 'johnmira911@gmail.com', '$2y$10$fFq50O9MRFubzmzh8Ad2m.Z7kKCgxfOX2Fx24agrRtnTTjMbnh3Cy', 'alumni', 'John Kristoffer T. Mira', '2025-11-11 02:08:08', '2020-00043', '2003-07-09', 'Male', 'Bachelor of Science in Information Technology', '2022');
 
 --
 -- Indexes for dumped tables
@@ -43384,6 +43473,12 @@ ALTER TABLE `employment_info`
 ALTER TABLE `job_titles`
   ADD PRIMARY KEY (`job_title_id`),
   ADD UNIQUE KEY `title` (`title`);
+
+--
+-- Indexes for table `submission_status`
+--
+ALTER TABLE `submission_status`
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `table_barangay`
@@ -43434,25 +43529,25 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `address`
 --
 ALTER TABLE `address`
-  MODIFY `address_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=100;
+  MODIFY `address_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=152;
 
 --
 -- AUTO_INCREMENT for table `alumni_documents`
 --
 ALTER TABLE `alumni_documents`
-  MODIFY `doc_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
+  MODIFY `doc_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=88;
 
 --
 -- AUTO_INCREMENT for table `education_info`
 --
 ALTER TABLE `education_info`
-  MODIFY `education_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
+  MODIFY `education_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=34;
 
 --
 -- AUTO_INCREMENT for table `employment_info`
 --
 ALTER TABLE `employment_info`
-  MODIFY `employment_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=31;
+  MODIFY `employment_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=69;
 
 --
 -- AUTO_INCREMENT for table `job_titles`
@@ -43461,10 +43556,16 @@ ALTER TABLE `job_titles`
   MODIFY `job_title_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=26;
 
 --
+-- AUTO_INCREMENT for table `submission_status`
+--
+ALTER TABLE `submission_status`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
 -- AUTO_INCREMENT for table `update_log`
 --
 ALTER TABLE `update_log`
-  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=51;
 
 --
 -- AUTO_INCREMENT for table `users`
@@ -43536,5 +43637,3 @@ COMMIT;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
-
-SELECT school_name_db_column AS school_name, employment_status, ... FROM users WHERE ...
