@@ -25,18 +25,56 @@ if (!empty($profile['official_name'])) {
 
 $user_email = $profile['email'] ?? '';
 $photo_path = $profile['photo_path'] ?? null;
-
 // === DYNAMIC NOTIFICATIONS BASED ON REAL SUBMISSION STATUS (submission_status) ===
 $notif_count = 0;
 $notifications = [];
+
+// Check submission period status from database
+$submission_status_check = $conn->query("SELECT is_open, open_date, close_date FROM submission_status LIMIT 1");
+$submission_period = $submission_status_check->fetch_assoc() ?? ['is_open' => 0];
+$submissions_open = (bool)($submission_period['is_open'] ?? 0);
+$open_date = $submission_period['open_date'] ?? null;
+$close_date = $submission_period['close_date'] ?? null;
 
 // Use the correct column: submission_status (from your dashboard & admin actions)
 $submission_status = $profile['submission_status'] ?? null;
 $submission_date   = $profile['submission_date'] ?? null;
 
-// Only show profile-related notifications if a profile exists
-if ($submission_status) {
+// Notification 1: Submission period status (ALWAYS SHOW THIS)
+if (!$submissions_open) {
+    $notifications[] = [
+        'title'       => 'Submissions Currently Closed',
+        'message'     => 'Profile submissions are currently closed. Please check back during the open submission period.',
+        'timestamp'   => null,
+        'type'        => 'error'
+    ];
+    $notif_count++;
+} else {
+    $notifications[] = [
+        'title'       => 'Submissions Open',
+        'message'     => 'Profile submissions are currently open. You can submit or update your alumni profile.',
+        'timestamp'   => null,
+        'type'        => 'success'
+    ];
+    $notif_count++;
+}
 
+// Add scheduled period information if available (when closed but scheduled)
+if (!$submissions_open && $open_date && $close_date) {
+    $from = date('M j, Y \a\t g:i A', strtotime($open_date));
+    $to = date('M j, Y \a\t g:i A', strtotime($close_date));
+    
+    $notifications[] = [
+        'title'       => 'Next Submission Period',
+        'message'     => "Submissions will open from $from to $to",
+        'timestamp'   => null,
+        'type'        => 'info'
+    ];
+    $notif_count++;
+}
+
+// KEEP ALL EXISTING PROFILE NOTIFICATIONS (no conditions)
+if ($submission_status) {
     if ($submission_status === 'Pending') {
         $notifications[] = [
             'title'       => 'Profile Under Review',
@@ -88,7 +126,6 @@ if ($submission_status) {
     ];
     $notif_count++;
 }
-
 // Page title fallback
 $page_title = $page_title ?? "Alumni Page";
 ?>
