@@ -425,7 +425,6 @@ $page_title = $page_title ?? "Alumni Page";
             <?php echo $page_content ?? ''; ?>
         </main>
     </div>
-
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Notification functionality
@@ -433,31 +432,72 @@ $page_title = $page_title ?? "Alumni Page";
         const notifPopup = document.getElementById('notifPopup');
         const notifBadge = document.getElementById('notificationBadge');
         
-        console.log('Notification button:', notifButton);
-        console.log('Notification popup:', notifPopup);
+        // Variables to track popup state
+        let isPopupOpen = false;
+        let isHoveringPopup = false;
+        let closeTimeout = null;
+        
+        // Function to open popup
+        function openPopup() {
+            if (notifPopup) {
+                notifPopup.classList.remove('hidden');
+                isPopupOpen = true;
+            }
+        }
         
         // Function to close popup
         function closePopup() {
-            if (notifPopup && notifPopup.classList.contains('open')) {
-                notifPopup.classList.remove('open');
+            if (notifPopup && isPopupOpen) {
+                notifPopup.classList.add('hidden');
+                isPopupOpen = false;
             }
         }
-
+        
+        // Function to schedule popup close (for auto-close when not hovered)
+        function scheduleClose() {
+            // Clear any existing timeout
+            if (closeTimeout) {
+                clearTimeout(closeTimeout);
+            }
+            
+            // Set new timeout to close after 1 second if not hovering
+            closeTimeout = setTimeout(() => {
+                if (!isHoveringPopup) {
+                    closePopup();
+                }
+            }, 1000);
+        }
+        
         // Notification button click handler
         if (notifButton && notifPopup) {
             notifButton.addEventListener('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('Notification button clicked');
                 
-                // Toggle the 'open' class
-                if (notifPopup.classList.contains('open')) {
-                    notifPopup.classList.remove('open');
+                // Toggle popup visibility
+                if (isPopupOpen) {
+                    closePopup();
                 } else {
-                    notifPopup.classList.add('open');
+                    openPopup();
                 }
             });
 
+            // Track when mouse enters the popup
+            notifPopup.addEventListener('mouseenter', function() {
+                isHoveringPopup = true;
+                
+                // Clear any pending close timeout when hovering
+                if (closeTimeout) {
+                    clearTimeout(closeTimeout);
+                }
+            });
+            
+            // Track when mouse leaves the popup
+            notifPopup.addEventListener('mouseleave', function() {
+                isHoveringPopup = false;
+                scheduleClose(); // Start close countdown
+            });
+            
             // Close popup when clicking outside
             document.addEventListener('click', function(e) {
                 if (!notifButton.contains(e.target) && !notifPopup.contains(e.target)) {
@@ -467,7 +507,7 @@ $page_title = $page_title ?? "Alumni Page";
 
             // Close on escape key
             document.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape') {
+                if (e.key === 'Escape' && isPopupOpen) {
                     closePopup();
                 }
             });
@@ -478,7 +518,6 @@ $page_title = $page_title ?? "Alumni Page";
                 markReadBtn.addEventListener('click', function(e) {
                     e.preventDefault();
                     e.stopPropagation();
-                    console.log('Mark all as read clicked');
                     
                     // Hide notification badge
                     if (notifBadge) {
@@ -512,21 +551,8 @@ $page_title = $page_title ?? "Alumni Page";
                     }
                 });
             }
-        } else {
-            console.error('Notification elements not found:', {
-                button: notifButton,
-                popup: notifPopup
-            });
-        }
-
-        // Prevent popup close when clicking inside popup
-        if (notifPopup) {
-            notifPopup.addEventListener('click', function(e) {
-                e.stopPropagation();
-            });
         }
     });
 </script>
-
 </body>
 </html>
