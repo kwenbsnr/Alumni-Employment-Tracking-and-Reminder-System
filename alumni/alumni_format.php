@@ -1,9 +1,11 @@
 <?php
 // Fetch user data from users table - FIXED QUERY
 $stmt = $conn->prepare("
-    SELECT 
+    SELECT
         u.user_id, u.name as official_name, u.email, u.role,
-        ap.photo_path, ap.contact_number, ap.employment_status, ap.status, ap.submission_date, ap.employment_verified
+        ap.photo_path, ap.contact_number, ap.employment_status, 
+        ap.status, ap.submission_date, ap.employment_verified,
+        ap.submission_status  -- This is the one used in dashboard & admin
     FROM users u
     LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id
     WHERE u.user_id = ?
@@ -24,74 +26,65 @@ if (!empty($profile['official_name'])) {
 $user_email = $profile['email'] ?? '';
 $photo_path = $profile['photo_path'] ?? null;
 
-// Fetch notifications data
+// === DYNAMIC NOTIFICATIONS BASED ON REAL SUBMISSION STATUS (submission_status) ===
 $notif_count = 0;
 $notifications = [];
 
-// Check for profile submission status
-if ($profile && isset($profile['status'])) {
-    $status = $profile['status'] ?? 'incomplete';
-    $submission_date = $profile['submission_date'] ?? null;
-    
-    switch ($status) {
-        case 'pending':
-            $notifications[] = [
-                'title' => 'Profile Under Review',
-                'message' => 'Your profile submission is currently being reviewed by administrators.',
-                'timestamp' => $submission_date,
-                'type' => 'warning'
-            ];
-            $notif_count++;
-            break;
-            
-        case 'approved':
-            $notifications[] = [
-                'title' => 'Profile Approved',
-                'message' => 'Your alumni profile has been approved and is now active.',
-                'timestamp' => $submission_date,
-                'type' => 'success'
-            ];
-            break;
-            
-        case 'rejected':
-            $notifications[] = [
-                'title' => 'Profile Requires Updates',
-                'message' => 'Your profile submission needs additional information. Please review and resubmit.',
-                'timestamp' => $submission_date,
-                'type' => 'error'
-            ];
-            $notif_count++;
-            break;
-            
-        case 'incomplete':
-        default:
-            $notifications[] = [
-                'title' => 'Profile Setup Required',
-                'message' => 'Please complete your alumni profile to access all features.',
-                'timestamp' => null,
-                'type' => 'info'
-            ];
-            $notif_count++;
-            break;
-    }
-    
-    // Check for employment status updates
-    if (($profile['employment_verified'] ?? 0) == 0 && !empty($profile['employment_status'])) {
+// Use the correct column: submission_status (from your dashboard & admin actions)
+$submission_status = $profile['submission_status'] ?? null;
+$submission_date   = $profile['submission_date'] ?? null;
+
+// Only show profile-related notifications if a profile exists
+if ($submission_status) {
+
+    if ($submission_status === 'Pending') {
         $notifications[] = [
-            'title' => 'Employment Verification',
-            'message' => 'Your employment information is pending verification.',
-            'timestamp' => null,
-            'type' => 'warning'
+            'title'       => 'Profile Under Review',
+            'message'     => 'Your profile is currently being reviewed by the administrators.',
+            'timestamp'   => $submission_date,
+            'type'        => 'warning'
         ];
         $notif_count++;
     }
+    elseif ($submission_status === 'Approved') {
+        $notifications[] = [
+            'title'       => 'Profile Approved',
+            'message'     => 'Congratulations! Your alumni profile has been officially approved.',
+            'timestamp'   => $submission_date,
+            'type'        => 'success'
+        ];
+        // Optional: remove badge after approval (recommended)
+        // Remove line below if you want badge to disappear after approval
+        // $notif_count++;
+    }
+    elseif ($submission_status === 'Rejected') {
+        $notifications[] = [
+            'title'       => 'Action Required: Profile Rejected',
+            'message'     => 'Your profile was rejected. Please review the feedback and resubmit.',
+            'timestamp'   => $submission_date,
+            'type'        => 'error'
+        ];
+        $notif_count++;
+    }
+
+    // Employment verification pending (only if not already approved)
+    if (($profile['employment_verified'] ?? 0) == 0 && !empty($profile['employment_status'])) {
+        $notifications[] = [
+            'title'       => 'Employment Verification Pending',
+            'message'     => 'Your employment details are still under review.',
+            'timestamp'   => null,
+            'type'        => 'warning'
+        ];
+        $notif_count++;
+    }
+
 } else {
-    // No profile data at all
+    // No profile submitted yet
     $notifications[] = [
-        'title' => 'Complete Your Profile',
-        'message' => 'Welcome! Please set up your alumni profile to get started.',
-        'timestamp' => null,
-        'type' => 'info'
+        'title'       => 'Complete Your Profile',
+        'message'     => 'Welcome! Please fill out your alumni profile to get started.',
+        'timestamp'   => null,
+        'type'        => 'info'
     ];
     $notif_count++;
 }
