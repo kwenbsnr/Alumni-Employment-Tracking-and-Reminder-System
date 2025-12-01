@@ -453,10 +453,11 @@ ob_start();
         <?php endif; ?>
 </div>
 
-<!-- Profile Update Modal (Hidden by default) - ENHANCED DESIGN -->
-<div id="profileUpdateModal" class="hidden fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50 transition-all duration-300 p-4">
-    <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-        <!-- Enhanced Header -->
+<!-- MODAL THAT ESCAPES THE LAYOUT JAIL - FULL SCREEN GUARANTEED -->
+<div id="profileUpdateModal" class="hidden">
+    <div id="modalBackdrop" class="fixed inset-0 bg-black/70 backdrop z-[99999] flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[94vh] overflow-y-auto">
+            <!-- Header -->
         <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200 p-6">
             <div class="flex justify-between items-center">
                 <div>
