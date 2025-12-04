@@ -264,7 +264,7 @@ ob_start();
                                 <?php endif; ?>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <?php if (empty($alumni['submission_status']) || $alumni['submission_status'] === 'Not Started'): ?>
+                                <?php if (empty($alumni['submission_status']) || $alumni['submission_status'] === ''): ?>
                                     <div class="flex justify-left">
                                         <span class="px-3 py-1.5 inline-flex text-sm font-semibold rounded-full bg-gray-100 text-gray-800 border border-gray-200 shadow-sm">
                                             <i class="fas fa-clock mr-2 text-gray-600"></i>
