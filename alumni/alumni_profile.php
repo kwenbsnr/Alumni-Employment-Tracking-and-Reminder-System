@@ -373,13 +373,12 @@ document.addEventListener('DOMContentLoaded', function() {
         </p>
     </div>
 <?php endif; ?>
-</div>
 
+</div>
     <!-- FIXED: Show profile cards only when personal data exists -->
     <?php if ($has_personal_data): ?>
         <!-- Consistent 2x2 Grid Layout -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">         
           <!-- Personal Information Card -->
           <div class="bg-white rounded-xl shadow-lg border-l-4 border-blue-500 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-blue-50 flex flex-col h-full">
             <div class="p-6 flex-1">
@@ -677,27 +676,27 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
           </div>
         </div>
-        
         <?php else: ?>
+
         <!-- Show empty state when no personal data exists -->
-        <div class="bg-white p-8 rounded-xl shadow-lg border-2 border-dashed border-gray-300 text-center">
-          <i class="fas fa-user-circle text-gray-400 text-6xl mb-4"></i>
-          <h3 class="text-xl font-bold text-gray-600 mb-2">No Profile Information</h3>
-          <p class="text-gray-500 mb-4">Your profile information will appear here once you complete and submit it.</p>
-          
-          <?php if ($is_profile_rejected): ?>
-            <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-md text-left max-w-md mx-auto">
-              <div class="flex items-start space-x-3">
-                <i class="fas fa-exclamation-circle text-red-600 text-lg mt-0.5 flex-shrink-0"></i>
-                <div class="flex-1">
-                  <p class="font-bold text-red-900 text-base">Your previous profile was rejected</p>
-                  <p class="text-red-700 mt-1 text-sm">Please complete your profile again and resubmit for approval.</p>
+                <div class="bg-white p-8 rounded-xl shadow-lg border-2 border-dashed border-gray-300 text-center">
+            <i class="fas fa-user-circle text-gray-400 text-6xl mb-4"></i>
+            <h3 class="text-xl font-bold text-gray-600 mb-2">No Profile Information</h3>
+            <p class="text-gray-500 mb-4">Your profile information will appear here once you complete and submit it.</p>
+            
+            <?php if ($is_profile_rejected): ?>
+                <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-md text-left max-w-md mx-auto">
+                    <div class="flex items-start space-x-3">
+                        <i class="fas fa-exclamation-circle text-red-600 text-lg mt-0.5 flex-shrink-0"></i>
+                        <div class="flex-1">
+                            <p class="font-bold text-red-900 text-base">Your previous profile was rejected</p>
+                            <p class="text-red-700 mt-1 text-sm">Please complete your profile again and resubmit for approval.</p>
+                        </div>
+                    </div>
                 </div>
-              </div>
-            </div>
-          <?php endif; ?>
+            <?php endif; ?>
         </div>
-        <?php endif; ?>
+    <?php endif; ?>
 </div>
 
 <!-- Profile Update Modal (Hidden by default) - ENHANCED DESIGN -->
