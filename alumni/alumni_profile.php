@@ -700,28 +700,6 @@ document.addEventListener('DOMContentLoaded', function() {
         <?php endif; ?>
 </div>
 
-        <?php else: ?>
-        <!-- Show empty state when no personal data exists -->
-        <div class="bg-white p-8 rounded-xl shadow-lg border-2 border-dashed border-gray-300 text-center">
-            <i class="fas fa-user-circle text-gray-400 text-6xl mb-4"></i>
-            <h3 class="text-xl font-bold text-gray-600 mb-2">No Profile Information</h3>
-            <p class="text-gray-500 mb-4">Your profile information will appear here once you complete and submit it.</p>
-            
-            <?php if ($is_profile_rejected): ?>
-                <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-md text-left max-w-md mx-auto">
-                    <div class="flex items-start space-x-3">
-                        <i class="fas fa-exclamation-circle text-red-600 text-lg mt-0.5 flex-shrink-0"></i>
-                        <div class="flex-1">
-                            <p class="font-bold text-red-900 text-base">Your previous profile was rejected</p>
-                            <p class="text-red-700 mt-1 text-sm">Please complete your profile again and resubmit for approval.</p>
-                        </div>
-                    </div>
-                </div>
-            <?php endif; ?>
-        </div>
-        <?php endif; ?>
-</div>
-
 <!-- Profile Update Modal (Hidden by default) - ENHANCED DESIGN -->
 <div id="profileUpdateModal" class="hidden fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50 transition-all duration-300 p-4">
     <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
