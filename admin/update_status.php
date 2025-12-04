@@ -73,6 +73,14 @@ if (isset($_GET['user_id']) && isset($_GET['status'])) {
                         $details = "Changed status to pending";
                     }
                 }
+
+                // Also update submitted_at timestamp when status changes to Approved
+                if ($status === 'Approved') {
+                    $updateTimestampStmt = $conn->prepare("UPDATE alumni_profile SET submitted_at = NOW() WHERE user_id = ?");
+                    $updateTimestampStmt->bind_param("i", $user_id);
+                    $updateTimestampStmt->execute();
+                    $updateTimestampStmt->close();
+                }
                 
                 // Insert into update_log
                 $logStmt = $conn->prepare("INSERT INTO update_log (updated_by, updated_id, update_type, update_details) VALUES (?, ?, ?, ?)");

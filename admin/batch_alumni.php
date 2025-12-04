@@ -240,7 +240,7 @@ ob_start();
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <span class="px-3 py-1.5 inline-flex text-sm font-semibold rounded-full <?= getSubmissionStatusColor($alumni['submission_status']) ?> border <?= getSubmissionStatusBorder($alumni['submission_status']) ?> shadow-sm">
                                     <i class="<?= getSubmissionStatusIcon($alumni['submission_status']) ?> mr-2"></i>
-                                    <?= empty($alumni['submission_status']) ? 'No Profile' : htmlspecialchars($alumni['submission_status']) ?>
+                                    <?= ($alumni['submission_status'] === null || $alumni['submission_status'] === '') ? 'No Profile' : htmlspecialchars($alumni['submission_status']) ?>
                                 </span>
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-500">
