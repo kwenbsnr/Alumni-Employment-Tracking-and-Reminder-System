@@ -399,64 +399,79 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        // ---- 5.4 Address Handling ---------------------------------------------
-        $address_id = $existing_address_id;
+        // ---- 5.4 Worldwide Address Handling -----------------------------------------
+        $address_line1 = !empty($_POST['address_line1']) ? trim($_POST['address_line1']) : '';
+        $address_line2 = !empty($_POST['address_line2']) ? trim($_POST['address_line2']) : '';
+        $city = !empty($_POST['city']) ? trim($_POST['city']) : '';
+        $state_province = !empty($_POST['state_province']) ? trim($_POST['state_province']) : '';
+        $country = !empty($_POST['country']) ? trim($_POST['country']) : '';
+        $postal_code = !empty($_POST['postal_code']) ? trim($_POST['postal_code']) : '';
+        $latitude = !empty($_POST['latitude']) ? trim($_POST['latitude']) : null;
+        $longitude = !empty($_POST['longitude']) ? trim($_POST['longitude']) : null;
 
-        if ($barangay_id) {
-            // Validate address hierarchy
-            $valid_region = false;
-            $valid_province = false;
-            $valid_municipality = false;
-            $valid_barangay = false;
-
-            // Check region
-            $stmt = $conn->prepare("SELECT 1 FROM table_region WHERE region_id = ?");
-            $stmt->bind_param("s", $region_id);
-            $stmt->execute();
-            if ($stmt->get_result()->num_rows > 0) $valid_region = true;
-            $stmt->close();
-
-            if (!$valid_region) throw new Exception("Invalid region selected");
-
-            // Check province
-            $stmt = $conn->prepare("SELECT 1 FROM table_province WHERE province_id = ? AND region_id = ?");
-            $stmt->bind_param("ss", $province_id, $region_id);
-            $stmt->execute();
-            if ($stmt->get_result()->num_rows > 0) $valid_province = true;
-            $stmt->close();
-
-            if (!$valid_province) throw new Exception("Invalid province selected for the chosen region");
-
-            // Check municipality
-            $stmt = $conn->prepare("SELECT 1 FROM table_municipality WHERE municipality_id = ? AND province_id = ?");
-            $stmt->bind_param("ss", $municipality_id, $province_id);
-            $stmt->execute();
-            if ($stmt->get_result()->num_rows > 0) $valid_municipality = true;
-            $stmt->close();
-
-            if (!$valid_municipality) throw new Exception("Invalid municipality selected for the chosen province");
-
-            // Check barangay
-            $stmt = $conn->prepare("SELECT 1 FROM table_barangay WHERE barangay_id = ? AND municipality_id = ?");
-            $stmt->bind_param("ss", $barangay_id, $municipality_id);
-            $stmt->execute();
-            if ($stmt->get_result()->num_rows > 0) $valid_barangay = true;
-            $stmt->close();
-
-            if (!$valid_barangay) throw new Exception("Invalid barangay selected for the chosen municipality");
-
-            // Create/update address
-            if ($address_id) {
-                $stmt = $conn->prepare("UPDATE address SET barangay_id = ? WHERE address_id = ?");
-                $stmt->bind_param("si", $barangay_id, $address_id);
-            } else {
-                $stmt = $conn->prepare("INSERT INTO address (barangay_id) VALUES (?)");
-                $stmt->bind_param("s", $barangay_id);
-            }
-            $stmt->execute();
-            $address_id = $address_id ?: $conn->insert_id;
-            $stmt->close();
+        // Validate required address fields
+        if (empty($address_line1) || empty($city) || empty($state_province) || empty($country)) {
+            throw new Exception("Complete address information is required (Address Line 1, City, State/Province, Country).");
         }
+
+        if (!$latitude || !$longitude) {
+            throw new Exception("Please select a location on the map.");
+        }
+
+        // Create formatted address
+        $formatted_address = implode(', ', array_filter([
+            $address_line1,
+            $address_line2,
+            $city,
+            $state_province,
+            $country,
+            $postal_code
+        ]));
+
+        // Check if worldwide address already exists for this user
+        $stmt = $conn->prepare("SELECT address_id FROM worldwide_address WHERE user_id = ?");
+        $stmt->bind_param("i", $user_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $existing_address = $result->fetch_assoc();
+        $stmt->close();
+
+        if ($existing_address) {
+            // Update existing address
+            $stmt = $conn->prepare("UPDATE worldwide_address SET 
+                address_line1 = ?, address_line2 = ?, city = ?, state_province = ?, 
+                country = ?, postal_code = ?, latitude = ?, longitude = ?, 
+                formatted_address = ?, updated_at = CURRENT_TIMESTAMP 
+                WHERE address_id = ?");
+            $stmt->bind_param("ssssssddsi", 
+                $address_line1, $address_line2, $city, $state_province,
+                $country, $postal_code, $latitude, $longitude,
+                $formatted_address, $existing_address['address_id']
+            );
+        } else {
+            // Insert new address
+            $stmt = $conn->prepare("INSERT INTO worldwide_address 
+                (user_id, address_line1, address_line2, city, state_province, 
+                country, postal_code, latitude, longitude, formatted_address) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->bind_param("issssssdds", 
+                $user_id, $address_line1, $address_line2, $city, $state_province,
+                $country, $postal_code, $latitude, $longitude, $formatted_address
+            );
+        }
+
+        if (!$stmt->execute()) {
+            throw new Exception("Failed to save address information: " . $stmt->error);
+        }
+
+        $worldwide_address_id = $existing_address ? $existing_address['address_id'] : $conn->insert_id;
+        $stmt->close();
+
+        // Update alumni_profile with worldwide_address_id
+        $stmt = $conn->prepare("UPDATE alumni_profile SET worldwide_address_id = ? WHERE user_id = ?");
+        $stmt->bind_param("ii", $worldwide_address_id, $user_id);
+        $stmt->execute();
+        $stmt->close();
 
         // ---- 5.5 Profile INSERT / UPDATE ----------------------------------------
         if ($can_update) {

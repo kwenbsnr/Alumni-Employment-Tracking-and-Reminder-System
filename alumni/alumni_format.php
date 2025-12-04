@@ -118,10 +118,6 @@ $page_title = $page_title ?? "Alumni Page";
     <title><?php echo htmlspecialchars($page_title); ?> - Alumni Tracking System</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <!-- Leaflet JavaScript -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         :root {
             --primary-green: #033803ff;
@@ -521,18 +517,41 @@ $page_title = $page_title ?? "Alumni Page";
 let map;
 let marker;
 let selectedLatLng;
+let debounceTimer;
+let geocodingInProgress = false;
 
 // Initialize map
 function initMap() {
-    // Default center (Philippines)
-    const defaultCenter = [12.8797, 121.7740];
-    
-    map = L.map('address-map').setView(defaultCenter, 6);
+    // Try to get current location, fallback to default
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const defaultCenter = [position.coords.latitude, position.coords.longitude];
+                setupMap(defaultCenter, 13);
+            },
+            () => {
+                // Default center (Philippines) if location access denied
+                const defaultCenter = [12.8797, 121.7740];
+                setupMap(defaultCenter, 6);
+            }
+        );
+    } else {
+        const defaultCenter = [12.8797, 121.7740];
+        setupMap(defaultCenter, 6);
+    }
+}
+
+function setupMap(center, zoom) {
+    map = L.map('address-map').setView(center, zoom);
     
     // Add OpenStreetMap tiles
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 19
     }).addTo(map);
+    
+    // Add scale control
+    L.control.scale().addTo(map);
     
     // Click event on map
     map.on('click', function(e) {
@@ -550,15 +569,31 @@ function updateMarker(latlng) {
     if (marker) {
         map.removeLayer(marker);
     }
-    marker = L.marker(latlng).addTo(map);
+    marker = L.marker(latlng).addTo(map)
+        .bindPopup('Selected Location')
+        .openPopup();
+    
+    // Center map on marker with smooth animation
+    map.flyTo(latlng, 15, {
+        duration: 0.5
+    });
+    
     document.getElementById('latitude').value = latlng.lat.toFixed(6);
     document.getElementById('longitude').value = latlng.lng.toFixed(6);
+    
+    // Validate address after marker update
+    validateAddress();
 }
 
 // Geocode address (search)
 async function geocodeAddress(address) {
+    if (geocodingInProgress) return;
+    geocodingInProgress = true;
+    
     try {
-        const response = await fetch(`api/geocode.php?action=geocode&address=${encodeURIComponent(address)}`);
+        showValidation('Searching for address...', 'info');
+        
+        const response = await fetch(`../api/geocode.php?action=geocode&address=${encodeURIComponent(address)}`);
         const results = await response.json();
         
         if (results && results.length > 0) {
@@ -567,29 +602,33 @@ async function geocodeAddress(address) {
             const lon = parseFloat(firstResult.lon);
             
             selectedLatLng = L.latLng(lat, lon);
-            map.setView(selectedLatLng, 15);
             updateMarker(selectedLatLng);
             populateAddressFields(firstResult);
+            showValidation('Address found and located on map!', 'success');
         } else {
-            alert('Address not found. Please try a more specific address.');
+            showValidation('Address not found. Please try a more specific address.', 'error');
         }
     } catch (error) {
         console.error('Geocoding error:', error);
-        alert('Error searching address. Please try again.');
+        showValidation('Error searching address. Please try again.', 'error');
+    } finally {
+        geocodingInProgress = false;
     }
 }
 
 // Reverse geocode (coordinates to address)
 async function reverseGeocode(lat, lon) {
     try {
-        const response = await fetch(`api/geocode.php?action=reverse&lat=${lat}&lon=${lon}`);
+        const response = await fetch(`../api/geocode.php?action=reverse&lat=${lat}&lon=${lon}&zoom=18`);
         const result = await response.json();
         
         if (result && result.address) {
             populateAddressFields(result);
+            showValidation('Address updated from map location!', 'success');
         }
     } catch (error) {
         console.error('Reverse geocoding error:', error);
+        showValidation('Could not get address details for this location.', 'warning');
     }
 }
 
@@ -599,46 +638,240 @@ function populateAddressFields(data) {
     
     document.getElementById('address-line1').value = address.road || address.house_number ? 
         `${address.house_number || ''} ${address.road || ''}`.trim() : '';
-    document.getElementById('city').value = address.city || address.town || address.village || '';
-    document.getElementById('state-province').value = address.state || '';
+    document.getElementById('address-line2').value = address.neighbourhood || address.suburb || '';
+    document.getElementById('city').value = address.city || address.town || address.village || address.county || '';
+    document.getElementById('state-province').value = address.state || address.region || '';
     document.getElementById('country').value = address.country || '';
     document.getElementById('postal-code').value = address.postcode || '';
+    
+    // Validate after populating
+    validateAddress();
 }
 
 // Load existing address data
 function loadExistingAddress() {
-    // You would typically load this from your database
-    // For now, this is a placeholder
     const existingLat = document.getElementById('latitude').value;
     const existingLng = document.getElementById('longitude').value;
     
     if (existingLat && existingLng) {
         const latLng = L.latLng(parseFloat(existingLat), parseFloat(existingLng));
-        map.setView(latLng, 15);
         updateMarker(latLng);
     }
 }
 
-// Event listeners
-document.getElementById('search-address-btn').addEventListener('click', function() {
-    const address = document.getElementById('address-search').value;
-    if (address) {
-        geocodeAddress(address);
+// Validate address completeness
+function validateAddress() {
+    const requiredFields = ['address-line1', 'city', 'state-province', 'country'];
+    let missingFields = [];
+    
+    requiredFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (!field || !field.value.trim()) {
+            missingFields.push(fieldId.replace('-', ' '));
+        }
+    });
+    
+    if (missingFields.length > 0) {
+        showValidation(`Missing required fields: ${missingFields.join(', ')}`, 'error');
+        return false;
     }
-});
+    
+    const lat = document.getElementById('latitude').value;
+    const lng = document.getElementById('longitude').value;
+    
+    if (!lat || !lng) {
+        showValidation('Please select a location on the map', 'warning');
+        return false;
+    }
+    
+    showValidation('Address is complete and ready!', 'success');
+    return true;
+}
 
-document.getElementById('address-search').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-        const address = this.value;
+// Show validation message
+function showValidation(message, type) {
+    const container = document.getElementById('address-validation');
+    const messageEl = document.getElementById('address-validation-message');
+    const textEl = document.getElementById('validation-text');
+    
+    if (!container || !messageEl || !textEl) return;
+    
+    // Clear previous classes
+    messageEl.className = 'flex items-center p-3 rounded-md';
+    
+    // Add type-specific classes
+    switch(type) {
+        case 'success':
+            messageEl.classList.add('bg-green-100', 'text-green-800', 'border', 'border-green-200');
+            break;
+        case 'error':
+            messageEl.classList.add('bg-red-100', 'text-red-800', 'border', 'border-red-200');
+            break;
+        case 'warning':
+            messageEl.classList.add('bg-yellow-100', 'text-yellow-800', 'border', 'border-yellow-200');
+            break;
+        case 'info':
+            messageEl.classList.add('bg-blue-100', 'text-blue-800', 'border', 'border-blue-200');
+            break;
+    }
+    
+    textEl.textContent = message;
+    container.classList.remove('hidden');
+    
+    // Auto-hide success messages after 3 seconds
+    if (type === 'success') {
+        setTimeout(() => {
+            container.classList.add('hidden');
+        }, 3000);
+    }
+}
+
+// Geocode from form fields (two-way sync)
+async function geocodeFromForm() {
+    const addressLine1 = document.getElementById('address-line1').value.trim();
+    const city = document.getElementById('city').value.trim();
+    const state = document.getElementById('state-province').value.trim();
+    const country = document.getElementById('country').value.trim();
+    
+    if (!addressLine1 || !city || !state || !country) {
+        showValidation('Please fill in required address fields first', 'warning');
+        return;
+    }
+    
+    const address = `${addressLine1}, ${city}, ${state}, ${country}`;
+    const postalCode = document.getElementById('postal-code').value.trim();
+    const fullAddress = postalCode ? `${address}, ${postalCode}` : address;
+    
+    await geocodeAddress(fullAddress);
+}
+
+// Debounced geocoding for field changes
+function debounceGeocode() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+        if (validateAddress()) {
+            geocodeFromForm();
+        }
+    }, 1500); // Wait 1.5 seconds after last keystroke
+}
+
+// Use current location
+function useCurrentLocation() {
+    if (navigator.geolocation) {
+        showValidation('Getting your current location...', 'info');
+        
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+                selectedLatLng = L.latLng(lat, lon);
+                updateMarker(selectedLatLng);
+                reverseGeocode(lat, lon);
+            },
+            (error) => {
+                showValidation('Could not get your location. Please allow location access.', 'error');
+                console.error('Geolocation error:', error);
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 5000,
+                maximumAge: 0
+            }
+        );
+    } else {
+        showValidation('Geolocation is not supported by your browser', 'error');
+    }
+}
+
+// Clear address fields
+function clearAddressFields() {
+    document.getElementById('address-search').value = '';
+    document.getElementById('address-line1').value = '';
+    document.getElementById('address-line2').value = '';
+    document.getElementById('city').value = '';
+    document.getElementById('state-province').value = '';
+    document.getElementById('country').value = '';
+    document.getElementById('postal-code').value = '';
+    document.getElementById('latitude').value = '';
+    document.getElementById('longitude').value = '';
+    
+    if (marker) {
+        map.removeLayer(marker);
+        marker = null;
+    }
+    
+    showValidation('Address fields cleared', 'info');
+}
+
+// Event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    initMap();
+    
+    // Search button
+    document.getElementById('search-address-btn').addEventListener('click', function() {
+        const address = document.getElementById('address-search').value;
         if (address) {
             geocodeAddress(address);
         }
+    });
+    
+    // Search field enter key
+    document.getElementById('address-search').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            const address = this.value;
+            if (address) {
+                geocodeAddress(address);
+            }
+        }
+    });
+    
+    // Clear button
+    document.getElementById('clear-address-btn').addEventListener('click', clearAddressFields);
+    
+    // Current location button
+    document.getElementById('use-current-location-btn').addEventListener('click', useCurrentLocation);
+    
+    // Address field changes trigger geocoding
+    const addressFields = document.querySelectorAll('.address-field');
+    addressFields.forEach(field => {
+        field.addEventListener('input', debounceGeocode);
+    });
+    
+    // Modal open event - reinitialize map if needed
+    const modal = document.getElementById('profileUpdateModal');
+    if (modal) {
+        // Reinitialize map when modal opens
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (!mutation.target.classList.contains('hidden')) {
+                    // Small delay to ensure DOM is ready
+                    setTimeout(() => {
+                        if (!map || map._container && !map._container.clientHeight) {
+                            initMap();
+                        } else {
+                            // Refresh map view
+                            map.invalidateSize();
+                        }
+                    }, 100);
+                }
+            });
+        });
+        
+        observer.observe(modal, {
+            attributes: true,
+            attributeFilter: ['class']
+        });
     }
 });
 
-// Initialize map when page loads
-document.addEventListener('DOMContentLoaded', function() {
-    initMap();
+// Address validation before form submission
+document.getElementById('alumniProfileForm')?.addEventListener('submit', function(event) {
+    if (!validateAddress()) {
+        event.preventDefault();
+        showValidation('Please complete the address information and select a location on the map', 'error');
+        return false;
+    }
+    return true;
 });
 </script>
 

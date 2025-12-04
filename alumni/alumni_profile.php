@@ -407,31 +407,95 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
     </dl>
 </div>
-    <!-- Address Card -->
+    <!-- Address Card - ENHANCED -->
     <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-green-500 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-green-50">
         <div class="flex items-center space-x-3 mb-4 pb-2 border-b border-gray-100">
-            <h3 class="text-xl font-bold text-gray-800">Address</h3>
+            <i class="fas fa-map-marker-alt text-green-600"></i>
+            <h3 class="text-xl font-bold text-gray-800">Address Information</h3>
         </div>
-        <dl class="grid grid-cols-2 gap-4">
-            <div class="flex flex-col">
-                <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Barangay</dt>
-                <dd class="font-semibold text-gray-700" style="font-size: 15px;">
-                    <?php echo !empty($profile['barangay_name']) ? htmlspecialchars($profile['barangay_name'], ENT_QUOTES, 'UTF-8') : 'N/A'; ?>
-                </dd>
+        
+        <?php if (!empty($profile['formatted_address']) || !empty($profile['address_line1'])): ?>
+            <div class="space-y-2">
+                <?php if (!empty($profile['address_line1'])): ?>
+                    <div class="flex items-start">
+                        <i class="fas fa-home text-gray-400 mt-1 mr-2 flex-shrink-0"></i>
+                        <div>
+                            <p class="font-semibold text-gray-700 text-sm">Address Line 1</p>
+                            <p class="text-gray-600"><?php echo htmlspecialchars($profile['address_line1']); ?></p>
+                        </div>
+                    </div>
+                <?php endif; ?>
+                
+                <?php if (!empty($profile['address_line2'])): ?>
+                    <div class="flex items-start">
+                        <i class="fas fa-building text-gray-400 mt-1 mr-2 flex-shrink-0"></i>
+                        <div>
+                            <p class="font-semibold text-gray-700 text-sm">Address Line 2</p>
+                            <p class="text-gray-600"><?php echo htmlspecialchars($profile['address_line2']); ?></p>
+                        </div>
+                    </div>
+                <?php endif; ?>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    <?php if (!empty($profile['city'])): ?>
+                        <div class="flex items-start">
+                            <i class="fas fa-city text-gray-400 mt-1 mr-2 flex-shrink-0"></i>
+                            <div>
+                                <p class="font-semibold text-gray-700 text-sm">City</p>
+                                <p class="text-gray-600"><?php echo htmlspecialchars($profile['city']); ?></p>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+                    
+                    <?php if (!empty($profile['state_province'])): ?>
+                        <div class="flex items-start">
+                            <i class="fas fa-landmark text-gray-400 mt-1 mr-2 flex-shrink-0"></i>
+                            <div>
+                                <p class="font-semibold text-gray-700 text-sm">State/Province</p>
+                                <p class="text-gray-600"><?php echo htmlspecialchars($profile['state_province']); ?></p>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+                    
+                    <?php if (!empty($profile['country'])): ?>
+                        <div class="flex items-start">
+                            <i class="fas fa-globe text-gray-400 mt-1 mr-2 flex-shrink-0"></i>
+                            <div>
+                                <p class="font-semibold text-gray-700 text-sm">Country</p>
+                                <p class="text-gray-600"><?php echo htmlspecialchars($profile['country']); ?></p>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+                    
+                    <?php if (!empty($profile['postal_code'])): ?>
+                        <div class="flex items-start">
+                            <i class="fas fa-mail-bulk text-gray-400 mt-1 mr-2 flex-shrink-0"></i>
+                            <div>
+                                <p class="font-semibold text-gray-700 text-sm">Postal Code</p>
+                                <p class="text-gray-600"><?php echo htmlspecialchars($profile['postal_code']); ?></p>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+                </div>
+                
+                <?php if (!empty($profile['latitude']) && !empty($profile['longitude'])): ?>
+                    <div class="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                        <div class="flex items-center">
+                            <i class="fas fa-map-pin text-blue-500 mr-2"></i>
+                            <p class="text-sm text-blue-700">
+                                Location: 
+                                <span class="font-mono"><?php echo htmlspecialchars($profile['latitude']); ?>, <?php echo htmlspecialchars($profile['longitude']); ?></span>
+                            </p>
+                        </div>
+                    </div>
+                <?php endif; ?>
             </div>
-            <div class="flex flex-col">
-                <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Municipality/City</dt>
-                <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['municipality_name'] ?? 'N/A'); ?></dd>
+        <?php else: ?>
+            <div class="text-center py-6">
+                <i class="fas fa-map-marker-alt text-gray-300 text-4xl mb-3"></i>
+                <p class="text-gray-500">No address information available</p>
             </div>
-            <div class="flex flex-col">
-                <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Province</dt>
-                <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['province_name'] ?? 'N/A'); ?></dd>
-            </div>
-            <div class="flex flex-col">
-                <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Region</dt>
-                <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['region_name'] ?? 'N/A'); ?></dd>
-            </div>
-        </dl>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -638,156 +702,215 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="flex-1 overflow-y-auto p-6 bg-gray-50">
             <form id="alumniProfileForm" class="space-y-6" action="update_profile.php" method="post" enctype="multipart/form-data">
                 
-<!-- Profile Picture + School Info - ENHANCED -->
-<div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-    <!-- Profile Picture - NOW CIRCULAR -->
-    <div class="lg:col-span-1 bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
-        <div class="text-center">
-            <div class="relative inline-block mb-4">
-                <!-- CHANGED: Changed from rounded-lg to rounded-full for circular shape -->
-                <div class="w-32 h-32 rounded-full overflow-hidden mx-auto border-2 border-gray-300 bg-gray-100">
-                    <img id="profilePreview" src="<?php echo !empty($profile['photo_path']) ? '../' . htmlspecialchars($profile['photo_path']) : 'https://placehold.co/128x128/eeeeee/333333?text=Upload+Photo'; ?>" alt="Profile Picture" class="w-full h-full object-cover">
-                </div>
-                <div class="absolute bottom-2 right-2 bg-blue-500 rounded-full p-2 shadow-md">
-                    <i class="fas fa-camera text-white text-xs"></i>
-                </div>
-            </div>
-            <button type="button" id="uploadPictureBtn" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition duration-200 w-full mb-2 shadow-sm hover:shadow">
-                <i class="fas fa-upload mr-2"></i>Choose Photo
-            </button>
-            <input type="file" id="profilePictureInput" name="profile_photo" accept="image/jpeg,image/png" class="hidden">
-            <p class="text-xs text-gray-500 mt-2">
-                <i class="fas fa-info-circle mr-1"></i>JPG or PNG, max 2MB
-            </p>
-            <div id="profilePictureFeedback" class="text-xs text-green-600 mt-1 hidden">
-                <i class="fas fa-check mr-1"></i>Photo selected
-            </div>
-        </div>
-    </div>
-
-    <!-- School Information - ENHANCED with bold text -->
-    <div class="lg:col-span-3 bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
-        <h3 class="text-base font-semibold text-gray-800 mb-4 flex items-center">
-            <div class="bg-blue-100 rounded-lg p-2 mr-3">
-                <i class="fas fa-graduation-cap text-blue-600 text-sm"></i>
-            </div>
-            School Information
-            <span class="text-xs font-normal text-blue-600 ml-2 bg-blue-50 px-2 py-1 rounded">Auto-filled</span>
-        </h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <?php
-            $schoolFields = [
-                ['label' => 'Student ID', 'value' => $profile['student_id'] ?? 'Not set'],
-                ['label' => 'Full Name', 'value' => $profile['official_name'] ?? 'Not set'],
-                ['label' => 'Date of Birth', 'value' => !empty($profile['date_of_birth']) && $profile['date_of_birth'] != '0000-00-00' ? date('M j, Y', strtotime($profile['date_of_birth'])) : 'Not set'],
-                ['label' => 'Gender', 'value' => $profile['gender'] ?? 'Not set'],
-                ['label' => 'Program', 'value' => $profile['program'] ?? 'BSIT'],
-                ['label' => 'Year Graduated', 'value' => $profile['batch_year'] ?? 'Not set']
-            ];
-            
-            foreach ($schoolFields as $field):
-            ?>
-            <div class="space-y-1">
-                <label class="block text-xs font-medium text-gray-600 uppercase tracking-wide"><?php echo $field['label']; ?></label>
-                <!-- CHANGED: Added font-bold to make values stand out -->
-                <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                    <span class="font-semibold text-gray-800 text-sm"><?php echo htmlspecialchars($field['value']); ?></span>
-                </div>
-            </div>
-            <?php endforeach; ?>
-        </div>
-        <div class="mt-4 bg-blue-50 rounded-lg p-3 border border-blue-200">
-            <p class="text-blue-700 text-xs flex items-center">
-                <i class="fas fa-info-circle text-blue-500 mr-2"></i>
-                Automatically filled from student records
-            </p>
-        </div>
-    </div>
-</div>
-                <!-- Address Section - ENHANCED -->
-                <?php if ($can_update): ?>
-                <div class="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
-
-                    <!-- NEW CODE (Worldwide address with Leaflet) -->
-                    <div class="mb-6">
-                        <h3 class="text-lg font-semibold mb-3">Address Information</h3>
-                        
-                        <!-- Address Search -->
-                        <div class="mb-4">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Search Address</label>
-                            <div class="flex gap-2">
-                                <input type="text" id="address-search" 
-                                    class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                                    placeholder="Enter full address (street, city, country)">
-                                <button type="button" id="search-address-btn" 
-                                        class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                    Search
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Map Container -->
-                        <div class="mb-4">
-                            <div id="address-map" style="height: 300px; width: 100%;" class="border border-gray-300 rounded-md"></div>
-                            <p class="text-sm text-gray-500 mt-1">Click on the map to select a location</p>
-                        </div>
-
-                        <!-- Address Form Fields -->
-                        <div class="grid grid-cols-1 gap-4 mb-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Address Line 1</label>
-                                <input type="text" id="address-line1" name="address_line1" 
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Address Line 2</label>
-                                <input type="text" id="address-line2" name="address_line2" 
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            </div>
-                        </div>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">City</label>
-                                <input type="text" id="city" name="city" 
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">State/Province</label>
-                                <input type="text" id="state-province" name="state_province" 
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Country</label>
-                                <input type="text" id="country" name="country" 
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            </div>
-                        </div>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Postal Code</label>
-                                <input type="text" id="postal-code" name="postal_code" 
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            </div>
-                            <div class="grid grid-cols-2 gap-2">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Latitude</label>
-                                    <input type="text" id="latitude" name="latitude" readonly
-                                        class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100">
+                <!-- Profile Picture + School Info - ENHANCED -->
+                <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                    <!-- Profile Picture - NOW CIRCULAR -->
+                    <div class="lg:col-span-1 bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
+                        <div class="text-center">
+                            <div class="relative inline-block mb-4">
+                                <div class="w-32 h-32 rounded-full overflow-hidden mx-auto border-2 border-gray-300 bg-gray-100">
+                                    <img id="profilePreview" src="<?php echo !empty($profile['photo_path']) ? '../' . htmlspecialchars($profile['photo_path']) : 'https://placehold.co/128x128/eeeeee/333333?text=Upload+Photo'; ?>" alt="Profile Picture" class="w-full h-full object-cover">
                                 </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Longitude</label>
-                                    <input type="text" id="longitude" name="longitude" readonly
-                                        class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100">
+                                <div class="absolute bottom-2 right-2 bg-blue-500 rounded-full p-2 shadow-md">
+                                    <i class="fas fa-camera text-white text-xs"></i>
                                 </div>
+                            </div>
+                            <button type="button" id="uploadPictureBtn" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition duration-200 w-full mb-2 shadow-sm hover:shadow">
+                                <i class="fas fa-upload mr-2"></i>Choose Photo
+                            </button>
+                            <input type="file" id="profilePictureInput" name="profile_photo" accept="image/jpeg,image/png" class="hidden">
+                            <p class="text-xs text-gray-500 mt-2">
+                                <i class="fas fa-info-circle mr-1"></i>JPG or PNG, max 2MB
+                            </p>
+                            <div id="profilePictureFeedback" class="text-xs text-green-600 mt-1 hidden">
+                                <i class="fas fa-check mr-1"></i>Photo selected
                             </div>
                         </div>
                     </div>
 
-                    <!-- Hidden field to track address type -->
-                    <input type="hidden" id="address-type" name="address_type" value="worldwide">
+                    <!-- School Information - ENHANCED with bold text -->
+                    <div class="lg:col-span-3 bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
+                        <h3 class="text-base font-semibold text-gray-800 mb-4 flex items-center">
+                            <div class="bg-blue-100 rounded-lg p-2 mr-3">
+                                <i class="fas fa-graduation-cap text-blue-600 text-sm"></i>
+                            </div>
+                            School Information
+                            <span class="text-xs font-normal text-blue-600 ml-2 bg-blue-50 px-2 py-1 rounded">Auto-filled</span>
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <?php
+                            $schoolFields = [
+                                ['label' => 'Student ID', 'value' => $profile['student_id'] ?? 'Not set'],
+                                ['label' => 'Full Name', 'value' => $profile['official_name'] ?? 'Not set'],
+                                ['label' => 'Date of Birth', 'value' => !empty($profile['date_of_birth']) && $profile['date_of_birth'] != '0000-00-00' ? date('M j, Y', strtotime($profile['date_of_birth'])) : 'Not set'],
+                                ['label' => 'Gender', 'value' => $profile['gender'] ?? 'Not set'],
+                                ['label' => 'Program', 'value' => $profile['program'] ?? 'BSIT'],
+                                ['label' => 'Year Graduated', 'value' => $profile['batch_year'] ?? 'Not set']
+                            ];
+                            
+                            foreach ($schoolFields as $field):
+                            ?>
+                            <div class="space-y-1">
+                                <label class="block text-xs font-medium text-gray-600 uppercase tracking-wide"><?php echo $field['label']; ?></label>
+                                <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                                    <span class="font-semibold text-gray-800 text-sm"><?php echo htmlspecialchars($field['value']); ?></span>
+                                </div>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+                        <div class="mt-4 bg-blue-50 rounded-lg p-3 border border-blue-200">
+                            <p class="text-blue-700 text-xs flex items-center">
+                                <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+                                Automatically filled from student records
+                            </p>
+                        </div>
+                    </div>
                 </div>
+
+                <!-- Address Section - ENHANCED TWO-WAY SYNC -->
+                <?php if ($can_update): ?>
+                <div class="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
+                    <h3 class="text-lg font-semibold mb-3 flex items-center">
+                        <i class="fas fa-map-marker-alt text-blue-600 mr-2"></i>
+                        Address Information
+                    </h3>
+                    
+                    <!-- Address Search -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-search mr-1"></i>
+                            Search Address
+                        </label>
+                        <div class="flex gap-2">
+                            <input type="text" id="address-search" 
+                                class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                                placeholder="Enter full address (street, city, country)">
+                            <button type="button" id="search-address-btn" 
+                                    class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200">
+                                <i class="fas fa-search mr-1"></i> Search
+                            </button>
+                            <button type="button" id="clear-address-btn" 
+                                    class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 transition duration-200">
+                                <i class="fas fa-times mr-1"></i> Clear
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Map Container -->
+                    <div class="mb-4">
+                        <div id="address-map" style="height: 350px; width: 100%;" class="border border-gray-300 rounded-md"></div>
+                        <div class="flex justify-between items-center mt-2">
+                            <p class="text-sm text-gray-500">
+                                <i class="fas fa-mouse-pointer mr-1"></i>
+                                Click on map to set location
+                            </p>
+                            <button type="button" id="use-current-location-btn" 
+                                    class="text-sm text-blue-600 hover:text-blue-800 flex items-center">
+                                <i class="fas fa-location-crosshairs mr-1"></i>
+                                Use Current Location
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Address Form Fields with Auto-Update -->
+                    <div class="grid grid-cols-1 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                <i class="fas fa-home mr-1"></i>
+                                Address Line 1 *
+                            </label>
+                            <input type="text" id="address-line1" name="address_line1" 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 address-field"
+                                value="<?php echo htmlspecialchars($profile['address_line1'] ?? ''); ?>"
+                                placeholder="Street address, P.O. box, company name">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                <i class="fas fa-building mr-1"></i>
+                                Address Line 2
+                            </label>
+                            <input type="text" id="address-line2" name="address_line2" 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 address-field"
+                                value="<?php echo htmlspecialchars($profile['address_line2'] ?? ''); ?>"
+                                placeholder="Apartment, suite, unit, building, floor">
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                <i class="fas fa-city mr-1"></i>
+                                City *
+                            </label>
+                            <input type="text" id="city" name="city" 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 address-field"
+                                value="<?php echo htmlspecialchars($profile['city'] ?? ''); ?>"
+                                placeholder="City or town">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                <i class="fas fa-landmark mr-1"></i>
+                                State/Province *
+                            </label>
+                            <input type="text" id="state-province" name="state_province" 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 address-field"
+                                value="<?php echo htmlspecialchars($profile['state_province'] ?? ''); ?>"
+                                placeholder="State, province, or region">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                <i class="fas fa-globe mr-1"></i>
+                                Country *
+                            </label>
+                            <input type="text" id="country" name="country" 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 address-field"
+                                value="<?php echo htmlspecialchars($profile['country'] ?? ''); ?>"
+                                placeholder="Country">
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                <i class="fas fa-mail-bulk mr-1"></i>
+                                Postal Code
+                            </label>
+                            <input type="text" id="postal-code" name="postal_code" 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 address-field"
+                                value="<?php echo htmlspecialchars($profile['postal_code'] ?? ''); ?>"
+                                placeholder="ZIP or postal code">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    <i class="fas fa-latitude mr-1"></i>
+                                    Latitude
+                                </label>
+                                <input type="text" id="latitude" name="latitude" readonly
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100"
+                                    value="<?php echo htmlspecialchars($profile['latitude'] ?? ''); ?>">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    <i class="fas fa-longitude mr-1"></i>
+                                    Longitude
+                                </label>
+                                <input type="text" id="longitude" name="longitude" readonly
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100"
+                                    value="<?php echo htmlspecialchars($profile['longitude'] ?? ''); ?>">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Address Validation Status -->
+                    <div id="address-validation" class="mt-4 hidden">
+                        <div class="flex items-center p-3 rounded-md" id="address-validation-message">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            <span id="validation-text"></span>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
 
                 <!-- Employment Information - ENHANCED -->
                 <div class="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">

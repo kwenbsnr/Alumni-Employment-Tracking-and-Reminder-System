@@ -10,7 +10,7 @@ $page_title = "Dashboard";
 $active_page = "dashboard";
 $user_id = $_SESSION["user_id"];
 
-// ---- 1. FETCH SQL QUERY ----
+// ---- 1. UPDATED FETCH SQL QUERY WITH WORLDWIDE ADDRESS ----
 $stmt = $conn->prepare("
     SELECT
         CONCAT(
@@ -26,11 +26,13 @@ $stmt = $conn->prepare("
         ap.last_profile_update,
         ap.employment_status,
         ap.submission_status,
-        ap.address_id,
+        ap.worldwide_address_id,
         ap.contact_number,
-        COUNT(ad.doc_id) as document_count
+        COUNT(ad.doc_id) as document_count,
+        wa.formatted_address as address  -- Added worldwide address
     FROM users u
     LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id
+    LEFT JOIN worldwide_address wa ON ap.worldwide_address_id = wa.address_id
     LEFT JOIN alumni_documents ad ON u.user_id = ad.user_id
     WHERE u.user_id = ?
     GROUP BY u.user_id
@@ -47,13 +49,15 @@ $full_name = 'Alumni';
 if (!empty($profile_info) && !empty($profile_info['official_name'])) {
     $full_name = htmlspecialchars($profile_info['official_name']);
 }
+
 // --- SIMPLIFIED PROFILE COMPLETION LOGIC ---
 // Basic required fields that everyone needs
 $has_basic_info = !empty($profile_info) && 
     !empty($profile_info['contact_number']) &&
     !empty($profile_info['employment_status']);
 
-$has_address = !empty($profile_info) && !empty($profile_info['address_id']);
+// FIXED: Check worldwide address instead of old address_id
+$has_address = !empty($profile_info) && !empty($profile_info['address']);
 
 // Check photo
 $has_photo = false;
@@ -84,7 +88,9 @@ if (!$is_unemployed) {
 } else {
     // If unemployed, consider documents requirement as met
     $has_documents = true;
-}// UPDATED: Adjust required sections based on employment status
+}
+
+// UPDATED: Adjust required sections based on employment status
 if ($is_unemployed) {
     // Unemployed alumni only need 3 sections (documents not required)
     $required_sections = [
@@ -156,6 +162,7 @@ $needs_semiannual_update = !empty($profile_info) &&
      strtotime($profile_info['last_profile_update'] . ' +6 months') <= time());
 
 $needs_profile_update = empty($profile_info) || !$is_profile_complete || $needs_semiannual_update;
+
 // Profile & Document status
 $profile = [
     'employment_status' => $profile_info['employment_status'] ?? 'Not Set',
@@ -165,6 +172,7 @@ $document = [
     'submission_status' => $profile_info['submission_status'] ?? 'No Profile',
     'document_count' => $profile_info['document_count'] ?? 0
 ];
+
 // Enhanced document status - FIXED for consistent rejection display
 if (!empty($profile_info)) {
     $submission_status = $profile_info['submission_status'] ?? '';
@@ -204,8 +212,7 @@ $activities = $stmt_act->get_result();
 
 ob_start();
 ?>
-
-        <!-- Success Card -->
+    <!-- Success Card -->
         <?php if (isset($_SESSION['profile_submission_success'])): ?>
             <div id="successCard" class="bg-gradient-to-r from-emerald-500 to-green-600 p-4 text-white flex items-center justify-between shadow-xl animate-fade-in rounded-xl border border-emerald-400/30 backdrop-blur-sm">
                 <div class="flex items-center space-x-3">
@@ -844,7 +851,8 @@ button:focus, a:focus {
     overflow: hidden;
 }
 </style>
+
 <?php
 $page_content = ob_get_clean();
 include("alumni_format.php");
-?>
+?>      
