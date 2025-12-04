@@ -277,11 +277,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new Exception("Contact number and employment status are required.");
             }
 
-            // Worldwide address validation
-            if (empty($address_line1) || empty($city) || empty($state_province) || empty($country)) {
-                throw new Exception("Complete address information is required (Address Line 1, City, State/Province, Country).");
-            }
-
             if (!$latitude || !$longitude) {
                 throw new Exception("Please select a location on the map.");
             }

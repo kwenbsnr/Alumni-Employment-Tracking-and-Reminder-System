@@ -29,8 +29,7 @@ $stmt = $conn->prepare("
         ap.contact_number, 
         ap.employment_status, ap.photo_path, ap.worldwide_address_id,
         ap.submission_status, ap.last_profile_update, ap.rejection_reason,
-        wa.address_line1, wa.address_line2, wa.city, wa.state_province, 
-        wa.country, wa.postal_code, wa.latitude, wa.longitude, wa.formatted_address
+        wa.city, wa.state_province, wa.country, wa.latitude, wa.longitude, wa.formatted_address
     FROM users u
     LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id
     LEFT JOIN worldwide_address wa ON ap.worldwide_address_id = wa.address_id
@@ -380,125 +379,111 @@ document.addEventListener('DOMContentLoaded', function() {
       <?php if ($has_personal_data): ?>
         <!-- Always show profile cards -->
 
-   <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-<!-- Personal Information Card -->
-<div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-blue-500 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-blue-50">
-    <div class="flex items-center space-x-3 mb-4 pb-2 border-b border-gray-100">
-        <h3 class="text-xl font-bold text-gray-800">Personal Information</h3>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Personal Information Card -->
+    <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-blue-500 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-blue-50">
+        <div class="flex items-center space-x-3 mb-4 pb-2 border-b border-gray-100">
+            <h3 class="text-xl font-bold text-gray-800">Personal Information</h3>
+        </div>
+        <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="flex flex-col">
+                <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Name</dt>
+                <dd class="font-semibold text-gray-700" style="font-size: 15px;">
+                    <?php echo !empty($profile['official_name']) ? htmlspecialchars($profile['official_name'], ENT_QUOTES, 'UTF-8') : 'N/A'; ?>
+                </dd>
+            </div>
+            <div class="flex flex-col md:ml-[-70px]">
+                <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Email</dt>
+                <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['email'] ?? 'N/A'); ?></dd>
+            </div>
+            <div class="flex flex-col">
+                <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Contact Number</dt>
+                <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['contact_number'] ?? 'N/A'); ?></dd>
+            </div>
+            <div class="flex flex-col md:ml-[-70px]">
+                <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Program</dt>
+                <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['program'] ?? 'N/A'); ?></dd>
+            </div>
+        </dl>
     </div>
-    <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div class="flex flex-col">
-            <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Name</dt>
-            <dd class="font-semibold text-gray-700" style="font-size: 15px;">
-                <?php echo !empty($profile['official_name']) ? htmlspecialchars($profile['official_name'], ENT_QUOTES, 'UTF-8') : 'N/A'; ?>
-            </dd>
-        </div>
-        <div class="flex flex-col md:ml-[-70px]">
-            <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Email</dt>
-            <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['email'] ?? 'N/A'); ?></dd>
-        </div>
-        <div class="flex flex-col">
-            <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Contact Number</dt>
-            <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['contact_number'] ?? 'N/A'); ?></dd>
-        </div>
-        <div class="flex flex-col md:ml-[-70px]">
-            <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Program</dt>
-            <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['program'] ?? 'N/A'); ?></dd>
-        </div>
-    </dl>
-</div>
 
-    <!-- Address Card - ENHANCED -->
+    <!-- Address Card - ENHANCED WITH ALL FIELDS -->
     <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-green-500 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-green-50">
         <div class="flex items-center space-x-3 mb-4 pb-2 border-b border-gray-100">
             <i class="fas fa-map-marker-alt text-green-600"></i>
             <h3 class="text-xl font-bold text-gray-800">Address Information</h3>
         </div>
         
-        <?php if (!empty($profile['formatted_address']) || !empty($profile['address_line1'])): ?>
-            <div class="space-y-2">
-                <?php if (!empty($profile['address_line1'])): ?>
-                    <div class="flex items-start">
-                        <i class="fas fa-home text-gray-400 mt-1 mr-2 flex-shrink-0"></i>
-                        <div>
-                            <p class="font-semibold text-gray-700 text-sm">Address Line 1</p>
-                            <p class="text-gray-600"><?php echo htmlspecialchars($profile['address_line1']); ?></p>
-                        </div>
-                    </div>
-                <?php endif; ?>
-                
-                <?php if (!empty($profile['address_line2'])): ?>
-                    <div class="flex items-start">
-                        <i class="fas fa-building text-gray-400 mt-1 mr-2 flex-shrink-0"></i>
-                        <div>
-                            <p class="font-semibold text-gray-700 text-sm">Address Line 2</p>
-                            <p class="text-gray-600"><?php echo htmlspecialchars($profile['address_line2']); ?></p>
-                        </div>
-                    </div>
-                <?php endif; ?>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+        <?php if (!empty($profile['city']) || !empty($profile['formatted_address'])): ?>
+            <div class="space-y-4">
+                <!-- City, State, Country Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <?php if (!empty($profile['city'])): ?>
-                        <div class="flex items-start">
-                            <i class="fas fa-city text-gray-400 mt-1 mr-2 flex-shrink-0"></i>
-                            <div>
-                                <p class="font-semibold text-gray-700 text-sm">City</p>
-                                <p class="text-gray-600"><?php echo htmlspecialchars($profile['city']); ?></p>
-                            </div>
+                        <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                                <i class="fas fa-city mr-1"></i>City
+                            </p>
+                            <p class="text-gray-800 font-medium"><?php echo htmlspecialchars($profile['city']); ?></p>
                         </div>
                     <?php endif; ?>
                     
                     <?php if (!empty($profile['state_province'])): ?>
-                        <div class="flex items-start">
-                            <i class="fas fa-landmark text-gray-400 mt-1 mr-2 flex-shrink-0"></i>
-                            <div>
-                                <p class="font-semibold text-gray-700 text-sm">State/Province</p>
-                                <p class="text-gray-600"><?php echo htmlspecialchars($profile['state_province']); ?></p>
-                            </div>
+                        <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                                <i class="fas fa-landmark mr-1"></i>State/Province
+                            </p>
+                            <p class="text-gray-800 font-medium"><?php echo htmlspecialchars($profile['state_province']); ?></p>
                         </div>
                     <?php endif; ?>
                     
                     <?php if (!empty($profile['country'])): ?>
-                        <div class="flex items-start">
-                            <i class="fas fa-globe text-gray-400 mt-1 mr-2 flex-shrink-0"></i>
-                            <div>
-                                <p class="font-semibold text-gray-700 text-sm">Country</p>
-                                <p class="text-gray-600"><?php echo htmlspecialchars($profile['country']); ?></p>
-                            </div>
-                        </div>
-                    <?php endif; ?>
-                    
-                    <?php if (!empty($profile['postal_code'])): ?>
-                        <div class="flex items-start">
-                            <i class="fas fa-mail-bulk text-gray-400 mt-1 mr-2 flex-shrink-0"></i>
-                            <div>
-                                <p class="font-semibold text-gray-700 text-sm">Postal Code</p>
-                                <p class="text-gray-600"><?php echo htmlspecialchars($profile['postal_code']); ?></p>
-                            </div>
+                        <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                                <i class="fas fa-globe mr-1"></i>Country
+                            </p>
+                            <p class="text-gray-800 font-medium"><?php echo htmlspecialchars($profile['country']); ?></p>
                         </div>
                     <?php endif; ?>
                 </div>
                 
+                <!-- Latitude & Longitude -->
                 <?php if (!empty($profile['latitude']) && !empty($profile['longitude'])): ?>
-                    <div class="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                        <div class="flex items-center">
-                            <i class="fas fa-map-pin text-blue-500 mr-2"></i>
-                            <p class="text-sm text-blue-700">
-                                Location: 
-                                <span class="font-mono"><?php echo htmlspecialchars($profile['latitude']); ?>, <?php echo htmlspecialchars($profile['longitude']); ?></span>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                            <p class="text-xs font-semibold text-blue-500 uppercase tracking-wide mb-1">
+                                <i class="fas fa-latitude mr-1"></i>Latitude
                             </p>
+                            <p class="text-blue-700 font-mono font-medium"><?php echo htmlspecialchars($profile['latitude']); ?></p>
                         </div>
+                        <div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                            <p class="text-xs font-semibold text-blue-500 uppercase tracking-wide mb-1">
+                                <i class="fas fa-longitude mr-1"></i>Longitude
+                            </p>
+                            <p class="text-blue-700 font-mono font-medium"><?php echo htmlspecialchars($profile['longitude']); ?></p>
+                        </div>
+                    </div>
+                <?php endif; ?>
+                
+                <!-- Full Address -->
+                <?php if (!empty($profile['formatted_address'])): ?>
+                    <div class="bg-green-50 p-4 rounded-lg border border-green-200">
+                        <p class="text-xs font-semibold text-green-600 uppercase tracking-wide mb-2">
+                            <i class="fas fa-map-signs mr-1"></i>Full Address
+                        </p>
+                        <p class="text-gray-700 text-sm leading-relaxed"><?php echo htmlspecialchars($profile['formatted_address']); ?></p>
                     </div>
                 <?php endif; ?>
             </div>
         <?php else: ?>
-            <div class="text-center py-6">
-                <i class="fas fa-map-marker-alt text-gray-300 text-4xl mb-3"></i>
-                <p class="text-gray-500">No address information available</p>
+            <div class="text-center py-8">
+                <div class="bg-gray-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-3">
+                    <i class="fas fa-map-marker-alt text-gray-400 text-2xl"></i>
+                </div>
+                <p class="text-gray-500 font-medium">No address information available</p>
+                <p class="text-gray-400 text-sm mt-1">Update your profile to add address details</p>
             </div>
         <?php endif; ?>
     </div>
-</div>
 
 <!-- Container for Employment/Academic Details and Documents -->
 <div class="flex flex-col md:flex-row md:space-x-6">
@@ -768,8 +753,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                 </div>
 
-                <!-- Address Section - ENHANCED WITH LEAFLET MAP -->
-                <?php if ($can_update): ?>
+                <!-- Address Section - ENHANCED WITH ALL REQUIRED FIELDS -->
                 <div class="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
                     <h3 class="text-lg font-semibold mb-3 flex items-center">
                         <i class="fas fa-map-marker-alt text-blue-600 mr-2"></i>
@@ -785,7 +769,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="flex gap-2">
                             <input type="text" id="address-search" 
                                 class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                                placeholder="Enter full address (street, city, country)">
+                                placeholder="Enter city, state/province, country">
                             <button type="button" id="search-address-btn" 
                                     class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200">
                                 <i class="fas fa-search mr-1"></i> Search
@@ -813,93 +797,81 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                     </div>
 
-                    <!-- Address Form Fields with Auto-Update -->
-                    <div class="grid grid-cols-1 gap-4 mb-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">
-                                <i class="fas fa-home mr-1"></i>
-                                Address Line 1 *
-                            </label>
-                            <input type="text" id="address-line1" name="address_line1" 
-                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 address-field"
-                                value="<?php echo htmlspecialchars($profile['address_line1'] ?? ''); ?>"
-                                placeholder="Street address, P.O. box, company name">
+                    <!-- Address Form Fields - ALL REQUIRED FIELDS -->
+                    <div class="space-y-4">
+                        <!-- City, State, Country Row -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    <i class="fas fa-city mr-1"></i>
+                                    City *
+                                </label>
+                                <input type="text" id="city" name="city" 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 address-field"
+                                    value="<?php echo htmlspecialchars($profile['city'] ?? ''); ?>"
+                                    placeholder="City or town" required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    <i class="fas fa-landmark mr-1"></i>
+                                    State/Province *
+                                </label>
+                                <input type="text" id="state-province" name="state_province" 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 address-field"
+                                    value="<?php echo htmlspecialchars($profile['state_province'] ?? ''); ?>"
+                                    placeholder="State, province, or region" required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    <i class="fas fa-globe mr-1"></i>
+                                    Country *
+                                </label>
+                                <input type="text" id="country" name="country" 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 address-field"
+                                    value="<?php echo htmlspecialchars($profile['country'] ?? ''); ?>"
+                                    placeholder="Country" required>
+                            </div>
                         </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">
-                                <i class="fas fa-building mr-1"></i>
-                                Address Line 2
-                            </label>
-                            <input type="text" id="address-line2" name="address_line2" 
-                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 address-field"
-                                value="<?php echo htmlspecialchars($profile['address_line2'] ?? ''); ?>"
-                                placeholder="Apartment, suite, unit, building, floor">
-                        </div>
-                    </div>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">
-                                <i class="fas fa-city mr-1"></i>
-                                City *
-                            </label>
-                            <input type="text" id="city" name="city" 
-                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 address-field"
-                                value="<?php echo htmlspecialchars($profile['city'] ?? ''); ?>"
-                                placeholder="City or town">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">
-                                <i class="fas fa-landmark mr-1"></i>
-                                State/Province *
-                            </label>
-                            <input type="text" id="state-province" name="state_province" 
-                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 address-field"
-                                value="<?php echo htmlspecialchars($profile['state_province'] ?? ''); ?>"
-                                placeholder="State, province, or region">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">
-                                <i class="fas fa-globe mr-1"></i>
-                                Country *
-                            </label>
-                            <input type="text" id="country" name="country" 
-                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 address-field"
-                                value="<?php echo htmlspecialchars($profile['country'] ?? ''); ?>"
-                                placeholder="Country">
-                        </div>
-                    </div>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">
-                                <i class="fas fa-mail-bulk mr-1"></i>
-                                Postal Code
-                            </label>
-                            <input type="text" id="postal-code" name="postal_code" 
-                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 address-field"
-                                value="<?php echo htmlspecialchars($profile['postal_code'] ?? ''); ?>"
-                                placeholder="ZIP or postal code">
-                        </div>
-                        <div class="grid grid-cols-2 gap-2">
+                        
+                        <!-- Latitude & Longitude Row -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">
                                     <i class="fas fa-latitude mr-1"></i>
-                                    Latitude
+                                    Latitude *
                                 </label>
-                                <input type="text" id="latitude" name="latitude" readonly
+                                <input type="text" id="latitude" name="latitude" 
                                     class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100"
-                                    value="<?php echo htmlspecialchars($profile['latitude'] ?? ''); ?>">
+                                    value="<?php echo htmlspecialchars($profile['latitude'] ?? ''); ?>" 
+                                    required readonly>
+                                <p class="text-xs text-gray-500 mt-1">Automatically set from map</p>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">
                                     <i class="fas fa-longitude mr-1"></i>
-                                    Longitude
+                                    Longitude *
                                 </label>
-                                <input type="text" id="longitude" name="longitude" readonly
+                                <input type="text" id="longitude" name="longitude" 
                                     class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100"
-                                    value="<?php echo htmlspecialchars($profile['longitude'] ?? ''); ?>">
+                                    value="<?php echo htmlspecialchars($profile['longitude'] ?? ''); ?>" 
+                                    required readonly>
+                                <p class="text-xs text-gray-500 mt-1">Automatically set from map</p>
                             </div>
+                        </div>
+                        
+                        <!-- Formatted Address Preview -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                <i class="fas fa-map-signs mr-1"></i>
+                                Full Address (Auto-generated) *
+                            </label>
+                            <div id="formatted-address-preview" 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-600 min-h-[40px]">
+                                <?php echo !empty($profile['formatted_address']) ? htmlspecialchars($profile['formatted_address']) : 'Address will be generated from fields above...'; ?>
+                            </div>
+                            <input type="hidden" id="formatted-address" name="formatted_address" 
+                                value="<?php echo htmlspecialchars($profile['formatted_address'] ?? ''); ?>" required>
+                            <p class="text-xs text-gray-500 mt-1">Automatically generated from city, state, and country</p>
                         </div>
                     </div>
                     
@@ -911,7 +883,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                     </div>
                 </div>
-                <?php endif; ?>
 
                 <!-- Employment Information - ENHANCED -->
                 <div class="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
@@ -1750,38 +1721,68 @@ async function reverseGeocode(lat, lon) {
 function populateAddressFields(data) {
     const address = data.address || data;
     
-    document.getElementById('address-line1').value = address.road || address.house_number ? 
-        `${address.house_number || ''} ${address.road || ''}`.trim() : '';
-    document.getElementById('address-line2').value = address.neighbourhood || address.suburb || '';
+    // Update required fields
     document.getElementById('city').value = address.city || address.town || address.village || address.county || '';
     document.getElementById('state-province').value = address.state || address.region || '';
     document.getElementById('country').value = address.country || '';
-    document.getElementById('postal-code').value = address.postcode || '';
+    
+    // Update latitude and longitude if available from geocoding
+    if (data.lat && data.lon) {
+        document.getElementById('latitude').value = parseFloat(data.lat).toFixed(6);
+        document.getElementById('longitude').value = parseFloat(data.lon).toFixed(6);
+    }
+    
+    // Update formatted address
+    updateFormattedAddress();
     
     // Validate after populating
     validateAddress();
 }
 
-// Load existing address data
-function loadExistingAddress() {
-    const existingLat = document.getElementById('latitude').value;
-    const existingLng = document.getElementById('longitude').value;
+// Update formatted address preview
+function updateFormattedAddress() {
+    const city = document.getElementById('city').value.trim();
+    const state = document.getElementById('state-province').value.trim();
+    const country = document.getElementById('country').value.trim();
     
-    if (existingLat && existingLng) {
-        const latLng = L.latLng(parseFloat(existingLat), parseFloat(existingLng));
-        updateMarker(latLng);
+    const parts = [];
+    if (city) parts.push(city);
+    if (state) parts.push(state);
+    if (country) parts.push(country);
+    
+    const formattedAddress = parts.join(', ');
+    
+    // Update preview
+    const previewElement = document.getElementById('formatted-address-preview');
+    if (previewElement) {
+        previewElement.textContent = formattedAddress || 'Address will be generated from fields above...';
     }
+    
+    // Update hidden input for form submission
+    const hiddenInput = document.getElementById('formatted-address');
+    if (hiddenInput) {
+        hiddenInput.value = formattedAddress;
+    }
+    
+    return formattedAddress;
 }
 
-// Validate address completeness
+// Validate all required address fields
 function validateAddress() {
-    const requiredFields = ['address-line1', 'city', 'state-province', 'country'];
+    const requiredFields = [
+        { id: 'city', name: 'City' },
+        { id: 'state-province', name: 'State/Province' },
+        { id: 'country', name: 'Country' },
+        { id: 'latitude', name: 'Latitude' },
+        { id: 'longitude', name: 'Longitude' }
+    ];
+    
     let missingFields = [];
     
-    requiredFields.forEach(fieldId => {
-        const field = document.getElementById(fieldId);
-        if (!field || !field.value.trim()) {
-            missingFields.push(fieldId.replace('-', ' '));
+    requiredFields.forEach(field => {
+        const fieldElement = document.getElementById(field.id);
+        if (!fieldElement || !fieldElement.value.trim()) {
+            missingFields.push(field.name);
         }
     });
     
@@ -1790,11 +1791,22 @@ function validateAddress() {
         return false;
     }
     
-    const lat = document.getElementById('latitude').value;
-    const lng = document.getElementById('longitude').value;
+    // Validate latitude/longitude format
+    const lat = parseFloat(document.getElementById('latitude').value);
+    const lng = parseFloat(document.getElementById('longitude').value);
     
-    if (!lat || !lng) {
-        showValidation('Please select a location on the map', 'warning');
+    if (isNaN(lat) || isNaN(lng)) {
+        showValidation('Invalid coordinates. Please select a location on the map.', 'error');
+        return false;
+    }
+    
+    if (lat < -90 || lat > 90) {
+        showValidation('Latitude must be between -90 and 90 degrees.', 'error');
+        return false;
+    }
+    
+    if (lng < -180 || lng > 180) {
+        showValidation('Longitude must be between -180 and 180 degrees.', 'error');
         return false;
     }
     
@@ -1802,112 +1814,20 @@ function validateAddress() {
     return true;
 }
 
-// Show validation message
-function showValidation(message, type) {
-    const container = document.getElementById('address-validation');
-    const messageEl = document.getElementById('address-validation-message');
-    const textEl = document.getElementById('validation-text');
-    
-    if (!container || !messageEl || !textEl) return;
-    
-    // Clear previous classes
-    messageEl.className = 'flex items-center p-3 rounded-md';
-    
-    // Add type-specific classes
-    switch(type) {
-        case 'success':
-            messageEl.classList.add('bg-green-100', 'text-green-800', 'border', 'border-green-200');
-            break;
-        case 'error':
-            messageEl.classList.add('bg-red-100', 'text-red-800', 'border', 'border-red-200');
-            break;
-        case 'warning':
-            messageEl.classList.add('bg-yellow-100', 'text-yellow-800', 'border', 'border-yellow-200');
-            break;
-        case 'info':
-            messageEl.classList.add('bg-blue-100', 'text-blue-800', 'border', 'border-blue-200');
-            break;
-    }
-    
-    textEl.textContent = message;
-    container.classList.remove('hidden');
-    
-    // Auto-hide success messages after 3 seconds
-    if (type === 'success') {
-        setTimeout(() => {
-            container.classList.add('hidden');
-        }, 3000);
-    }
-}
-
-// Geocode from form fields (two-way sync)
-async function geocodeFromForm() {
-    const addressLine1 = document.getElementById('address-line1').value.trim();
-    const city = document.getElementById('city').value.trim();
-    const state = document.getElementById('state-province').value.trim();
-    const country = document.getElementById('country').value.trim();
-    
-    if (!addressLine1 || !city || !state || !country) {
-        showValidation('Please fill in required address fields first', 'warning');
-        return;
-    }
-    
-    const address = `${addressLine1}, ${city}, ${state}, ${country}`;
-    const postalCode = document.getElementById('postal-code').value.trim();
-    const fullAddress = postalCode ? `${address}, ${postalCode}` : address;
-    
-    await geocodeAddress(fullAddress);
-}
-
-// Debounced geocoding for field changes
-function debounceGeocode() {
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => {
-        if (validateAddress()) {
-            geocodeFromForm();
-        }
-    }, 1500); // Wait 1.5 seconds after last keystroke
-}
-
-// Use current location
-function useCurrentLocation() {
-    if (navigator.geolocation) {
-        showValidation('Getting your current location...', 'info');
-        
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const lat = position.coords.latitude;
-                const lon = position.coords.longitude;
-                selectedLatLng = L.latLng(lat, lon);
-                updateMarker(latlng);
-                reverseGeocode(lat, lon);
-            },
-            (error) => {
-                showValidation('Could not get your location. Please allow location access.', 'error');
-                console.error('Geolocation error:', error);
-            },
-            {
-                enableHighAccuracy: true,
-                timeout: 5000,
-                maximumAge: 0
-            }
-        );
-    } else {
-        showValidation('Geolocation is not supported by your browser', 'error');
-    }
-}
-
-// Clear address fields
+// Clear all address fields
 function clearAddressFields() {
     document.getElementById('address-search').value = '';
-    document.getElementById('address-line1').value = '';
-    document.getElementById('address-line2').value = '';
     document.getElementById('city').value = '';
     document.getElementById('state-province').value = '';
     document.getElementById('country').value = '';
-    document.getElementById('postal-code').value = '';
     document.getElementById('latitude').value = '';
     document.getElementById('longitude').value = '';
+    document.getElementById('formatted-address').value = '';
+    
+    const previewElement = document.getElementById('formatted-address-preview');
+    if (previewElement) {
+        previewElement.textContent = 'Address will be generated from fields above...';
+    }
     
     if (marker) {
         map.removeLayer(marker);
@@ -1917,63 +1837,45 @@ function clearAddressFields() {
     showValidation('Address fields cleared', 'info');
 }
 
-// Initialize map event listeners when modal opens
-document.addEventListener('DOMContentLoaded', function() {
-    // Search button
-    const searchBtn = document.getElementById('search-address-btn');
-    if (searchBtn) {
-        searchBtn.addEventListener('click', function() {
-            const address = document.getElementById('address-search').value;
-            if (address) {
-                geocodeAddress(address);
-            }
-        });
+// Geocode from form fields
+async function geocodeFromForm() {
+    const city = document.getElementById('city').value.trim();
+    const state = document.getElementById('state-province').value.trim();
+    const country = document.getElementById('country').value.trim();
+    
+    if (!city || !state || !country) {
+        showValidation('Please fill in city, state/province, and country first', 'warning');
+        return;
     }
     
-    // Search field enter key
-    const searchField = document.getElementById('address-search');
-    if (searchField) {
-        searchField.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                const address = this.value;
-                if (address) {
-                    geocodeAddress(address);
-                }
-            }
-        });
+    const address = `${city}, ${state}, ${country}`;
+    await geocodeAddress(address);
+}
+
+// Update marker position with all fields
+function updateMarker(latlng) {
+    if (marker) {
+        map.removeLayer(marker);
     }
+    marker = L.marker(latlng).addTo(map)
+        .bindPopup('Selected Location')
+        .openPopup();
     
-    // Clear button
-    const clearBtn = document.getElementById('clear-address-btn');
-    if (clearBtn) {
-        clearBtn.addEventListener('click', clearAddressFields);
-    }
-    
-    // Current location button
-    const locationBtn = document.getElementById('use-current-location-btn');
-    if (locationBtn) {
-        locationBtn.addEventListener('click', useCurrentLocation);
-    }
-    
-    // Address field changes trigger geocoding
-    const addressFields = document.querySelectorAll('.address-field');
-    addressFields.forEach(field => {
-        field.addEventListener('input', debounceGeocode);
+    // Center map on marker
+    map.flyTo(latlng, 15, {
+        duration: 0.5
     });
     
-    // Address validation before form submission
-    const form = document.getElementById('alumniProfileForm');
-    if (form) {
-        form.addEventListener('submit', function(event) {
-            if (!validateAddress()) {
-                event.preventDefault();
-                showValidation('Please complete the address information and select a location on the map', 'error');
-                return false;
-            }
-            return true;
-        });
-    }
-});
+    // Update latitude and longitude fields
+    document.getElementById('latitude').value = latlng.lat.toFixed(6);
+    document.getElementById('longitude').value = latlng.lng.toFixed(6);
+    
+    // Reverse geocode to get address details
+    reverseGeocode(latlng.lat, latlng.lng);
+    
+    // Validate address after marker update
+    validateAddress();
+}
 </script>
 
 <?php
