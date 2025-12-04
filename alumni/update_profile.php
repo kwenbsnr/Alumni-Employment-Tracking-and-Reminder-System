@@ -377,10 +377,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $conn->prepare("UPDATE worldwide_address SET 
                 city = ?, state_province = ?, country = ?, latitude = ?, longitude = ?, 
                 formatted_address = ?, updated_at = CURRENT_TIMESTAMP 
-                WHERE address_id = ?");
+                WHERE user_id = ?");  // Changed WHERE clause to use user_id
             $stmt->bind_param("sssddsi", 
                 $city, $state_province, $country, $latitude, $longitude,
-                $formatted_address, $existing_address['address_id']
+                $formatted_address, $user_id  // Changed last parameter to user_id
             );
         } else {
             // Insert new address
@@ -412,15 +412,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             if ($profile_exists) {
                 $stmt = $conn->prepare("UPDATE alumni_profile SET 
-                    contact_number=?, employment_status=?, photo_path=?, last_profile_update=NOW(), worldwide_address_id=?,
+                    contact_number=?, employment_status=?, photo_path=?, last_profile_update=NOW(),
                     submission_status='Pending', submitted_at=NOW()
                     WHERE user_id=?");
-                $stmt->bind_param("sssii", $contact, $original_status, $photo_path, $worldwide_address_id, $user_id);
+                $stmt->bind_param("sssi", $contact, $original_status, $photo_path, $user_id);  // Removed worldwide_address_id
             } else {
                 $stmt = $conn->prepare("INSERT INTO alumni_profile 
-                    (user_id, contact_number, employment_status, photo_path, last_profile_update, worldwide_address_id, submission_status, submitted_at)
-                    VALUES (?,?,?,?,NOW(),?,'Pending',NOW())");
-                $stmt->bind_param("isssi", $user_id, $contact, $original_status, $photo_path, $worldwide_address_id);
+                    (user_id, contact_number, employment_status, photo_path, last_profile_update, submission_status, submitted_at)
+                    VALUES (?,?,?,?,NOW(),'Pending',NOW())");
+                $stmt->bind_param("isss", $user_id, $contact, $original_status, $photo_path);  // Removed worldwide_address_id
             }
 
             if (!$stmt->execute()) {

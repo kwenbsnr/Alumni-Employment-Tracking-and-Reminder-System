@@ -27,12 +27,12 @@ $stmt = $conn->prepare("
         u.batch_year,
         u.first_name, u.middle_name, u.last_name, u.suffix,
         ap.contact_number, 
-        ap.employment_status, ap.photo_path, ap.worldwide_address_id,
+        ap.employment_status, ap.photo_path,
         ap.submission_status, ap.last_profile_update, ap.rejection_reason,
         wa.city, wa.state_province, wa.country, wa.latitude, wa.longitude, wa.formatted_address
     FROM users u
     LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id
-    LEFT JOIN worldwide_address wa ON ap.worldwide_address_id = wa.address_id
+    LEFT JOIN worldwide_address wa ON u.user_id = wa.user_id  -- Changed join condition
     WHERE u.user_id = ?
 ");
 
