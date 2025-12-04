@@ -407,12 +407,13 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
     </dl>
 </div>
-    <!-- Address Card - ENHANCED -->
-    <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-green-500 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-green-50">
-        <div class="flex items-center space-x-3 mb-4 pb-2 border-b border-gray-100">
-            <i class="fas fa-map-marker-alt text-green-600"></i>
-            <h3 class="text-xl font-bold text-gray-800">Address Information</h3>
-        </div>
+    <?php if ($can_update): ?>
+    <!-- Address Section - ENHANCED TWO-WAY SYNC -->
+    <div class="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
+        <h3 class="text-lg font-semibold mb-3 flex items-center">
+            <i class="fas fa-map-marker-alt text-blue-600 mr-2"></i>
+            Address Information
+        </h3>
         
         <?php if (!empty($profile['formatted_address']) || !empty($profile['address_line1'])): ?>
             <div class="space-y-2">
