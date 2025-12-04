@@ -69,6 +69,7 @@ if (isset($_GET['user_id']) && isset($_GET['status'])) {
                     $update_type = 'reject';
                     $details = "Rejected alumni profile";
                     if (!empty($reason)) {
+                        // Escape for log (not for HTML display)
                         $details .= " - Reason: " . htmlspecialchars($reason, ENT_QUOTES, 'UTF-8');
                     }
                 } elseif ($status === 'Pending') {
@@ -106,6 +107,7 @@ if (isset($_GET['user_id']) && isset($_GET['status'])) {
             $stmt->close();
             
             // === NOTIFICATION INTEGRATION ===
+            // Notifs r outside transaction since they're external srvces
             if ($status === 'Approved' || $status === 'Rejected') {
                 if ($status === 'Approved') {
                     // Send approval notification to alumni
@@ -173,4 +175,3 @@ if (isset($_SESSION['message'])) {
 
 header("Location: $redirect_url");
 exit();
-?>

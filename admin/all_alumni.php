@@ -269,7 +269,7 @@ ob_start();
                                         <?php if (empty($alumni['submission_status']) || $alumni['submission_status'] == 'No Profile'): ?>
                                             <div class="flex justify-left">
                                                 <span class="px-3 py-1.5 inline-flex text-sm font-semibold rounded-full bg-gray-100 text-gray-800 border border-gray-200 shadow-sm">
-                                                    <i class="fas fa-clock mr-2 mt-0.5 text-gray-600"></i>
+                                                    <i class="fas fa-user-clock mr-2 mt-0.5 text-gray-600"></i>
                                                     No Profile
                                                 </span>
                                             </div>

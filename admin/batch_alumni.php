@@ -129,7 +129,7 @@ ob_start();
                 </span>
                 
                 <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold bg-amber-50 text-amber-700 shadow-sm border border-amber-200 transition duration-150 ease-in-out hover:bg-amber-100">
-                    <i class="fas fa-clock mr-2 text-base"></i> 
+                    <i class="fas fa-user-clock mr-2 text-base"></i> 
                     Pending: <span class="ml-1 font-bold"><?= $batchStats['pending_count'] ?? 0 ?></span>
                 </span>
                 
@@ -267,7 +267,7 @@ ob_start();
                                 <?php if (empty($alumni['submission_status']) || $alumni['submission_status'] === ''): ?>
                                     <div class="flex justify-left">
                                         <span class="px-3 py-1.5 inline-flex text-sm font-semibold rounded-full bg-gray-100 text-gray-800 border border-gray-200 shadow-sm">
-                                            <i class="fas fa-clock mr-2 text-gray-600"></i>
+                                            <i class="fas fa-user-clock mr-2 text-gray-600"></i>
                                             No Profile
                                         </span>
                                     </div>
