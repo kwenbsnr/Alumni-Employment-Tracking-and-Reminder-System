@@ -407,13 +407,13 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
     </dl>
 </div>
-    <?php if ($can_update): ?>
-    <!-- Address Section - ENHANCED TWO-WAY SYNC -->
-    <div class="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
-        <h3 class="text-lg font-semibold mb-3 flex items-center">
-            <i class="fas fa-map-marker-alt text-blue-600 mr-2"></i>
-            Address Information
-        </h3>
+
+    <!-- Address Card - ENHANCED -->
+    <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-green-500 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-green-50">
+        <div class="flex items-center space-x-3 mb-4 pb-2 border-b border-gray-100">
+            <i class="fas fa-map-marker-alt text-green-600"></i>
+            <h3 class="text-xl font-bold text-gray-800">Address Information</h3>
+        </div>
         
         <?php if (!empty($profile['formatted_address']) || !empty($profile['address_line1'])): ?>
             <div class="space-y-2">
@@ -768,19 +768,19 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                 </div>
 
-                <!-- Address Section - ENHANCED TWO-WAY SYNC -->
+                <!-- Address Section - ENHANCED WITH LEAFLET MAP -->
                 <?php if ($can_update): ?>
                 <div class="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
                     <h3 class="text-lg font-semibold mb-3 flex items-center">
                         <i class="fas fa-map-marker-alt text-blue-600 mr-2"></i>
-                        Address Information
+                        Address Information (Worldwide)
                     </h3>
                     
                     <!-- Address Search -->
                     <div class="mb-4">
                         <label class="block text-sm font-medium text-gray-700 mb-2">
                             <i class="fas fa-search mr-1"></i>
-                            Search Address
+                            Search Address Worldwide
                         </label>
                         <div class="flex gap-2">
                             <input type="text" id="address-search" 
@@ -1110,7 +1110,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                     </div>
                 </div>
-                <?php endif; ?>
 
                 <!-- Submit Button - ENHANCED -->
                 <div class="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
@@ -1157,7 +1156,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => {
             modal.classList.remove('hidden');
             modal.classList.add('show', 'flex');
-            loadAddressData();
+            initMap();
         }, 100);
     }
 });
@@ -1182,16 +1181,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const businessCertField = document.getElementById('businessCertField');
     const corField = document.getElementById('corField');
     const supportingDocumentsSection = document.getElementById('supportingDocumentsSection');
-    const regionSelect = document.getElementById('regionSelect');
-    const provinceSelect = document.getElementById('provinceSelect');
-    const municipalitySelect = document.getElementById('municipalitySelect');
-    const barangaySelect = document.getElementById('barangaySelect');
     const companyAddressField = document.getElementById('companyAddressField');
     const salaryField = document.getElementById('salaryField');
 
     // Track loading state
     let isAddressLoading = false;
-    let addressDataLoaded = false;
 
     // Modal toggle - ONLY if user can update
     if (updateProfileBtn) {
@@ -1202,7 +1196,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (updateProfileModal) {
                     updateProfileModal.classList.remove('hidden');
                     updateProfileModal.classList.add('show', 'flex');
-                    loadAddressData(); // Always load
+                    // Small delay to ensure DOM is ready
+                    setTimeout(() => {
+                        if (typeof initMap === 'function') {
+                            initMap();
+                        }
+                    }, 100);
                 }
             });
         } else {
@@ -1447,134 +1446,6 @@ document.addEventListener('DOMContentLoaded', () => {
         startYearSelect.addEventListener('change', updateEndYearOptions);
     }
 
-    // Address dropdown population 
-    let regionsData;
-    async function loadAddressData() {
-        if (isAddressLoading) return;
-        isAddressLoading = true;
-        
-        try {
-            const regionsResponse = await fetch('../api/get_regions.php');
-            if (!regionsResponse.ok) throw new Error('Failed to load regions: ' + regionsResponse.status);
-            regionsData = await regionsResponse.json();
-            console.log('Regions loaded:', regionsData);
-            populateRegions();
-            addressDataLoaded = true;
-        } catch (e) {
-            console.error('Error loading address data:', e);
-            alert('Failed to load address data. Please refresh and try again.');
-        } finally {
-            isAddressLoading = false;
-        }
-    }
-
-    function populateRegions() {
-        if (!regionSelect || !regionsData) return;
-        regionSelect.innerHTML = '<option value="">Select Region</option>';
-        regionsData.forEach(region => {
-            const option = document.createElement('option');
-            option.value = region.reg_code;
-            option.textContent = region.name;
-            regionSelect.appendChild(option);
-        });
-        <?php if (!empty($profile['region_id'])): ?>
-            if (regionSelect) regionSelect.value = '<?php echo htmlspecialchars($profile['region_id']); ?>';
-            filterProvinces();
-        <?php endif; ?>
-    }
-
-    async function filterProvinces() {
-        if (!provinceSelect) return;
-        provinceSelect.innerHTML = '<option value="">Select Province</option>';
-        if (municipalitySelect) municipalitySelect.innerHTML = '<option value="">Select Municipality</option>';
-        if (barangaySelect) barangaySelect.innerHTML = '<option value="">Select Barangay</option>';
-        const regionCode = regionSelect ? regionSelect.value : '';
-        if (!regionCode) return;
-
-        isAddressLoading = true;
-        try {
-            const response = await fetch(`../api/get_provinces.php?region_id=${encodeURIComponent(regionCode)}`);
-            if (!response.ok) throw new Error('Failed to load provinces: ' + response.status);
-            const provinces = await response.json();
-            provinces.forEach(prov => {
-                const option = document.createElement('option');
-                option.value = prov.prov_code;
-                option.textContent = prov.name;
-                provinceSelect.appendChild(option);
-            });
-            <?php if (!empty($profile['province_id'])): ?>
-                provinceSelect.value = '<?php echo htmlspecialchars($profile['province_id']); ?>';
-                filterMunicipalities();
-            <?php endif; ?>
-        } catch (e) {
-            console.error('Error fetching provinces:', e);
-        } finally {
-            isAddressLoading = false;
-        }
-    }
-
-    async function filterMunicipalities() {
-        if (!municipalitySelect) return;
-        municipalitySelect.innerHTML = '<option value="">Select Municipality</option>';
-        if (barangaySelect) barangaySelect.innerHTML = '<option value="">Select Barangay</option>';
-        const provinceCode = provinceSelect ? provinceSelect.value : '';
-        if (!provinceCode) return;
-
-        isAddressLoading = true;
-        try {
-            const response = await fetch(`../api/get_municipalities.php?province_id=${encodeURIComponent(provinceCode)}`);
-            if (!response.ok) throw new Error('Failed to load municipalities: ' + response.status);
-            const municipalities = await response.json();
-            municipalities.forEach(mun => {
-                const option = document.createElement('option');
-                option.value = mun.mun_code;
-                option.textContent = mun.name;
-                municipalitySelect.appendChild(option);
-            });
-            <?php if (!empty($profile['municipality_id'])): ?>
-                municipalitySelect.value = '<?php echo htmlspecialchars($profile['municipality_id']); ?>';
-                filterBarangays();
-            <?php endif; ?>
-        } catch (e) {
-            console.error('Error fetching municipalities:', e);
-        } finally {
-            isAddressLoading = false;
-        }
-    }
-
-    async function filterBarangays() {
-        if (!barangaySelect) return;
-        barangaySelect.innerHTML = '<option value="">Select Barangay</option>';
-        const municipalityCode = municipalitySelect ? municipalitySelect.value : '';
-        if (!municipalityCode) return;
-
-        isAddressLoading = true;
-        try {
-            const response = await fetch(`../api/get_barangays.php?municipality_id=${encodeURIComponent(municipalityCode)}`);
-            if (!response.ok) throw new Error('Failed to load barangays: ' + response.status);
-            const barangays = await response.json();
-            barangays.sort((a, b) => a.name.localeCompare(b.name));
-            barangays.forEach(brgy => {
-                const option = document.createElement('option');
-                option.value = brgy.brgy_code || '';
-                option.textContent = brgy.name;
-                barangaySelect.appendChild(option);
-            });
-            <?php if (!empty($profile['barangay_id'])): ?>
-                barangaySelect.value = '<?php echo htmlspecialchars($profile['barangay_id']); ?>';
-            <?php endif; ?>
-        } catch (e) {
-            console.error('Error fetching barangays:', e);
-        } finally {
-            isAddressLoading = false;
-        }
-    }
-
-    // Event listeners for cascading dropdowns
-    if (regionSelect) regionSelect.addEventListener('change', filterProvinces);
-    if (provinceSelect) provinceSelect.addEventListener('change', filterMunicipalities);
-    if (municipalitySelect) municipalitySelect.addEventListener('change', filterBarangays);
-
     // Student year validation function
     function validateStudentYears() {
         const status = employmentStatusSelect ? employmentStatusSelect.value : '';
@@ -1653,21 +1524,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // Address validation
-            const addressFieldIds = ['regionSelect', 'provinceSelect', 'municipalitySelect', 'barangaySelect'];
-            const addressMessages = ['Region', 'Province', 'Municipality', 'Barangay'];
-
-            let addressValid = true;
-            for (let i = 0; i < addressFieldIds.length; i++) {
-                const el = document.getElementById(addressFieldIds[i]);
-                if (el && !el.value.trim()) {
-                    alert(addressMessages[i] + ' is required.');
-                    addressValid = false;
+            // Worldwide address validation
+            const addressFields = ['address_line1', 'city', 'state_province', 'country', 'latitude', 'longitude'];
+            const addressMessages = ['Address Line 1', 'City', 'State/Province', 'Country', 'Latitude', 'Longitude'];
+            
+            for (let i = 0; i < addressFields.length; i++) {
+                const element = document.querySelector(`[name="${addressFields[i]}"]`);
+                if (element && !element.value.trim()) {
+                    alert(addressMessages[i] + ' is required for address.');
+                    isValid = false;
                     break;
                 }
             }
 
-            if (!addressValid) {
+            if (!isValid) {
                 event.preventDefault();
                 return;
             }
@@ -1730,7 +1600,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (updateProfileModal) {
                     updateProfileModal.classList.remove('hidden');
                     updateProfileModal.classList.add('show', 'flex');
-                    loadAddressData();
                     // Initialize student year options based on graduation year
                     setTimeout(updateStudentYearOptions, 100);
                 }
@@ -1744,6 +1613,366 @@ document.addEventListener('DOMContentLoaded', () => {
         updateStudentYearOptions();
     }, 200);
     <?php endif; ?>
+});
+
+// LEAFLET MAP FUNCTIONS - Moved to separate section for clarity
+let map;
+let marker;
+let selectedLatLng;
+let debounceTimer;
+let geocodingInProgress = false;
+
+// Initialize map
+function initMap() {
+    // Try to get current location, fallback to default
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const defaultCenter = [position.coords.latitude, position.coords.longitude];
+                setupMap(defaultCenter, 13);
+            },
+            () => {
+                // Default center (Philippines) if location access denied
+                const defaultCenter = [12.8797, 121.7740];
+                setupMap(defaultCenter, 6);
+            }
+        );
+    } else {
+        const defaultCenter = [12.8797, 121.7740];
+        setupMap(defaultCenter, 6);
+    }
+}
+
+function setupMap(center, zoom) {
+    // Check if map container exists
+    const mapContainer = document.getElementById('address-map');
+    if (!mapContainer) {
+        console.error('Map container not found');
+        return;
+    }
+    
+    // Clear any existing map
+    if (map) {
+        map.remove();
+    }
+    
+    map = L.map('address-map').setView(center, zoom);
+    
+    // Add OpenStreetMap tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 19
+    }).addTo(map);
+    
+    // Add scale control
+    L.control.scale().addTo(map);
+    
+    // Click event on map
+    map.on('click', function(e) {
+        selectedLatLng = e.latlng;
+        updateMarker(selectedLatLng);
+        reverseGeocode(selectedLatLng.lat, selectedLatLng.lng);
+    });
+    
+    // Load existing address if any
+    loadExistingAddress();
+}
+
+// Update marker position
+function updateMarker(latlng) {
+    if (marker) {
+        map.removeLayer(marker);
+    }
+    marker = L.marker(latlng).addTo(map)
+        .bindPopup('Selected Location')
+        .openPopup();
+    
+    // Center map on marker with smooth animation
+    map.flyTo(latlng, 15, {
+        duration: 0.5
+    });
+    
+    document.getElementById('latitude').value = latlng.lat.toFixed(6);
+    document.getElementById('longitude').value = latlng.lng.toFixed(6);
+    
+    // Validate address after marker update
+    validateAddress();
+}
+
+// Geocode address (search)
+async function geocodeAddress(address) {
+    if (geocodingInProgress) return;
+    geocodingInProgress = true;
+    
+    try {
+        showValidation('Searching for address...', 'info');
+        
+        const response = await fetch(`../api/geocode.php?action=geocode&address=${encodeURIComponent(address)}`);
+        const results = await response.json();
+        
+        if (results && results.length > 0) {
+            const firstResult = results[0];
+            const lat = parseFloat(firstResult.lat);
+            const lon = parseFloat(firstResult.lon);
+            
+            selectedLatLng = L.latLng(lat, lon);
+            updateMarker(selectedLatLng);
+            populateAddressFields(firstResult);
+            showValidation('Address found and located on map!', 'success');
+        } else {
+            showValidation('Address not found. Please try a more specific address.', 'error');
+        }
+    } catch (error) {
+        console.error('Geocoding error:', error);
+        showValidation('Error searching address. Please try again.', 'error');
+    } finally {
+        geocodingInProgress = false;
+    }
+}
+
+// Reverse geocode (coordinates to address)
+async function reverseGeocode(lat, lon) {
+    try {
+        const response = await fetch(`../api/geocode.php?action=reverse&lat=${lat}&lon=${lon}&zoom=18`);
+        const result = await response.json();
+        
+        if (result && result.address) {
+            populateAddressFields(result);
+            showValidation('Address updated from map location!', 'success');
+        }
+    } catch (error) {
+        console.error('Reverse geocoding error:', error);
+        showValidation('Could not get address details for this location.', 'warning');
+    }
+}
+
+// Populate address fields from geocoding result
+function populateAddressFields(data) {
+    const address = data.address || data;
+    
+    document.getElementById('address-line1').value = address.road || address.house_number ? 
+        `${address.house_number || ''} ${address.road || ''}`.trim() : '';
+    document.getElementById('address-line2').value = address.neighbourhood || address.suburb || '';
+    document.getElementById('city').value = address.city || address.town || address.village || address.county || '';
+    document.getElementById('state-province').value = address.state || address.region || '';
+    document.getElementById('country').value = address.country || '';
+    document.getElementById('postal-code').value = address.postcode || '';
+    
+    // Validate after populating
+    validateAddress();
+}
+
+// Load existing address data
+function loadExistingAddress() {
+    const existingLat = document.getElementById('latitude').value;
+    const existingLng = document.getElementById('longitude').value;
+    
+    if (existingLat && existingLng) {
+        const latLng = L.latLng(parseFloat(existingLat), parseFloat(existingLng));
+        updateMarker(latLng);
+    }
+}
+
+// Validate address completeness
+function validateAddress() {
+    const requiredFields = ['address-line1', 'city', 'state-province', 'country'];
+    let missingFields = [];
+    
+    requiredFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (!field || !field.value.trim()) {
+            missingFields.push(fieldId.replace('-', ' '));
+        }
+    });
+    
+    if (missingFields.length > 0) {
+        showValidation(`Missing required fields: ${missingFields.join(', ')}`, 'error');
+        return false;
+    }
+    
+    const lat = document.getElementById('latitude').value;
+    const lng = document.getElementById('longitude').value;
+    
+    if (!lat || !lng) {
+        showValidation('Please select a location on the map', 'warning');
+        return false;
+    }
+    
+    showValidation('Address is complete and ready!', 'success');
+    return true;
+}
+
+// Show validation message
+function showValidation(message, type) {
+    const container = document.getElementById('address-validation');
+    const messageEl = document.getElementById('address-validation-message');
+    const textEl = document.getElementById('validation-text');
+    
+    if (!container || !messageEl || !textEl) return;
+    
+    // Clear previous classes
+    messageEl.className = 'flex items-center p-3 rounded-md';
+    
+    // Add type-specific classes
+    switch(type) {
+        case 'success':
+            messageEl.classList.add('bg-green-100', 'text-green-800', 'border', 'border-green-200');
+            break;
+        case 'error':
+            messageEl.classList.add('bg-red-100', 'text-red-800', 'border', 'border-red-200');
+            break;
+        case 'warning':
+            messageEl.classList.add('bg-yellow-100', 'text-yellow-800', 'border', 'border-yellow-200');
+            break;
+        case 'info':
+            messageEl.classList.add('bg-blue-100', 'text-blue-800', 'border', 'border-blue-200');
+            break;
+    }
+    
+    textEl.textContent = message;
+    container.classList.remove('hidden');
+    
+    // Auto-hide success messages after 3 seconds
+    if (type === 'success') {
+        setTimeout(() => {
+            container.classList.add('hidden');
+        }, 3000);
+    }
+}
+
+// Geocode from form fields (two-way sync)
+async function geocodeFromForm() {
+    const addressLine1 = document.getElementById('address-line1').value.trim();
+    const city = document.getElementById('city').value.trim();
+    const state = document.getElementById('state-province').value.trim();
+    const country = document.getElementById('country').value.trim();
+    
+    if (!addressLine1 || !city || !state || !country) {
+        showValidation('Please fill in required address fields first', 'warning');
+        return;
+    }
+    
+    const address = `${addressLine1}, ${city}, ${state}, ${country}`;
+    const postalCode = document.getElementById('postal-code').value.trim();
+    const fullAddress = postalCode ? `${address}, ${postalCode}` : address;
+    
+    await geocodeAddress(fullAddress);
+}
+
+// Debounced geocoding for field changes
+function debounceGeocode() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+        if (validateAddress()) {
+            geocodeFromForm();
+        }
+    }, 1500); // Wait 1.5 seconds after last keystroke
+}
+
+// Use current location
+function useCurrentLocation() {
+    if (navigator.geolocation) {
+        showValidation('Getting your current location...', 'info');
+        
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+                selectedLatLng = L.latLng(lat, lon);
+                updateMarker(latlng);
+                reverseGeocode(lat, lon);
+            },
+            (error) => {
+                showValidation('Could not get your location. Please allow location access.', 'error');
+                console.error('Geolocation error:', error);
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 5000,
+                maximumAge: 0
+            }
+        );
+    } else {
+        showValidation('Geolocation is not supported by your browser', 'error');
+    }
+}
+
+// Clear address fields
+function clearAddressFields() {
+    document.getElementById('address-search').value = '';
+    document.getElementById('address-line1').value = '';
+    document.getElementById('address-line2').value = '';
+    document.getElementById('city').value = '';
+    document.getElementById('state-province').value = '';
+    document.getElementById('country').value = '';
+    document.getElementById('postal-code').value = '';
+    document.getElementById('latitude').value = '';
+    document.getElementById('longitude').value = '';
+    
+    if (marker) {
+        map.removeLayer(marker);
+        marker = null;
+    }
+    
+    showValidation('Address fields cleared', 'info');
+}
+
+// Initialize map event listeners when modal opens
+document.addEventListener('DOMContentLoaded', function() {
+    // Search button
+    const searchBtn = document.getElementById('search-address-btn');
+    if (searchBtn) {
+        searchBtn.addEventListener('click', function() {
+            const address = document.getElementById('address-search').value;
+            if (address) {
+                geocodeAddress(address);
+            }
+        });
+    }
+    
+    // Search field enter key
+    const searchField = document.getElementById('address-search');
+    if (searchField) {
+        searchField.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const address = this.value;
+                if (address) {
+                    geocodeAddress(address);
+                }
+            }
+        });
+    }
+    
+    // Clear button
+    const clearBtn = document.getElementById('clear-address-btn');
+    if (clearBtn) {
+        clearBtn.addEventListener('click', clearAddressFields);
+    }
+    
+    // Current location button
+    const locationBtn = document.getElementById('use-current-location-btn');
+    if (locationBtn) {
+        locationBtn.addEventListener('click', useCurrentLocation);
+    }
+    
+    // Address field changes trigger geocoding
+    const addressFields = document.querySelectorAll('.address-field');
+    addressFields.forEach(field => {
+        field.addEventListener('input', debounceGeocode);
+    });
+    
+    // Address validation before form submission
+    const form = document.getElementById('alumniProfileForm');
+    if (form) {
+        form.addEventListener('submit', function(event) {
+            if (!validateAddress()) {
+                event.preventDefault();
+                showValidation('Please complete the address information and select a location on the map', 'error');
+                return false;
+            }
+            return true;
+        });
+    }
 });
 </script>
 

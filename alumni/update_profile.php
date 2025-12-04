@@ -634,4 +634,3 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $conn->close();
 ob_end_flush();
-?>
