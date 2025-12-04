@@ -214,14 +214,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $status = htmlspecialchars(trim($_POST['employment_status'] ?? ''));
 
         // Worldwide address fields
-        $address_line1 = !empty($_POST['address_line1']) ? trim($_POST['address_line1']) : '';
-        $address_line2 = !empty($_POST['address_line2']) ? trim($_POST['address_line2']) : '';
         $city = !empty($_POST['city']) ? trim($_POST['city']) : '';
         $state_province = !empty($_POST['state_province']) ? trim($_POST['state_province']) : '';
         $country = !empty($_POST['country']) ? trim($_POST['country']) : '';
-        $postal_code = !empty($_POST['postal_code']) ? trim($_POST['postal_code']) : '';
         $latitude = !empty($_POST['latitude']) ? trim($_POST['latitude']) : null;
         $longitude = !empty($_POST['longitude']) ? trim($_POST['longitude']) : null;
+        $formatted_address = !empty($_POST['formatted_address']) ? trim($_POST['formatted_address']) : '';
 
         // Employment fields
         $job_title = !empty($_POST['job_title']) ? trim($_POST['job_title']) : '';
@@ -266,6 +264,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($end_year > ($current_year + 10)) {
                 throw new Exception("End Year seems too far in the future. Please verify your expected graduation year.");
             }
+        }
+
+        // Worldwide address validation - ALL FIELDS REQUIRED
+        if (empty($city) || empty($state_province) || empty($country) || !$latitude || !$longitude || empty($formatted_address)) {
+            throw new Exception("Complete address information is required (City, State/Province, Country, map location, and formatted address).");
+        }
+
+        // Validate latitude/longitude format
+        if (!is_numeric($latitude) || !is_numeric($longitude)) {
+            throw new Exception("Invalid coordinates. Please select a valid location on the map.");
+        }
+
+        if ($latitude < -90 || $latitude > 90) {
+            throw new Exception("Latitude must be between -90 and 90 degrees.");
+        }
+
+        if ($longitude < -180 || $longitude > 180) {
+            throw new Exception("Longitude must be between -180 and 180 degrees.");
         }
 
         // ---- 6.2 Backend validation ------------------------------------
@@ -359,24 +375,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($existing_address) {
             // Update existing address
             $stmt = $conn->prepare("UPDATE worldwide_address SET 
-                address_line1 = ?, address_line2 = ?, city = ?, state_province = ?, 
-                country = ?, postal_code = ?, latitude = ?, longitude = ?, 
+                city = ?, state_province = ?, country = ?, latitude = ?, longitude = ?, 
                 formatted_address = ?, updated_at = CURRENT_TIMESTAMP 
                 WHERE address_id = ?");
-            $stmt->bind_param("ssssssddsi", 
-                $address_line1, $address_line2, $city, $state_province,
-                $country, $postal_code, $latitude, $longitude,
+            $stmt->bind_param("sssddsi", 
+                $city, $state_province, $country, $latitude, $longitude,
                 $formatted_address, $existing_address['address_id']
             );
         } else {
             // Insert new address
             $stmt = $conn->prepare("INSERT INTO worldwide_address 
-                (user_id, address_line1, address_line2, city, state_province, 
-                country, postal_code, latitude, longitude, formatted_address) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->bind_param("issssssdds", 
-                $user_id, $address_line1, $address_line2, $city, $state_province,
-                $country, $postal_code, $latitude, $longitude, $formatted_address
+                (user_id, city, state_province, country, latitude, longitude, formatted_address) 
+                VALUES (?, ?, ?, ?, ?, ?, ?)");
+            $stmt->bind_param("isssdds", 
+                $user_id, $city, $state_province, $country, $latitude, $longitude, $formatted_address
             );
         }
 

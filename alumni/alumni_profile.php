@@ -1412,10 +1412,31 @@ document.addEventListener('DOMContentLoaded', () => {
         employmentStatusSelect.addEventListener('change', updateStudentYearOptions);
     }
 
+    // Update formatted address when fields change
     const startYearSelect = document.querySelector('[name="start_year"]');
     if (startYearSelect) {
         startYearSelect.addEventListener('change', updateEndYearOptions);
     }
+
+    // Update formatted address when fields change
+    const addressFields = document.querySelectorAll('.address-field');
+    addressFields.forEach(field => {
+        field.addEventListener('input', function() {
+            updateFormattedAddress();
+            debounceGeocode();
+        });
+    });
+
+    // Initialize formatted address on load
+    document.addEventListener('DOMContentLoaded', function() {
+        // Small delay to ensure all elements are loaded
+        setTimeout(() => {
+            updateFormattedAddress();
+            
+            // Load existing address data if any
+            loadExistingAddress();
+        }, 300);
+    });
 
     // Student year validation function
     function validateStudentYears() {
@@ -1496,9 +1517,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // Worldwide address validation
-            const addressFields = ['address_line1', 'city', 'state_province', 'country', 'latitude', 'longitude'];
-            const addressMessages = ['Address Line 1', 'City', 'State/Province', 'Country', 'Latitude', 'Longitude'];
-            
+            const addressFields = ['city', 'state_province', 'country', 'latitude', 'longitude', 'formatted_address'];
+            const addressMessages = ['City', 'State/Province', 'Country', 'Latitude', 'Longitude', 'Formatted Address'];
+
             for (let i = 0; i < addressFields.length; i++) {
                 const element = document.querySelector(`[name="${addressFields[i]}"]`);
                 if (element && !element.value.trim()) {
