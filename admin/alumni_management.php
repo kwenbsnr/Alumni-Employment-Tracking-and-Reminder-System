@@ -357,7 +357,7 @@ if (isset($_SESSION['error_message'])) {
                     $stmt->bind_param('ss', $term, $term);
                     $stmt->execute();
                     $displayResult = $stmt->get_result();
-                echo "{$searchCount} result(s) found";
+                echo $searchCount . " result(s) found";
                 ?>
             </span>
         </div>
