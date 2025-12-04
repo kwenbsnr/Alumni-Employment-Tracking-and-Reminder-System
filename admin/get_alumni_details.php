@@ -13,7 +13,6 @@ if (!$user_id || !is_numeric($user_id)) {
     exit();
 }
 
-// CORRECTED QUERY - Join worldwide_address by user_id
 $query = "
     SELECT
         CONCAT(
