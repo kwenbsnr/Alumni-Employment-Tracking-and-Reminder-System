@@ -13,7 +13,7 @@ $user_id = $_SESSION['user_id'];
 $page_title = "Profile Management";
 $active_page = "profile";
 
-// Fetch profile data WITH SCHOOL INFO 
+// Fetch profile data WITH WORLDWIDE ADDRESS 
 $stmt = $conn->prepare("
     SELECT 
         u.user_id, u.email, u.student_id, u.date_of_birth, u.gender, u.program, 
@@ -27,17 +27,13 @@ $stmt = $conn->prepare("
         u.batch_year,
         u.first_name, u.middle_name, u.last_name, u.suffix,
         ap.contact_number, 
-        ap.employment_status, ap.photo_path, ap.address_id,
+        ap.employment_status, ap.photo_path, ap.worldwide_address_id,
         ap.submission_status, ap.last_profile_update, ap.rejection_reason,
-        tb.barangay_name, tm.municipality_name, tp.province_name, tr.region_name,
-        tr.region_id, tp.province_id, tm.municipality_id, tb.barangay_id
+        wa.address_line1, wa.address_line2, wa.city, wa.state_province, 
+        wa.country, wa.postal_code, wa.latitude, wa.longitude, wa.formatted_address
     FROM users u
     LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id
-    LEFT JOIN address a ON ap.address_id = a.address_id
-    LEFT JOIN table_barangay tb ON a.barangay_id = tb.barangay_id
-    LEFT JOIN table_municipality tm ON tb.municipality_id = tm.municipality_id
-    LEFT JOIN table_province tp ON tm.province_id = tp.province_id
-    LEFT JOIN table_region tr ON tp.region_id = tr.region_id
+    LEFT JOIN worldwide_address wa ON ap.worldwide_address_id = wa.address_id
     WHERE u.user_id = ?
 ");
 
@@ -711,38 +707,86 @@ document.addEventListener('DOMContentLoaded', function() {
                 <!-- Address Section - ENHANCED -->
                 <?php if ($can_update): ?>
                 <div class="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
-                    <h3 class="text-base font-semibold text-gray-800 mb-4 flex items-center">
-                        <div class="bg-green-100 rounded-lg p-2 mr-3">
-                            <i class="fas fa-map-marker-alt text-green-600 text-sm"></i>
+
+                    <!-- NEW CODE (Worldwide address with Leaflet) -->
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold mb-3">Address Information</h3>
+                        
+                        <!-- Address Search -->
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Search Address</label>
+                            <div class="flex gap-2">
+                                <input type="text" id="address-search" 
+                                    class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                                    placeholder="Enter full address (street, city, country)">
+                                <button type="button" id="search-address-btn" 
+                                        class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    Search
+                                </button>
+                            </div>
                         </div>
-                        Current Address
-                    </h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="space-y-1">
-                            <label class="block text-sm font-medium text-gray-700">Region</label>
-                            <select id="regionSelect" name="region_id" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200">
-                                <option value="">Select Region</option>
-                            </select>
+
+                        <!-- Map Container -->
+                        <div class="mb-4">
+                            <div id="address-map" style="height: 300px; width: 100%;" class="border border-gray-300 rounded-md"></div>
+                            <p class="text-sm text-gray-500 mt-1">Click on the map to select a location</p>
                         </div>
-                        <div class="space-y-1">
-                            <label class="block text-sm font-medium text-gray-700">Province</label>
-                            <select id="provinceSelect" name="province_id" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200">
-                                <option value="">Select Province</option>
-                            </select>
+
+                        <!-- Address Form Fields -->
+                        <div class="grid grid-cols-1 gap-4 mb-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Address Line 1</label>
+                                <input type="text" id="address-line1" name="address_line1" 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Address Line 2</label>
+                                <input type="text" id="address-line2" name="address_line2" 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
                         </div>
-                        <div class="space-y-1">
-                            <label class="block text-sm font-medium text-gray-700">Municipality</label>
-                            <select id="municipalitySelect" name="municipality_id" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200">
-                                <option value="">Select Municipality</option>
-                            </select>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">City</label>
+                                <input type="text" id="city" name="city" 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">State/Province</label>
+                                <input type="text" id="state-province" name="state_province" 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Country</label>
+                                <input type="text" id="country" name="country" 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
                         </div>
-                        <div class="space-y-1">
-                            <label class="block text-sm font-medium text-gray-700">Barangay</label>
-                            <select id="barangaySelect" name="barangay_id" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200">
-                                <option value="">Select Barangay</option>
-                            </select>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Postal Code</label>
+                                <input type="text" id="postal-code" name="postal_code" 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Latitude</label>
+                                    <input type="text" id="latitude" name="latitude" readonly
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Longitude</label>
+                                    <input type="text" id="longitude" name="longitude" readonly
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100">
+                                </div>
+                            </div>
                         </div>
                     </div>
+
+                    <!-- Hidden field to track address type -->
+                    <input type="hidden" id="address-type" name="address_type" value="worldwide">
                 </div>
 
                 <!-- Employment Information - ENHANCED -->

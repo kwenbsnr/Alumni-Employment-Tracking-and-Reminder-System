@@ -512,5 +512,135 @@ $page_title = $page_title ?? "Alumni Page";
     });
 </script>
 
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<!-- Leaflet JavaScript -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+let map;
+let marker;
+let selectedLatLng;
+
+// Initialize map
+function initMap() {
+    // Default center (Philippines)
+    const defaultCenter = [12.8797, 121.7740];
+    
+    map = L.map('address-map').setView(defaultCenter, 6);
+    
+    // Add OpenStreetMap tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+    
+    // Click event on map
+    map.on('click', function(e) {
+        selectedLatLng = e.latlng;
+        updateMarker(selectedLatLng);
+        reverseGeocode(selectedLatLng.lat, selectedLatLng.lng);
+    });
+    
+    // Load existing address if any
+    loadExistingAddress();
+}
+
+// Update marker position
+function updateMarker(latlng) {
+    if (marker) {
+        map.removeLayer(marker);
+    }
+    marker = L.marker(latlng).addTo(map);
+    document.getElementById('latitude').value = latlng.lat.toFixed(6);
+    document.getElementById('longitude').value = latlng.lng.toFixed(6);
+}
+
+// Geocode address (search)
+async function geocodeAddress(address) {
+    try {
+        const response = await fetch(`api/geocode.php?action=geocode&address=${encodeURIComponent(address)}`);
+        const results = await response.json();
+        
+        if (results && results.length > 0) {
+            const firstResult = results[0];
+            const lat = parseFloat(firstResult.lat);
+            const lon = parseFloat(firstResult.lon);
+            
+            selectedLatLng = L.latLng(lat, lon);
+            map.setView(selectedLatLng, 15);
+            updateMarker(selectedLatLng);
+            populateAddressFields(firstResult);
+        } else {
+            alert('Address not found. Please try a more specific address.');
+        }
+    } catch (error) {
+        console.error('Geocoding error:', error);
+        alert('Error searching address. Please try again.');
+    }
+}
+
+// Reverse geocode (coordinates to address)
+async function reverseGeocode(lat, lon) {
+    try {
+        const response = await fetch(`api/geocode.php?action=reverse&lat=${lat}&lon=${lon}`);
+        const result = await response.json();
+        
+        if (result && result.address) {
+            populateAddressFields(result);
+        }
+    } catch (error) {
+        console.error('Reverse geocoding error:', error);
+    }
+}
+
+// Populate address fields from geocoding result
+function populateAddressFields(data) {
+    const address = data.address || data;
+    
+    document.getElementById('address-line1').value = address.road || address.house_number ? 
+        `${address.house_number || ''} ${address.road || ''}`.trim() : '';
+    document.getElementById('city').value = address.city || address.town || address.village || '';
+    document.getElementById('state-province').value = address.state || '';
+    document.getElementById('country').value = address.country || '';
+    document.getElementById('postal-code').value = address.postcode || '';
+}
+
+// Load existing address data
+function loadExistingAddress() {
+    // You would typically load this from your database
+    // For now, this is a placeholder
+    const existingLat = document.getElementById('latitude').value;
+    const existingLng = document.getElementById('longitude').value;
+    
+    if (existingLat && existingLng) {
+        const latLng = L.latLng(parseFloat(existingLat), parseFloat(existingLng));
+        map.setView(latLng, 15);
+        updateMarker(latLng);
+    }
+}
+
+// Event listeners
+document.getElementById('search-address-btn').addEventListener('click', function() {
+    const address = document.getElementById('address-search').value;
+    if (address) {
+        geocodeAddress(address);
+    }
+});
+
+document.getElementById('address-search').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        const address = this.value;
+        if (address) {
+            geocodeAddress(address);
+        }
+    }
+});
+
+// Initialize map when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    initMap();
+});
+</script>
+
 </body>
 </html>
