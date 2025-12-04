@@ -658,8 +658,9 @@ function getEmploymentStatusIcon($s) {
 }
 
 function getSubmissionStatusColor($s) { 
-    if (empty($s)) return 'bg-gray-100 text-gray-800';
-    return ['Approved'=>'bg-green-100 text-green-800','Pending'=>'bg-yellow-100 text-yellow-800','Rejected'=>'bg-red-100 text-red-800'][$s] ?? 'bg-gray-100 text-gray-800'; 
+    // Handle NULL or empty string as "No Profile"
+    if ($s === null || $s === '') return 'bg-gray-100 text-gray-800 border-gray-200';
+    return ['Approved'=>'bg-green-100 text-green-800 border-green-200','Pending'=>'bg-yellow-100 text-yellow-800 border-yellow-200','Rejected'=>'bg-red-100 text-red-800 border-red-200'][$s] ?? 'bg-gray-100 text-gray-800 border-gray-200'; 
 }
 
 function getSubmissionStatusBorder($s) { 
@@ -668,7 +669,8 @@ function getSubmissionStatusBorder($s) {
 }
 
 function getSubmissionStatusIcon($s) { 
-    if (empty($s)) return 'fas fa-user-clock text-gray-600';
+    // Handle NULL or empty string as "No Profile"
+    if ($s === null || $s === '') return 'fas fa-user-clock text-gray-600';
     return ['Approved'=>'fas fa-check-circle text-green-600','Pending'=>'fas fa-clock text-yellow-600','Rejected'=>'fas fa-times-circle text-red-600'][$s] ?? 'fas fa-user-clock text-gray-600'; 
 }
 
