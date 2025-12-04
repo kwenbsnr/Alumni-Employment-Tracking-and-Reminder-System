@@ -25,11 +25,8 @@
 ```
 ____________________
 # WHAT TO FIX: 
-## ALUMNI:
-### 1. modal naay line above.
-##
 ## ADMIN:
-### 1. Unnecessary program field in the hover since da system is exclusively for da bsit prog.
+### 1. Unnecessary program field in the hover since da system is exclusively for da bsit prog. pero it's fine rpud for me. i mean if we wish to expand to include other deps in da future,dba at least it's there na. (not really a bug though).
 ### 2. Toast notif upon approval/rej.
 ____________________
 
