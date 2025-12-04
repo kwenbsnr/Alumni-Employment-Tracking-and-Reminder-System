@@ -753,33 +753,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                 </div>
 
-                <!-- Address Section - ENHANCED WITH ALL REQUIRED FIELDS -->
+                               <!-- Address Section - ENHANCED WITH ALL REQUIRED FIELDS -->
                 <div class="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
                     <h3 class="text-lg font-semibold mb-3 flex items-center">
                         <i class="fas fa-map-marker-alt text-blue-600 mr-2"></i>
                         Address Information (Worldwide)
                     </h3>
-                    
-                    <!-- Address Search -->
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            <i class="fas fa-search mr-1"></i>
-                            Search Address Worldwide
-                        </label>
-                        <div class="flex gap-2">
-                            <input type="text" id="address-search" 
-                                class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                                placeholder="Enter city, state/province, country">
-                            <button type="button" id="search-address-btn" 
-                                    class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200">
-                                <i class="fas fa-search mr-1"></i> Search
-                            </button>
-                            <button type="button" id="clear-address-btn" 
-                                    class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 transition duration-200">
-                                <i class="fas fa-times mr-1"></i> Clear
-                            </button>
-                        </div>
-                    </div>
 
                     <!-- Map Container -->
                     <div class="mb-4">
@@ -1607,7 +1586,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <?php endif; ?>
 });
 
-// LEAFLET MAP FUNCTIONS - Moved to separate section for clarity
+// LEAFLET MAP FUNCTIONS - Fixed with proper 2-way sync
 let map;
 let marker;
 let selectedLatLng;
@@ -1691,73 +1670,29 @@ function updateMarker(latlng) {
     validateAddress();
 }
 
-// Geocode address (search)
-async function geocodeAddress(address) {
-    if (geocodingInProgress) return;
-    geocodingInProgress = true;
-    
-    try {
-        showValidation('Searching for address...', 'info');
-        
-        const response = await fetch(`../api/geocode.php?action=geocode&address=${encodeURIComponent(address)}`);
-        const results = await response.json();
-        
-        if (results && results.length > 0) {
-            const firstResult = results[0];
-            const lat = parseFloat(firstResult.lat);
-            const lon = parseFloat(firstResult.lon);
-            
-            selectedLatLng = L.latLng(lat, lon);
-            updateMarker(selectedLatLng);
-            populateAddressFields(firstResult);
-            showValidation('Address found and located on map!', 'success');
-        } else {
-            showValidation('Address not found. Please try a more specific address.', 'error');
-        }
-    } catch (error) {
-        console.error('Geocoding error:', error);
-        showValidation('Error searching address. Please try again.', 'error');
-    } finally {
-        geocodingInProgress = false;
-    }
-}
-
-// Reverse geocode (coordinates to address)
+// Reverse geocode (coordinates to address) - FIXED FUNCTION
 async function reverseGeocode(lat, lon) {
     try {
         const response = await fetch(`../api/geocode.php?action=reverse&lat=${lat}&lon=${lon}&zoom=18`);
         const result = await response.json();
         
         if (result && result.address) {
-            populateAddressFields(result);
+            const address = result.address;
+            
+            // Populate the address fields with reverse geocoding data
+            document.getElementById('city').value = address.city || address.town || address.village || address.county || '';
+            document.getElementById('state-province').value = address.state || address.region || '';
+            document.getElementById('country').value = address.country || '';
+            
+            // Update formatted address
+            updateFormattedAddress();
+            
             showValidation('Address updated from map location!', 'success');
         }
     } catch (error) {
         console.error('Reverse geocoding error:', error);
         showValidation('Could not get address details for this location.', 'warning');
     }
-}
-
-// Populate address fields from geocoding result
-function populateAddressFields(data) {
-    const address = data.address || data;
-    
-    // Update required fields
-    document.getElementById('city').value = address.city || address.town || address.village || address.county || '';
-    document.getElementById('state-province').value = address.state || address.region || '';
-    document.getElementById('country').value = address.country || '';
-    
-    // Update latitude and longitude if available from geocoding
-    if (data.lat && data.lon) {
-        document.getElementById('latitude').value = parseFloat(data.lat).toFixed(6);
-        document.getElementById('longitude').value = parseFloat(data.lon).toFixed(6);
-    }
-    
-    // Update formatted address
-    updateFormattedAddress();
-    
-    // Validate after populating
-    validateAddress();
 }
 
 // Update formatted address preview
@@ -1835,30 +1770,84 @@ function validateAddress() {
     return true;
 }
 
-// Clear all address fields
-function clearAddressFields() {
-    document.getElementById('address-search').value = '';
-    document.getElementById('city').value = '';
-    document.getElementById('state-province').value = '';
-    document.getElementById('country').value = '';
-    document.getElementById('latitude').value = '';
-    document.getElementById('longitude').value = '';
-    document.getElementById('formatted-address').value = '';
+// Show validation message
+function showValidation(message, type) {
+    const container = document.getElementById('address-validation');
+    const messageEl = document.getElementById('address-validation-message');
+    const textEl = document.getElementById('validation-text');
     
-    const previewElement = document.getElementById('formatted-address-preview');
-    if (previewElement) {
-        previewElement.textContent = 'Address will be generated from fields above...';
+    if (!container || !messageEl || !textEl) return;
+    
+    // Clear previous classes
+    messageEl.className = 'flex items-center p-3 rounded-md';
+    
+    // Add type-specific classes
+    switch(type) {
+        case 'success':
+            messageEl.classList.add('bg-green-100', 'text-green-800', 'border', 'border-green-200');
+            break;
+        case 'error':
+            messageEl.classList.add('bg-red-100', 'text-red-800', 'border', 'border-red-200');
+            break;
+        case 'warning':
+            messageEl.classList.add('bg-yellow-100', 'text-yellow-800', 'border', 'border-yellow-200');
+            break;
+        case 'info':
+            messageEl.classList.add('bg-blue-100', 'text-blue-800', 'border', 'border-blue-200');
+            break;
     }
     
-    if (marker) {
-        map.removeLayer(marker);
-        marker = null;
-    }
+    textEl.textContent = message;
+    container.classList.remove('hidden');
     
-    showValidation('Address fields cleared', 'info');
+    // Auto-hide success messages after 3 seconds
+    if (type === 'success') {
+        setTimeout(() => {
+            container.classList.add('hidden');
+        }, 3000);
+    }
 }
 
-// Geocode from form fields
+// Load existing address data
+function loadExistingAddress() {
+    const existingLat = document.getElementById('latitude').value;
+    const existingLng = document.getElementById('longitude').value;
+    
+    if (existingLat && existingLng) {
+        const latLng = L.latLng(parseFloat(existingLat), parseFloat(existingLng));
+        updateMarker(latlng);
+    }
+}
+
+// Use current location
+function useCurrentLocation() {
+    if (navigator.geolocation) {
+        showValidation('Getting your current location...', 'info');
+        
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+                selectedLatLng = L.latLng(lat, lon);
+                updateMarker(selectedLatLng);
+                reverseGeocode(lat, lon);
+            },
+            (error) => {
+                showValidation('Could not get your location. Please allow location access.', 'error');
+                console.error('Geolocation error:', error);
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 5000,
+                maximumAge: 0
+            }
+        );
+    } else {
+        showValidation('Geolocation is not supported by your browser', 'error');
+    }
+}
+
+// Geocode from form fields (2-way sync when user types in address fields)
 async function geocodeFromForm() {
     const city = document.getElementById('city').value.trim();
     const state = document.getElementById('state-province').value.trim();
@@ -1870,33 +1859,82 @@ async function geocodeFromForm() {
     }
     
     const address = `${city}, ${state}, ${country}`;
-    await geocodeAddress(address);
+    
+    if (geocodingInProgress) return;
+    geocodingInProgress = true;
+    
+    try {
+        showValidation('Searching for address...', 'info');
+        
+        const response = await fetch(`../api/geocode.php?action=geocode&address=${encodeURIComponent(address)}`);
+        const results = await response.json();
+        
+        if (results && results.length > 0) {
+            const firstResult = results[0];
+            const lat = parseFloat(firstResult.lat);
+            const lon = parseFloat(firstResult.lon);
+            
+            selectedLatLng = L.latLng(lat, lon);
+            updateMarker(selectedLatLng);
+            showValidation('Address found and located on map!', 'success');
+        } else {
+            showValidation('Address not found. Please try different city/state/country combination.', 'warning');
+        }
+    } catch (error) {
+        console.error('Geocoding error:', error);
+        showValidation('Error searching address. Please try again.', 'error');
+    } finally {
+        geocodingInProgress = false;
+    }
 }
 
-// Update marker position with all fields
-function updateMarker(latlng) {
-    if (marker) {
-        map.removeLayer(marker);
-    }
-    marker = L.marker(latlng).addTo(map)
-        .bindPopup('Selected Location')
-        .openPopup();
-    
-    // Center map on marker
-    map.flyTo(latlng, 15, {
-        duration: 0.5
-    });
-    
-    // Update latitude and longitude fields
-    document.getElementById('latitude').value = latlng.lat.toFixed(6);
-    document.getElementById('longitude').value = latlng.lng.toFixed(6);
-    
-    // Reverse geocode to get address details
-    reverseGeocode(latlng.lat, latlng.lng);
-    
-    // Validate address after marker update
-    validateAddress();
+// Debounced geocoding for field changes
+function debounceGeocode() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+        const city = document.getElementById('city').value.trim();
+        const state = document.getElementById('state-province').value.trim();
+        const country = document.getElementById('country').value.trim();
+        
+        if (city && state && country) {
+            geocodeFromForm();
+        }
+    }, 1000); // Wait 1 second after last keystroke
 }
+
+// Event listeners for form submission validation
+document.addEventListener('DOMContentLoaded', function() {
+    // Update formatted address when fields change
+    const addressFields = document.querySelectorAll('.address-field');
+    addressFields.forEach(field => {
+        field.addEventListener('input', function() {
+            updateFormattedAddress();
+            debounceGeocode();
+        });
+    });
+
+    // Use current location button
+    const useCurrentLocationBtn = document.getElementById('use-current-location-btn');
+    if (useCurrentLocationBtn) {
+        useCurrentLocationBtn.addEventListener('click', useCurrentLocation);
+    }
+
+    // Form submission validation
+    const alumniProfileForm = document.getElementById('alumniProfileForm');
+    if (alumniProfileForm) {
+        alumniProfileForm.addEventListener('submit', function(event) {
+            if (!validateAddress()) {
+                event.preventDefault();
+                showValidation('Please complete all address fields and select a location on the map.', 'error');
+                return false;
+            }
+            return true;
+        });
+    }
+    
+    // Initialize formatted address on load
+    updateFormattedAddress();
+});
 </script>
 
 <?php

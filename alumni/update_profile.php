@@ -354,17 +354,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // ---- 6.4 Worldwide Address Handling -----------------------------------------
-        // Create formatted address
+        // FIRST, ensure alumni_profile exists or is created
+        if ($can_update) {
+            // Check if alumni_profile exists, if not create it
+            $check_profile = $conn->prepare("SELECT user_id FROM alumni_profile WHERE user_id = ?");
+            $check_profile->bind_param("i", $user_id);
+            $check_profile->execute();
+            $profile_exists = $check_profile->get_result()->num_rows > 0;
+            $check_profile->close();
+            
+            if (!$profile_exists) {
+                // Create a minimal alumni_profile record first
+                $stmt = $conn->prepare("INSERT INTO alumni_profile (user_id, contact_number, employment_status, photo_path) VALUES (?, ?, ?, ?)");
+                $stmt->bind_param("isss", $user_id, $contact, $original_status, $photo_path);
+                if (!$stmt->execute()) {
+                    throw new Exception("Failed to create profile record: " . $stmt->error);
+                }
+                $stmt->close();
+            }
+        }
+
+        // Now handle worldwide_address
         $formatted_address = implode(', ', array_filter([
-            $address_line1,
-            $address_line2,
             $city,
             $state_province,
-            $country,
-            $postal_code
+            $country
         ]));
 
-        // Check if worldwide address already exists for this user
+        // Check if worldwide address already exists
         $stmt = $conn->prepare("SELECT address_id FROM worldwide_address WHERE user_id = ?");
         $stmt->bind_param("i", $user_id);
         $stmt->execute();
@@ -377,13 +394,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $conn->prepare("UPDATE worldwide_address SET 
                 city = ?, state_province = ?, country = ?, latitude = ?, longitude = ?, 
                 formatted_address = ?, updated_at = CURRENT_TIMESTAMP 
-                WHERE user_id = ?");  // Changed WHERE clause to use user_id
+                WHERE user_id = ?");
             $stmt->bind_param("sssddsi", 
                 $city, $state_province, $country, $latitude, $longitude,
-                $formatted_address, $user_id  // Changed last parameter to user_id
+                $formatted_address, $user_id
             );
         } else {
-            // Insert new address
+            // Insert new address - NOW alumni_profile should exist
             $stmt = $conn->prepare("INSERT INTO worldwide_address 
                 (user_id, city, state_province, country, latitude, longitude, formatted_address) 
                 VALUES (?, ?, ?, ?, ?, ?, ?)");
