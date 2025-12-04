@@ -199,13 +199,65 @@ function generate_employment_details($employment_status, $alumni_data = []) {
 // ==================== ALUMNI NOTIFICATIONS ====================
 
 // Send profile update reminder to alumni (template_one)
+// Also handles semiannual updates for approved alumni
 function send_profile_update_reminder($conn, $user_id, $closing_date = '') {
-    $alumni_data = get_complete_alumni_data($conn, $user_id);
+    // Get alumni data including last update date
+    $query = "
+        SELECT 
+            u.user_id,
+            CONCAT(
+                u.first_name,
+                IF(u.middle_name IS NOT NULL AND u.middle_name != '', CONCAT(' ', u.middle_name), ''),
+                ' ',
+                u.last_name,
+                IF(u.suffix IS NOT NULL AND u.suffix != '', CONCAT(' ', u.suffix), '')
+            ) as alumni_name,
+            u.email as alumni_email,
+            u.batch_year as graduation_year,
+            ap.employment_status,
+            ap.last_profile_update,
+            ap.submission_status
+        FROM users u 
+        INNER JOIN alumni_profile ap ON u.user_id = ap.user_id 
+        WHERE u.user_id = ?
+        LIMIT 1
+    ";
+    
+    $stmt = $conn->prepare($query);
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $alumni_data = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
     
     if (!$alumni_data) {
         return ['success' => false, 'error' => 'Alumni data not found'];
     }
     
+    // Check if this is a semiannual update for approved alumni
+    $is_semiannual_update = false;
+    $months_since_update = 0;
+    
+    if ($alumni_data['submission_status'] === 'Approved' && 
+        !empty($alumni_data['last_profile_update'])) {
+        
+        // Calculate months since last update
+        $last_update = new DateTime($alumni_data['last_profile_update']);
+        $now = new DateTime();
+        $interval = $last_update->diff($now);
+        $months_since_update = ($interval->y * 12) + $interval->m;
+        
+        // Only send semiannual update if 6+ months have passed
+        if ($months_since_update >= 6) {
+            $is_semiannual_update = true;
+        }
+    }
+    
+    // If approved but less than 6 months, don't send notification
+    if ($alumni_data['submission_status'] === 'Approved' && !$is_semiannual_update) {
+        return ['success' => false, 'error' => 'No update needed - less than 6 months since last update'];
+    }
+    
+    // Prepare notification parameters
     $parameters = [
         "alumni_name" => $alumni_data['alumni_name'],
         "graduation_year" => $alumni_data['graduation_year'],
@@ -214,12 +266,73 @@ function send_profile_update_reminder($conn, $user_id, $closing_date = '') {
         "submission_date" => date('Y-m-d H:i:s')
     ];
     
-    // Add closing date if provided
-    if ($closing_date) {
-        $parameters["original_rejection_date"] = $closing_date;
+    // Add semiannual update specific message
+    if ($is_semiannual_update) {
+        $parameters["update_type"] = "semiannual";
+        $parameters["months_since_update"] = $months_since_update . " months";
+        $parameters["deadline_date"] = date('F j, Y', strtotime('+14 days'));
+        
+        // Log semiannual update
+        error_log("SEMIANNUAL UPDATE sent for user: $user_id - $months_since_update months since last update");
+    } else {
+        $parameters["update_type"] = "regular";
+        
+        // Add closing date if provided (for rejected profiles)
+        if ($closing_date) {
+            $parameters["original_rejection_date"] = $closing_date;
+        }
     }
     
     return send_notification('template_one', $alumni_data['alumni_email'], $parameters);
+}
+
+// Send semiannual updates to ALL eligible alumni (for batch processing)
+function send_semiannual_updates_to_all($conn) {
+    // Get all approved alumni who haven't updated in 6+ months
+    $query = "
+        SELECT 
+            u.user_id,
+            CONCAT(
+                u.first_name,
+                IF(u.middle_name IS NOT NULL AND u.middle_name != '', CONCAT(' ', u.middle_name), ''),
+                ' ',
+                u.last_name,
+                IF(u.suffix IS NOT NULL AND u.suffix != '', CONCAT(' ', u.suffix), '')
+            ) as alumni_name,
+            u.email as alumni_email,
+            u.batch_year as graduation_year,
+            ap.last_profile_update,
+            ap.submission_status,
+            TIMESTAMPDIFF(MONTH, ap.last_profile_update, NOW()) as months_since_update
+        FROM users u 
+        INNER JOIN alumni_profile ap ON u.user_id = ap.user_id 
+        WHERE u.role = 'alumni'
+        AND ap.submission_status = 'Approved'
+        AND ap.last_profile_update IS NOT NULL
+        AND TIMESTAMPDIFF(MONTH, ap.last_profile_update, NOW()) >= 6
+        ORDER BY ap.last_profile_update ASC
+    ";
+    
+    $result = $conn->query($query);
+    $results = [];
+    $count = 0;
+    
+    if ($result && $result->num_rows > 0) {
+        while ($row = $result->fetch_assoc()) {
+            $send_result = send_profile_update_reminder($conn, $row['user_id']);
+            $results[$row['user_id']] = $send_result;
+            
+            if ($send_result['success']) {
+                $count++;
+                error_log("Semiannual update queued for: " . $row['alumni_name'] . " (" . $row['months_since_update'] . " months)");
+            }
+        }
+    }
+    
+    return [
+        'total_sent' => $count,
+        'results' => $results
+    ];
 }
 
 // Send approval notification to alumni (template_approved)
