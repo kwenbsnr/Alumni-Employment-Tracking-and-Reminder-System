@@ -29,7 +29,7 @@ if ($result && $result->num_rows > 0) {
     $careerData = array_values($statusCounts);
 }
 
-// Fetch ACCURATE dashboard statistics
+// Fetch ACCURATE dashboard statistics - FIXED LOGIC
 $statsQuery = "
     SELECT
         (SELECT COUNT(*) FROM users WHERE role = 'alumni') AS total_alumni,
@@ -44,7 +44,8 @@ $statsQuery = "
          WHERE u.role = 'alumni' 
          AND u.batch_year IS NOT NULL AND u.batch_year != '' AND u.batch_year != '0000') AS unique_graduation_years,
         (SELECT COUNT(*) FROM alumni_documents 
-         WHERE user_id IN (SELECT user_id FROM alumni_profile WHERE submission_status = 'Approved')) AS total_documents
+         WHERE user_id IN (SELECT user_id FROM alumni_profile WHERE submission_status = 'Approved')) AS total_documents,
+        (SELECT COUNT(DISTINCT ap.user_id) FROM alumni_profile ap WHERE ap.submission_status IS NOT NULL) AS alumni_with_profiles
 ";
 $statsResult = $conn->query($statsQuery);
 $stats = $statsResult->fetch_assoc() ?? [];
@@ -70,8 +71,8 @@ if ($graduatesResult && $graduatesResult->num_rows > 0) {
     }
 }
 
-// Calculate total alumni with profiles for employment chart
-$totalWithProfiles = array_sum($careerData);
+// Calculate total alumni with profiles for employment chart - FIXED
+$totalWithProfiles = $stats['alumni_with_profiles'] ?? 0;
 $totalAlumni = $stats['total_alumni'] ?? 0;
 $withoutProfiles = $totalAlumni - $totalWithProfiles;
 
@@ -90,7 +91,7 @@ $recentActivityQuery = "
                 IF(u2.middle_name IS NOT NULL AND u2.middle_name != '', CONCAT(' ', u2.middle_name), ''),
                 ' ',
                 u2.last_name,
-                IF(u2.suffix IS NOT NULL AND u2.suffix != '', CONCAT(' ', u2.suffix), '')
+                IF(u2.suffix IS NOT NULL AND u2.suffix != '', CONCAT(' ', u.suffix), '')
            ) as alumni_name,
            u2.batch_year
     FROM update_log ul
@@ -123,12 +124,12 @@ ob_start();
     .card-icon { transition: transform 0.3s ease; }
     .stats-card:hover .card-icon { transform: scale(1.15); }
 
-    html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; }
+    html, body { height: 100%; margin: 0; padding: 0; }
     .dashboard-grid {
         display: grid;
         grid-template-columns: 1fr 360px;
         gap: 20px;
-        height: 100vh;
+        min-height: 100vh;
         padding: 10px;
         box-sizing: border-box;
     }
@@ -136,7 +137,7 @@ ob_start();
         display: flex;
         flex-direction: column;
         gap: 20px;
-        overflow: hidden;
+        overflow-y: auto;
     }
     .recent-activity-sidebar {
         background: white;
@@ -146,6 +147,7 @@ ob_start();
         display: flex;
         flex-direction: column;
         height: 100%;
+        min-height: 600px;
     }
     .recent-activity-sidebar .activity-list {
         flex: 1;
@@ -153,7 +155,14 @@ ob_start();
         padding: 1rem;
     }
     @media (max-width: 1024px) {
-        .dashboard-grid { grid-template-columns: 1fr; }
+        .dashboard-grid { 
+            grid-template-columns: 1fr; 
+            grid-template-rows: auto auto;
+        }
+        .recent-activity-sidebar {
+            height: auto;
+            max-height: 400px;
+        }
     }
 </style>
 
@@ -440,7 +449,7 @@ ob_start();
                                 <div class="flex items-center mt-1 space-x-3 text-xs text-gray-500">
                                     <span class="flex items-center truncate">
                                         <i class="fas fa-user-shield mr-1"></i>
-                                        <?php echo htmlspecialchars($activity['admin_name'] ?? 'Admin'); ?>
+                                        <?php echo htmlspecialchars($activity['admin_name'] ?? 'Admin', ENT_QUOTES, 'UTF-8'); ?>
                                     </span>
                                     <span class="flex items-center">
                                         <i class="far fa-clock mr-1"></i>
@@ -802,33 +811,38 @@ document.addEventListener("DOMContentLoaded", () => {
     
     // Toast notification
     const params = new URLSearchParams(window.location.search);
-    if (params.has('success') && typeof showToast === 'function') {
+    if (params.has('success')) {
         showToast(params.get('success'), 'success');
-    } else if (params.has('error') && typeof showToast === 'function') {
+    } else if (params.has('error')) {
         showToast(params.get('error'), 'error');
     }
 });
 </script>
 
 <?php
+// Helper functions - KEEP THESE IN THIS FILE since they're used in the JS above
 function getActivityIcon($type) {
     return $type === 'approve' ? 'check-circle' : ($type === 'reject' ? 'times-circle' : 'edit');
 }
+
 function getActivityColor($type) {
     return $type === 'approve' ? 'bg-green-100 text-green-500' :
            ($type === 'reject' ? 'bg-red-100 text-red-500' : 'bg-blue-100 text-blue-500');
 }
+
 function getActivityBadgeColor($type) {
     return $type === 'approve' ? 'bg-green-50 text-green-700 border border-green-200' :
            ($type === 'reject' ? 'bg-red-50 text-red-700 border border-red-200' :
            'bg-blue-50 text-blue-700 border border-blue-200');
 }
+
 function getEnhancedActivityText($activity) {
-    $name = !empty($activity['alumni_name']) ? htmlspecialchars($activity['alumni_name']) : "Alumni";
+    $name = !empty($activity['alumni_name']) ? htmlspecialchars($activity['alumni_name'], ENT_QUOTES, 'UTF-8') : "Alumni";
     $batch = !empty($activity['batch_year']) ? " - Batch " . $activity['batch_year'] : "";
-    $details = !empty($activity['update_details']) ? htmlspecialchars($activity['update_details']) : ucfirst($activity['update_type']) . "d profile";
+    $details = !empty($activity['update_details']) ? htmlspecialchars($activity['update_details'], ENT_QUOTES, 'UTF-8') : ucfirst($activity['update_type']) . "d profile";
     return $details . " for " . $name . $batch;
 }
+
 function time_elapsed_string($datetime) {
     $now = new DateTime('now', new DateTimeZone('Asia/Manila'));
     $ago = new DateTime($datetime, new DateTimeZone('Asia/Manila'));
