@@ -1122,6 +1122,28 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 
 <script>
+// Global error handler for geocoding
+window.addEventListener('error', function(e) {
+    if (e.message && (e.message.includes('geocode') || 
+                      e.message.includes('map') || 
+                      e.message.includes('Leaflet') ||
+                      e.filename && e.filename.includes('alumni_profile'))) {
+        console.error('Global error caught:', e);
+        showValidation('A JavaScript error occurred. Please refresh the page.', 'error');
+    }
+});
+
+// Handle unhandled promise rejections
+window.addEventListener('unhandledrejection', function(e) {
+    console.error('Unhandled promise rejection:', e.reason);
+    if (e.reason && e.reason.message && 
+        (e.reason.message.includes('fetch') || 
+         e.reason.message.includes('geocode') ||
+         e.reason.message.includes('network'))) {
+        showValidation('Network error. Please check connection.', 'error');
+    }
+});
+
 // Auto-close modal if form was just submitted
 <?php if (isset($_SESSION['form_submitted']) && $_SESSION['form_submitted']): ?>
     <?php unset($_SESSION['form_submitted']); // Clear the flag ?>
@@ -1718,7 +1740,7 @@ function setupMap(center, zoom) {
             console.log('Map clicked at:', e.latlng);
             selectedLatLng = e.latlng;
             updateMarker(selectedLatLng);
-            reverseGeocode(selectedLatLng.lat, selectedLatLng.lng);
+            retryGeocode(selectedLatLng.lat, selectedLatLng.lng, 2); // 2 retries
         });
         
         mapInitialized = true;
@@ -1836,7 +1858,30 @@ async function reverseGeocode(lat, lon) {
     }
 }
 
-// Update formatted address preview - ENHANCED DEBUG VERSION
+// Retry function with exponential backoff
+async function retryGeocode(lat, lon, retries = 3) {
+    console.log(`retryGeocode called, attempts: ${retries}`);
+    
+    for (let i = 0; i < retries; i++) {
+        try {
+            console.log(`Attempt ${i + 1}/${retries}`);
+            return await reverseGeocode(lat, lon);
+        } catch (error) {
+            console.log(`Geocode attempt ${i + 1} failed:`, error.message);
+            if (i === retries - 1) {
+                console.log('All attempts failed');
+                throw error;
+            }
+            
+            // Wait before retry (exponential backoff)
+            const delay = 1000 * Math.pow(2, i); // 1s, 2s, 4s
+            console.log(`Waiting ${delay}ms before retry...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+    }
+}
+
+// Update formatted address preview
 function updateFormattedAddress() {
     const city = document.getElementById('city').value.trim();
     const state = document.getElementById('state-province').value.trim();
