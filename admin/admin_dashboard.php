@@ -91,7 +91,7 @@ $recentActivityQuery = "
                 IF(u2.middle_name IS NOT NULL AND u2.middle_name != '', CONCAT(' ', u2.middle_name), ''),
                 ' ',
                 u2.last_name,
-                IF(u2.suffix IS NOT NULL AND u2.suffix != '', CONCAT(' ', u.suffix), '')
+                IF(u2.suffix IS NOT NULL AND u2.suffix != '', CONCAT(' ', u2.suffix), '')
            ) as alumni_name,
            u2.batch_year
     FROM update_log ul
