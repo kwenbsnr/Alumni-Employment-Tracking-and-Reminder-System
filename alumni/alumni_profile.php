@@ -84,13 +84,14 @@ $is_profile_rejected = !empty($profile) && $submission_status === 'Rejected';
 $is_profile_approved = !empty($profile) && $submission_status === 'Approved';
 $is_profile_pending = !empty($profile) && $submission_status === 'Pending';
 
-// FIXED: Check if profile has personal data for display - UPDATED criteria
+//  Check if profile has personal data for display 
 $has_personal_data = !empty($profile) && (!empty($profile['contact_number']) || !empty($profile['employment_status']));
 // === CHECK SUBMISSION STATUS FROM DATABASE (GLOBAL CONTROL) ===
 $submission_open = false;
-$statusCheck = $conn->query("SELECT is_open FROM submission_status LIMIT 1");
+$statusCheck = $conn->query("SELECT is_open, manual_override FROM submission_status ORDER BY submission_id DESC LIMIT 1");
 if ($statusCheck && $row = $statusCheck->fetch_assoc()) {
-    $submission_open = (bool)$row['is_open'];
+    // Manual override OR is_open = 1 (SAME LOGIC AS OTHER FILES)
+    $submission_open = ($row['manual_override'] == 1 || $row['is_open'] == 1);
 }
 
 // Semiannual update allowed only if previously approved and 6 months passed

@@ -594,23 +594,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $conn->commit();
 
+        // === SCHEDULE CHECK BEFORE NOTIFICATIONS ===
+function isSubmissionsOpen($conn) {
+    $result = $conn->query("SELECT is_open, manual_override FROM submission_status ORDER BY submission_id DESC LIMIT 1");
+    if ($result && $row = $result->fetch_assoc()) {
+        // Manual override OR is_open = 1
+        return ($row['manual_override'] == 1 || $row['is_open'] == 1);
+    }
+    return false;
+}
+
         // === NOTIFICATION INTEGRATION ===
-        // Check if this is first-time submission
-        $is_first_time = is_first_time_submission($conn, $user_id);
-        
-        // Check if this is a resubmission after rejection
-        $is_resubmission = was_submission_rejected($conn, $user_id);
-        
-        // Send appropriate notifications to admins
-        if ($is_first_time) {
-            $result = send_new_submission_admin_notification($conn, $user_id);
-            error_log("First-time submission notification sent for user: $user_id");
-        } elseif ($is_resubmission) {
-            $result = send_resubmission_admin_notification($conn, $user_id);
-            error_log("Resubmission notification sent for user: $user_id");
+        // Only send notifications if submissions are open
+        if (isSubmissionsOpen($conn)) {
+            // Check if this is first-time submission
+            $is_first_time = is_first_time_submission($conn, $user_id);
+            
+            // Check if this is a resubmission after rejection
+            $is_resubmission = was_submission_rejected($conn, $user_id);
+            
+            // Send appropriate notifications to admins
+            if ($is_first_time) {
+                $result = send_new_submission_admin_notification($conn, $user_id);
+                error_log("First-time submission notification sent for user: $user_id");
+            } elseif ($is_resubmission) {
+                $result = send_resubmission_admin_notification($conn, $user_id);
+                error_log("Resubmission notification sent for user: $user_id");
+            } else {
+                $result = send_update_admin_notification($conn, $user_id);
+                error_log("Regular update notification sent for user: $user_id");
+            }
         } else {
-            $result = send_update_admin_notification($conn, $user_id);
-            error_log("Regular update notification sent for user: $user_id");
+            error_log("Notifications not sent: Submission period closed for user: $user_id");
         }
 
         // Conditional logs based on status
