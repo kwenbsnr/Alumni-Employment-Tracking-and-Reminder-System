@@ -424,6 +424,10 @@ document.addEventListener('DOMContentLoaded', function() {
                   <i class="fas fa-map-marker-alt text-green-600"></i>
                 </div>
                 <h3 class="text-xl font-bold text-gray-800">Address Information</h3>
+                <!-- DEBUG BUTTON - ADD HERE -->
+                <button type="button" onclick="testGeocoding()" class="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600">
+                    <i class="fas fa-bug mr-1"></i>Test Geocoding
+                </button>
               </div>
               
               <?php if (!empty($profile['city']) || !empty($profile['formatted_address'])): ?>
@@ -466,11 +470,6 @@ document.addEventListener('DOMContentLoaded', function() {
                       </div>
                     </div>
                   <?php endif; ?>
-
-                    <!-- DEBUG BUTTON -->
-                    <button type="button" onclick="testGeocoding()" class="mt-2 px-3 py-1 bg-red-500 text-white rounded text-sm">
-                        Debug: Test Geocoding
-                    </button>
 
                 </div>
               <?php else: ?>
@@ -819,7 +818,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">
                                     <!-- <i class="fas fa-city mr-1"></i> -->
-                                    City 
+                                    City
                                 </label>
                                 <input type="text" id="city" name="city" 
                                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 address-field"
@@ -828,8 +827,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">
-                                   <!-- <i class="fas fa-landmark mr-1"></i> -->
-                                    State/Province 
+                                    <!-- <i class="fas fa-landmark mr-1"></i> -->
+                                    State/Province
                                 </label>
                                 <input type="text" id="state-province" name="state_province" 
                                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 address-field"
@@ -839,7 +838,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">
                                     <!-- <i class="fas fa-globe mr-1"></i> -->
-                                    Country 
+                                    Country
                                 </label>
                                 <input type="text" id="country" name="country" 
                                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 address-field"
@@ -847,13 +846,13 @@ document.addEventListener('DOMContentLoaded', function() {
                                     placeholder="Country" required>
                             </div>
                         </div>
-                        
+
                         <!-- Latitude & Longitude Row -->
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">
                                     <i class="fas fa-latitude mr-1"></i>
-                                    Latitude *
+                                    Latitude 
                                 </label>
                                 <input type="text" id="latitude" name="latitude" 
                                     class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100"
@@ -864,7 +863,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">
                                     <i class="fas fa-longitude mr-1"></i>
-                                    Longitude *
+                                    Longitude 
                                 </label>
                                 <input type="text" id="longitude" name="longitude" 
                                     class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100"
@@ -1182,12 +1181,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (updateProfileModal) {
                     updateProfileModal.classList.remove('hidden');
                     updateProfileModal.classList.add('show', 'flex');
-                    // Small delay to ensure DOM is ready
+                    
+                    // Reset map initialization flag when modal opens
+                    mapInitialized = false;
+                    
+                    // Wait for modal to be fully visible
                     setTimeout(() => {
+                        console.log('Initializing map after modal open');
                         if (typeof initMap === 'function') {
                             initMap();
                         }
-                    }, 100);
+                    }, 300); // Increased delay
                 }
             });
         } else {
@@ -1220,6 +1224,18 @@ document.addEventListener('DOMContentLoaded', () => {
             if (updateProfileModal) {
                 updateProfileModal.classList.add('hidden');
                 updateProfileModal.classList.remove('show', 'flex');
+                
+                // Clean up map to prevent memory leaks
+                if (map) {
+                    try {
+                        map.remove();
+                        map = null;
+                        marker = null;
+                        mapInitialized = false;
+                    } catch (e) {
+                        console.log('Error cleaning up map:', e);
+                    }
+                }
             }
         });
     }
@@ -1628,8 +1644,29 @@ let marker;
 let selectedLatLng;
 let debounceTimer;
 
+// Track if map is initialized
+let mapInitialized = false;
+
 // Initialize map
 function initMap() {
+    console.log('initMap called, mapInitialized:', mapInitialized);
+    
+    if (mapInitialized && map) {
+        console.log('Map already initialized, returning');
+        return;
+    }
+    
+    // Clean up any existing map
+    if (map) {
+        try {
+            map.remove();
+            map = null;
+            marker = null;
+        } catch (e) {
+            console.log('Error removing old map:', e);
+        }
+    }
+    
     // Try to get current location, fallback to default
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
@@ -1641,7 +1678,8 @@ function initMap() {
                 // Default center (Philippines) if location access denied
                 const defaultCenter = [12.8797, 121.7740];
                 setupMap(defaultCenter, 6);
-            }
+            },
+            { timeout: 5000 }
         );
     } else {
         const defaultCenter = [12.8797, 121.7740];
@@ -1650,38 +1688,49 @@ function initMap() {
 }
 
 function setupMap(center, zoom) {
-    // Check if map container exists
+    console.log('setupMap called with center:', center, 'zoom:', zoom);
+    
     const mapContainer = document.getElementById('address-map');
     if (!mapContainer) {
         console.error('Map container not found');
         return;
     }
     
-    // Clear any existing map
-    if (map) {
-        map.remove();
+    try {
+        // Clear container
+        mapContainer.innerHTML = '';
+        
+        // Create new map
+        map = L.map('address-map').setView(center, zoom);
+        
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(map);
+        
+        // Add scale control
+        L.control.scale().addTo(map);
+        
+        // Single click event handler
+        map.off('click'); // Remove any existing handlers
+        map.on('click', function(e) {
+            console.log('Map clicked at:', e.latlng);
+            selectedLatLng = e.latlng;
+            updateMarker(selectedLatLng);
+            reverseGeocode(selectedLatLng.lat, selectedLatLng.lng);
+        });
+        
+        mapInitialized = true;
+        console.log('Map setup complete');
+        
+        // Load existing address if any
+        setTimeout(loadExistingAddress, 500);
+        
+    } catch (error) {
+        console.error('Error setting up map:', error);
+        showValidation('Error initializing map. Please refresh the page.', 'error');
     }
-    
-    map = L.map('address-map').setView(center, zoom);
-    
-    // Add OpenStreetMap tiles
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-        maxZoom: 19
-    }).addTo(map);
-    
-    // Add scale control
-    L.control.scale().addTo(map);
-    
-    // Click event on map
-    map.on('click', function(e) {
-        selectedLatLng = e.latlng;
-        updateMarker(selectedLatLng);
-        reverseGeocode(selectedLatLng.lat, selectedLatLng.lng);
-    });
-    
-    // Load existing address if any
-    loadExistingAddress();
 }
 
 // Update marker position
@@ -1702,28 +1751,48 @@ function updateMarker(latlng) {
     document.getElementById('longitude').value = latlng.lng.toFixed(6);
 }
 
-// Reverse geocode (coordinates to address)
+// Reverse geocode (coordinates to address) - ROBUST VERSION
 async function reverseGeocode(lat, lon) {
     try {
-        console.log('Starting reverse geocode for:', lat, lon);
+        console.log('=== reverseGeocode called ===');
+        console.log('Lat:', lat, 'Type:', typeof lat);
+        console.log('Lon:', lon, 'Type:', typeof lon);
+        
+        // Validate coordinates before sending
+        if (lat === undefined || lon === undefined || lat === null || lon === null) {
+            throw new Error('Coordinates are undefined/null');
+        }
+        
+        lat = parseFloat(lat);
+        lon = parseFloat(lon);
+        
+        if (isNaN(lat) || isNaN(lon)) {
+            throw new Error('Coordinates are not valid numbers');
+        }
+        
+        if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+            throw new Error('Coordinates out of valid range');
+        }
+        
         showValidation('Getting address details...', 'info');
         
-        // Clear any previous values temporarily
-        document.getElementById('city').value = '';
-        document.getElementById('state-province').value = '';
-        document.getElementById('country').value = '';
+        // Clear previous validation
+        const validationContainer = document.getElementById('address-validation');
+        if (validationContainer) {
+            validationContainer.classList.add('hidden');
+        }
         
         const response = await fetch(`../api/geocode.php?action=reverse&lat=${lat}&lon=${lon}`);
         
         console.log('API Response status:', response.status);
         
         if (!response.ok) {
-            throw new Error(`API error: ${response.status}`);
+            throw new Error(`API HTTP error: ${response.status}`);
         }
         
         const result = await response.json();
         
-        console.log('Geocoding API Response:', result);
+        console.log('API Result:', result);
         
         if (!result.success) {
             throw new Error(result.error || 'Address lookup failed');
@@ -1735,37 +1804,35 @@ async function reverseGeocode(lat, lon) {
             throw new Error('No address data in response');
         }
         
-        console.log('Extracted address data:', {
-            city: address.city,
-            state: address.state_province,
-            country: address.country,
-            formatted: address.formatted_address
-        });
-        
-        // IMPORTANT: Populate the form fields with the extracted data
+        // Populate form fields
         const cityField = document.getElementById('city');
         const stateField = document.getElementById('state-province');
         const countryField = document.getElementById('country');
         
-        if (cityField) cityField.value = address.city || '';
-        if (stateField) stateField.value = address.state_province || '';
-        if (countryField) countryField.value = address.country || '';
+        if (cityField) {
+            cityField.value = address.city || '';
+            console.log('City field set to:', address.city);
+        }
+        
+        if (stateField) {
+            stateField.value = address.state_province || '';
+            console.log('State field set to:', address.state_province);
+        }
+        
+        if (countryField) {
+            countryField.value = address.country || '';
+            console.log('Country field set to:', address.country);
+        }
         
         // Force update formatted address
-        updateFormattedAddress();
-        
-        // Verify the fields were populated
-        console.log('After population - Field values:', {
-            city: cityField.value,
-            state: stateField.value,
-            country: countryField.value
-        });
-        
-        showValidation('Address details populated! ✓', 'success');
+        setTimeout(() => {
+            updateFormattedAddress();
+            showValidation('✓ Address populated successfully!', 'success');
+        }, 100);
         
     } catch (error) {
         console.error('Reverse geocoding error:', error);
-        showValidation('Error getting address details. Please enter manually.', 'error');
+        showValidation(`Error: ${error.message}. Please try again or enter manually.`, 'error');
     }
 }
 
@@ -1994,6 +2061,38 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize formatted address on load
     updateFormattedAddress();
 });
+
+async function testGeocoding() {
+    console.log('=== DEBUG: Testing geocoding ===');
+    
+    // Test with Manila coordinates
+    const lat = 14.5995;
+    const lng = 120.9842;
+    
+    console.log('Testing with lat:', lat, 'lng:', lng);
+    
+    try {
+        const response = await fetch(`../api/geocode.php?action=reverse&lat=${lat}&lon=${lng}`);
+        const result = await response.json();
+        
+        console.log('API Result:', result);
+        
+        if (result.success) {
+            // Manually populate the fields to test
+            document.getElementById('city').value = result.address.city;
+            document.getElementById('state-province').value = result.address.state_province;
+            document.getElementById('country').value = result.address.country;
+            document.getElementById('latitude').value = lat;
+            document.getElementById('longitude').value = lng;
+            
+            updateFormattedAddress();
+            
+            alert('Debug: Fields populated with Manila data! Check console for details.');
+        }
+    } catch (error) {
+        console.error('Debug error:', error);
+    }
+}
 </script>
 
 <?php
