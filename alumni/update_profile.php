@@ -49,7 +49,7 @@ $user_stmt->close();
 
 // ---- 2. Get complete alumni profile data -------------------------------------
 $alumni_stmt = $conn->prepare("
-    SELECT ap.submission_status, ap.last_profile_update, ap.worldwide_address_id, ap.employment_status, ap.photo_path
+    SELECT ap.submission_status, ap.last_profile_update, ap.employment_status, ap.photo_path
     FROM alumni_profile ap 
     WHERE ap.user_id = ?
 ");
@@ -80,7 +80,15 @@ if ($is_profile_rejected && !isset($_SESSION['profile_rejected'])) {
     $_SESSION['profile_rejected'] = true;
 }
 
-$existing_worldwide_address_id = $alumni_profile['worldwide_address_id'] ?? null;
+// Check if worldwide address exists
+$address_stmt = $conn->prepare("SELECT address_id FROM worldwide_address WHERE user_id = ?");
+$address_stmt->bind_param("i", $user_id);
+$address_stmt->execute();
+$address_result = $address_stmt->get_result();
+$existing_address = $address_result->fetch_assoc();
+$existing_worldwide_address_id = $existing_address ? $existing_address['address_id'] : null;
+$address_stmt->close();
+
 $current_employment_status = $alumni_profile['employment_status'] ?? '';
 $photo_path = $alumni_profile['photo_path'] ?? null;
 
@@ -432,12 +440,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     contact_number=?, employment_status=?, photo_path=?, last_profile_update=NOW(),
                     submission_status='Pending', submitted_at=NOW()
                     WHERE user_id=?");
-                $stmt->bind_param("sssi", $contact, $original_status, $photo_path, $user_id);  // Removed worldwide_address_id
+                $stmt->bind_param("sssi", $contact, $original_status, $photo_path, $user_id);  
             } else {
                 $stmt = $conn->prepare("INSERT INTO alumni_profile 
                     (user_id, contact_number, employment_status, photo_path, last_profile_update, submission_status, submitted_at)
                     VALUES (?,?,?,?,NOW(),'Pending',NOW())");
-                $stmt->bind_param("isss", $user_id, $contact, $original_status, $photo_path);  // Removed worldwide_address_id
+                $stmt->bind_param("isss", $user_id, $contact, $original_status, $photo_path);  
             }
 
             if (!$stmt->execute()) {

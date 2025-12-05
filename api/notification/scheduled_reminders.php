@@ -197,5 +197,5 @@ if (basename(__FILE__) == basename($_SERVER['PHP_SELF'])) {
 if (isset($conn) && $conn) {
     $result = runScheduledReminders($conn);
     error_log("Scheduled reminders: " . $result);
-    echo $result;
+//    echo $result;
 }

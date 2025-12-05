@@ -64,14 +64,14 @@ if (isset($_POST['update_submission_status'])) {
         // Notify alumni who need to update (haven't updated in 6 months)
         $alumni_to_notify = $conn->query("
             SELECT u.user_id, 
-            CONCAT(
-                u.first_name,
-                IF(u.middle_name IS NOT NULL AND u.middle_name != '', CONCAT(' ', u.middle_name), ''),
-                ' ',
-                u.last_name,
-                IF(u.suffix IS NOT NULL AND u.suffix != '', CONCAT(' ', u.suffix), '')
-            ) as alumni_name,
-            u.email as alumni_email, 
+                CONCAT(
+                    u.first_name,
+                    IF(u.middle_name IS NOT NULL AND u.middle_name != '', CONCAT(' ', u.middle_name), ''),
+                    ' ',
+                    u.last_name,
+                    IF(u.suffix IS NOT NULL AND u.suffix != '', CONCAT(' ', u.suffix), '')
+                ) as alumni_name,
+                u.email as alumni_email, 
                 u.batch_year as graduation_year, ap.employment_status,
                 ap.last_profile_update, ap.submission_status
             FROM users u 
@@ -123,7 +123,7 @@ if (isset($_POST['update_submission_status'])) {
             if ($is_new_schedule) {
                 // Notify alumni who need to update when submissions open on schedule
                 $alumni_to_notify = $conn->query("
-                    SELECT u.user_id, 
+                SELECT u.user_id, 
                     CONCAT(
                         u.first_name,
                         IF(u.middle_name IS NOT NULL AND u.middle_name != '', CONCAT(' ', u.middle_name), ''),
@@ -132,15 +132,15 @@ if (isset($_POST['update_submission_status'])) {
                         IF(u.suffix IS NOT NULL AND u.suffix != '', CONCAT(' ', u.suffix), '')
                     ) as alumni_name,
                     u.email as alumni_email, 
-                           u.batch_year as graduation_year, ap.employment_status,
-                           ap.last_profile_update, ap.submission_status
-                    FROM users u 
-                    INNER JOIN alumni_profile ap ON u.user_id = ap.user_id 
-                    WHERE u.role = 'alumni' 
-                    AND ap.submission_status != 'Approved'
-                    AND (ap.last_profile_update IS NULL OR 
-                         ap.last_profile_update < DATE_SUB(NOW(), INTERVAL 6 MONTH))
-                ");
+                    u.batch_year as graduation_year, ap.employment_status,
+                    ap.last_profile_update, ap.submission_status
+                FROM users u 
+                INNER JOIN alumni_profile ap ON u.user_id = ap.user_id 
+                WHERE u.role = 'alumni' 
+                AND ap.submission_status != 'Approved'
+                AND (ap.last_profile_update IS NULL OR 
+                    ap.last_profile_update < DATE_SUB(NOW(), INTERVAL 6 MONTH))
+            ");
                 
                 // Add notification count to success message
                 $notification_count = 0;
@@ -181,27 +181,27 @@ if (!$manual_override && $open_date && $close_date) {
         $conn->query("UPDATE submission_status SET is_open = $new_status");
         $is_open = $new_status;
 
-                // ==================== AUTOMATIC NOTIFICATION WHEN SCHEDULE OPENS ====================
+        // ==================== AUTOMATIC NOTIFICATION WHEN SCHEDULE OPENS ====================
         if ($new_status == 1) {
             // Notify alumni when submissions automatically open per schedule
             $alumni_to_notify = $conn->query("
                 SELECT u.user_id, 
-                CONCAT(
-                    u.first_name,
-                    IF(u.middle_name IS NOT NULL AND u.middle_name != '', CONCAT(' ', u.middle_name), ''),
-                    ' ',
-                    u.last_name,
-                    IF(u.suffix IS NOT NULL AND u.suffix != '', CONCAT(' ', u.suffix), '')
-                ) as alumni_name,
-                u.email as alumni_email, 
-                       u.batch_year as graduation_year, ap.employment_status,
-                       ap.last_profile_update, ap.submission_status
+                    CONCAT(
+                        u.first_name,
+                        IF(u.middle_name IS NOT NULL AND u.middle_name != '', CONCAT(' ', u.middle_name), ''),
+                        ' ',
+                        u.last_name,
+                        IF(u.suffix IS NOT NULL AND u.suffix != '', CONCAT(' ', u.suffix), '')
+                    ) as alumni_name,
+                    u.email as alumni_email, 
+                    u.batch_year as graduation_year, ap.employment_status,
+                    ap.last_profile_update, ap.submission_status
                 FROM users u 
                 INNER JOIN alumni_profile ap ON u.user_id = ap.user_id 
                 WHERE u.role = 'alumni' 
                 AND ap.submission_status != 'Approved'
                 AND (ap.last_profile_update IS NULL OR 
-                     ap.last_profile_update < DATE_SUB(NOW(), INTERVAL 6 MONTH))
+                    ap.last_profile_update < DATE_SUB(NOW(), INTERVAL 6 MONTH))
             ");
             
             // Log the automatic notifications
@@ -891,7 +891,8 @@ function generateAlumniReport($selected_batches, $report_type, $conn) {
     exit;
 }
 
-/* // Function to check if submissions are open
+/* 
+// Function to check if submissions are open
     function isSubmissionsOpen($conn) {
         $statusCheck = $conn->query("SELECT is_open FROM submission_status LIMIT 1");
         if ($statusCheck->num_rows > 0) {
