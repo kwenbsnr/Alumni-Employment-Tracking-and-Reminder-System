@@ -390,7 +390,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new Exception("Failed to save profile information. Please try again.");
             }
             $stmt->close();
-        }  
+        }
 
         // 6.5 Worldwide Address Handling -----------------------------------------
         // Validate all required address fields
@@ -429,7 +429,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ]));
         }
 
-        // handle worldwide_address
+        // Handle worldwide_address
         // Check if worldwide address already exists
         $stmt = $conn->prepare("SELECT address_id FROM worldwide_address WHERE user_id = ?");
         $stmt->bind_param("i", $user_id);
