@@ -181,6 +181,8 @@ function testScheduledReminders() {
         echo "- Created By: " . ($schedule['admin_name'] ?? 'N/A') . " (" . ($schedule['admin_email'] ?? 'N/A') . ")\n";
         echo "- Created At: " . $schedule['created_at'] . "\n";
         echo "- Updated At: " . $schedule['updated_at'] . "\n";
+    } else {
+        echo "No submission schedule found.\n";
     }
     
     $alumni_count = count(getAlumniForReminders($conn));
