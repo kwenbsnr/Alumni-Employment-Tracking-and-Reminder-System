@@ -3,11 +3,25 @@
 // NotificationId: alumni_employment_tracking_update_your_profile
 
 $root_path = dirname(__FILE__) . '/../../';
-require_once $root_path . 'vendor/autoload.php';
-require_once __DIR__ . '/scheduled_reminders.php';  // To access getSubmissionSchedule()
-require_once __DIR__ . '/../../connect.php';
-require_once __DIR__ . '/../../config/notification_config.php'; 
-require_once __DIR__ . '/../utils/deadline.php';
+// Use absolute paths for reliability
+$root_path = dirname(__DIR__, 2); // Go up two levels from api/notification/
+require_once $root_path . '/vendor/autoload.php';
+require_once __DIR__ . '/scheduled_reminders.php';
+require_once $root_path . '/connect.php';
+
+// Check for notification config
+if (file_exists($root_path . '/config/notification_config.php')) {
+    require_once $root_path . '/config/notification_config.php';
+} else {
+    error_log("WARNING: notification_config.php not found");
+}
+
+// Check for deadline.php
+if (file_exists(dirname(__DIR__) . '/utils/deadline.php')) {
+    require_once dirname(__DIR__) . '/utils/deadline.php';
+} else {
+    error_log("WARNING: deadline.php not found in api/utils/");
+}
 
 
 // Use the class
@@ -563,14 +577,14 @@ function get_admin_emails($conn) {
 
 // Check if alumni has existing profile (for first-time submission detection)
 function is_first_time_submission($conn, $user_id) {
-    $query = "SELECT COUNT(*) as count FROM alumni_profile WHERE user_id = ?";
+    $query = "SELECT COUNT(*) as count FROM alumni_profile WHERE user_id = ? AND (submission_status IS NULL OR submission_status = 'Not Submitted')";
     $stmt = $conn->prepare($query);
     $stmt->bind_param("i", $user_id);
     $stmt->execute();
     $result = $stmt->get_result();
     $row = $result->fetch_assoc();
     
-    return $row['count'] == 0;
+    return $row['count'] == 0 || empty($row['count']);
 }
 
 // Check if alumni submission was previously rejected
