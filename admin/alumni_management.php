@@ -9,6 +9,7 @@ include("../connect.php");
 // Load TCPDF library
 require_once '../tcpdf/tcpdf.php';
 require_once '../api/notification/notif_service.php';
+require_once __DIR__ . '/../api/utils/common_functions.php';
 
 $page_title = "Alumni Records";
 $active_page = "alumni_management";

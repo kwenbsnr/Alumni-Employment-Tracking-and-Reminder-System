@@ -7,6 +7,7 @@ require_once $root_path . '/config/notification_config.php';
 require_once __DIR__ . '/../../connect.php';
 require_once __DIR__ . '/../utils/deadline.php'; // Updated path
 require_once __DIR__ . '/notif_service.php';
+require_once __DIR__ . '/../utils/common_functions.php';
 
 // Simple function to send profile update reminder - FIXED SIGNATURE
 function sendProfileUpdateReminder($conn, $alumni_email, $alumni_name, $graduation_year, $user_id, $reminder_type = 'initial') {
