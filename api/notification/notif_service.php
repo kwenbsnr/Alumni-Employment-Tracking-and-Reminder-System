@@ -2,7 +2,6 @@
 
 // NotificationId: alumni_employment_tracking_update_your_profile
 
-$root_path = dirname(__FILE__) . '/../../';
 // Use absolute paths for reliability
 $root_path = dirname(__DIR__, 2); // Go up two levels from api/notification/
 require_once $root_path . '/vendor/autoload.php';
