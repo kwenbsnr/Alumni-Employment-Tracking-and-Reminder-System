@@ -1,9 +1,11 @@
 <?php
 
-require_once '../../connect.php';
-require_once '../../vendor/autoload.php';
-require_once '../../config/notification_config.php';
-require_once 'notif_service.php';
+// Use absolute paths for reliability
+$root_path = dirname(__DIR__, 2); // Go up 2 levels from api/notification/
+require_once $root_path . '/connect.php';
+require_once $root_path . '/vendor/autoload.php';
+require_once $root_path . '/config/notification_config.php';
+require_once __DIR__ . '/notif_service.php';
 
 // Simple function to send profile update reminder - FIXED SIGNATURE
 function sendProfileUpdateReminder($conn, $alumni_email, $alumni_name, $graduation_year, $user_id, $reminder_type = 'initial') {
