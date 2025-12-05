@@ -362,33 +362,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // ---- 6.4 Worldwide Address Handling -----------------------------------------
-        // FIRST, ensure alumni_profile exists or is created
-        if ($can_update) {
-            // Check if alumni_profile exists, if not create it
-            $check_profile = $conn->prepare("SELECT user_id FROM alumni_profile WHERE user_id = ?");
-            $check_profile->bind_param("i", $user_id);
-            $check_profile->execute();
-            $profile_exists = $check_profile->get_result()->num_rows > 0;
-            $check_profile->close();
-            
-            if (!$profile_exists) {
-                // Create a minimal alumni_profile record first
-                $stmt = $conn->prepare("INSERT INTO alumni_profile (user_id, contact_number, employment_status, photo_path) VALUES (?, ?, ?, ?)");
-                $stmt->bind_param("isss", $user_id, $contact, $original_status, $photo_path);
-                if (!$stmt->execute()) {
-                    throw new Exception("Failed to create profile record: " . $stmt->error);
-                }
-                $stmt->close();
-            }
+        // Validate all required address fields
+        if (empty(trim($city))) {
+            throw new Exception("City is required.");
+        }
+        if (empty(trim($state_province))) {
+            throw new Exception("State/Province is required.");
+        }
+        if (empty(trim($country))) {
+            throw new Exception("Country is required.");
+        }
+        if (!$latitude || !$longitude) {
+            throw new Exception("Please select a location on the map.");
+        }
+
+        // Validate latitude/longitude format
+        if (!is_numeric($latitude) || !is_numeric($longitude)) {
+            throw new Exception("Invalid coordinates. Please select a valid location on the map.");
+        }
+
+        if ($latitude < -90 || $latitude > 90) {
+            throw new Exception("Latitude must be between -90 and 90 degrees.");
+        }
+
+        if ($longitude < -180 || $longitude > 180) {
+            throw new Exception("Longitude must be between -180 and 180 degrees.");
+        }
+
+        // Use the formatted address from the form, or create one
+        if (empty($formatted_address)) {
+            $formatted_address = implode(', ', array_filter([
+                trim($city),
+                trim($state_province), 
+                trim($country)
+            ]));
         }
 
         // Now handle worldwide_address
-        $formatted_address = implode(', ', array_filter([
-            $city,
-            $state_province,
-            $country
-        ]));
-
         // Check if worldwide address already exists
         $stmt = $conn->prepare("SELECT address_id FROM worldwide_address WHERE user_id = ?");
         $stmt->bind_param("i", $user_id);
@@ -408,7 +418,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $formatted_address, $user_id
             );
         } else {
-            // Insert new address - NOW alumni_profile should exist
+            // Insert new address - ensure alumni_profile exists first
             $stmt = $conn->prepare("INSERT INTO worldwide_address 
                 (user_id, city, state_province, country, latitude, longitude, formatted_address) 
                 VALUES (?, ?, ?, ?, ?, ?, ?)");
@@ -418,10 +428,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if (!$stmt->execute()) {
-            throw new Exception("Failed to save address information: " . $stmt->error);
+            error_log("Worldwide address save error: " . $stmt->error);
+            throw new Exception("Failed to save address information. Please try again.");
         }
 
-        $worldwide_address_id = $existing_address ? $existing_address['address_id'] : $conn->insert_id;
         $stmt->close();
 
         // ---- 6.5 Profile INSERT / UPDATE ----------------------------------------
@@ -610,7 +620,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // === NOTIFICATION INTEGRATION ===
         // Only send notifications if submissions are open
-        if (isSubmissionsOpen($conn)) {
+        if (isSubmissionPeriodOpen($conn)) {
             // Check if this is first-time submission
             $is_first_time = is_first_time_submission($conn, $user_id);
             

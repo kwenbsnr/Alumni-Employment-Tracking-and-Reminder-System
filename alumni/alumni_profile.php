@@ -1616,12 +1616,11 @@ document.addEventListener('DOMContentLoaded', () => {
     <?php endif; ?>
 });
 
-// LEAFLET MAP FUNCTIONS - Fixed with proper 2-way sync
+// MAP FUNCTIONS
 let map;
 let marker;
 let selectedLatLng;
 let debounceTimer;
-let geocodingInProgress = false;
 
 // Initialize map
 function initMap() {
@@ -1695,41 +1694,82 @@ function updateMarker(latlng) {
     
     document.getElementById('latitude').value = latlng.lat.toFixed(6);
     document.getElementById('longitude').value = latlng.lng.toFixed(6);
-    
-    // Validate address after marker update
-    validateAddress();
 }
 
-// Reverse geocode (coordinates to address) - FIXED FUNCTION
+// Reverse geocode (coordinates to address)
 async function reverseGeocode(lat, lon) {
     try {
-        const response = await fetch(`../api/geocode.php?action=reverse&lat=${lat}&lon=${lon}&zoom=18`);
+        console.log('Starting reverse geocode for:', lat, lon);
+        showValidation('Getting address details...', 'info');
+        
+        // Clear any previous values temporarily
+        document.getElementById('city').value = '';
+        document.getElementById('state-province').value = '';
+        document.getElementById('country').value = '';
+        
+        const response = await fetch(`../api/geocode.php?action=reverse&lat=${lat}&lon=${lon}`);
+        
+        console.log('API Response status:', response.status);
+        
+        if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+        }
+        
         const result = await response.json();
         
-        if (result && result.address) {
-            const address = result.address;
-            
-            // Populate the address fields with reverse geocoding data
-            document.getElementById('city').value = address.city || address.town || address.village || address.county || '';
-            document.getElementById('state-province').value = address.state || address.region || '';
-            document.getElementById('country').value = address.country || '';
-            
-            // Update formatted address
-            updateFormattedAddress();
-            
-            showValidation('Address updated from map location!', 'success');
+        console.log('Geocoding API Response:', result);
+        
+        if (!result.success) {
+            throw new Error(result.error || 'Address lookup failed');
         }
+        
+        const address = result.address;
+        
+        if (!address) {
+            throw new Error('No address data in response');
+        }
+        
+        console.log('Extracted address data:', {
+            city: address.city,
+            state: address.state_province,
+            country: address.country,
+            formatted: address.formatted_address
+        });
+        
+        // IMPORTANT: Populate the form fields with the extracted data
+        const cityField = document.getElementById('city');
+        const stateField = document.getElementById('state-province');
+        const countryField = document.getElementById('country');
+        
+        if (cityField) cityField.value = address.city || '';
+        if (stateField) stateField.value = address.state_province || '';
+        if (countryField) countryField.value = address.country || '';
+        
+        // Force update formatted address
+        updateFormattedAddress();
+        
+        // Verify the fields were populated
+        console.log('After population - Field values:', {
+            city: cityField.value,
+            state: stateField.value,
+            country: countryField.value
+        });
+        
+        showValidation('Address details populated! ✓', 'success');
+        
     } catch (error) {
         console.error('Reverse geocoding error:', error);
-        showValidation('Could not get address details for this location.', 'warning');
+        showValidation('Error getting address details. Please enter manually.', 'error');
     }
 }
 
-// Update formatted address preview
+// Update formatted address preview - ENHANCED DEBUG VERSION
 function updateFormattedAddress() {
     const city = document.getElementById('city').value.trim();
     const state = document.getElementById('state-province').value.trim();
     const country = document.getElementById('country').value.trim();
+    
+    console.log('updateFormattedAddress called with:', { city, state, country });
     
     const parts = [];
     if (city) parts.push(city);
@@ -1738,66 +1778,115 @@ function updateFormattedAddress() {
     
     const formattedAddress = parts.join(', ');
     
+    console.log('Generated formatted address:', formattedAddress);
+    
     // Update preview
     const previewElement = document.getElementById('formatted-address-preview');
     if (previewElement) {
         previewElement.textContent = formattedAddress || 'Address will be generated from fields above...';
+        console.log('Preview element updated');
     }
     
     // Update hidden input for form submission
     const hiddenInput = document.getElementById('formatted-address');
     if (hiddenInput) {
         hiddenInput.value = formattedAddress;
+        console.log('Hidden input value:', hiddenInput.value);
     }
     
     return formattedAddress;
 }
 
-// Validate all required address fields
-function validateAddress() {
-    const requiredFields = [
-        { id: 'city', name: 'City' },
-        { id: 'state-province', name: 'State/Province' },
-        { id: 'country', name: 'Country' },
-        { id: 'latitude', name: 'Latitude' },
-        { id: 'longitude', name: 'Longitude' }
-    ];
+// Load existing address data
+function loadExistingAddress() {
+    const existingLat = document.getElementById('latitude').value;
+    const existingLng = document.getElementById('longitude').value;
     
-    let missingFields = [];
+    if (existingLat && existingLng && !isNaN(parseFloat(existingLat)) && !isNaN(parseFloat(existingLng))) {
+        const latLng = L.latLng(parseFloat(existingLat), parseFloat(existingLng));
+        selectedLatLng = latLng;
+        updateMarker(latLng);
+    }
+}
+
+// Use current location
+function useCurrentLocation() {
+    if (navigator.geolocation) {
+        showValidation('Getting your current location...', 'info');
+        
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+                selectedLatLng = L.latLng(lat, lon);
+                updateMarker(selectedLatLng);
+                reverseGeocode(lat, lon);
+            },
+            (error) => {
+                showValidation('Could not get your location. Please allow location access.', 'error');
+                console.error('Geolocation error:', error);
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 5000,
+                maximumAge: 0
+            }
+        );
+    } else {
+        showValidation('Geolocation is not supported by your browser', 'error');
+    }
+}
+
+// Geocode from form fields (2-way sync when user types in address fields)
+async function geocodeFromForm() {
+    const city = document.getElementById('city').value.trim();
+    const state = document.getElementById('state-province').value.trim();
+    const country = document.getElementById('country').value.trim();
     
-    requiredFields.forEach(field => {
-        const fieldElement = document.getElementById(field.id);
-        if (!fieldElement || !fieldElement.value.trim()) {
-            missingFields.push(field.name);
+    if (!city && !state && !country) {
+        showValidation('Please fill in at least one address field', 'warning');
+        return;
+    }
+    
+    const address = `${city}, ${state}, ${country}`.replace(/,\s*$/, '');
+    
+    try {
+        showValidation('Searching for address...', 'info');
+        
+        const response = await fetch(`../api/geocode.php?action=geocode&address=${encodeURIComponent(address)}`);
+        const result = await response.json();
+        
+        console.log('Forward geocoding results:', result);
+        
+        if (result.success && result.results && result.results.length > 0) {
+            const firstResult = result.results[0];
+            const lat = parseFloat(firstResult.lat);
+            const lon = parseFloat(firstResult.lon);
+            
+            selectedLatLng = L.latLng(lat, lon);
+            updateMarker(selectedLatLng);
+            showValidation('Address found and located on map!', 'success');
+        } else {
+            showValidation('Address not found. Please try different city/state/country combination.', 'warning');
         }
-    });
-    
-    if (missingFields.length > 0) {
-        showValidation(`Missing required fields: ${missingFields.join(', ')}`, 'error');
-        return false;
+    } catch (error) {
+        console.error('Geocoding error:', error);
+        showValidation('Error searching address. Please try again.', 'error');
     }
-    
-    // Validate latitude/longitude format
-    const lat = parseFloat(document.getElementById('latitude').value);
-    const lng = parseFloat(document.getElementById('longitude').value);
-    
-    if (isNaN(lat) || isNaN(lng)) {
-        showValidation('Invalid coordinates. Please select a location on the map.', 'error');
-        return false;
-    }
-    
-    if (lat < -90 || lat > 90) {
-        showValidation('Latitude must be between -90 and 90 degrees.', 'error');
-        return false;
-    }
-    
-    if (lng < -180 || lng > 180) {
-        showValidation('Longitude must be between -180 and 180 degrees.', 'error');
-        return false;
-    }
-    
-    showValidation('Address is complete and ready!', 'success');
-    return true;
+}
+
+// Debounced geocoding for field changes
+function debounceGeocode() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+        const city = document.getElementById('city').value.trim();
+        const state = document.getElementById('state-province').value.trim();
+        const country = document.getElementById('country').value.trim();
+        
+        if (city && state && country) {
+            geocodeFromForm();
+        }
+    }, 1000); // Wait 1 second after last keystroke
 }
 
 // Show validation message
@@ -1838,101 +1927,35 @@ function showValidation(message, type) {
     }
 }
 
-// Load existing address data
-function loadExistingAddress() {
-    const existingLat = document.getElementById('latitude').value;
-    const existingLng = document.getElementById('longitude').value;
+// Validate all required address fields
+function validateAddress() {
+    const requiredFields = [
+        { id: 'city', name: 'City' },
+        { id: 'state-province', name: 'State/Province' },
+        { id: 'country', name: 'Country' },
+        { id: 'latitude', name: 'Latitude' },
+        { id: 'longitude', name: 'Longitude' }
+    ];
     
-    if (existingLat && existingLng) {
-        const latLng = L.latLng(parseFloat(existingLat), parseFloat(existingLng));
-        updateMarker(latlng);
-    }
-}
-
-// Use current location
-function useCurrentLocation() {
-    if (navigator.geolocation) {
-        showValidation('Getting your current location...', 'info');
-        
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const lat = position.coords.latitude;
-                const lon = position.coords.longitude;
-                selectedLatLng = L.latLng(lat, lon);
-                updateMarker(selectedLatLng);
-                reverseGeocode(lat, lon);
-            },
-            (error) => {
-                showValidation('Could not get your location. Please allow location access.', 'error');
-                console.error('Geolocation error:', error);
-            },
-            {
-                enableHighAccuracy: true,
-                timeout: 5000,
-                maximumAge: 0
-            }
-        );
-    } else {
-        showValidation('Geolocation is not supported by your browser', 'error');
-    }
-}
-
-// Geocode from form fields (2-way sync when user types in address fields)
-async function geocodeFromForm() {
-    const city = document.getElementById('city').value.trim();
-    const state = document.getElementById('state-province').value.trim();
-    const country = document.getElementById('country').value.trim();
+    let missingFields = [];
     
-    if (!city || !state || !country) {
-        showValidation('Please fill in city, state/province, and country first', 'warning');
-        return;
-    }
-    
-    const address = `${city}, ${state}, ${country}`;
-    
-    if (geocodingInProgress) return;
-    geocodingInProgress = true;
-    
-    try {
-        showValidation('Searching for address...', 'info');
-        
-        const response = await fetch(`../api/geocode.php?action=geocode&address=${encodeURIComponent(address)}`);
-        const results = await response.json();
-        
-        if (results && results.length > 0) {
-            const firstResult = results[0];
-            const lat = parseFloat(firstResult.lat);
-            const lon = parseFloat(firstResult.lon);
-            
-            selectedLatLng = L.latLng(lat, lon);
-            updateMarker(selectedLatLng);
-            showValidation('Address found and located on map!', 'success');
-        } else {
-            showValidation('Address not found. Please try different city/state/country combination.', 'warning');
+    requiredFields.forEach(field => {
+        const fieldElement = document.getElementById(field.id);
+        if (!fieldElement || !fieldElement.value.trim()) {
+            missingFields.push(field.name);
         }
-    } catch (error) {
-        console.error('Geocoding error:', error);
-        showValidation('Error searching address. Please try again.', 'error');
-    } finally {
-        geocodingInProgress = false;
+    });
+    
+    if (missingFields.length > 0) {
+        showValidation(`Missing required fields: ${missingFields.join(', ')}`, 'error');
+        return false;
     }
+    
+    showValidation('Address is complete and ready!', 'success');
+    return true;
 }
 
-// Debounced geocoding for field changes
-function debounceGeocode() {
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => {
-        const city = document.getElementById('city').value.trim();
-        const state = document.getElementById('state-province').value.trim();
-        const country = document.getElementById('country').value.trim();
-        
-        if (city && state && country) {
-            geocodeFromForm();
-        }
-    }, 1000); // Wait 1 second after last keystroke
-}
-
-// Event listeners for form submission validation
+// Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
     // Update formatted address when fields change
     const addressFields = document.querySelectorAll('.address-field');
