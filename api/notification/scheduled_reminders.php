@@ -56,9 +56,17 @@ function getAlumniForReminders($conn) {
     return $alumni;
 }
 
-// Get submission schedule
+// Get submission schedule with admin info
 function getSubmissionSchedule($conn) {
-    $schedule = $conn->query("SELECT * FROM submission_status LIMIT 1");
+    $query = "
+        SELECT ss.*, 
+               u.email as admin_email,
+               CONCAT(u.first_name, ' ', u.last_name) as admin_name
+        FROM submission_status ss
+        LEFT JOIN users u ON ss.created_by = u.user_id
+        LIMIT 1
+    ";
+    $schedule = $conn->query($query);
     return $schedule->num_rows > 0 ? $schedule->fetch_assoc() : null;
 }
 
@@ -170,6 +178,9 @@ function testScheduledReminders() {
         echo "- Manual Override: " . ($schedule['manual_override'] ? 'YES' : 'NO') . "\n";
         echo "- Open Date: " . $schedule['open_date'] . "\n";
         echo "- Close Date: " . $schedule['close_date'] . "\n";
+        echo "- Created By: " . ($schedule['admin_name'] ?? 'N/A') . " (" . ($schedule['admin_email'] ?? 'N/A') . ")\n";
+        echo "- Created At: " . $schedule['created_at'] . "\n";
+        echo "- Updated At: " . $schedule['updated_at'] . "\n";
     }
     
     $alumni_count = count(getAlumniForReminders($conn));
