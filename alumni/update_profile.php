@@ -594,15 +594,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $conn->commit();
 
-        // === SCHEDULE CHECK BEFORE NOTIFICATIONS ===
-function isSubmissionsOpen($conn) {
-    $result = $conn->query("SELECT is_open, manual_override FROM submission_status ORDER BY submission_id DESC LIMIT 1");
-    if ($result && $row = $result->fetch_assoc()) {
-        // Manual override OR is_open = 1
-        return ($row['manual_override'] == 1 || $row['is_open'] == 1);
-    }
-    return false;
-}
+        // === SCHEDULE CHECK ===
+        // used da deadline.php function instead of duplicate function
+        if (!function_exists('isSubmissionPeriodOpen')) {
+            require_once dirname(__DIR__) . '/api/utils/deadline.php';
+        }
 
         // === NOTIFICATION INTEGRATION ===
         // Only send notifications if submissions are open

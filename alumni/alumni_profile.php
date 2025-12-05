@@ -86,13 +86,11 @@ $is_profile_pending = !empty($profile) && $submission_status === 'Pending';
 
 //  Check if profile has personal data for display 
 $has_personal_data = !empty($profile) && (!empty($profile['contact_number']) || !empty($profile['employment_status']));
-// === CHECK SUBMISSION STATUS FROM DATABASE (GLOBAL CONTROL) ===
-$submission_open = false;
-$statusCheck = $conn->query("SELECT is_open, manual_override FROM submission_status ORDER BY submission_id DESC LIMIT 1");
-if ($statusCheck && $row = $statusCheck->fetch_assoc()) {
-    // Manual override OR is_open = 1 (SAME LOGIC AS OTHER FILES)
-    $submission_open = ($row['manual_override'] == 1 || $row['is_open'] == 1);
+
+if (!function_exists('isSubmissionPeriodOpen')) {
+    require_once dirname(__DIR__) . '/api/utils/deadline.php';
 }
+$submission_open = isSubmissionPeriodOpen($conn);
 
 // Semiannual update allowed only if previously approved and 6 months passed
 $can_update_semiannual = $is_profile_approved && (

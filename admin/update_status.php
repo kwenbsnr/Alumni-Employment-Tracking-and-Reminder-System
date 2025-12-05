@@ -10,13 +10,11 @@ include("../connect.php");
 require_once '../api/notification/notif_service.php';
 
 function shouldSendNotification($conn) {
-    $query = "SELECT is_open, manual_override FROM submission_status ORDER BY submission_id DESC LIMIT 1";
-    $result = $conn->query($query);
-    if ($result && $row = $result->fetch_assoc()) {
-        // Manual override OR is_open = 1 (SAME LOGIC AS OTHER FILES)
-        return ($row['manual_override'] == 1 || $row['is_open'] == 1);
+    // Use the same function as other files for consistency
+    if (!function_exists('isSubmissionPeriodOpen')) {
+        require_once dirname(__DIR__) . '/api/utils/deadline.php';
     }
-    return false; // Default to not sending if no schedule
+    return isSubmissionPeriodOpen($conn);
 }
 
 // Get referrer to determine which page the action came from
@@ -119,6 +117,11 @@ if (isset($_GET['user_id']) && isset($_GET['status'])) {
             // === NOTIFICATION INTEGRATION ===
             // Check if notifications should be sent based on schedule
             if (shouldSendNotification($conn) && ($status === 'Approved' || $status === 'Rejected')) {
+                // Ensure notification functions exist
+                if (!function_exists('send_approval_notification')) {
+                    require_once '../api/notification/notif_service.php';
+                }
+                
                 if ($status === 'Approved') {
                     // Send approval notification to alumni
                     $result = send_approval_notification($conn, $user_id);
