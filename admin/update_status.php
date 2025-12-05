@@ -9,6 +9,16 @@ if (!isset($_SESSION["user_id"]) || $_SESSION["role"] !== "admin") {
 include("../connect.php");
 require_once '../api/notification/notif_service.php';
 
+function shouldSendNotification($conn) {
+    $query = "SELECT is_open, manual_override FROM submission_status ORDER BY submission_id DESC LIMIT 1";
+    $result = $conn->query($query);
+    if ($result && $row = $result->fetch_assoc()) {
+        // Send if schedule is open OR manual override is enabled
+        return ($row['is_open'] == 1 || $row['manual_override'] == 1);
+    }
+    return false; // Default to not sending if no schedule exists
+}
+
 // Get referrer to determine which page the action came from
 $referrer = $_SERVER['HTTP_REFERER'] ?? '';
 $came_from_batch = strpos($referrer, 'batch_alumni.php') !== false;
@@ -107,8 +117,8 @@ if (isset($_GET['user_id']) && isset($_GET['status'])) {
             $stmt->close();
             
             // === NOTIFICATION INTEGRATION ===
-            // Notifs r outside transaction since they're external srvces
-            if ($status === 'Approved' || $status === 'Rejected') {
+            // Check if notifications should be sent based on schedule
+            if (shouldSendNotification($conn) && ($status === 'Approved' || $status === 'Rejected')) {
                 if ($status === 'Approved') {
                     // Send approval notification to alumni
                     $result = send_approval_notification($conn, $user_id);
@@ -123,6 +133,10 @@ if (isset($_GET['user_id']) && isset($_GET['status'])) {
                 } else {
                     error_log("Notification failed for user $user_id: " . ($result['error'] ?? 'Unknown error'));
                 }
+            } else {
+                // Log why notification wasn't sent
+                $schedule_status = shouldSendNotification($conn) ? "Schedule closed" : "Invalid status";
+                error_log("Notification not sent for user $user_id: $schedule_status");
             }
 
         } catch (Exception $e) {

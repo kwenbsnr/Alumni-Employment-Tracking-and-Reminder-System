@@ -1,7 +1,7 @@
 <?php
 
 // Use absolute paths for reliability
-$root_path = dirname(__DIR__, 2); 
+$root_path = dirname(__DIR__, 2);
 require_once $root_path . '/vendor/autoload.php';
 require_once $root_path . '/config/notification_config.php';
 require_once __DIR__ . '/../../connect.php';
