@@ -74,11 +74,13 @@ function getSubmissionSchedule($conn) {
     return $schedule->num_rows > 0 ? $schedule->fetch_assoc() : null;
 }
 
+/*
 // Check if submissions are open
 function isSubmissionsOpen($conn) {
     require_once __DIR__ . '/../utils/schedule_checker.php';
     return isSubmissionPeriodOpen($conn);
 }
+*/
 
 // Simple notification logger - FIXED WITH CONN PARAMETER
 function logNotification($conn, $email, $template_id, $status, $error_message = '') {
