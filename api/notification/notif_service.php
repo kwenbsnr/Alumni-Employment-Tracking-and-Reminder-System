@@ -5,6 +5,9 @@
 $root_path = dirname(__FILE__) . '/../../';
 require_once $root_path . 'vendor/autoload.php';
 require_once __DIR__ . '/scheduled_reminders.php';  // To access getSubmissionSchedule()
+require_once __DIR__ . '/../../connect.php';
+require_once __DIR__ . '/../../includes/config.php';
+require_once __DIR__ . '/../reports/submission_status.php';
 
 // Use the class
 use NotificationAPI\NotificationAPI;
