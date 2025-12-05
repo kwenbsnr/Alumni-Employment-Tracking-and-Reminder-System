@@ -466,6 +466,12 @@ document.addEventListener('DOMContentLoaded', function() {
                       </div>
                     </div>
                   <?php endif; ?>
+
+                    <!-- DEBUG BUTTON -->
+                    <button type="button" onclick="testGeocoding()" class="mt-2 px-3 py-1 bg-red-500 text-white rounded text-sm">
+                        Debug: Test Geocoding
+                    </button>
+
                 </div>
               <?php else: ?>
                 <div class="text-center py-6">
@@ -812,8 +818,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">
-                                    <i class="fas fa-city mr-1"></i>
-                                    City *
+                                    <!-- <i class="fas fa-city mr-1"></i> -->
+                                    City 
                                 </label>
                                 <input type="text" id="city" name="city" 
                                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 address-field"
@@ -822,8 +828,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">
-                                    <i class="fas fa-landmark mr-1"></i>
-                                    State/Province *
+                                   <!-- <i class="fas fa-landmark mr-1"></i> -->
+                                    State/Province 
                                 </label>
                                 <input type="text" id="state-province" name="state_province" 
                                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 address-field"
@@ -832,8 +838,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">
-                                    <i class="fas fa-globe mr-1"></i>
-                                    Country *
+                                    <!-- <i class="fas fa-globe mr-1"></i> -->
+                                    Country 
                                 </label>
                                 <input type="text" id="country" name="country" 
                                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 address-field"
