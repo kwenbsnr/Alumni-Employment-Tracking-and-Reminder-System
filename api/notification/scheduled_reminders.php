@@ -1,5 +1,8 @@
 <?php
 
+// Debug: Log when this file is included
+error_log("SCHEDULED_REMINDERS.PHP included from: " . $_SERVER['PHP_SELF']);
+
 // Use absolute paths for reliability
 $root_path = dirname(__DIR__, 2);
 require_once $root_path . '/vendor/autoload.php';
@@ -193,9 +196,11 @@ if (basename(__FILE__) == basename($_SERVER['PHP_SELF'])) {
     testScheduledReminders();
 }
 
+/* AUTORUN REMDRS
 // For cron job usage
 if (isset($conn) && $conn) {
     $result = runScheduledReminders($conn);
     error_log("Scheduled reminders: " . $result);
 //    echo $result;
 }
+*/
