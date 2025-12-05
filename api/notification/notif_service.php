@@ -2,9 +2,9 @@
 
 // NotificationId: alumni_employment_tracking_update_your_profile
 
-// Use relative paths for better compatibility
 $root_path = dirname(__FILE__) . '/../../';
 require_once $root_path . 'vendor/autoload.php';
+require_once __DIR__ . '/scheduled_reminders.php';  // To access getSubmissionSchedule()
 
 // Use the class
 use NotificationAPI\NotificationAPI;
@@ -42,6 +42,7 @@ function send_notification($template_id, $recipient_email, $parameters = []) {
 }
 
 // ==================== DYNAMIC DATA FETCHING FUNCTIONS ====================
+
 
 // Get complete alumni data for notifications
 function get_complete_alumni_data($conn, $user_id) {
@@ -257,6 +258,20 @@ function send_profile_update_reminder($conn, $user_id, $closing_date = '') {
         return ['success' => false, 'error' => 'No update needed - less than 6 months since last update'];
     }
     
+    // GET DEADLINE FROM ADMIN SCHEDULE
+    $schedule = getSubmissionSchedule($conn);
+    $deadline_date = '';
+    
+    if ($schedule && !empty($schedule['close_date']) && $schedule['close_date'] != '0000-00-00 00:00:00') {
+        // Use admin's scheduled close date
+        $deadline_date = date('F j, Y', strtotime($schedule['close_date']));
+        error_log("Using admin schedule deadline: $deadline_date for user: $user_id");
+    } else {
+        // Fallback: 14 days from now
+        $deadline_date = date('F j, Y', strtotime('+14 days'));
+        error_log("Using fallback deadline (14 days): $deadline_date for user: $user_id");
+    }
+    
     // Prepare notification parameters
     $parameters = [
         "alumni_name" => $alumni_data['alumni_name'],
@@ -270,7 +285,7 @@ function send_profile_update_reminder($conn, $user_id, $closing_date = '') {
     if ($is_semiannual_update) {
         $parameters["update_type"] = "semiannual";
         $parameters["months_since_update"] = $months_since_update . " months";
-        $parameters["deadline_date"] = date('F j, Y', strtotime('+14 days'));
+        $parameters["deadline_date"] = $deadline_date; // Now dynamic!
         
         // Log semiannual update
         error_log("SEMIANNUAL UPDATE sent for user: $user_id - $months_since_update months since last update");
