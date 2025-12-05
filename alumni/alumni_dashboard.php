@@ -10,7 +10,7 @@ $page_title = "Dashboard";
 $active_page = "dashboard";
 $user_id = $_SESSION["user_id"];
 
-// ---- 1. UPDATED FETCH SQL QUERY WITH WORLDWIDE ADDRESS ----
+// ---- 1. CORRECTED FETCH SQL QUERY WITH WORLDWIDE ADDRESS ----
 $stmt = $conn->prepare("
     SELECT
         CONCAT(
@@ -26,13 +26,12 @@ $stmt = $conn->prepare("
         ap.last_profile_update,
         ap.employment_status,
         ap.submission_status,
-        ap.worldwide_address_id,
         ap.contact_number,
         COUNT(ad.doc_id) as document_count,
         wa.formatted_address as address  -- Added worldwide address
     FROM users u
     LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id
-    LEFT JOIN worldwide_address wa ON ap.worldwide_address_id = wa.address_id
+    LEFT JOIN worldwide_address wa ON u.user_id = wa.user_id  -- CORRECTED JOIN: user_id to user_id
     LEFT JOIN alumni_documents ad ON u.user_id = ad.user_id
     WHERE u.user_id = ?
     GROUP BY u.user_id
