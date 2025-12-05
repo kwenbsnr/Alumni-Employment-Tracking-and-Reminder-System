@@ -263,18 +263,9 @@ function send_profile_update_reminder($conn, $user_id, $closing_date = '') {
     }
     
     // GET DEADLINE FROM ADMIN SCHEDULE
-    $schedule = getSubmissionSchedule($conn);
-    $deadline_date = '';
-    
-    if ($schedule && !empty($schedule['close_date']) && $schedule['close_date'] != '0000-00-00 00:00:00') {
-        // Use admin's scheduled close date
-        $deadline_date = date('F j, Y', strtotime($schedule['close_date']));
-        error_log("Using admin schedule deadline: $deadline_date for user: $user_id");
-    } else {
-        // Fallback: 14 days from now
-        $deadline_date = date('F j, Y', strtotime('+14 days'));
-        error_log("Using fallback deadline (14 days): $deadline_date for user: $user_id");
-    }
+    require_once __DIR__ . '/../utils/schedule_checker.php';
+    $deadline_date = getSubmissionDeadline($conn, 14); // 14 days fallback
+    error_log("Using deadline: $deadline_date for user: $user_id");
     
     // Prepare notification parameters
     $parameters = [

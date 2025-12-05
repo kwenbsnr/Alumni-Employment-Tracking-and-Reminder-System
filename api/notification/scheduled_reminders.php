@@ -75,19 +75,8 @@ function getSubmissionSchedule($conn) {
 
 // Check if submissions are open
 function isSubmissionsOpen($conn) {
-    $schedule = getSubmissionSchedule($conn);
-    if (!$schedule) return false;
-
-    if ($schedule['manual_override']) {
-        return (bool)$schedule['is_open'];
-    }
-
-    if ($schedule['open_date'] && $schedule['close_date']) {
-        $now = date('Y-m-d H:i:s');
-        return ($now >= $schedule['open_date'] && $now <= $schedule['close_date']);
-    }
-
-    return false;
+    require_once __DIR__ . '/../utils/schedule_checker.php';
+    return isSubmissionPeriodOpen($conn);
 }
 
 // Simple notification logger - FIXED WITH CONN PARAMETER

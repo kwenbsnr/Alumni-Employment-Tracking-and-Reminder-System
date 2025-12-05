@@ -10,13 +10,8 @@ include("../connect.php");
 require_once '../api/notification/notif_service.php';
 
 function shouldSendNotification($conn) {
-    $query = "SELECT is_open, manual_override FROM submission_status ORDER BY submission_id DESC LIMIT 1";
-    $result = $conn->query($query);
-    if ($result && $row = $result->fetch_assoc()) {
-        // Send if schedule is open OR manual override is enabled
-        return ($row['is_open'] == 1 || $row['manual_override'] == 1);
-    }
-    return false; // Default to not sending if no schedule exists
+    require_once __DIR__ . '/../../api/utils/schedule_checker.php';
+    return shouldSendNotifications($conn);
 }
 
 // Get referrer to determine which page the action came from
