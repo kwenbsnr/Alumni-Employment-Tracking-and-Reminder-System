@@ -361,7 +361,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        // ---- 6.4 Worldwide Address Handling -----------------------------------------
+        // ---- 6.4 Profile INSERT / UPDATE ----------------------------------------
+        if ($can_update) {
+            $original_status = trim($_POST['employment_status'] ?? '');
+            
+            // Check if alumni_profile record exists
+            $check_stmt = $conn->prepare("SELECT user_id FROM alumni_profile WHERE user_id = ?");
+            $check_stmt->bind_param("i", $user_id);
+            $check_stmt->execute();
+            $profile_exists = $check_stmt->get_result()->num_rows > 0;
+            $check_stmt->close();
+            
+            if ($profile_exists) {
+                $stmt = $conn->prepare("UPDATE alumni_profile SET 
+                    contact_number=?, employment_status=?, photo_path=?, last_profile_update=NOW(),
+                    submission_status='Pending', submitted_at=NOW()
+                    WHERE user_id=?");
+                $stmt->bind_param("sssi", $contact, $original_status, $photo_path, $user_id);  
+            } else {
+                $stmt = $conn->prepare("INSERT INTO alumni_profile 
+                    (user_id, contact_number, employment_status, photo_path, last_profile_update, submission_status, submitted_at)
+                    VALUES (?,?,?,?,NOW(),'Pending',NOW())");
+                $stmt->bind_param("isss", $user_id, $contact, $original_status, $photo_path);  
+            }
+
+            if (!$stmt->execute()) {
+                error_log("Alumni profile update failed: " . $stmt->error);
+                throw new Exception("Failed to save profile information. Please try again.");
+            }
+            $stmt->close();
+        }  
+
+        // 6.5 Worldwide Address Handling -----------------------------------------
         // Validate all required address fields
         if (empty(trim($city))) {
             throw new Exception("City is required.");
@@ -398,7 +429,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ]));
         }
 
-        // Now handle worldwide_address
+        // handle worldwide_address
         // Check if worldwide address already exists
         $stmt = $conn->prepare("SELECT address_id FROM worldwide_address WHERE user_id = ?");
         $stmt->bind_param("i", $user_id);
@@ -418,7 +449,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $formatted_address, $user_id
             );
         } else {
-            // Insert new address - ensure alumni_profile exists first
+            // Insert new address - NOW alumni_profile exists!
             $stmt = $conn->prepare("INSERT INTO worldwide_address 
                 (user_id, city, state_province, country, latitude, longitude, formatted_address) 
                 VALUES (?, ?, ?, ?, ?, ?, ?)");

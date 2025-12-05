@@ -1122,28 +1122,81 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 
 <script>
-// Global error handler for geocoding
+// ===== GLOBAL VARIABLES =====
+let map;
+let marker;
+let selectedLatLng;
+let debounceTimer;
+let mapInitialized = false;
+let isAddressLoading = false;
+
+// ===== UTILITY FUNCTIONS (DEFINE FIRST) =====
+
+// Show validation message - DEFINE EARLY for error handlers
+function showValidation(message, type) {
+    const container = document.getElementById('address-validation');
+    const messageEl = document.getElementById('address-validation-message');
+    const textEl = document.getElementById('validation-text');
+    
+    if (!container || !messageEl || !textEl) return;
+    
+    // Clear previous classes
+    messageEl.className = 'flex items-center p-3 rounded-md';
+    
+    // Add type-specific classes
+    switch(type) {
+        case 'success':
+            messageEl.classList.add('bg-green-100', 'text-green-800', 'border', 'border-green-200');
+            break;
+        case 'error':
+            messageEl.classList.add('bg-red-100', 'text-red-800', 'border', 'border-red-200');
+            break;
+        case 'warning':
+            messageEl.classList.add('bg-yellow-100', 'text-yellow-800', 'border', 'border-yellow-200');
+            break;
+        case 'info':
+            messageEl.classList.add('bg-blue-100', 'text-blue-800', 'border', 'border-blue-200');
+            break;
+    }
+    
+    textEl.textContent = message;
+    container.classList.remove('hidden');
+    
+    // Auto-hide success messages after 3 seconds
+    if (type === 'success') {
+        setTimeout(() => {
+            container.classList.add('hidden');
+        }, 3000);
+    }
+}
+
+// ===== GLOBAL ERROR HANDLERS =====
 window.addEventListener('error', function(e) {
     if (e.message && (e.message.includes('geocode') || 
                       e.message.includes('map') || 
                       e.message.includes('Leaflet') ||
                       e.filename && e.filename.includes('alumni_profile'))) {
         console.error('Global error caught:', e);
-        showValidation('A JavaScript error occurred. Please refresh the page.', 'error');
+        // Use setTimeout to ensure DOM is ready
+        setTimeout(() => {
+            showValidation('A JavaScript error occurred. Please refresh the page.', 'error');
+        }, 100);
     }
 });
 
-// Handle unhandled promise rejections
 window.addEventListener('unhandledrejection', function(e) {
     console.error('Unhandled promise rejection:', e.reason);
     if (e.reason && e.reason.message && 
         (e.reason.message.includes('fetch') || 
          e.reason.message.includes('geocode') ||
          e.reason.message.includes('network'))) {
-        showValidation('Network error. Please check connection.', 'error');
+        setTimeout(() => {
+            showValidation('Network error. Please check connection.', 'error');
+        }, 100);
     }
 });
 
+// ===== INITIALIZATION =====
 // Auto-close modal if form was just submitted
 <?php if (isset($_SESSION['form_submitted']) && $_SESSION['form_submitted']): ?>
     <?php unset($_SESSION['form_submitted']); // Clear the flag ?>
@@ -1163,115 +1216,59 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => {
             modal.classList.remove('hidden');
             modal.classList.add('show', 'flex');
-            initMap();
+            // Reset map initialization flag when modal opens
+            mapInitialized = false;
+            setTimeout(() => {
+                console.log('Auto-opening map for rejected profile');
+                if (typeof initMap === 'function') {
+                    initMap();
+                }
+            }, 100);
         }, 100);
     }
 });
 <?php endif; ?>
 
+// DUPLICATE HANDLER COMMENTED OUT
+// document.addEventListener('DOMContentLoaded', function() {
+//     // Remove success/error parameters from URL without reloading
+//     const url = new URL(window.location);
+//     if (url.searchParams.has('success') || url.searchParams.has('error')) {
+//         url.searchParams.delete('success');
+//         url.searchParams.delete('error');
+//         window.history.replaceState({}, '', url);
+//     }
+// });
+
+// ===== SINGLE DOMContentLoaded HANDLER =====
 document.addEventListener('DOMContentLoaded', () => {
-    // Modal and form elements
-    const updateProfileBtn = document.getElementById('updateProfileBtn');
-    const updateProfileModal = document.getElementById('profileUpdateModal');
-    const closeModalBtn = document.getElementById('closeProfileModal');
-    const employmentStatusSelect = document.getElementById('employmentStatusSelect');
-    const employmentDetailsSection = document.getElementById('employmentDetailsSection');
-    const jobTitleField = document.getElementById('jobTitleField');
-    const jobTitleSelect = document.getElementById('jobTitleSelect');
-    const otherJobTitleDiv = document.getElementById('otherJobTitleDiv');
-    const companyField = document.getElementById('companyField');
-    const businessTypeField = document.getElementById('businessTypeField');
-    const businessTypeSelect = document.getElementById('businessTypeSelect');
-    const businessTypeOtherDiv = document.getElementById('businessTypeOtherDiv');
-    const studentDetailsSection = document.getElementById('studentDetailsSection');
-    const coeField = document.getElementById('coeField');
-    const businessCertField = document.getElementById('businessCertField');
-    const corField = document.getElementById('corField');
-    const supportingDocumentsSection = document.getElementById('supportingDocumentsSection');
-    const companyAddressField = document.getElementById('companyAddressField');
-    const salaryField = document.getElementById('salaryField');
-
-    // Track loading state
-    let isAddressLoading = false;
-
-    // Modal toggle - ONLY if user can update
-    if (updateProfileBtn) {
-        const canUpdate = <?php echo $can_update ? 'true' : 'false'; ?>;
-        
-        if (canUpdate) {
-            updateProfileBtn.addEventListener('click', () => {
-                if (updateProfileModal) {
-                    updateProfileModal.classList.remove('hidden');
-                    updateProfileModal.classList.add('show', 'flex');
-                    
-                    // Reset map initialization flag when modal opens
-                    mapInitialized = false;
-                    
-                    // Wait for modal to be fully visible
-                    setTimeout(() => {
-                        console.log('Initializing map after modal open');
-                        if (typeof initMap === 'function') {
-                            initMap();
-                        }
-                    }, 300); // Increased delay
-                }
-            });
-        } else {
-            // Make it visually clear the button is disabled
-            updateProfileBtn.style.cursor = 'not-allowed';
-            updateProfileBtn.style.opacity = '0.6';
-            
-            updateProfileBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                if (<?php echo !empty($profile) ? 'true' : 'false'; ?>) {
-                    const status = '<?php echo $profile['submission_status'] ?? ''; ?>';
-                    if (status === 'Approved') {
-                        alert('Your profile is approved. You can update again after 6 months from your last update.');
-                    } else if (status === 'Pending') {
-                        alert('Your profile is currently under review. Please wait for administrator approval.');
-                    } else {
-                        alert('Profile update is not available at this time.');
-                    }
-                } else {
-                    alert('Profile update is not available at this time.');
-                }
-            });
-        }
+    console.log('DOM fully loaded and parsed');
+    
+    // Remove success/error parameters from URL without reloading
+    const url = new URL(window.location);
+    if (url.searchParams.has('success') || url.searchParams.has('error')) {
+        url.searchParams.delete('success');
+        url.searchParams.delete('error');
+        window.history.replaceState({}, '', url);
     }
+    
+    // Initialize all components
+    initializeProfilePicture();
+    initializeModal();
+    initializeFormValidation();
+    initializeAddressFields();
+    initializeStudentYearOptions();
+    
+    // Also initialize for auto-opening modal
+    <?php if ($auto_open_modal): ?>
+    setTimeout(() => {
+        updateStudentYearOptions();
+    }, 200);
+    <?php endif; ?>
+});
 
-    if (closeModalBtn) {
-        closeModalBtn.addEventListener('click', () => {
-            if (updateProfileModal) {
-                updateProfileModal.classList.add('hidden');
-                updateProfileModal.classList.remove('show', 'flex');
-                
-                // Clean up map to prevent memory leaks
-                if (map) {
-                    try {
-                        map.remove();
-                        map = null;
-                        marker = null;
-                        mapInitialized = false;
-                    } catch (e) {
-                        console.log('Error cleaning up map:', e);
-                    }
-                }
-            }
-        });
-    }
-
-    if (updateProfileModal) {
-        updateProfileModal.addEventListener('click', (e) => {
-            if (e.target === updateProfileModal) {
-                updateProfileModal.classList.add('hidden');
-                updateProfileModal.classList.remove('show', 'flex');
-            }
-        });
-    }
-
-    // Profile picture upload and preview
+// ===== PROFILE PICTURE HANDLING =====
+function initializeProfilePicture() {
     const uploadBtn = document.getElementById("uploadPictureBtn");
     const fileInput = document.getElementById("profilePictureInput");
     const previewImg = document.getElementById("profilePreview");
@@ -1310,7 +1307,97 @@ document.addEventListener('DOMContentLoaded', () => {
             reader.readAsDataURL(file);
         });
     }
+}
 
+// ===== MODAL INITIALIZATION =====
+function initializeModal() {
+    const updateProfileBtn = document.getElementById('updateProfileBtn');
+    const updateProfileModal = document.getElementById('profileUpdateModal');
+    const closeModalBtn = document.getElementById('closeProfileModal');
+    
+    if (!updateProfileBtn || !updateProfileModal) return;
+    
+    const canUpdate = <?php echo $can_update ? 'true' : 'false'; ?>;
+    
+    if (canUpdate) {
+        updateProfileBtn.addEventListener('click', () => {
+            updateProfileModal.classList.remove('hidden');
+            updateProfileModal.classList.add('show', 'flex');
+            
+            // Reset map initialization flag when modal opens
+            mapInitialized = false;
+            
+            // Wait for modal to be fully visible
+            setTimeout(() => {
+                console.log('Initializing map after modal open');
+                if (typeof initMap === 'function') {
+                    initMap();
+                }
+                updateStudentYearOptions();
+            }, 300);
+        });
+    } else {
+        updateProfileBtn.style.cursor = 'not-allowed';
+        updateProfileBtn.style.opacity = '0.6';
+        
+        updateProfileBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            if (<?php echo !empty($profile) ? 'true' : 'false'; ?>) {
+                const status = '<?php echo $profile['submission_status'] ?? ''; ?>';
+                if (status === 'Approved') {
+                    alert('Your profile is approved. You can update again after 6 months from your last update.');
+                } else if (status === 'Pending') {
+                    alert('Your profile is currently under review. Please wait for administrator approval.');
+                } else {
+                    alert('Profile update is not available at this time.');
+                }
+            } else {
+                alert('Profile update is not available at this time.');
+            }
+        });
+    }
+
+    if (closeModalBtn) {
+        closeModalBtn.addEventListener('click', () => {
+            if (updateProfileModal) {
+                updateProfileModal.classList.add('hidden');
+                updateProfileModal.classList.remove('show', 'flex');
+                
+                // Clean up map to prevent memory leaks
+                if (map) {
+                    try {
+                        map.remove();
+                        map = null;
+                        marker = null;
+                        mapInitialized = false;
+                    } catch (e) {
+                        console.log('Error cleaning up map:', e);
+                    }
+                }
+            }
+        });
+    }
+
+    if (updateProfileModal) {
+        updateProfileModal.addEventListener('click', (e) => {
+            if (e.target === updateProfileModal) {
+                updateProfileModal.classList.add('hidden');
+                updateProfileModal.classList.remove('show', 'flex');
+            }
+        });
+    }
+}
+
+// ===== FORM VALIDATION INITIALIZATION =====
+function initializeFormValidation() {
+    const employmentStatusSelect = document.getElementById('employmentStatusSelect');
+    const jobTitleSelect = document.getElementById('jobTitleSelect');
+    const otherJobTitleDiv = document.getElementById('otherJobTitleDiv');
+    const businessTypeSelect = document.getElementById('businessTypeSelect');
+    const businessTypeOtherDiv = document.getElementById('businessTypeOtherDiv');
+    
     // Job title toggle for "Other"
     if (jobTitleSelect && otherJobTitleDiv) {
         jobTitleSelect.addEventListener('change', () => {
@@ -1326,151 +1413,280 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Employment status toggle
-    function toggleEmploymentSections(status) {
-        console.log('Toggling employment sections for:', status);
-        
-        // Hide all sections first
-        if (employmentDetailsSection) employmentDetailsSection.classList.add('hidden');
-        if (studentDetailsSection) studentDetailsSection.classList.add('hidden');
-        if (supportingDocumentsSection) supportingDocumentsSection.classList.add('hidden');
-        
-        // Hide individual fields
-        if (jobTitleField) jobTitleField.classList.add('hidden');
-        if (companyField) companyField.classList.add('hidden');
-        if (companyAddressField) companyAddressField.classList.add('hidden');
-        if (businessTypeField) businessTypeField.classList.add('hidden');
-        if (salaryField) salaryField.classList.add('hidden');
-        if (coeField) coeField.classList.add('hidden');
-        if (businessCertField) businessCertField.classList.add('hidden');
-        if (corField) corField.classList.add('hidden');
-
-        // Show relevant sections based on status
-        switch(status) {
-            case 'Employed':
-                if (employmentDetailsSection) employmentDetailsSection.classList.remove('hidden');
-                if (supportingDocumentsSection) supportingDocumentsSection.classList.remove('hidden');
-                if (jobTitleField) jobTitleField.classList.remove('hidden');
-                if (companyField) companyField.classList.remove('hidden');
-                if (companyAddressField) companyAddressField.classList.remove('hidden');
-                if (salaryField) salaryField.classList.remove('hidden');
-                if (coeField) coeField.classList.remove('hidden');
-                break;
-                
-            case 'Self-Employed':
-                if (employmentDetailsSection) employmentDetailsSection.classList.remove('hidden');
-                if (supportingDocumentsSection) supportingDocumentsSection.classList.remove('hidden');
-                if (businessTypeField) businessTypeField.classList.remove('hidden');
-                if (salaryField) salaryField.classList.remove('hidden');
-                if (businessCertField) businessCertField.classList.remove('hidden');
-                break;
-                
-            case 'Unemployed':
-                // No additional sections for unemployed
-                break;
-                
-            case 'Student':
-                if (studentDetailsSection) studentDetailsSection.classList.remove('hidden');
-                if (supportingDocumentsSection) supportingDocumentsSection.classList.remove('hidden');
-                if (corField) corField.classList.remove('hidden');
-                break;
-                
-            case 'Employed & Student':
-                if (employmentDetailsSection) employmentDetailsSection.classList.remove('hidden');
-                if (studentDetailsSection) studentDetailsSection.classList.remove('hidden');
-                if (supportingDocumentsSection) supportingDocumentsSection.classList.remove('hidden');
-                if (jobTitleField) jobTitleField.classList.remove('hidden');
-                if (companyField) companyField.classList.remove('hidden');
-                if (companyAddressField) companyAddressField.classList.remove('hidden');
-                if (salaryField) salaryField.classList.remove('hidden');
-                if (coeField) coeField.classList.remove('hidden');
-                if (corField) corField.classList.remove('hidden');
-                break;
-                
-            default:
-                // Hide everything for unknown status
-                break;
-        }
-    }
-
-    // Initialize employment sections
     if (employmentStatusSelect) {
         toggleEmploymentSections(employmentStatusSelect.value);
-        
         employmentStatusSelect.addEventListener('change', () => {
             toggleEmploymentSections(employmentStatusSelect.value);
         });
     }
 
-    // ENHANCED: Dynamic filtering for years based on graduation year and current year
-    function updateStudentYearOptions() {
-        const graduationYear = <?php echo !empty($profile['batch_year']) ? $profile['batch_year'] : 'null'; ?>;
-        const startYearSelect = document.querySelector('[name="start_year"]');
-        const endYearSelect = document.querySelector('[name="end_year"]');
-        const status = employmentStatusSelect ? employmentStatusSelect.value : '';
-        
-        if (startYearSelect && endYearSelect && ['Student', 'Employed & Student'].includes(status)) {
-            const currentYear = new Date().getFullYear();
-            
-            // Store current selections
-            const currentStartYear = startYearSelect.value;
-            const currentEndYear = endYearSelect.value;
-            
-            // Update Start Year dropdown: graduation year + 1 to current year
-            startYearSelect.innerHTML = '<option value="">Select Start Year</option>';
-            
-            // Start year can be from the year after graduation up to current year
-            const minStartYear = graduationYear ? parseInt(graduationYear) + 1 : currentYear - 10;
-            const maxStartYear = currentYear;
-            
-            for (let y = minStartYear; y <= maxStartYear; y++) {
-                const option = document.createElement('option');
-                option.value = y;
-                option.textContent = y;
-                if (currentStartYear && y === parseInt(currentStartYear)) {
-                    option.selected = true;
-                }
-                startYearSelect.appendChild(option);
+    // Form submission validation
+    const alumniProfileForm = document.getElementById('alumniProfileForm');
+    if (alumniProfileForm) {
+        alumniProfileForm.addEventListener('submit', function(event) {
+            if (!validateFormSubmission()) {
+                event.preventDefault();
             }
+        });
+    }
+}
+
+// ===== EMPLOYMENT SECTION TOGGLE =====
+function toggleEmploymentSections(status) {
+    console.log('Toggling employment sections for:', status);
+    
+    const sections = {
+        employmentDetails: document.getElementById('employmentDetailsSection'),
+        studentDetails: document.getElementById('studentDetailsSection'),
+        supportingDocuments: document.getElementById('supportingDocumentsSection'),
+        jobTitleField: document.getElementById('jobTitleField'),
+        companyField: document.getElementById('companyField'),
+        companyAddressField: document.getElementById('companyAddressField'),
+        businessTypeField: document.getElementById('businessTypeField'),
+        salaryField: document.getElementById('salaryField'),
+        coeField: document.getElementById('coeField'),
+        businessCertField: document.getElementById('businessCertField'),
+        corField: document.getElementById('corField')
+    };
+    
+    // Hide all sections first
+    Object.values(sections).forEach(section => {
+        if (section) section.classList.add('hidden');
+    });
+    
+    // Show relevant sections based on status
+    switch(status) {
+        case 'Employed':
+            if (sections.employmentDetails) sections.employmentDetails.classList.remove('hidden');
+            if (sections.supportingDocuments) sections.supportingDocuments.classList.remove('hidden');
+            if (sections.jobTitleField) sections.jobTitleField.classList.remove('hidden');
+            if (sections.companyField) sections.companyField.classList.remove('hidden');
+            if (sections.companyAddressField) sections.companyAddressField.classList.remove('hidden');
+            if (sections.salaryField) sections.salaryField.classList.remove('hidden');
+            if (sections.coeField) sections.coeField.classList.remove('hidden');
+            break;
             
-            // Update End Year dropdown based on selected start year
-            updateEndYearOptions();
+        case 'Self-Employed':
+            if (sections.employmentDetails) sections.employmentDetails.classList.remove('hidden');
+            if (sections.supportingDocuments) sections.supportingDocuments.classList.remove('hidden');
+            if (sections.businessTypeField) sections.businessTypeField.classList.remove('hidden');
+            if (sections.salaryField) sections.salaryField.classList.remove('hidden');
+            if (sections.businessCertField) sections.businessCertField.classList.remove('hidden');
+            break;
+            
+        case 'Student':
+            if (sections.studentDetails) sections.studentDetails.classList.remove('hidden');
+            if (sections.supportingDocuments) sections.supportingDocuments.classList.remove('hidden');
+            if (sections.corField) sections.corField.classList.remove('hidden');
+            break;
+            
+        case 'Employed & Student':
+            if (sections.employmentDetails) sections.employmentDetails.classList.remove('hidden');
+            if (sections.studentDetails) sections.studentDetails.classList.remove('hidden');
+            if (sections.supportingDocuments) sections.supportingDocuments.classList.remove('hidden');
+            if (sections.jobTitleField) sections.jobTitleField.classList.remove('hidden');
+            if (sections.companyField) sections.companyField.classList.remove('hidden');
+            if (sections.companyAddressField) sections.companyAddressField.classList.remove('hidden');
+            if (sections.salaryField) sections.salaryField.classList.remove('hidden');
+            if (sections.coeField) sections.coeField.classList.remove('hidden');
+            if (sections.corField) sections.corField.classList.remove('hidden');
+            break;
+    }
+}
+
+// ===== FORM VALIDATION =====
+function validateFormSubmission() {
+    // Prevent address loading interference
+    if (isAddressLoading) {
+        alert('Address data is still loading. Please wait.');
+        return false;
+    }
+    
+    // Validate student years
+    if (!validateStudentYears()) {
+        return false;
+    }
+
+    // Profile photo validation
+    const profilePhotoInput = document.getElementById('profilePictureInput');
+    const hasExistingPhoto = '<?php echo !empty($profile['photo_path']) ? 'true' : 'false'; ?>';
+
+    if (!profilePhotoInput.files.length && hasExistingPhoto === 'false') {
+        alert('Please upload your profile picture before submitting.');
+        return false;
+    }
+
+    // Required fields
+    const requiredFields = [
+        { field: 'contact_number', message: 'Contact Number is required.' },
+        { field: 'employment_status', message: 'Employment Status is required.' }
+    ];
+
+    for (const { field, message } of requiredFields) {
+        const element = document.querySelector(`[name="${field}"]`);
+        if (element && !element.value.trim()) {
+            alert(message);
+            return false;
         }
     }
 
-    function updateEndYearOptions() {
-        const startYearSelect = document.querySelector('[name="start_year"]');
-        const endYearSelect = document.querySelector('[name="end_year"]');
+    // Worldwide address validation
+    const addressFields = ['city', 'state_province', 'country', 'latitude', 'longitude', 'formatted_address'];
+    const addressMessages = ['City', 'State/Province', 'Country', 'Latitude', 'Longitude', 'Formatted Address'];
+
+    for (let i = 0; i < addressFields.length; i++) {
+        const element = document.querySelector(`[name="${addressFields[i]}"]`);
+        if (element && !element.value.trim()) {
+            alert(addressMessages[i] + ' is required for address.');
+            return false;
+        }
+    }
+
+    // Employment validation
+    const status = document.getElementById('employmentStatusSelect')?.value || '';
+    
+    if (['Employed', 'Employed & Student'].includes(status)) {
+        const jobTitleSelect = document.getElementById('jobTitleSelect');
+        if (jobTitleSelect && !jobTitleSelect.value) {
+            alert('Job Title is required for this employment status.');
+            return false;
+        } else if (jobTitleSelect && jobTitleSelect.value === 'Other') {
+            const otherTitle = document.querySelector('[name="other_job_title"]');
+            if (otherTitle && !otherTitle.value.trim()) {
+                alert('Please specify job title if "Other" is selected.');
+                return false;
+            }
+        }
+        
+        const companyName = document.querySelector('[name="company_name"]');
+        if (companyName && !companyName.value.trim()) {
+            alert('Company Name is required for this employment status.');
+            return false;
+        }
+        
+        const companyAddress = document.querySelector('[name="company_address"]');
+        if (companyAddress && !companyAddress.value.trim()) {
+            alert('Company Address is required for this employment status.');
+            return false;
+        }
+    }
+
+    // Self-Employed validation
+    if (status === 'Self-Employed') {
+        const businessTypeSelect = document.getElementById('businessTypeSelect');
+        if (businessTypeSelect && !businessTypeSelect.value) {
+            alert('Business Type is required for Self-Employed status.');
+            return false;
+        } else if (businessTypeSelect && businessTypeSelect.value === 'Others (Please specify)') {
+            const businessTypeOther = document.querySelector('[name="business_type_other"]');
+            if (businessTypeOther && !businessTypeOther.value.trim()) {
+                alert('Please specify business type if "Others" is selected.');
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+// ===== STUDENT YEAR FUNCTIONS =====
+function updateStudentYearOptions() {
+    const graduationYear = <?php echo !empty($profile['batch_year']) ? $profile['batch_year'] : 'null'; ?>;
+    const startYearSelect = document.querySelector('[name="start_year"]');
+    const endYearSelect = document.querySelector('[name="end_year"]');
+    const status = document.getElementById('employmentStatusSelect')?.value || '';
+    
+    if (startYearSelect && endYearSelect && ['Student', 'Employed & Student'].includes(status)) {
         const currentYear = new Date().getFullYear();
         
-        if (startYearSelect && endYearSelect && startYearSelect.value) {
-            const startYear = parseInt(startYearSelect.value);
-            const currentEndYear = endYearSelect.value;
-            
-            // End Year: start year + 1 to current year + 5 (max 5 years in future)
-            endYearSelect.innerHTML = '<option value="">Select End Year</option>';
-            for (let y = startYear + 1; y <= currentYear + 5; y++) {
-                const option = document.createElement('option');
-                option.value = y;
-                option.textContent = y;
-                if (currentEndYear && y === parseInt(currentEndYear)) {
-                    option.selected = true;
-                }
-                endYearSelect.appendChild(option);
+        // Store current selections
+        const currentStartYear = startYearSelect.value;
+        const currentEndYear = endYearSelect.value;
+        
+        // Update Start Year dropdown
+        startYearSelect.innerHTML = '<option value="">Select Start Year</option>';
+        
+        const minStartYear = graduationYear ? parseInt(graduationYear) + 1 : currentYear - 10;
+        const maxStartYear = currentYear;
+        
+        for (let y = minStartYear; y <= maxStartYear; y++) {
+            const option = document.createElement('option');
+            option.value = y;
+            option.textContent = y;
+            if (currentStartYear && y === parseInt(currentStartYear)) {
+                option.selected = true;
             }
+            startYearSelect.appendChild(option);
+        }
+        
+        updateEndYearOptions();
+    }
+}
+
+function updateEndYearOptions() {
+    const startYearSelect = document.querySelector('[name="start_year"]');
+    const endYearSelect = document.querySelector('[name="end_year"]');
+    const currentYear = new Date().getFullYear();
+    
+    if (startYearSelect && endYearSelect && startYearSelect.value) {
+        const startYear = parseInt(startYearSelect.value);
+        const currentEndYear = endYearSelect.value;
+        
+        endYearSelect.innerHTML = '<option value="">Select End Year</option>';
+        for (let y = startYear + 1; y <= currentYear + 5; y++) {
+            const option = document.createElement('option');
+            option.value = y;
+            option.textContent = y;
+            if (currentEndYear && y === parseInt(currentEndYear)) {
+                option.selected = true;
+            }
+            endYearSelect.appendChild(option);
         }
     }
+}
 
-    // Event listeners for dynamic year filtering
+function initializeStudentYearOptions() {
+    const employmentStatusSelect = document.getElementById('employmentStatusSelect');
+    const startYearSelect = document.querySelector('[name="start_year"]');
+    
     if (employmentStatusSelect) {
         employmentStatusSelect.addEventListener('change', updateStudentYearOptions);
     }
-
-    // Update formatted address when fields change
-    const startYearSelect = document.querySelector('[name="start_year"]');
+    
     if (startYearSelect) {
         startYearSelect.addEventListener('change', updateEndYearOptions);
     }
+}
 
+function validateStudentYears() {
+    const status = document.getElementById('employmentStatusSelect')?.value || '';
+    
+    if (['Student', 'Employed & Student'].includes(status)) {
+        const startYear = document.querySelector('[name="start_year"]')?.value;
+        const endYear = document.querySelector('[name="end_year"]')?.value;
+        
+        if (!startYear || !endYear) {
+            alert('Both Start Year and End Year are required for student status.');
+            return false;
+        }
+        
+        if (parseInt(endYear) <= parseInt(startYear)) {
+            alert('End Year must be later than Start Year.');
+            return false;
+        }
+        
+        const currentYear = new Date().getFullYear();
+        if (parseInt(endYear) > (currentYear + 10)) {
+            alert('End Year seems too far in the future. Please verify your expected graduation year.');
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+// ===== ADDRESS FIELD INITIALIZATION =====
+function initializeAddressFields() {
     // Update formatted address when fields change
     const addressFields = document.querySelectorAll('.address-field');
     addressFields.forEach(field => {
@@ -1480,196 +1696,30 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Initialize formatted address on load
-    document.addEventListener('DOMContentLoaded', function() {
-        // Small delay to ensure all elements are loaded
-        setTimeout(() => {
-            updateFormattedAddress();
-            
-            // Load existing address data if any
-            loadExistingAddress();
-        }, 300);
-    });
-
-    // Student year validation function
-    function validateStudentYears() {
-        const status = employmentStatusSelect ? employmentStatusSelect.value : '';
-        
-        if (['Student', 'Employed & Student'].includes(status)) {
-            const startYear = document.querySelector('[name="start_year"]').value;
-            const endYear = document.querySelector('[name="end_year"]').value;
-            
-            if (!startYear || !endYear) {
-                alert('Both Start Year and End Year are required for student status.');
-                return false;
-            }
-            
-            if (parseInt(endYear) <= parseInt(startYear)) {
-                alert('End Year must be later than Start Year.');
-                return false;
-            }
-            
-            const currentYear = new Date().getFullYear();
-            if (parseInt(endYear) > (currentYear + 10)) {
-                alert('End Year seems too far in the future. Please verify your expected graduation year.');
-                return false;
-            }
-        }
-        
-        return true;
+    // Use current location button
+    const useCurrentLocationBtn = document.getElementById('use-current-location-btn');
+    if (useCurrentLocationBtn) {
+        useCurrentLocationBtn.addEventListener('click', useCurrentLocation);
     }
 
-    // SIMPLIFIED Form validation - FIXED VERSION
+    // Form submission validation for address
     const alumniProfileForm = document.getElementById('alumniProfileForm');
     if (alumniProfileForm) {
         alumniProfileForm.addEventListener('submit', function(event) {
-            // Prevent address loading interference
-            if (isAddressLoading) {
-                alert('Address data is still loading. Please wait.');
+            if (!validateAddress()) {
                 event.preventDefault();
-                return;
+                showValidation('Please complete all address fields and select a location on the map.', 'error');
+                return false;
             }
-            
-            // Validate student years
-            if (!validateStudentYears()) {
-                event.preventDefault();
-                return;
-            }
-
-            // Profile photo validation - FIXED
-            const profilePhotoInput = document.getElementById('profilePictureInput');
-            const hasExistingPhoto = '<?php echo !empty($profile['photo_path']) ? 'true' : 'false'; ?>';
-
-            // Only require photo if no existing photo
-            if (!profilePhotoInput.files.length && hasExistingPhoto === 'false') {
-                alert('Please upload your profile picture before submitting.');
-                event.preventDefault();
-                return;
-            }
-
-            // UPDATED: Only contact number and employment status are required
-            const requiredFields = [
-                { field: 'contact_number', message: 'Contact Number is required.' },
-                { field: 'employment_status', message: 'Employment Status is required.' }
-            ];
-
-            let isValid = true;
-
-            for (const { field, message } of requiredFields) {
-                const element = document.querySelector(`[name="${field}"]`);
-                if (element && !element.value.trim()) {
-                    alert(message);
-                    isValid = false;
-                    break;
-                }
-            }
-
-            if (!isValid) {
-                event.preventDefault();
-                return;
-            }
-
-            // Worldwide address validation
-            const addressFields = ['city', 'state_province', 'country', 'latitude', 'longitude', 'formatted_address'];
-            const addressMessages = ['City', 'State/Province', 'Country', 'Latitude', 'Longitude', 'Formatted Address'];
-
-            for (let i = 0; i < addressFields.length; i++) {
-                const element = document.querySelector(`[name="${addressFields[i]}"]`);
-                if (element && !element.value.trim()) {
-                    alert(addressMessages[i] + ' is required for address.');
-                    isValid = false;
-                    break;
-                }
-            }
-
-            if (!isValid) {
-                event.preventDefault();
-                return;
-            }
-
-            // Employment validation
-            const status = employmentStatusSelect ? employmentStatusSelect.value : '';
-            
-            if (['Employed', 'Employed & Student'].includes(status)) {
-                if (jobTitleSelect && !jobTitleSelect.value) {
-                    alert('Job Title is required for this employment status.');
-                    isValid = false;
-                } else if (jobTitleSelect && jobTitleSelect.value === 'Other') {
-                    const otherTitle = document.querySelector('[name="other_job_title"]');
-                    if (otherTitle && !otherTitle.value.trim()) {
-                        alert('Please specify job title if "Other" is selected.');
-                        isValid = false;
-                    }
-                }
-                
-                const companyName = document.querySelector('[name="company_name"]');
-                if (companyName && !companyName.value.trim()) {
-                    alert('Company Name is required for this employment status.');
-                    isValid = false;
-                }
-                
-                const companyAddress = document.querySelector('[name="company_address"]');
-                if (companyAddress && !companyAddress.value.trim()) {
-                    alert('Company Address is required for this employment status.');
-                    isValid = false;
-                }
-            }
-
-            // Self-Employed validation
-            if (status === 'Self-Employed') {
-                if (businessTypeSelect && !businessTypeSelect.value) {
-                    alert('Business Type is required for Self-Employed status.');
-                    isValid = false;
-                } else if (businessTypeSelect && businessTypeSelect.value === 'Others (Please specify)') {
-                    const businessTypeOther = document.querySelector('[name="business_type_other"]');
-                    if (businessTypeOther && !businessTypeOther.value.trim()) {
-                        alert('Please specify business type if "Others" is selected.');
-                        isValid = false;
-                    }
-                }
-            }
-
-            if (!isValid) {
-                event.preventDefault();
-                return;
-            }
+            return true;
         });
     }
+    
+    // Initialize formatted address on load
+    updateFormattedAddress();
+}
 
-    // Initialize student year options when modal opens
-    if (updateProfileBtn) {
-        const canUpdate = <?php echo $can_update ? 'true' : 'false'; ?>;
-        
-        if (canUpdate) {
-            updateProfileBtn.addEventListener('click', () => {
-                if (updateProfileModal) {
-                    updateProfileModal.classList.remove('hidden');
-                    updateProfileModal.classList.add('show', 'flex');
-                    // Initialize student year options based on graduation year
-                    setTimeout(updateStudentYearOptions, 100);
-                }
-            });
-        }
-    }
-
-    // Also initialize for auto-opening modal
-    <?php if ($auto_open_modal): ?>
-    setTimeout(() => {
-        updateStudentYearOptions();
-    }, 200);
-    <?php endif; ?>
-});
-
-// MAP FUNCTIONS
-let map;
-let marker;
-let selectedLatLng;
-let debounceTimer;
-
-// Track if map is initialized
-let mapInitialized = false;
-
-// Initialize map
+// ===== MAP FUNCTIONS =====
 function initMap() {
     console.log('initMap called, mapInitialized:', mapInitialized);
     
@@ -1740,7 +1790,7 @@ function setupMap(center, zoom) {
             console.log('Map clicked at:', e.latlng);
             selectedLatLng = e.latlng;
             updateMarker(selectedLatLng);
-            retryGeocode(selectedLatLng.lat, selectedLatLng.lng, 2); // 2 retries
+            retryGeocode(selectedLatLng.lat, selectedLatLng.lng, 2);
         });
         
         mapInitialized = true;
@@ -1755,7 +1805,6 @@ function setupMap(center, zoom) {
     }
 }
 
-// Update marker position
 function updateMarker(latlng) {
     if (marker) {
         map.removeLayer(marker);
@@ -1769,16 +1818,23 @@ function updateMarker(latlng) {
         duration: 0.5
     });
     
-    document.getElementById('latitude').value = latlng.lat.toFixed(6);
-    document.getElementById('longitude').value = latlng.lng.toFixed(6);
+    const latInput = document.getElementById('latitude');
+    const lngInput = document.getElementById('longitude');
+    if (latInput && lngInput) {
+        latInput.value = latlng.lat.toFixed(6);
+        lngInput.value = latlng.lng.toFixed(6);
+    }
 }
 
-// Reverse geocode (coordinates to address) - ROBUST VERSION
+// ===== GEOCODING FUNCTIONS =====
 async function reverseGeocode(lat, lon) {
     try {
         console.log('=== reverseGeocode called ===');
         console.log('Lat:', lat, 'Type:', typeof lat);
         console.log('Lon:', lon, 'Type:', typeof lon);
+        
+        // Set loading state
+        isAddressLoading = true;
         
         // Validate coordinates before sending
         if (lat === undefined || lon === undefined || lat === null || lon === null) {
@@ -1850,15 +1906,17 @@ async function reverseGeocode(lat, lon) {
         setTimeout(() => {
             updateFormattedAddress();
             showValidation('✓ Address populated successfully!', 'success');
+            isAddressLoading = false; // Reset loading state
         }, 100);
         
     } catch (error) {
         console.error('Reverse geocoding error:', error);
         showValidation(`Error: ${error.message}. Please try again or enter manually.`, 'error');
+        isAddressLoading = false; // Reset loading state on error
+        throw error; // Re-throw for retry logic
     }
 }
 
-// Retry function with exponential backoff
 async function retryGeocode(lat, lon, retries = 3) {
     console.log(`retryGeocode called, attempts: ${retries}`);
     
@@ -1881,11 +1939,10 @@ async function retryGeocode(lat, lon, retries = 3) {
     }
 }
 
-// Update formatted address preview
 function updateFormattedAddress() {
-    const city = document.getElementById('city').value.trim();
-    const state = document.getElementById('state-province').value.trim();
-    const country = document.getElementById('country').value.trim();
+    const city = document.getElementById('city')?.value.trim() || '';
+    const state = document.getElementById('state-province')?.value.trim() || '';
+    const country = document.getElementById('country')?.value.trim() || '';
     
     console.log('updateFormattedAddress called with:', { city, state, country });
     
@@ -1915,10 +1972,9 @@ function updateFormattedAddress() {
     return formattedAddress;
 }
 
-// Load existing address data
 function loadExistingAddress() {
-    const existingLat = document.getElementById('latitude').value;
-    const existingLng = document.getElementById('longitude').value;
+    const existingLat = document.getElementById('latitude')?.value;
+    const existingLng = document.getElementById('longitude')?.value;
     
     if (existingLat && existingLng && !isNaN(parseFloat(existingLat)) && !isNaN(parseFloat(existingLng))) {
         const latLng = L.latLng(parseFloat(existingLat), parseFloat(existingLng));
@@ -1927,7 +1983,6 @@ function loadExistingAddress() {
     }
 }
 
-// Use current location
 function useCurrentLocation() {
     if (navigator.geolocation) {
         showValidation('Getting your current location...', 'info');
@@ -1955,11 +2010,10 @@ function useCurrentLocation() {
     }
 }
 
-// Geocode from form fields (2-way sync when user types in address fields)
 async function geocodeFromForm() {
-    const city = document.getElementById('city').value.trim();
-    const state = document.getElementById('state-province').value.trim();
-    const country = document.getElementById('country').value.trim();
+    const city = document.getElementById('city')?.value.trim() || '';
+    const state = document.getElementById('state-province')?.value.trim() || '';
+    const country = document.getElementById('country')?.value.trim() || '';
     
     if (!city && !state && !country) {
         showValidation('Please fill in at least one address field', 'warning');
@@ -1993,59 +2047,19 @@ async function geocodeFromForm() {
     }
 }
 
-// Debounced geocoding for field changes
 function debounceGeocode() {
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
-        const city = document.getElementById('city').value.trim();
-        const state = document.getElementById('state-province').value.trim();
-        const country = document.getElementById('country').value.trim();
+        const city = document.getElementById('city')?.value.trim() || '';
+        const state = document.getElementById('state-province')?.value.trim() || '';
+        const country = document.getElementById('country')?.value.trim() || '';
         
         if (city && state && country) {
             geocodeFromForm();
         }
-    }, 1000); // Wait 1 second after last keystroke
+    }, 1000);
 }
 
-// Show validation message
-function showValidation(message, type) {
-    const container = document.getElementById('address-validation');
-    const messageEl = document.getElementById('address-validation-message');
-    const textEl = document.getElementById('validation-text');
-    
-    if (!container || !messageEl || !textEl) return;
-    
-    // Clear previous classes
-    messageEl.className = 'flex items-center p-3 rounded-md';
-    
-    // Add type-specific classes
-    switch(type) {
-        case 'success':
-            messageEl.classList.add('bg-green-100', 'text-green-800', 'border', 'border-green-200');
-            break;
-        case 'error':
-            messageEl.classList.add('bg-red-100', 'text-red-800', 'border', 'border-red-200');
-            break;
-        case 'warning':
-            messageEl.classList.add('bg-yellow-100', 'text-yellow-800', 'border', 'border-yellow-200');
-            break;
-        case 'info':
-            messageEl.classList.add('bg-blue-100', 'text-blue-800', 'border', 'border-blue-200');
-            break;
-    }
-    
-    textEl.textContent = message;
-    container.classList.remove('hidden');
-    
-    // Auto-hide success messages after 3 seconds
-    if (type === 'success') {
-        setTimeout(() => {
-            container.classList.add('hidden');
-        }, 3000);
-    }
-}
-
-// Validate all required address fields
 function validateAddress() {
     const requiredFields = [
         { id: 'city', name: 'City' },
@@ -2073,40 +2087,7 @@ function validateAddress() {
     return true;
 }
 
-// Initialize when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
-    // Update formatted address when fields change
-    const addressFields = document.querySelectorAll('.address-field');
-    addressFields.forEach(field => {
-        field.addEventListener('input', function() {
-            updateFormattedAddress();
-            debounceGeocode();
-        });
-    });
-
-    // Use current location button
-    const useCurrentLocationBtn = document.getElementById('use-current-location-btn');
-    if (useCurrentLocationBtn) {
-        useCurrentLocationBtn.addEventListener('click', useCurrentLocation);
-    }
-
-    // Form submission validation
-    const alumniProfileForm = document.getElementById('alumniProfileForm');
-    if (alumniProfileForm) {
-        alumniProfileForm.addEventListener('submit', function(event) {
-            if (!validateAddress()) {
-                event.preventDefault();
-                showValidation('Please complete all address fields and select a location on the map.', 'error');
-                return false;
-            }
-            return true;
-        });
-    }
-    
-    // Initialize formatted address on load
-    updateFormattedAddress();
-});
-
+// ===== DEBUG FUNCTIONS =====
 async function testGeocoding() {
     console.log('=== DEBUG: Testing geocoding ===');
     

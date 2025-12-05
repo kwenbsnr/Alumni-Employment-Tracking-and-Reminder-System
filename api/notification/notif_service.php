@@ -5,7 +5,7 @@
 // Use absolute paths for reliability
 $root_path = dirname(__DIR__, 2); // Go up two levels from api/notification/
 require_once $root_path . '/vendor/autoload.php';
-require_once __DIR__ . 'scheduled_reminders.php';
+require_once __DIR__ . '/scheduled_reminders.php';
 require_once $root_path . '/connect.php';
 
 // Check for notification config
