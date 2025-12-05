@@ -13,7 +13,7 @@ $user_id = $_SESSION['user_id'];
 $page_title = "Profile Management";
 $active_page = "profile";
 
-// Fetch profile data WITH SCHOOL INFO 
+// Fetch profile data WITH WORLDWIDE ADDRESS 
 $stmt = $conn->prepare("
     SELECT 
         u.user_id, u.email, u.student_id, u.date_of_birth, u.gender, u.program, 
@@ -27,17 +27,12 @@ $stmt = $conn->prepare("
         u.batch_year,
         u.first_name, u.middle_name, u.last_name, u.suffix,
         ap.contact_number, 
-        ap.employment_status, ap.photo_path, ap.address_id,
+        ap.employment_status, ap.photo_path,
         ap.submission_status, ap.last_profile_update, ap.rejection_reason,
-        tb.barangay_name, tm.municipality_name, tp.province_name, tr.region_name,
-        tr.region_id, tp.province_id, tm.municipality_id, tb.barangay_id
+        wa.city, wa.state_province, wa.country, wa.latitude, wa.longitude, wa.formatted_address
     FROM users u
     LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id
-    LEFT JOIN address a ON ap.address_id = a.address_id
-    LEFT JOIN table_barangay tb ON a.barangay_id = tb.barangay_id
-    LEFT JOIN table_municipality tm ON tb.municipality_id = tm.municipality_id
-    LEFT JOIN table_province tp ON tm.province_id = tp.province_id
-    LEFT JOIN table_region tr ON tp.region_id = tr.region_id
+    LEFT JOIN worldwide_address wa ON u.user_id = wa.user_id  -- Changed join condition
     WHERE u.user_id = ?
 ");
 
@@ -89,14 +84,13 @@ $is_profile_rejected = !empty($profile) && $submission_status === 'Rejected';
 $is_profile_approved = !empty($profile) && $submission_status === 'Approved';
 $is_profile_pending = !empty($profile) && $submission_status === 'Pending';
 
-// FIXED: Check if profile has personal data for display - UPDATED criteria
+//  Check if profile has personal data for display 
 $has_personal_data = !empty($profile) && (!empty($profile['contact_number']) || !empty($profile['employment_status']));
-// === CHECK SUBMISSION STATUS FROM DATABASE (GLOBAL CONTROL) ===
-$submission_open = false;
-$statusCheck = $conn->query("SELECT is_open FROM submission_status LIMIT 1");
-if ($statusCheck && $row = $statusCheck->fetch_assoc()) {
-    $submission_open = (bool)$row['is_open'];
+
+if (!function_exists('isSubmissionPeriodOpen')) {
+    require_once dirname(__DIR__) . '/api/utils/deadline.php';
 }
+$submission_open = isSubmissionPeriodOpen($conn);
 
 // Semiannual update allowed only if previously approved and 6 months passed
 $can_update_semiannual = $is_profile_approved && (
@@ -378,231 +372,318 @@ document.addEventListener('DOMContentLoaded', function() {
         </p>
     </div>
 <?php endif; ?>
-</div>
 
-      <!-- FIXED: Show profile cards only when personal data exists -->
-      <?php if ($has_personal_data): ?>
-        <!-- Always show profile cards -->
-
-   <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-<!-- Personal Information Card -->
-<div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-blue-500 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-blue-50">
-    <div class="flex items-center space-x-3 mb-4 pb-2 border-b border-gray-100">
-        <h3 class="text-xl font-bold text-gray-800">Personal Information</h3>
-    </div>
-    <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div class="flex flex-col">
-            <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Name</dt>
-            <dd class="font-semibold text-gray-700" style="font-size: 15px;">
-                <?php echo !empty($profile['official_name']) ? htmlspecialchars($profile['official_name'], ENT_QUOTES, 'UTF-8') : 'N/A'; ?>
-            </dd>
-        </div>
-        <div class="flex flex-col md:ml-[-70px]">
-            <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Email</dt>
-            <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['email'] ?? 'N/A'); ?></dd>
-        </div>
-        <div class="flex flex-col">
-            <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Contact Number</dt>
-            <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['contact_number'] ?? 'N/A'); ?></dd>
-        </div>
-        <div class="flex flex-col md:ml-[-70px]">
-            <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Program</dt>
-            <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['program'] ?? 'N/A'); ?></dd>
-        </div>
-    </dl>
 </div>
-    <!-- Address Card -->
-    <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-green-500 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-green-50">
-        <div class="flex items-center space-x-3 mb-4 pb-2 border-b border-gray-100">
-            <h3 class="text-xl font-bold text-gray-800">Address</h3>
-        </div>
-        <dl class="grid grid-cols-2 gap-4">
-            <div class="flex flex-col">
-                <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Barangay</dt>
-                <dd class="font-semibold text-gray-700" style="font-size: 15px;">
-                    <?php echo !empty($profile['barangay_name']) ? htmlspecialchars($profile['barangay_name'], ENT_QUOTES, 'UTF-8') : 'N/A'; ?>
-                </dd>
+    <!-- FIXED: Show profile cards only when personal data exists -->
+    <?php if ($has_personal_data): ?>
+        <!-- Consistent 2x2 Grid Layout -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">         
+          <!-- Personal Information Card -->
+          <div class="bg-white rounded-xl shadow-lg border-l-4 border-blue-500 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-blue-50 flex flex-col h-full">
+            <div class="p-6 flex-1">
+              <div class="flex items-center space-x-3 mb-4 pb-2 border-b border-gray-100">
+                <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                  <i class="fas fa-user text-blue-600"></i>
+                </div>
+                <h3 class="text-xl font-bold text-gray-800">Personal Information</h3>
+              </div>
+              <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="space-y-1">
+                  <dt class="font-medium text-gray-500 text-sm mb-1">Name</dt>
+                  <dd class="font-semibold text-gray-700 text-base">
+                    <?php echo !empty($profile['official_name']) ? htmlspecialchars($profile['official_name'], ENT_QUOTES, 'UTF-8') : 'N/A'; ?>
+                  </dd>
+                </div>
+                <div class="space-y-1">
+                  <dt class="font-medium text-gray-500 text-sm mb-1">Email</dt>
+                  <dd class="font-semibold text-gray-700 text-base"><?php echo htmlspecialchars($profile['email'] ?? 'N/A'); ?></dd>
+                </div>
+                <div class="space-y-1">
+                  <dt class="font-medium text-gray-500 text-sm mb-1">Contact Number</dt>
+                  <dd class="font-semibold text-gray-700 text-base"><?php echo htmlspecialchars($profile['contact_number'] ?? 'N/A'); ?></dd>
+                </div>
+                <div class="space-y-1">
+                  <dt class="font-medium text-gray-500 text-sm mb-1">Program</dt>
+                  <dd class="font-semibold text-gray-700 text-base"><?php echo htmlspecialchars($profile['program'] ?? 'N/A'); ?></dd>
+                </div>
+              </dl>
             </div>
-            <div class="flex flex-col">
-                <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Municipality/City</dt>
-                <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['municipality_name'] ?? 'N/A'); ?></dd>
+            <div class="p-4 bg-blue-50 border-t border-blue-100 rounded-b-xl">
+              <p class="text-xs text-blue-600 flex items-center">
+                <i class="fas fa-info-circle mr-2"></i>
+                Basic identification information
+              </p>
             </div>
-            <div class="flex flex-col">
-                <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Province</dt>
-                <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['province_name'] ?? 'N/A'); ?></dd>
-            </div>
-            <div class="flex flex-col">
-                <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Region</dt>
-                <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['region_name'] ?? 'N/A'); ?></dd>
-            </div>
-        </dl>
-    </div>
-</div>
+          </div>
 
-<!-- Container for Employment/Academic Details and Documents -->
-<div class="flex flex-col md:flex-row md:space-x-6">
-  <!-- Employment/Academic Details Card -->
-<div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-purple-500 flex-1 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-purple-50">
-    <div class="flex items-center space-x-3 mb-4 pb-2 border-b border-gray-100">
-        <h3 class="text-xl font-bold text-gray-800">Employment/Academic Details</h3>
-    </div>
-    <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div class="flex flex-col">
-            <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Employment Status</dt>
-            <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($profile['employment_status'] ?? 'Not Set'); ?></dd>
-        </div>
-        <?php if (in_array($profile['employment_status'] ?? '', ['Employed', 'Self-Employed', 'Employed & Student'])): ?>
-            <?php if (($profile['employment_status'] ?? '') !== 'Self-Employed'): ?>
-                <div class="flex flex-col">
-                    <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Job Title</dt>
-                    <dd class="font-semibold text-gray-700" style="font-size: 15px;">
+          <!-- Address Information Card -->
+          <div class="bg-white rounded-xl shadow-lg border-l-4 border-green-500 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-green-50 flex flex-col h-full">
+            <div class="p-6 flex-1">
+              <div class="flex items-center space-x-3 mb-4 pb-2 border-b border-gray-100">
+                <div class="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
+                  <i class="fas fa-map-marker-alt text-green-600"></i>
+                </div>
+                <h3 class="text-xl font-bold text-gray-800">Address Information</h3>
+                <!-- DEBUG BUTTON - ADD HERE -->
+                <button type="button" onclick="testGeocoding()" class="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600">
+                    <i class="fas fa-bug mr-1"></i>Test Geocoding
+                </button>
+              </div>
+              
+              <?php if (!empty($profile['city']) || !empty($profile['formatted_address'])): ?>
+                <div class="space-y-4">
+                  <!-- Address Summary -->
+                  <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <p class="font-medium text-gray-700 mb-2">
+                      <i class="fas fa-map-signs text-green-500 mr-2"></i>
+                      Complete Address
+                    </p>
+                    <p class="text-gray-600 text-sm"><?php echo htmlspecialchars($profile['formatted_address'] ?? 'N/A'); ?></p>
+                  </div>
+                  
+                  <!-- Location Details -->
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                      <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">City</p>
+                      <p class="text-gray-800 font-medium"><?php echo htmlspecialchars($profile['city'] ?? 'N/A'); ?></p>
+                    </div>
+                    <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                      <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">State/Province</p>
+                      <p class="text-gray-800 font-medium"><?php echo htmlspecialchars($profile['state_province'] ?? 'N/A'); ?></p>
+                    </div>
+                    <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                      <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Country</p>
+                      <p class="text-gray-800 font-medium"><?php echo htmlspecialchars($profile['country'] ?? 'N/A'); ?></p>
+                    </div>
+                  </div>
+                  
+                  <!-- Coordinates -->
+                  <?php if (!empty($profile['latitude']) && !empty($profile['longitude'])): ?>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                        <p class="text-xs font-semibold text-blue-500 uppercase tracking-wide mb-1">Latitude</p>
+                        <p class="text-blue-700 font-mono font-medium"><?php echo htmlspecialchars($profile['latitude']); ?></p>
+                      </div>
+                      <div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                        <p class="text-xs font-semibold text-blue-500 uppercase tracking-wide mb-1">Longitude</p>
+                        <p class="text-blue-700 font-mono font-medium"><?php echo htmlspecialchars($profile['longitude']); ?></p>
+                      </div>
+                    </div>
+                  <?php endif; ?>
+
+                </div>
+              <?php else: ?>
+                <div class="text-center py-6">
+                  <div class="bg-gray-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-3">
+                    <i class="fas fa-map-marker-alt text-gray-400 text-2xl"></i>
+                  </div>
+                  <p class="text-gray-500 font-medium">No address information</p>
+                  <p class="text-gray-400 text-sm mt-1">Update your profile to add address details</p>
+                </div>
+              <?php endif; ?>
+            </div>
+            <div class="p-4 bg-green-50 border-t border-green-100 rounded-b-xl">
+              <p class="text-xs text-green-600 flex items-center">
+                <i class="fas fa-globe-americas mr-2"></i>
+                Worldwide location details
+              </p>
+            </div>
+          </div>
+
+          <!-- Employment/Academic Details Card -->
+          <div class="bg-white rounded-xl shadow-lg border-l-4 border-purple-500 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-purple-50 flex flex-col h-full">
+            <div class="p-6 flex-1">
+              <div class="flex items-center space-x-3 mb-4 pb-2 border-b border-gray-100">
+                <div class="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
+                  <i class="fas fa-briefcase text-purple-600"></i>
+                </div>
+                <h3 class="text-xl font-bold text-gray-800">Employment/Academic Details</h3>
+              </div>
+              
+              <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Employment Status -->
+                <div class="space-y-1">
+                  <dt class="font-medium text-gray-500 text-sm mb-1">Employment Status</dt>
+                  <dd class="font-semibold text-gray-700 text-base"><?php echo htmlspecialchars($profile['employment_status'] ?? 'Not Set'); ?></dd>
+                </div>
+
+                <?php
+                $current_status = $profile['employment_status'] ?? '';
+                
+                if (in_array($current_status, ['Employed', 'Self-Employed', 'Employed & Student'])): 
+                  if ($current_status !== 'Self-Employed'): ?>
+                    <!-- Employed Details -->
+                    <div class="space-y-1">
+                      <dt class="font-medium text-gray-500 text-sm mb-1">Job Title</dt>
+                      <dd class="font-semibold text-gray-700 text-base">
                         <?php echo !empty($employment['job_title']) ? htmlspecialchars($employment['job_title'], ENT_QUOTES, 'UTF-8') : 'N/A'; ?>
-                    </dd>
-                </div>
-                <div class="flex flex-col">
-                    <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Company Name</dt>
-                    <dd class="font-semibold text-gray-700" style="font-size: 15px;">
+                      </dd>
+                    </div>
+                    <div class="space-y-1">
+                      <dt class="font-medium text-gray-500 text-sm mb-1">Company Name</dt>
+                      <dd class="font-semibold text-gray-700 text-base">
                         <?php echo !empty($employment['company_name']) ? htmlspecialchars($employment['company_name'], ENT_QUOTES, 'UTF-8') : 'N/A'; ?>
-                    </dd>
-                </div>
-                <div class="flex flex-col">
-                    <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;"><?php echo (($profile['employment_status'] ?? '') === 'Self-Employed') ? 'Monthly Income Range' : 'Salary Range'; ?></dt>
-                    <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($employment['salary_range'] ?? 'N/A'); ?></dd>
-                </div>
-                <div class="flex flex-col md:col-span-2">
-                    <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Company Address</dt>
-                    <dd class="font-semibold text-gray-700" style="font-size: 15px;">
+                      </dd>
+                    </div>
+                    <div class="space-y-1 md:col-span-2">
+                      <dt class="font-medium text-gray-500 text-sm mb-1">Company Address</dt>
+                      <dd class="font-semibold text-gray-700 text-base">
                         <?php echo !empty($employment['company_address']) ? htmlspecialchars($employment['company_address'], ENT_QUOTES, 'UTF-8') : 'N/A'; ?>
-                    </dd>
-                </div>
-            <?php endif; ?>
-            <?php if (($profile['employment_status'] ?? '') === 'Self-Employed'): ?>
-                <div class="flex flex-col">
-                    <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Business Type</dt>
-                    <dd class="font-semibold text-gray-700" style="font-size: 15px;">
+                      </dd>
+                    </div>
+                    <div class="space-y-1">
+                      <dt class="font-medium text-gray-500 text-sm mb-1">Salary Range</dt>
+                      <dd class="font-semibold text-gray-700 text-base"><?php echo htmlspecialchars($employment['salary_range'] ?? 'N/A'); ?></dd>
+                    </div>
+                  <?php else: ?>
+                    <!-- Self-Employed Details -->
+                    <div class="space-y-1">
+                      <dt class="font-medium text-gray-500 text-sm mb-1">Business Type</dt>
+                      <dd class="font-semibold text-gray-700 text-base">
                         <?php
                         $display_business_type = $employment['business_type'] ?? 'N/A';
                         if (strpos($display_business_type, 'Others: ') === 0) {
-                            $display_business_type = 'Others: ' . substr($display_business_type, 8);
+                          $display_business_type = 'Others: ' . substr($display_business_type, 8);
                         }
                         echo !empty($display_business_type) ? htmlspecialchars($display_business_type, ENT_QUOTES, 'UTF-8') : 'N/A';
                         ?>
+                      </dd>
+                    </div>
+                    <div class="space-y-1">
+                      <dt class="font-medium text-gray-500 text-sm mb-1">Monthly Income Range</dt>
+                      <dd class="font-semibold text-gray-700 text-base"><?php echo htmlspecialchars($employment['salary_range'] ?? 'N/A'); ?></dd>
+                    </div>
+                  <?php endif; ?>
+                <?php endif; ?>
+
+                <?php if (in_array($current_status, ['Student', 'Employed & Student'])): ?>
+                  <!-- Student Details -->
+                  <div class="space-y-1">
+                    <dt class="font-medium text-gray-500 text-sm mb-1">School Name</dt>
+                    <dd class="font-semibold text-gray-700 text-base">
+                      <?php echo !empty($education['school_name']) ? htmlspecialchars($education['school_name'], ENT_QUOTES, 'UTF-8') : 'N/A'; ?>
                     </dd>
-                </div>
-                <div class="flex flex-col">
-                    <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Monthly Income Range</dt>
-                    <dd class="font-semibold text-gray-700" style="font-size: 15px;"><?php echo htmlspecialchars($employment['salary_range'] ?? 'N/A'); ?></dd>
-                </div>
-            <?php endif; ?>
-        <?php endif; ?>
-            <?php if (in_array($profile['employment_status'] ?? '', ['Student', 'Employed & Student'])): ?>
-            <div class="flex flex-col">
-                <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">School Name</dt>
-                <dd class="font-semibold text-gray-700" style="font-size: 15px;">
-                    <?php echo !empty($education['school_name']) ? htmlspecialchars($education['school_name'], ENT_QUOTES, 'UTF-8') : 'N/A'; ?>
-                </dd>
-            </div>
-            <div class="flex flex-col">
-                <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Start Year</dt>
-                <dd class="font-semibold text-gray-700" style="font-size: 15px;">
-                    <?php echo !empty($education['start_year']) ? htmlspecialchars($education['start_year']) : 'N/A'; ?>
-                </dd>
-            </div>
-            <div class="flex flex-col">
-                <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">End Year (Expected)</dt>
-                <dd class="font-semibold text-gray-700" style="font-size: 15px;">
-                    <?php echo !empty($education['end_year']) ? htmlspecialchars($education['end_year']) : 'N/A'; ?>
-                </dd>
-            </div>
-            <div class="flex flex-col">
-                <dt class="font-medium text-gray-500 text-sm mb-1" style="font-size: 13px;">Degree Pursued</dt>
-                <dd class="font-semibold text-gray-700" style="font-size: 15px;">
-                    <?php echo !empty($education['degree_pursued']) ? htmlspecialchars($education['degree_pursued'], ENT_QUOTES, 'UTF-8') : 'N/A'; ?>
-                </dd>
-            </div>
-        <?php endif; ?>
-        <?php if (($profile['employment_status'] ?? '') === 'Unemployed'): ?>
-            
-        <?php endif; ?>
-    </dl>
-</div>
+                  </div>
+                  <div class="space-y-1">
+                    <dt class="font-medium text-gray-500 text-sm mb-1">Degree Pursued</dt>
+                    <dd class="font-semibold text-gray-700 text-base">
+                      <?php echo !empty($education['degree_pursued']) ? htmlspecialchars($education['degree_pursued'], ENT_QUOTES, 'UTF-8') : 'N/A'; ?>
+                    </dd>
+                  </div>
+                  <div class="space-y-1">
+                    <dt class="font-medium text-gray-500 text-sm mb-1">Start Year</dt>
+                    <dd class="font-semibold text-gray-700 text-base">
+                      <?php echo !empty($education['start_year']) ? htmlspecialchars($education['start_year']) : 'N/A'; ?>
+                    </dd>
+                  </div>
+                  <div class="space-y-1">
+                    <dt class="font-medium text-gray-500 text-sm mb-1">End Year (Expected)</dt>
+                    <dd class="font-semibold text-gray-700 text-base">
+                      <?php echo !empty($education['end_year']) ? htmlspecialchars($education['end_year']) : 'N/A'; ?>
+                    </dd>
+                  </div>
+                <?php endif; ?>
 
-<!-- Documents Card -->
-<div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-orange-500 flex-1 flex flex-col transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-orange-50">
-    <div class="flex items-center space-x-3 mb-4 pb-2 border-b border-gray-100">
-        <h3 class="text-xl font-bold text-gray-800">Documents</h3>
-    </div>
-    
-    <?php if (empty($docs)): ?>
-        <div class="flex-1 flex flex-col items-center justify-center py-8">
-            <i class="fas fa-folder-open text-gray-300 text-5xl mb-4"></i>
-            <p class="text-sm text-gray-500" style="font-size: 13px;">No documents uploaded.</p>
-        </div>
-    <?php else: ?>
-        <!-- Uploaded Documents List - Takes full available height -->
-        <div class="flex-1 space-y-4">
-            <?php
-            foreach ($docs as $doc):
-                $doc_type_name = $doc['document_type'] === 'COE' ? 'Certificate of Employment' :
-                            ($doc['document_type'] === 'B_CERT' ? 'Business Certificate' :
-                            ($doc['document_type'] === 'COR' ? 'Certificate of Registration' : $doc['document_type']));
-                
-                // Document icons
-                $doc_icon = 'fa-file-pdf';
-                $doc_color = 'text-red-500';
-                
-                // File info
-                $file_path = '../' . htmlspecialchars($doc['file_path']);
-                $file_name = basename($doc['file_path']);
-                $file_size = file_exists($file_path) ? round(filesize($file_path) / 1024, 1) . ' KB' : 'Unknown size';
-            ?>
-            <div class="bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition duration-150">
-                <!-- Top Section: Document Info -->
-                <div class="flex items-center justify-between p-4">
-                    <div class="flex items-center space-x-4 flex-1">
-                        <div class="flex-shrink-0">
-                            <i class="fas <?php echo $doc_icon; ?> <?php echo $doc_color; ?> text-2xl"></i>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <span class="font-semibold text-gray-800 text-base"><?php echo htmlspecialchars($doc_type_name); ?></span>
-                        </div>
+                <?php if ($current_status === 'Unemployed'): ?>
+                  <div class="md:col-span-2 text-center py-4">
+                    <div class="bg-gray-100 rounded-lg p-4">
+                      <i class="fas fa-user-clock text-gray-400 text-2xl mb-2"></i>
+                      <p class="text-gray-600 font-medium">Currently seeking employment</p>
                     </div>
+                  </div>
+                <?php endif; ?>
+              </dl>
+            </div>
+            <div class="p-4 bg-purple-50 border-t border-purple-100 rounded-b-xl">
+              <p class="text-xs text-purple-600 flex items-center">
+                <i class="fas fa-chart-line mr-2"></i>
+                Professional and educational background
+              </p>
+            </div>
+          </div>
+
+          <!-- Documents Card -->
+          <div class="bg-white rounded-xl shadow-lg border-l-4 border-orange-500 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-orange-50 flex flex-col h-full">
+            <div class="p-6 flex-1">
+              <div class="flex items-center space-x-3 mb-4 pb-2 border-b border-gray-100">
+                <div class="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center">
+                  <i class="fas fa-file-alt text-orange-600"></i>
+                </div>
+                <h3 class="text-xl font-bold text-gray-800">Documents</h3>
+              </div>
+              
+              <?php if (empty($docs)): ?>
+                <div class="text-center py-8">
+                  <div class="bg-gray-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-3">
+                    <i class="fas fa-folder-open text-gray-400 text-2xl"></i>
+                  </div>
+                  <p class="text-gray-500 font-medium">No documents uploaded</p>
+                  <p class="text-gray-400 text-sm mt-1">Documents will appear here after submission</p>
+                </div>
+              <?php else: ?>
+                <div class="space-y-3">
+                  <?php
+                  $doc_icons = [
+                    'COE' => ['icon' => 'fa-file-certificate', 'color' => 'text-red-500', 'bg' => 'bg-red-50', 'border' => 'border-red-200'],
+                    'B_CERT' => ['icon' => 'fa-file-contract', 'color' => 'text-green-500', 'bg' => 'bg-green-50', 'border' => 'border-green-200'],
+                    'COR' => ['icon' => 'fa-file-contract', 'color' => 'text-blue-500', 'bg' => 'bg-blue-50', 'border' => 'border-blue-200']
+                  ];
+                  
+                  foreach ($docs as $doc):
+                    $doc_type_name = $doc['document_type'] === 'COE' ? 'Certificate of Employment' :
+                                    ($doc['document_type'] === 'B_CERT' ? 'Business Certificate' :
+                                    ($doc['document_type'] === 'COR' ? 'Certificate of Registration' : $doc['document_type']));
                     
-                    <!-- File Details - Right Side -->
-                    <div class="flex flex-col items-end space-y-1">
-                        <span class="text-gray-500 text-sm flex items-center">
-                            <i class="fas fa-file-alt mr-2"></i><?php echo htmlspecialchars($file_name); ?>
-                        </span>
-                        <span class="text-gray-500 text-sm flex items-center">
-                            <i class="fas fa-weight-hanging mr-2"></i><?php echo $file_size; ?>
-                        </span>
-                    </div>
-                </div>
-                
-                <!-- Bottom Section: Action Buttons - Centered -->
-                <div class="border-t border-gray-200 px-4 py-3 bg-white rounded-b-lg">
-                    <div class="flex justify-center space-x-3">
-                        <a href="<?php echo $file_path; ?>" target="_blank" 
-                           class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition duration-150 flex items-center space-x-2 shadow-sm">
-                            <i class="fas fa-eye"></i>
+                    $icon_config = $doc_icons[$doc['document_type']] ?? ['icon' => 'fa-file-pdf', 'color' => 'text-gray-500', 'bg' => 'bg-gray-50', 'border' => 'border-gray-200'];
+                    $file_path = '../' . htmlspecialchars($doc['file_path']);
+                    $file_name = basename($doc['file_path']);
+                    $file_size = file_exists($file_path) ? round(filesize($file_path) / 1024, 1) . ' KB' : 'Unknown size';
+                  ?>
+                    <div class="<?php echo $icon_config['bg']; ?> rounded-lg border <?php echo $icon_config['border']; ?> p-4 hover:shadow-md transition-shadow">
+                      <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                          <div class="<?php echo $icon_config['color']; ?> text-xl">
+                            <i class="fas <?php echo $icon_config['icon']; ?>"></i>
+                          </div>
+                          <div>
+                            <p class="font-semibold text-gray-800"><?php echo htmlspecialchars($doc_type_name); ?></p>
+                            <p class="text-xs text-gray-500 mt-1">
+                              <i class="fas fa-file mr-1"></i><?php echo htmlspecialchars($file_name); ?>
+                              <span class="mx-2">•</span>
+                              <i class="fas fa-weight-hanging mr-1"></i><?php echo $file_size; ?>
+                            </p>
+                          </div>
+                        </div>
+                        <div class="flex space-x-2">
+                          <a href="<?php echo $file_path; ?>" target="_blank" 
+                             class="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition duration-150 flex items-center space-x-1">
+                            <i class="fas fa-eye text-xs"></i>
                             <span>View</span>
-                        </a>
-                        <a href="<?php echo $file_path; ?>" download 
-                           class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition duration-150 flex items-center space-x-2 shadow-sm">
-                            <i class="fas fa-download"></i>
+                          </a>
+                          <a href="<?php echo $file_path; ?>" download 
+                             class="px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition duration-150 flex items-center space-x-1">
+                            <i class="fas fa-download text-xs"></i>
                             <span>Download</span>
-                        </a>
+                          </a>
+                        </div>
+                      </div>
                     </div>
+                  <?php endforeach; ?>
                 </div>
+              <?php endif; ?>
             </div>
-            <?php endforeach; ?>
+            <div class="p-4 bg-orange-50 border-t border-orange-100 rounded-b-xl">
+              <p class="text-xs text-orange-600 flex items-center">
+                <i class="fas fa-shield-alt mr-2"></i>
+                Verified supporting documents
+              </p>
+            </div>
+          </div>
         </div>
-    <?php endif; ?>
-</div>
-
         <?php else: ?>
+
         <!-- Show empty state when no personal data exists -->
-        <div class="bg-white p-8 rounded-xl shadow-lg border-2 border-dashed border-gray-300 text-center">
+                <div class="bg-white p-8 rounded-xl shadow-lg border-2 border-dashed border-gray-300 text-center">
             <i class="fas fa-user-circle text-gray-400 text-6xl mb-4"></i>
             <h3 class="text-xl font-bold text-gray-600 mb-2">No Profile Information</h3>
             <p class="text-gray-500 mb-4">Your profile information will appear here once you complete and submit it.</p>
@@ -619,7 +700,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             <?php endif; ?>
         </div>
-        <?php endif; ?>
+    <?php endif; ?>
 </div>
 
 <!-- Profile Update Modal (Hidden by default) - ENHANCED DESIGN -->
@@ -642,105 +723,177 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="flex-1 overflow-y-auto p-6 bg-gray-50">
             <form id="alumniProfileForm" class="space-y-6" action="update_profile.php" method="post" enctype="multipart/form-data">
                 
-<!-- Profile Picture + School Info - ENHANCED -->
-<div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-    <!-- Profile Picture - NOW CIRCULAR -->
-    <div class="lg:col-span-1 bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
-        <div class="text-center">
-            <div class="relative inline-block mb-4">
-                <!-- CHANGED: Changed from rounded-lg to rounded-full for circular shape -->
-                <div class="w-32 h-32 rounded-full overflow-hidden mx-auto border-2 border-gray-300 bg-gray-100">
-                    <img id="profilePreview" src="<?php echo !empty($profile['photo_path']) ? '../' . htmlspecialchars($profile['photo_path']) : 'https://placehold.co/128x128/eeeeee/333333?text=Upload+Photo'; ?>" alt="Profile Picture" class="w-full h-full object-cover">
-                </div>
-                <div class="absolute bottom-2 right-2 bg-blue-500 rounded-full p-2 shadow-md">
-                    <i class="fas fa-camera text-white text-xs"></i>
-                </div>
-            </div>
-            <button type="button" id="uploadPictureBtn" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition duration-200 w-full mb-2 shadow-sm hover:shadow">
-                <i class="fas fa-upload mr-2"></i>Choose Photo
-            </button>
-            <input type="file" id="profilePictureInput" name="profile_photo" accept="image/jpeg,image/png" class="hidden">
-            <p class="text-xs text-gray-500 mt-2">
-                <i class="fas fa-info-circle mr-1"></i>JPG or PNG, max 2MB
-            </p>
-            <div id="profilePictureFeedback" class="text-xs text-green-600 mt-1 hidden">
-                <i class="fas fa-check mr-1"></i>Photo selected
-            </div>
-        </div>
-    </div>
+                <!-- Profile Picture + School Info - ENHANCED -->
+                <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                    <!-- Profile Picture - NOW CIRCULAR -->
+                    <div class="lg:col-span-1 bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
+                        <div class="text-center">
+                            <div class="relative inline-block mb-4">
+                                <div class="w-32 h-32 rounded-full overflow-hidden mx-auto border-2 border-gray-300 bg-gray-100">
+                                    <img id="profilePreview" src="<?php echo !empty($profile['photo_path']) ? '../' . htmlspecialchars($profile['photo_path']) : 'https://placehold.co/128x128/eeeeee/333333?text=Upload+Photo'; ?>" alt="Profile Picture" class="w-full h-full object-cover">
+                                </div>
+                                <div class="absolute bottom-2 right-2 bg-blue-500 rounded-full p-2 shadow-md">
+                                    <i class="fas fa-camera text-white text-xs"></i>
+                                </div>
+                            </div>
+                            <button type="button" id="uploadPictureBtn" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition duration-200 w-full mb-2 shadow-sm hover:shadow">
+                                <i class="fas fa-upload mr-2"></i>Choose Photo
+                            </button>
+                            <input type="file" id="profilePictureInput" name="profile_photo" accept="image/jpeg,image/png" class="hidden">
+                            <p class="text-xs text-gray-500 mt-2">
+                                <i class="fas fa-info-circle mr-1"></i>JPG or PNG, max 2MB
+                            </p>
+                            <div id="profilePictureFeedback" class="text-xs text-green-600 mt-1 hidden">
+                                <i class="fas fa-check mr-1"></i>Photo selected
+                            </div>
+                        </div>
+                    </div>
 
-    <!-- School Information - ENHANCED with bold text -->
-    <div class="lg:col-span-3 bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
-        <h3 class="text-base font-semibold text-gray-800 mb-4 flex items-center">
-            <div class="bg-blue-100 rounded-lg p-2 mr-3">
-                <i class="fas fa-graduation-cap text-blue-600 text-sm"></i>
-            </div>
-            School Information
-            <span class="text-xs font-normal text-blue-600 ml-2 bg-blue-50 px-2 py-1 rounded">Auto-filled</span>
-        </h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <?php
-            $schoolFields = [
-                ['label' => 'Student ID', 'value' => $profile['student_id'] ?? 'Not set'],
-                ['label' => 'Full Name', 'value' => $profile['official_name'] ?? 'Not set'],
-                ['label' => 'Date of Birth', 'value' => !empty($profile['date_of_birth']) && $profile['date_of_birth'] != '0000-00-00' ? date('M j, Y', strtotime($profile['date_of_birth'])) : 'Not set'],
-                ['label' => 'Gender', 'value' => $profile['gender'] ?? 'Not set'],
-                ['label' => 'Program', 'value' => $profile['program'] ?? 'BSIT'],
-                ['label' => 'Year Graduated', 'value' => $profile['batch_year'] ?? 'Not set']
-            ];
-            
-            foreach ($schoolFields as $field):
-            ?>
-            <div class="space-y-1">
-                <label class="block text-xs font-medium text-gray-600 uppercase tracking-wide"><?php echo $field['label']; ?></label>
-                <!-- CHANGED: Added font-bold to make values stand out -->
-                <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                    <span class="font-semibold text-gray-800 text-sm"><?php echo htmlspecialchars($field['value']); ?></span>
+                    <!-- School Information - ENHANCED with bold text -->
+                    <div class="lg:col-span-3 bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
+                        <h3 class="text-base font-semibold text-gray-800 mb-4 flex items-center">
+                            <div class="bg-blue-100 rounded-lg p-2 mr-3">
+                                <i class="fas fa-graduation-cap text-blue-600 text-sm"></i>
+                            </div>
+                            School Information
+                            <span class="text-xs font-normal text-blue-600 ml-2 bg-blue-50 px-2 py-1 rounded">Auto-filled</span>
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <?php
+                            $schoolFields = [
+                                ['label' => 'Student ID', 'value' => $profile['student_id'] ?? 'Not set'],
+                                ['label' => 'Full Name', 'value' => $profile['official_name'] ?? 'Not set'],
+                                ['label' => 'Date of Birth', 'value' => !empty($profile['date_of_birth']) && $profile['date_of_birth'] != '0000-00-00' ? date('M j, Y', strtotime($profile['date_of_birth'])) : 'Not set'],
+                                ['label' => 'Gender', 'value' => $profile['gender'] ?? 'Not set'],
+                                ['label' => 'Program', 'value' => $profile['program'] ?? 'BSIT'],
+                                ['label' => 'Year Graduated', 'value' => $profile['batch_year'] ?? 'Not set']
+                            ];
+                            
+                            foreach ($schoolFields as $field):
+                            ?>
+                            <div class="space-y-1">
+                                <label class="block text-xs font-medium text-gray-600 uppercase tracking-wide"><?php echo $field['label']; ?></label>
+                                <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                                    <span class="font-semibold text-gray-800 text-sm"><?php echo htmlspecialchars($field['value']); ?></span>
+                                </div>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+                        <div class="mt-4 bg-blue-50 rounded-lg p-3 border border-blue-200">
+                            <p class="text-blue-700 text-xs flex items-center">
+                                <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+                                Automatically filled from student records
+                            </p>
+                        </div>
+                    </div>
                 </div>
-            </div>
-            <?php endforeach; ?>
-        </div>
-        <div class="mt-4 bg-blue-50 rounded-lg p-3 border border-blue-200">
-            <p class="text-blue-700 text-xs flex items-center">
-                <i class="fas fa-info-circle text-blue-500 mr-2"></i>
-                Automatically filled from student records
-            </p>
-        </div>
-    </div>
-</div>
-                <!-- Address Section - ENHANCED -->
-                <?php if ($can_update): ?>
+
+                               <!-- Address Section - ENHANCED WITH ALL REQUIRED FIELDS -->
                 <div class="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
-                    <h3 class="text-base font-semibold text-gray-800 mb-4 flex items-center">
-                        <div class="bg-green-100 rounded-lg p-2 mr-3">
-                            <i class="fas fa-map-marker-alt text-green-600 text-sm"></i>
-                        </div>
-                        Current Address
+                    <h3 class="text-lg font-semibold mb-3 flex items-center">
+                        <i class="fas fa-map-marker-alt text-blue-600 mr-2"></i>
+                        Address Information (Worldwide)
                     </h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="space-y-1">
-                            <label class="block text-sm font-medium text-gray-700">Region</label>
-                            <select id="regionSelect" name="region_id" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200">
-                                <option value="">Select Region</option>
-                            </select>
+
+                    <!-- Map Container -->
+                    <div class="mb-4">
+                        <div id="address-map" style="height: 350px; width: 100%;" class="border border-gray-300 rounded-md"></div>
+                        <div class="flex justify-between items-center mt-2">
+                            <p class="text-sm text-gray-500">
+                                <i class="fas fa-mouse-pointer mr-1"></i>
+                                Click on map to set location
+                            </p>
+                            <button type="button" id="use-current-location-btn" 
+                                    class="text-sm text-blue-600 hover:text-blue-800 flex items-center">
+                                <i class="fas fa-location-crosshairs mr-1"></i>
+                                Use Current Location
+                            </button>
                         </div>
-                        <div class="space-y-1">
-                            <label class="block text-sm font-medium text-gray-700">Province</label>
-                            <select id="provinceSelect" name="province_id" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200">
-                                <option value="">Select Province</option>
-                            </select>
+                    </div>
+
+                    <!-- Address Form Fields - ALL REQUIRED FIELDS -->
+                    <div class="space-y-4">
+                        <!-- City, State, Country Row -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    <!-- <i class="fas fa-city mr-1"></i> -->
+                                    City
+                                </label>
+                                <input type="text" id="city" name="city" 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 address-field"
+                                    value="<?php echo htmlspecialchars($profile['city'] ?? ''); ?>"
+                                    placeholder="City or town" required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    <!-- <i class="fas fa-landmark mr-1"></i> -->
+                                    State/Province
+                                </label>
+                                <input type="text" id="state-province" name="state_province" 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 address-field"
+                                    value="<?php echo htmlspecialchars($profile['state_province'] ?? ''); ?>"
+                                    placeholder="State, province, or region" required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    <!-- <i class="fas fa-globe mr-1"></i> -->
+                                    Country
+                                </label>
+                                <input type="text" id="country" name="country" 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 address-field"
+                                    value="<?php echo htmlspecialchars($profile['country'] ?? ''); ?>"
+                                    placeholder="Country" required>
+                            </div>
                         </div>
-                        <div class="space-y-1">
-                            <label class="block text-sm font-medium text-gray-700">Municipality</label>
-                            <select id="municipalitySelect" name="municipality_id" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200">
-                                <option value="">Select Municipality</option>
-                            </select>
+
+                        <!-- Latitude & Longitude Row -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    <i class="fas fa-latitude mr-1"></i>
+                                    Latitude 
+                                </label>
+                                <input type="text" id="latitude" name="latitude" 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100"
+                                    value="<?php echo htmlspecialchars($profile['latitude'] ?? ''); ?>" 
+                                    required readonly>
+                                <p class="text-xs text-gray-500 mt-1">Automatically set from map</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    <i class="fas fa-longitude mr-1"></i>
+                                    Longitude 
+                                </label>
+                                <input type="text" id="longitude" name="longitude" 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100"
+                                    value="<?php echo htmlspecialchars($profile['longitude'] ?? ''); ?>" 
+                                    required readonly>
+                                <p class="text-xs text-gray-500 mt-1">Automatically set from map</p>
+                            </div>
                         </div>
-                        <div class="space-y-1">
-                            <label class="block text-sm font-medium text-gray-700">Barangay</label>
-                            <select id="barangaySelect" name="barangay_id" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200">
-                                <option value="">Select Barangay</option>
-                            </select>
+                        
+                        <!-- Formatted Address Preview -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                <i class="fas fa-map-signs mr-1"></i>
+                                Full Address (Auto-generated) *
+                            </label>
+                            <div id="formatted-address-preview" 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-600 min-h-[40px]">
+                                <?php echo !empty($profile['formatted_address']) ? htmlspecialchars($profile['formatted_address']) : 'Address will be generated from fields above...'; ?>
+                            </div>
+                            <input type="hidden" id="formatted-address" name="formatted_address" 
+                                value="<?php echo htmlspecialchars($profile['formatted_address'] ?? ''); ?>" required>
+                            <p class="text-xs text-gray-500 mt-1">Automatically generated from city, state, and country</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Address Validation Status -->
+                    <div id="address-validation" class="mt-4 hidden">
+                        <div class="flex items-center p-3 rounded-md" id="address-validation-message">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            <span id="validation-text"></span>
                         </div>
                     </div>
                 </div>
@@ -942,7 +1095,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                     </div>
                 </div>
-                <?php endif; ?>
 
                 <!-- Submit Button - ENHANCED -->
                 <div class="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
@@ -970,6 +1122,81 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 
 <script>
+// ===== GLOBAL VARIABLES =====
+let map;
+let marker;
+let selectedLatLng;
+let debounceTimer;
+let mapInitialized = false;
+let isAddressLoading = false;
+
+// ===== UTILITY FUNCTIONS (DEFINE FIRST) =====
+
+// Show validation message - DEFINE EARLY for error handlers
+function showValidation(message, type) {
+    const container = document.getElementById('address-validation');
+    const messageEl = document.getElementById('address-validation-message');
+    const textEl = document.getElementById('validation-text');
+    
+    if (!container || !messageEl || !textEl) return;
+    
+    // Clear previous classes
+    messageEl.className = 'flex items-center p-3 rounded-md';
+    
+    // Add type-specific classes
+    switch(type) {
+        case 'success':
+            messageEl.classList.add('bg-green-100', 'text-green-800', 'border', 'border-green-200');
+            break;
+        case 'error':
+            messageEl.classList.add('bg-red-100', 'text-red-800', 'border', 'border-red-200');
+            break;
+        case 'warning':
+            messageEl.classList.add('bg-yellow-100', 'text-yellow-800', 'border', 'border-yellow-200');
+            break;
+        case 'info':
+            messageEl.classList.add('bg-blue-100', 'text-blue-800', 'border', 'border-blue-200');
+            break;
+    }
+    
+    textEl.textContent = message;
+    container.classList.remove('hidden');
+    
+    // Auto-hide success messages after 3 seconds
+    if (type === 'success') {
+        setTimeout(() => {
+            container.classList.add('hidden');
+        }, 3000);
+    }
+}
+
+// ===== GLOBAL ERROR HANDLERS =====
+window.addEventListener('error', function(e) {
+    if (e.message && (e.message.includes('geocode') || 
+                      e.message.includes('map') || 
+                      e.message.includes('Leaflet') ||
+                      e.filename && e.filename.includes('alumni_profile'))) {
+        console.error('Global error caught:', e);
+        // Use setTimeout to ensure DOM is ready
+        setTimeout(() => {
+            showValidation('A JavaScript error occurred. Please refresh the page.', 'error');
+        }, 100);
+    }
+});
+
+window.addEventListener('unhandledrejection', function(e) {
+    console.error('Unhandled promise rejection:', e.reason);
+    if (e.reason && e.reason.message && 
+        (e.reason.message.includes('fetch') || 
+         e.reason.message.includes('geocode') ||
+         e.reason.message.includes('network'))) {
+        setTimeout(() => {
+            showValidation('Network error. Please check connection.', 'error');
+        }, 100);
+    }
+});
+
+// ===== INITIALIZATION =====
 // Auto-close modal if form was just submitted
 <?php if (isset($_SESSION['form_submitted']) && $_SESSION['form_submitted']): ?>
     <?php unset($_SESSION['form_submitted']); // Clear the flag ?>
@@ -989,98 +1216,59 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => {
             modal.classList.remove('hidden');
             modal.classList.add('show', 'flex');
-            loadAddressData();
+            // Reset map initialization flag when modal opens
+            mapInitialized = false;
+            setTimeout(() => {
+                console.log('Auto-opening map for rejected profile');
+                if (typeof initMap === 'function') {
+                    initMap();
+                }
+            }, 100);
         }, 100);
     }
 });
 <?php endif; ?>
 
+// DUPLICATE HANDLER COMMENTED OUT
+// document.addEventListener('DOMContentLoaded', function() {
+//     // Remove success/error parameters from URL without reloading
+//     const url = new URL(window.location);
+//     if (url.searchParams.has('success') || url.searchParams.has('error')) {
+//         url.searchParams.delete('success');
+//         url.searchParams.delete('error');
+//         window.history.replaceState({}, '', url);
+//     }
+// });
+
+// ===== SINGLE DOMContentLoaded HANDLER =====
 document.addEventListener('DOMContentLoaded', () => {
-    // Modal and form elements
-    const updateProfileBtn = document.getElementById('updateProfileBtn');
-    const updateProfileModal = document.getElementById('profileUpdateModal');
-    const closeModalBtn = document.getElementById('closeProfileModal');
-    const employmentStatusSelect = document.getElementById('employmentStatusSelect');
-    const employmentDetailsSection = document.getElementById('employmentDetailsSection');
-    const jobTitleField = document.getElementById('jobTitleField');
-    const jobTitleSelect = document.getElementById('jobTitleSelect');
-    const otherJobTitleDiv = document.getElementById('otherJobTitleDiv');
-    const companyField = document.getElementById('companyField');
-    const businessTypeField = document.getElementById('businessTypeField');
-    const businessTypeSelect = document.getElementById('businessTypeSelect');
-    const businessTypeOtherDiv = document.getElementById('businessTypeOtherDiv');
-    const studentDetailsSection = document.getElementById('studentDetailsSection');
-    const coeField = document.getElementById('coeField');
-    const businessCertField = document.getElementById('businessCertField');
-    const corField = document.getElementById('corField');
-    const supportingDocumentsSection = document.getElementById('supportingDocumentsSection');
-    const regionSelect = document.getElementById('regionSelect');
-    const provinceSelect = document.getElementById('provinceSelect');
-    const municipalitySelect = document.getElementById('municipalitySelect');
-    const barangaySelect = document.getElementById('barangaySelect');
-    const companyAddressField = document.getElementById('companyAddressField');
-    const salaryField = document.getElementById('salaryField');
-
-    // Track loading state
-    let isAddressLoading = false;
-    let addressDataLoaded = false;
-
-    // Modal toggle - ONLY if user can update
-    if (updateProfileBtn) {
-        const canUpdate = <?php echo $can_update ? 'true' : 'false'; ?>;
-        
-        if (canUpdate) {
-            updateProfileBtn.addEventListener('click', () => {
-                if (updateProfileModal) {
-                    updateProfileModal.classList.remove('hidden');
-                    updateProfileModal.classList.add('show', 'flex');
-                    loadAddressData(); // Always load
-                }
-            });
-        } else {
-            // Make it visually clear the button is disabled
-            updateProfileBtn.style.cursor = 'not-allowed';
-            updateProfileBtn.style.opacity = '0.6';
-            
-            updateProfileBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                if (<?php echo !empty($profile) ? 'true' : 'false'; ?>) {
-                    const status = '<?php echo $profile['submission_status'] ?? ''; ?>';
-                    if (status === 'Approved') {
-                        alert('Your profile is approved. You can update again after 6 months from your last update.');
-                    } else if (status === 'Pending') {
-                        alert('Your profile is currently under review. Please wait for administrator approval.');
-                    } else {
-                        alert('Profile update is not available at this time.');
-                    }
-                } else {
-                    alert('Profile update is not available at this time.');
-                }
-            });
-        }
+    console.log('DOM fully loaded and parsed');
+    
+    // Remove success/error parameters from URL without reloading
+    const url = new URL(window.location);
+    if (url.searchParams.has('success') || url.searchParams.has('error')) {
+        url.searchParams.delete('success');
+        url.searchParams.delete('error');
+        window.history.replaceState({}, '', url);
     }
+    
+    // Initialize all components
+    initializeProfilePicture();
+    initializeModal();
+    initializeFormValidation();
+    initializeAddressFields();
+    initializeStudentYearOptions();
+    
+    // Also initialize for auto-opening modal
+    <?php if ($auto_open_modal): ?>
+    setTimeout(() => {
+        updateStudentYearOptions();
+    }, 200);
+    <?php endif; ?>
+});
 
-    if (closeModalBtn) {
-        closeModalBtn.addEventListener('click', () => {
-            if (updateProfileModal) {
-                updateProfileModal.classList.add('hidden');
-                updateProfileModal.classList.remove('show', 'flex');
-            }
-        });
-    }
-
-    if (updateProfileModal) {
-        updateProfileModal.addEventListener('click', (e) => {
-            if (e.target === updateProfileModal) {
-                updateProfileModal.classList.add('hidden');
-                updateProfileModal.classList.remove('show', 'flex');
-            }
-        });
-    }
-
-    // Profile picture upload and preview
+// ===== PROFILE PICTURE HANDLING =====
+function initializeProfilePicture() {
     const uploadBtn = document.getElementById("uploadPictureBtn");
     const fileInput = document.getElementById("profilePictureInput");
     const previewImg = document.getElementById("profilePreview");
@@ -1119,7 +1307,97 @@ document.addEventListener('DOMContentLoaded', () => {
             reader.readAsDataURL(file);
         });
     }
+}
 
+// ===== MODAL INITIALIZATION =====
+function initializeModal() {
+    const updateProfileBtn = document.getElementById('updateProfileBtn');
+    const updateProfileModal = document.getElementById('profileUpdateModal');
+    const closeModalBtn = document.getElementById('closeProfileModal');
+    
+    if (!updateProfileBtn || !updateProfileModal) return;
+    
+    const canUpdate = <?php echo $can_update ? 'true' : 'false'; ?>;
+    
+    if (canUpdate) {
+        updateProfileBtn.addEventListener('click', () => {
+            updateProfileModal.classList.remove('hidden');
+            updateProfileModal.classList.add('show', 'flex');
+            
+            // Reset map initialization flag when modal opens
+            mapInitialized = false;
+            
+            // Wait for modal to be fully visible
+            setTimeout(() => {
+                console.log('Initializing map after modal open');
+                if (typeof initMap === 'function') {
+                    initMap();
+                }
+                updateStudentYearOptions();
+            }, 300);
+        });
+    } else {
+        updateProfileBtn.style.cursor = 'not-allowed';
+        updateProfileBtn.style.opacity = '0.6';
+        
+        updateProfileBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            if (<?php echo !empty($profile) ? 'true' : 'false'; ?>) {
+                const status = '<?php echo $profile['submission_status'] ?? ''; ?>';
+                if (status === 'Approved') {
+                    alert('Your profile is approved. You can update again after 6 months from your last update.');
+                } else if (status === 'Pending') {
+                    alert('Your profile is currently under review. Please wait for administrator approval.');
+                } else {
+                    alert('Profile update is not available at this time.');
+                }
+            } else {
+                alert('Profile update is not available at this time.');
+            }
+        });
+    }
+
+    if (closeModalBtn) {
+        closeModalBtn.addEventListener('click', () => {
+            if (updateProfileModal) {
+                updateProfileModal.classList.add('hidden');
+                updateProfileModal.classList.remove('show', 'flex');
+                
+                // Clean up map to prevent memory leaks
+                if (map) {
+                    try {
+                        map.remove();
+                        map = null;
+                        marker = null;
+                        mapInitialized = false;
+                    } catch (e) {
+                        console.log('Error cleaning up map:', e);
+                    }
+                }
+            }
+        });
+    }
+
+    if (updateProfileModal) {
+        updateProfileModal.addEventListener('click', (e) => {
+            if (e.target === updateProfileModal) {
+                updateProfileModal.classList.add('hidden');
+                updateProfileModal.classList.remove('show', 'flex');
+            }
+        });
+    }
+}
+
+// ===== FORM VALIDATION INITIALIZATION =====
+function initializeFormValidation() {
+    const employmentStatusSelect = document.getElementById('employmentStatusSelect');
+    const jobTitleSelect = document.getElementById('jobTitleSelect');
+    const otherJobTitleDiv = document.getElementById('otherJobTitleDiv');
+    const businessTypeSelect = document.getElementById('businessTypeSelect');
+    const businessTypeOtherDiv = document.getElementById('businessTypeOtherDiv');
+    
     // Job title toggle for "Other"
     if (jobTitleSelect && otherJobTitleDiv) {
         jobTitleSelect.addEventListener('change', () => {
@@ -1135,448 +1413,712 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Employment status toggle
-    function toggleEmploymentSections(status) {
-        console.log('Toggling employment sections for:', status);
-        
-        // Hide all sections first
-        if (employmentDetailsSection) employmentDetailsSection.classList.add('hidden');
-        if (studentDetailsSection) studentDetailsSection.classList.add('hidden');
-        if (supportingDocumentsSection) supportingDocumentsSection.classList.add('hidden');
-        
-        // Hide individual fields
-        if (jobTitleField) jobTitleField.classList.add('hidden');
-        if (companyField) companyField.classList.add('hidden');
-        if (companyAddressField) companyAddressField.classList.add('hidden');
-        if (businessTypeField) businessTypeField.classList.add('hidden');
-        if (salaryField) salaryField.classList.add('hidden');
-        if (coeField) coeField.classList.add('hidden');
-        if (businessCertField) businessCertField.classList.add('hidden');
-        if (corField) corField.classList.add('hidden');
-
-        // Show relevant sections based on status
-        switch(status) {
-            case 'Employed':
-                if (employmentDetailsSection) employmentDetailsSection.classList.remove('hidden');
-                if (supportingDocumentsSection) supportingDocumentsSection.classList.remove('hidden');
-                if (jobTitleField) jobTitleField.classList.remove('hidden');
-                if (companyField) companyField.classList.remove('hidden');
-                if (companyAddressField) companyAddressField.classList.remove('hidden');
-                if (salaryField) salaryField.classList.remove('hidden');
-                if (coeField) coeField.classList.remove('hidden');
-                break;
-                
-            case 'Self-Employed':
-                if (employmentDetailsSection) employmentDetailsSection.classList.remove('hidden');
-                if (supportingDocumentsSection) supportingDocumentsSection.classList.remove('hidden');
-                if (businessTypeField) businessTypeField.classList.remove('hidden');
-                if (salaryField) salaryField.classList.remove('hidden');
-                if (businessCertField) businessCertField.classList.remove('hidden');
-                break;
-                
-            case 'Unemployed':
-                // No additional sections for unemployed
-                break;
-                
-            case 'Student':
-                if (studentDetailsSection) studentDetailsSection.classList.remove('hidden');
-                if (supportingDocumentsSection) supportingDocumentsSection.classList.remove('hidden');
-                if (corField) corField.classList.remove('hidden');
-                break;
-                
-            case 'Employed & Student':
-                if (employmentDetailsSection) employmentDetailsSection.classList.remove('hidden');
-                if (studentDetailsSection) studentDetailsSection.classList.remove('hidden');
-                if (supportingDocumentsSection) supportingDocumentsSection.classList.remove('hidden');
-                if (jobTitleField) jobTitleField.classList.remove('hidden');
-                if (companyField) companyField.classList.remove('hidden');
-                if (companyAddressField) companyAddressField.classList.remove('hidden');
-                if (salaryField) salaryField.classList.remove('hidden');
-                if (coeField) coeField.classList.remove('hidden');
-                if (corField) corField.classList.remove('hidden');
-                break;
-                
-            default:
-                // Hide everything for unknown status
-                break;
-        }
-    }
-
-    // Initialize employment sections
     if (employmentStatusSelect) {
         toggleEmploymentSections(employmentStatusSelect.value);
-        
         employmentStatusSelect.addEventListener('change', () => {
             toggleEmploymentSections(employmentStatusSelect.value);
         });
     }
 
-    // ENHANCED: Dynamic filtering for years based on graduation year and current year
-    function updateStudentYearOptions() {
-        const graduationYear = <?php echo !empty($profile['batch_year']) ? $profile['batch_year'] : 'null'; ?>;
-        const startYearSelect = document.querySelector('[name="start_year"]');
-        const endYearSelect = document.querySelector('[name="end_year"]');
-        const status = employmentStatusSelect ? employmentStatusSelect.value : '';
-        
-        if (startYearSelect && endYearSelect && ['Student', 'Employed & Student'].includes(status)) {
-            const currentYear = new Date().getFullYear();
-            
-            // Store current selections
-            const currentStartYear = startYearSelect.value;
-            const currentEndYear = endYearSelect.value;
-            
-            // Update Start Year dropdown: graduation year + 1 to current year
-            startYearSelect.innerHTML = '<option value="">Select Start Year</option>';
-            
-            // Start year can be from the year after graduation up to current year
-            const minStartYear = graduationYear ? parseInt(graduationYear) + 1 : currentYear - 10;
-            const maxStartYear = currentYear;
-            
-            for (let y = minStartYear; y <= maxStartYear; y++) {
-                const option = document.createElement('option');
-                option.value = y;
-                option.textContent = y;
-                if (currentStartYear && y === parseInt(currentStartYear)) {
-                    option.selected = true;
-                }
-                startYearSelect.appendChild(option);
-            }
-            
-            // Update End Year dropdown based on selected start year
-            updateEndYearOptions();
-        }
-    }
-
-    function updateEndYearOptions() {
-        const startYearSelect = document.querySelector('[name="start_year"]');
-        const endYearSelect = document.querySelector('[name="end_year"]');
-        const currentYear = new Date().getFullYear();
-        
-        if (startYearSelect && endYearSelect && startYearSelect.value) {
-            const startYear = parseInt(startYearSelect.value);
-            const currentEndYear = endYearSelect.value;
-            
-            // End Year: start year + 1 to current year + 5 (max 5 years in future)
-            endYearSelect.innerHTML = '<option value="">Select End Year</option>';
-            for (let y = startYear + 1; y <= currentYear + 5; y++) {
-                const option = document.createElement('option');
-                option.value = y;
-                option.textContent = y;
-                if (currentEndYear && y === parseInt(currentEndYear)) {
-                    option.selected = true;
-                }
-                endYearSelect.appendChild(option);
-            }
-        }
-    }
-
-    // Event listeners for dynamic year filtering
-    if (employmentStatusSelect) {
-        employmentStatusSelect.addEventListener('change', updateStudentYearOptions);
-    }
-
-    const startYearSelect = document.querySelector('[name="start_year"]');
-    if (startYearSelect) {
-        startYearSelect.addEventListener('change', updateEndYearOptions);
-    }
-
-    // Address dropdown population 
-    let regionsData;
-    async function loadAddressData() {
-        if (isAddressLoading) return;
-        isAddressLoading = true;
-        
-        try {
-            const regionsResponse = await fetch('../api/get_regions.php');
-            if (!regionsResponse.ok) throw new Error('Failed to load regions: ' + regionsResponse.status);
-            regionsData = await regionsResponse.json();
-            console.log('Regions loaded:', regionsData);
-            populateRegions();
-            addressDataLoaded = true;
-        } catch (e) {
-            console.error('Error loading address data:', e);
-            alert('Failed to load address data. Please refresh and try again.');
-        } finally {
-            isAddressLoading = false;
-        }
-    }
-
-    function populateRegions() {
-        if (!regionSelect || !regionsData) return;
-        regionSelect.innerHTML = '<option value="">Select Region</option>';
-        regionsData.forEach(region => {
-            const option = document.createElement('option');
-            option.value = region.reg_code;
-            option.textContent = region.name;
-            regionSelect.appendChild(option);
-        });
-        <?php if (!empty($profile['region_id'])): ?>
-            if (regionSelect) regionSelect.value = '<?php echo htmlspecialchars($profile['region_id']); ?>';
-            filterProvinces();
-        <?php endif; ?>
-    }
-
-    async function filterProvinces() {
-        if (!provinceSelect) return;
-        provinceSelect.innerHTML = '<option value="">Select Province</option>';
-        if (municipalitySelect) municipalitySelect.innerHTML = '<option value="">Select Municipality</option>';
-        if (barangaySelect) barangaySelect.innerHTML = '<option value="">Select Barangay</option>';
-        const regionCode = regionSelect ? regionSelect.value : '';
-        if (!regionCode) return;
-
-        isAddressLoading = true;
-        try {
-            const response = await fetch(`../api/get_provinces.php?region_id=${encodeURIComponent(regionCode)}`);
-            if (!response.ok) throw new Error('Failed to load provinces: ' + response.status);
-            const provinces = await response.json();
-            provinces.forEach(prov => {
-                const option = document.createElement('option');
-                option.value = prov.prov_code;
-                option.textContent = prov.name;
-                provinceSelect.appendChild(option);
-            });
-            <?php if (!empty($profile['province_id'])): ?>
-                provinceSelect.value = '<?php echo htmlspecialchars($profile['province_id']); ?>';
-                filterMunicipalities();
-            <?php endif; ?>
-        } catch (e) {
-            console.error('Error fetching provinces:', e);
-        } finally {
-            isAddressLoading = false;
-        }
-    }
-
-    async function filterMunicipalities() {
-        if (!municipalitySelect) return;
-        municipalitySelect.innerHTML = '<option value="">Select Municipality</option>';
-        if (barangaySelect) barangaySelect.innerHTML = '<option value="">Select Barangay</option>';
-        const provinceCode = provinceSelect ? provinceSelect.value : '';
-        if (!provinceCode) return;
-
-        isAddressLoading = true;
-        try {
-            const response = await fetch(`../api/get_municipalities.php?province_id=${encodeURIComponent(provinceCode)}`);
-            if (!response.ok) throw new Error('Failed to load municipalities: ' + response.status);
-            const municipalities = await response.json();
-            municipalities.forEach(mun => {
-                const option = document.createElement('option');
-                option.value = mun.mun_code;
-                option.textContent = mun.name;
-                municipalitySelect.appendChild(option);
-            });
-            <?php if (!empty($profile['municipality_id'])): ?>
-                municipalitySelect.value = '<?php echo htmlspecialchars($profile['municipality_id']); ?>';
-                filterBarangays();
-            <?php endif; ?>
-        } catch (e) {
-            console.error('Error fetching municipalities:', e);
-        } finally {
-            isAddressLoading = false;
-        }
-    }
-
-    async function filterBarangays() {
-        if (!barangaySelect) return;
-        barangaySelect.innerHTML = '<option value="">Select Barangay</option>';
-        const municipalityCode = municipalitySelect ? municipalitySelect.value : '';
-        if (!municipalityCode) return;
-
-        isAddressLoading = true;
-        try {
-            const response = await fetch(`../api/get_barangays.php?municipality_id=${encodeURIComponent(municipalityCode)}`);
-            if (!response.ok) throw new Error('Failed to load barangays: ' + response.status);
-            const barangays = await response.json();
-            barangays.sort((a, b) => a.name.localeCompare(b.name));
-            barangays.forEach(brgy => {
-                const option = document.createElement('option');
-                option.value = brgy.brgy_code || '';
-                option.textContent = brgy.name;
-                barangaySelect.appendChild(option);
-            });
-            <?php if (!empty($profile['barangay_id'])): ?>
-                barangaySelect.value = '<?php echo htmlspecialchars($profile['barangay_id']); ?>';
-            <?php endif; ?>
-        } catch (e) {
-            console.error('Error fetching barangays:', e);
-        } finally {
-            isAddressLoading = false;
-        }
-    }
-
-    // Event listeners for cascading dropdowns
-    if (regionSelect) regionSelect.addEventListener('change', filterProvinces);
-    if (provinceSelect) provinceSelect.addEventListener('change', filterMunicipalities);
-    if (municipalitySelect) municipalitySelect.addEventListener('change', filterBarangays);
-
-    // Student year validation function
-    function validateStudentYears() {
-        const status = employmentStatusSelect ? employmentStatusSelect.value : '';
-        
-        if (['Student', 'Employed & Student'].includes(status)) {
-            const startYear = document.querySelector('[name="start_year"]').value;
-            const endYear = document.querySelector('[name="end_year"]').value;
-            
-            if (!startYear || !endYear) {
-                alert('Both Start Year and End Year are required for student status.');
-                return false;
-            }
-            
-            if (parseInt(endYear) <= parseInt(startYear)) {
-                alert('End Year must be later than Start Year.');
-                return false;
-            }
-            
-            const currentYear = new Date().getFullYear();
-            if (parseInt(endYear) > (currentYear + 10)) {
-                alert('End Year seems too far in the future. Please verify your expected graduation year.');
-                return false;
-            }
-        }
-        
-        return true;
-    }
-
-    // SIMPLIFIED Form validation - FIXED VERSION
+    // Form submission validation
     const alumniProfileForm = document.getElementById('alumniProfileForm');
     if (alumniProfileForm) {
         alumniProfileForm.addEventListener('submit', function(event) {
-            // Prevent address loading interference
-            if (isAddressLoading) {
-                alert('Address data is still loading. Please wait.');
+            if (!validateFormSubmission()) {
                 event.preventDefault();
-                return;
-            }
-            
-            // Validate student years
-            if (!validateStudentYears()) {
-                event.preventDefault();
-                return;
-            }
-
-            // Profile photo validation - FIXED
-            const profilePhotoInput = document.getElementById('profilePictureInput');
-            const hasExistingPhoto = '<?php echo !empty($profile['photo_path']) ? 'true' : 'false'; ?>';
-
-            // Only require photo if no existing photo
-            if (!profilePhotoInput.files.length && hasExistingPhoto === 'false') {
-                alert('Please upload your profile picture before submitting.');
-                event.preventDefault();
-                return;
-            }
-
-            // UPDATED: Only contact number and employment status are required
-            const requiredFields = [
-                { field: 'contact_number', message: 'Contact Number is required.' },
-                { field: 'employment_status', message: 'Employment Status is required.' }
-            ];
-
-            let isValid = true;
-
-            for (const { field, message } of requiredFields) {
-                const element = document.querySelector(`[name="${field}"]`);
-                if (element && !element.value.trim()) {
-                    alert(message);
-                    isValid = false;
-                    break;
-                }
-            }
-
-            if (!isValid) {
-                event.preventDefault();
-                return;
-            }
-
-            // Address validation
-            const addressFieldIds = ['regionSelect', 'provinceSelect', 'municipalitySelect', 'barangaySelect'];
-            const addressMessages = ['Region', 'Province', 'Municipality', 'Barangay'];
-
-            let addressValid = true;
-            for (let i = 0; i < addressFieldIds.length; i++) {
-                const el = document.getElementById(addressFieldIds[i]);
-                if (el && !el.value.trim()) {
-                    alert(addressMessages[i] + ' is required.');
-                    addressValid = false;
-                    break;
-                }
-            }
-
-            if (!addressValid) {
-                event.preventDefault();
-                return;
-            }
-
-            // Employment validation
-            const status = employmentStatusSelect ? employmentStatusSelect.value : '';
-            
-            if (['Employed', 'Employed & Student'].includes(status)) {
-                if (jobTitleSelect && !jobTitleSelect.value) {
-                    alert('Job Title is required for this employment status.');
-                    isValid = false;
-                } else if (jobTitleSelect && jobTitleSelect.value === 'Other') {
-                    const otherTitle = document.querySelector('[name="other_job_title"]');
-                    if (otherTitle && !otherTitle.value.trim()) {
-                        alert('Please specify job title if "Other" is selected.');
-                        isValid = false;
-                    }
-                }
-                
-                const companyName = document.querySelector('[name="company_name"]');
-                if (companyName && !companyName.value.trim()) {
-                    alert('Company Name is required for this employment status.');
-                    isValid = false;
-                }
-                
-                const companyAddress = document.querySelector('[name="company_address"]');
-                if (companyAddress && !companyAddress.value.trim()) {
-                    alert('Company Address is required for this employment status.');
-                    isValid = false;
-                }
-            }
-
-            // Self-Employed validation
-            if (status === 'Self-Employed') {
-                if (businessTypeSelect && !businessTypeSelect.value) {
-                    alert('Business Type is required for Self-Employed status.');
-                    isValid = false;
-                } else if (businessTypeSelect && businessTypeSelect.value === 'Others (Please specify)') {
-                    const businessTypeOther = document.querySelector('[name="business_type_other"]');
-                    if (businessTypeOther && !businessTypeOther.value.trim()) {
-                        alert('Please specify business type if "Others" is selected.');
-                        isValid = false;
-                    }
-                }
-            }
-
-            if (!isValid) {
-                event.preventDefault();
-                return;
             }
         });
     }
+}
 
-    // Initialize student year options when modal opens
-    if (updateProfileBtn) {
-        const canUpdate = <?php echo $can_update ? 'true' : 'false'; ?>;
-        
-        if (canUpdate) {
-            updateProfileBtn.addEventListener('click', () => {
-                if (updateProfileModal) {
-                    updateProfileModal.classList.remove('hidden');
-                    updateProfileModal.classList.add('show', 'flex');
-                    loadAddressData();
-                    // Initialize student year options based on graduation year
-                    setTimeout(updateStudentYearOptions, 100);
-                }
-            });
+// ===== EMPLOYMENT SECTION TOGGLE =====
+function toggleEmploymentSections(status) {
+    console.log('Toggling employment sections for:', status);
+    
+    const sections = {
+        employmentDetails: document.getElementById('employmentDetailsSection'),
+        studentDetails: document.getElementById('studentDetailsSection'),
+        supportingDocuments: document.getElementById('supportingDocumentsSection'),
+        jobTitleField: document.getElementById('jobTitleField'),
+        companyField: document.getElementById('companyField'),
+        companyAddressField: document.getElementById('companyAddressField'),
+        businessTypeField: document.getElementById('businessTypeField'),
+        salaryField: document.getElementById('salaryField'),
+        coeField: document.getElementById('coeField'),
+        businessCertField: document.getElementById('businessCertField'),
+        corField: document.getElementById('corField')
+    };
+    
+    // Hide all sections first
+    Object.values(sections).forEach(section => {
+        if (section) section.classList.add('hidden');
+    });
+    
+    // Show relevant sections based on status
+    switch(status) {
+        case 'Employed':
+            if (sections.employmentDetails) sections.employmentDetails.classList.remove('hidden');
+            if (sections.supportingDocuments) sections.supportingDocuments.classList.remove('hidden');
+            if (sections.jobTitleField) sections.jobTitleField.classList.remove('hidden');
+            if (sections.companyField) sections.companyField.classList.remove('hidden');
+            if (sections.companyAddressField) sections.companyAddressField.classList.remove('hidden');
+            if (sections.salaryField) sections.salaryField.classList.remove('hidden');
+            if (sections.coeField) sections.coeField.classList.remove('hidden');
+            break;
+            
+        case 'Self-Employed':
+            if (sections.employmentDetails) sections.employmentDetails.classList.remove('hidden');
+            if (sections.supportingDocuments) sections.supportingDocuments.classList.remove('hidden');
+            if (sections.businessTypeField) sections.businessTypeField.classList.remove('hidden');
+            if (sections.salaryField) sections.salaryField.classList.remove('hidden');
+            if (sections.businessCertField) sections.businessCertField.classList.remove('hidden');
+            break;
+            
+        case 'Student':
+            if (sections.studentDetails) sections.studentDetails.classList.remove('hidden');
+            if (sections.supportingDocuments) sections.supportingDocuments.classList.remove('hidden');
+            if (sections.corField) sections.corField.classList.remove('hidden');
+            break;
+            
+        case 'Employed & Student':
+            if (sections.employmentDetails) sections.employmentDetails.classList.remove('hidden');
+            if (sections.studentDetails) sections.studentDetails.classList.remove('hidden');
+            if (sections.supportingDocuments) sections.supportingDocuments.classList.remove('hidden');
+            if (sections.jobTitleField) sections.jobTitleField.classList.remove('hidden');
+            if (sections.companyField) sections.companyField.classList.remove('hidden');
+            if (sections.companyAddressField) sections.companyAddressField.classList.remove('hidden');
+            if (sections.salaryField) sections.salaryField.classList.remove('hidden');
+            if (sections.coeField) sections.coeField.classList.remove('hidden');
+            if (sections.corField) sections.corField.classList.remove('hidden');
+            break;
+    }
+}
+
+// ===== FORM VALIDATION =====
+function validateFormSubmission() {
+    // Prevent address loading interference
+    if (isAddressLoading) {
+        alert('Address data is still loading. Please wait.');
+        return false;
+    }
+    
+    // Validate student years
+    if (!validateStudentYears()) {
+        return false;
+    }
+
+    // Profile photo validation
+    const profilePhotoInput = document.getElementById('profilePictureInput');
+    const hasExistingPhoto = '<?php echo !empty($profile['photo_path']) ? 'true' : 'false'; ?>';
+
+    if (!profilePhotoInput.files.length && hasExistingPhoto === 'false') {
+        alert('Please upload your profile picture before submitting.');
+        return false;
+    }
+
+    // Required fields
+    const requiredFields = [
+        { field: 'contact_number', message: 'Contact Number is required.' },
+        { field: 'employment_status', message: 'Employment Status is required.' }
+    ];
+
+    for (const { field, message } of requiredFields) {
+        const element = document.querySelector(`[name="${field}"]`);
+        if (element && !element.value.trim()) {
+            alert(message);
+            return false;
         }
     }
 
-    // Also initialize for auto-opening modal
-    <?php if ($auto_open_modal): ?>
-    setTimeout(() => {
-        updateStudentYearOptions();
-    }, 200);
-    <?php endif; ?>
-});
+    // Worldwide address validation
+    const addressFields = ['city', 'state_province', 'country', 'latitude', 'longitude', 'formatted_address'];
+    const addressMessages = ['City', 'State/Province', 'Country', 'Latitude', 'Longitude', 'Formatted Address'];
+
+    for (let i = 0; i < addressFields.length; i++) {
+        const element = document.querySelector(`[name="${addressFields[i]}"]`);
+        if (element && !element.value.trim()) {
+            alert(addressMessages[i] + ' is required for address.');
+            return false;
+        }
+    }
+
+    // Employment validation
+    const status = document.getElementById('employmentStatusSelect')?.value || '';
+    
+    if (['Employed', 'Employed & Student'].includes(status)) {
+        const jobTitleSelect = document.getElementById('jobTitleSelect');
+        if (jobTitleSelect && !jobTitleSelect.value) {
+            alert('Job Title is required for this employment status.');
+            return false;
+        } else if (jobTitleSelect && jobTitleSelect.value === 'Other') {
+            const otherTitle = document.querySelector('[name="other_job_title"]');
+            if (otherTitle && !otherTitle.value.trim()) {
+                alert('Please specify job title if "Other" is selected.');
+                return false;
+            }
+        }
+        
+        const companyName = document.querySelector('[name="company_name"]');
+        if (companyName && !companyName.value.trim()) {
+            alert('Company Name is required for this employment status.');
+            return false;
+        }
+        
+        const companyAddress = document.querySelector('[name="company_address"]');
+        if (companyAddress && !companyAddress.value.trim()) {
+            alert('Company Address is required for this employment status.');
+            return false;
+        }
+    }
+
+    // Self-Employed validation
+    if (status === 'Self-Employed') {
+        const businessTypeSelect = document.getElementById('businessTypeSelect');
+        if (businessTypeSelect && !businessTypeSelect.value) {
+            alert('Business Type is required for Self-Employed status.');
+            return false;
+        } else if (businessTypeSelect && businessTypeSelect.value === 'Others (Please specify)') {
+            const businessTypeOther = document.querySelector('[name="business_type_other"]');
+            if (businessTypeOther && !businessTypeOther.value.trim()) {
+                alert('Please specify business type if "Others" is selected.');
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+// ===== STUDENT YEAR FUNCTIONS =====
+function updateStudentYearOptions() {
+    const graduationYear = <?php echo !empty($profile['batch_year']) ? $profile['batch_year'] : 'null'; ?>;
+    const startYearSelect = document.querySelector('[name="start_year"]');
+    const endYearSelect = document.querySelector('[name="end_year"]');
+    const status = document.getElementById('employmentStatusSelect')?.value || '';
+    
+    if (startYearSelect && endYearSelect && ['Student', 'Employed & Student'].includes(status)) {
+        const currentYear = new Date().getFullYear();
+        
+        // Store current selections
+        const currentStartYear = startYearSelect.value;
+        const currentEndYear = endYearSelect.value;
+        
+        // Update Start Year dropdown
+        startYearSelect.innerHTML = '<option value="">Select Start Year</option>';
+        
+        const minStartYear = graduationYear ? parseInt(graduationYear) + 1 : currentYear - 10;
+        const maxStartYear = currentYear;
+        
+        for (let y = minStartYear; y <= maxStartYear; y++) {
+            const option = document.createElement('option');
+            option.value = y;
+            option.textContent = y;
+            if (currentStartYear && y === parseInt(currentStartYear)) {
+                option.selected = true;
+            }
+            startYearSelect.appendChild(option);
+        }
+        
+        updateEndYearOptions();
+    }
+}
+
+function updateEndYearOptions() {
+    const startYearSelect = document.querySelector('[name="start_year"]');
+    const endYearSelect = document.querySelector('[name="end_year"]');
+    const currentYear = new Date().getFullYear();
+    
+    if (startYearSelect && endYearSelect && startYearSelect.value) {
+        const startYear = parseInt(startYearSelect.value);
+        const currentEndYear = endYearSelect.value;
+        
+        endYearSelect.innerHTML = '<option value="">Select End Year</option>';
+        for (let y = startYear + 1; y <= currentYear + 5; y++) {
+            const option = document.createElement('option');
+            option.value = y;
+            option.textContent = y;
+            if (currentEndYear && y === parseInt(currentEndYear)) {
+                option.selected = true;
+            }
+            endYearSelect.appendChild(option);
+        }
+    }
+}
+
+function initializeStudentYearOptions() {
+    const employmentStatusSelect = document.getElementById('employmentStatusSelect');
+    const startYearSelect = document.querySelector('[name="start_year"]');
+    
+    if (employmentStatusSelect) {
+        employmentStatusSelect.addEventListener('change', updateStudentYearOptions);
+    }
+    
+    if (startYearSelect) {
+        startYearSelect.addEventListener('change', updateEndYearOptions);
+    }
+}
+
+function validateStudentYears() {
+    const status = document.getElementById('employmentStatusSelect')?.value || '';
+    
+    if (['Student', 'Employed & Student'].includes(status)) {
+        const startYear = document.querySelector('[name="start_year"]')?.value;
+        const endYear = document.querySelector('[name="end_year"]')?.value;
+        
+        if (!startYear || !endYear) {
+            alert('Both Start Year and End Year are required for student status.');
+            return false;
+        }
+        
+        if (parseInt(endYear) <= parseInt(startYear)) {
+            alert('End Year must be later than Start Year.');
+            return false;
+        }
+        
+        const currentYear = new Date().getFullYear();
+        if (parseInt(endYear) > (currentYear + 10)) {
+            alert('End Year seems too far in the future. Please verify your expected graduation year.');
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+// ===== ADDRESS FIELD INITIALIZATION =====
+function initializeAddressFields() {
+    // Update formatted address when fields change
+    const addressFields = document.querySelectorAll('.address-field');
+    addressFields.forEach(field => {
+        field.addEventListener('input', function() {
+            updateFormattedAddress();
+            debounceGeocode();
+        });
+    });
+
+    // Use current location button
+    const useCurrentLocationBtn = document.getElementById('use-current-location-btn');
+    if (useCurrentLocationBtn) {
+        useCurrentLocationBtn.addEventListener('click', useCurrentLocation);
+    }
+
+    // Form submission validation for address
+    const alumniProfileForm = document.getElementById('alumniProfileForm');
+    if (alumniProfileForm) {
+        alumniProfileForm.addEventListener('submit', function(event) {
+            if (!validateAddress()) {
+                event.preventDefault();
+                showValidation('Please complete all address fields and select a location on the map.', 'error');
+                return false;
+            }
+            return true;
+        });
+    }
+    
+    // Initialize formatted address on load
+    updateFormattedAddress();
+}
+
+// ===== MAP FUNCTIONS =====
+function initMap() {
+    console.log('initMap called, mapInitialized:', mapInitialized);
+    
+    if (mapInitialized && map) {
+        console.log('Map already initialized, returning');
+        return;
+    }
+    
+    // Clean up any existing map
+    if (map) {
+        try {
+            map.remove();
+            map = null;
+            marker = null;
+        } catch (e) {
+            console.log('Error removing old map:', e);
+        }
+    }
+    
+    // Try to get current location, fallback to default
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const defaultCenter = [position.coords.latitude, position.coords.longitude];
+                setupMap(defaultCenter, 13);
+            },
+            () => {
+                // Default center (Philippines) if location access denied
+                const defaultCenter = [12.8797, 121.7740];
+                setupMap(defaultCenter, 6);
+            },
+            { timeout: 5000 }
+        );
+    } else {
+        const defaultCenter = [12.8797, 121.7740];
+        setupMap(defaultCenter, 6);
+    }
+}
+
+function setupMap(center, zoom) {
+    console.log('setupMap called with center:', center, 'zoom:', zoom);
+    
+    const mapContainer = document.getElementById('address-map');
+    if (!mapContainer) {
+        console.error('Map container not found');
+        return;
+    }
+    
+    try {
+        // Clear container
+        mapContainer.innerHTML = '';
+        
+        // Create new map
+        map = L.map('address-map').setView(center, zoom);
+        
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(map);
+        
+        // Add scale control
+        L.control.scale().addTo(map);
+        
+        // Single click event handler
+        map.off('click'); // Remove any existing handlers
+        map.on('click', function(e) {
+            console.log('Map clicked at:', e.latlng);
+            selectedLatLng = e.latlng;
+            updateMarker(selectedLatLng);
+            retryGeocode(selectedLatLng.lat, selectedLatLng.lng, 2);
+        });
+        
+        mapInitialized = true;
+        console.log('Map setup complete');
+        
+        // Load existing address if any
+        setTimeout(loadExistingAddress, 500);
+        
+    } catch (error) {
+        console.error('Error setting up map:', error);
+        showValidation('Error initializing map. Please refresh the page.', 'error');
+    }
+}
+
+function updateMarker(latlng) {
+    if (marker) {
+        map.removeLayer(marker);
+    }
+    marker = L.marker(latlng).addTo(map)
+        .bindPopup('Selected Location')
+        .openPopup();
+    
+    // Center map on marker with smooth animation
+    map.flyTo(latlng, 15, {
+        duration: 0.5
+    });
+    
+    const latInput = document.getElementById('latitude');
+    const lngInput = document.getElementById('longitude');
+    if (latInput && lngInput) {
+        latInput.value = latlng.lat.toFixed(6);
+        lngInput.value = latlng.lng.toFixed(6);
+    }
+}
+
+// ===== GEOCODING FUNCTIONS =====
+async function reverseGeocode(lat, lon) {
+    try {
+        console.log('=== reverseGeocode called ===');
+        console.log('Lat:', lat, 'Type:', typeof lat);
+        console.log('Lon:', lon, 'Type:', typeof lon);
+        
+        // Set loading state
+        isAddressLoading = true;
+        
+        // Validate coordinates before sending
+        if (lat === undefined || lon === undefined || lat === null || lon === null) {
+            throw new Error('Coordinates are undefined/null');
+        }
+        
+        lat = parseFloat(lat);
+        lon = parseFloat(lon);
+        
+        if (isNaN(lat) || isNaN(lon)) {
+            throw new Error('Coordinates are not valid numbers');
+        }
+        
+        if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+            throw new Error('Coordinates out of valid range');
+        }
+        
+        showValidation('Getting address details...', 'info');
+        
+        // Clear previous validation
+        const validationContainer = document.getElementById('address-validation');
+        if (validationContainer) {
+            validationContainer.classList.add('hidden');
+        }
+        
+        const response = await fetch(`../api/geocode.php?action=reverse&lat=${lat}&lon=${lon}`);
+        
+        console.log('API Response status:', response.status);
+        
+        if (!response.ok) {
+            throw new Error(`API HTTP error: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        console.log('API Result:', result);
+        
+        if (!result.success) {
+            throw new Error(result.error || 'Address lookup failed');
+        }
+        
+        const address = result.address;
+        
+        if (!address) {
+            throw new Error('No address data in response');
+        }
+        
+        // Populate form fields
+        const cityField = document.getElementById('city');
+        const stateField = document.getElementById('state-province');
+        const countryField = document.getElementById('country');
+        
+        if (cityField) {
+            cityField.value = address.city || '';
+            console.log('City field set to:', address.city);
+        }
+        
+        if (stateField) {
+            stateField.value = address.state_province || '';
+            console.log('State field set to:', address.state_province);
+        }
+        
+        if (countryField) {
+            countryField.value = address.country || '';
+            console.log('Country field set to:', address.country);
+        }
+        
+        // Force update formatted address
+        setTimeout(() => {
+            updateFormattedAddress();
+            showValidation('✓ Address populated successfully!', 'success');
+            isAddressLoading = false; // Reset loading state
+        }, 100);
+        
+    } catch (error) {
+        console.error('Reverse geocoding error:', error);
+        showValidation(`Error: ${error.message}. Please try again or enter manually.`, 'error');
+        isAddressLoading = false; // Reset loading state on error
+        throw error; // Re-throw for retry logic
+    }
+}
+
+async function retryGeocode(lat, lon, retries = 3) {
+    console.log(`retryGeocode called, attempts: ${retries}`);
+    
+    for (let i = 0; i < retries; i++) {
+        try {
+            console.log(`Attempt ${i + 1}/${retries}`);
+            return await reverseGeocode(lat, lon);
+        } catch (error) {
+            console.log(`Geocode attempt ${i + 1} failed:`, error.message);
+            if (i === retries - 1) {
+                console.log('All attempts failed');
+                throw error;
+            }
+            
+            // Wait before retry (exponential backoff)
+            const delay = 1000 * Math.pow(2, i); // 1s, 2s, 4s
+            console.log(`Waiting ${delay}ms before retry...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+    }
+}
+
+function updateFormattedAddress() {
+    const city = document.getElementById('city')?.value.trim() || '';
+    const state = document.getElementById('state-province')?.value.trim() || '';
+    const country = document.getElementById('country')?.value.trim() || '';
+    
+    console.log('updateFormattedAddress called with:', { city, state, country });
+    
+    const parts = [];
+    if (city) parts.push(city);
+    if (state) parts.push(state);
+    if (country) parts.push(country);
+    
+    const formattedAddress = parts.join(', ');
+    
+    console.log('Generated formatted address:', formattedAddress);
+    
+    // Update preview
+    const previewElement = document.getElementById('formatted-address-preview');
+    if (previewElement) {
+        previewElement.textContent = formattedAddress || 'Address will be generated from fields above...';
+        console.log('Preview element updated');
+    }
+    
+    // Update hidden input for form submission
+    const hiddenInput = document.getElementById('formatted-address');
+    if (hiddenInput) {
+        hiddenInput.value = formattedAddress;
+        console.log('Hidden input value:', hiddenInput.value);
+    }
+    
+    return formattedAddress;
+}
+
+function loadExistingAddress() {
+    const existingLat = document.getElementById('latitude')?.value;
+    const existingLng = document.getElementById('longitude')?.value;
+    
+    if (existingLat && existingLng && !isNaN(parseFloat(existingLat)) && !isNaN(parseFloat(existingLng))) {
+        const latLng = L.latLng(parseFloat(existingLat), parseFloat(existingLng));
+        selectedLatLng = latLng;
+        updateMarker(latLng);
+    }
+}
+
+function useCurrentLocation() {
+    if (navigator.geolocation) {
+        showValidation('Getting your current location...', 'info');
+        
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+                selectedLatLng = L.latLng(lat, lon);
+                updateMarker(selectedLatLng);
+                reverseGeocode(lat, lon);
+            },
+            (error) => {
+                showValidation('Could not get your location. Please allow location access.', 'error');
+                console.error('Geolocation error:', error);
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 5000,
+                maximumAge: 0
+            }
+        );
+    } else {
+        showValidation('Geolocation is not supported by your browser', 'error');
+    }
+}
+
+async function geocodeFromForm() {
+    const city = document.getElementById('city')?.value.trim() || '';
+    const state = document.getElementById('state-province')?.value.trim() || '';
+    const country = document.getElementById('country')?.value.trim() || '';
+    
+    if (!city && !state && !country) {
+        showValidation('Please fill in at least one address field', 'warning');
+        return;
+    }
+    
+    const address = `${city}, ${state}, ${country}`.replace(/,\s*$/, '');
+    
+    try {
+        showValidation('Searching for address...', 'info');
+        
+        const response = await fetch(`../api/geocode.php?action=geocode&address=${encodeURIComponent(address)}`);
+        const result = await response.json();
+        
+        console.log('Forward geocoding results:', result);
+        
+        if (result.success && result.results && result.results.length > 0) {
+            const firstResult = result.results[0];
+            const lat = parseFloat(firstResult.lat);
+            const lon = parseFloat(firstResult.lon);
+            
+            selectedLatLng = L.latLng(lat, lon);
+            updateMarker(selectedLatLng);
+            showValidation('Address found and located on map!', 'success');
+        } else {
+            showValidation('Address not found. Please try different city/state/country combination.', 'warning');
+        }
+    } catch (error) {
+        console.error('Geocoding error:', error);
+        showValidation('Error searching address. Please try again.', 'error');
+    }
+}
+
+function debounceGeocode() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+        const city = document.getElementById('city')?.value.trim() || '';
+        const state = document.getElementById('state-province')?.value.trim() || '';
+        const country = document.getElementById('country')?.value.trim() || '';
+        
+        if (city && state && country) {
+            geocodeFromForm();
+        }
+    }, 1000);
+}
+
+function validateAddress() {
+    const requiredFields = [
+        { id: 'city', name: 'City' },
+        { id: 'state-province', name: 'State/Province' },
+        { id: 'country', name: 'Country' },
+        { id: 'latitude', name: 'Latitude' },
+        { id: 'longitude', name: 'Longitude' }
+    ];
+    
+    let missingFields = [];
+    
+    requiredFields.forEach(field => {
+        const fieldElement = document.getElementById(field.id);
+        if (!fieldElement || !fieldElement.value.trim()) {
+            missingFields.push(field.name);
+        }
+    });
+    
+    if (missingFields.length > 0) {
+        showValidation(`Missing required fields: ${missingFields.join(', ')}`, 'error');
+        return false;
+    }
+    
+    showValidation('Address is complete and ready!', 'success');
+    return true;
+}
+
+// ===== DEBUG FUNCTIONS =====
+async function testGeocoding() {
+    console.log('=== DEBUG: Testing geocoding ===');
+    
+    // Test with Manila coordinates
+    const lat = 14.5995;
+    const lng = 120.9842;
+    
+    console.log('Testing with lat:', lat, 'lng:', lng);
+    
+    try {
+        const response = await fetch(`../api/geocode.php?action=reverse&lat=${lat}&lon=${lng}`);
+        const result = await response.json();
+        
+        console.log('API Result:', result);
+        
+        if (result.success) {
+            // Manually populate the fields to test
+            document.getElementById('city').value = result.address.city;
+            document.getElementById('state-province').value = result.address.state_province;
+            document.getElementById('country').value = result.address.country;
+            document.getElementById('latitude').value = lat;
+            document.getElementById('longitude').value = lng;
+            
+            updateFormattedAddress();
+            
+            alert('Debug: Fields populated with Manila data! Check console for details.');
+        }
+    } catch (error) {
+        console.error('Debug error:', error);
+    }
+}
 </script>
 
 <?php

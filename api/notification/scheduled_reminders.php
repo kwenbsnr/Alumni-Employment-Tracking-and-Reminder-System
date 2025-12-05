@@ -1,9 +1,16 @@
 <?php
 
-require_once '../../connect.php';
-require_once '../../vendor/autoload.php';
-require_once '../../config/notification_config.php';
-require_once 'notif_service.php';
+// Debug: Log when this file is included
+error_log("SCHEDULED_REMINDERS.PHP included from: " . $_SERVER['PHP_SELF']);
+
+// Use absolute paths for reliability
+$root_path = dirname(__DIR__, 2);
+require_once $root_path . '/vendor/autoload.php';
+require_once $root_path . '/config/notification_config.php';
+require_once __DIR__ . '/../../connect.php';
+require_once __DIR__ . '/../utils/deadline.php'; // Updated path
+require_once __DIR__ . '/notif_service.php';
+require_once __DIR__ . '/../utils/common_functions.php';
 
 // Simple function to send profile update reminder - FIXED SIGNATURE
 function sendProfileUpdateReminder($conn, $alumni_email, $alumni_name, $graduation_year, $user_id, $reminder_type = 'initial') {
@@ -56,28 +63,27 @@ function getAlumniForReminders($conn) {
     return $alumni;
 }
 
-// Get submission schedule
+// Get submission schedule with admin info
 function getSubmissionSchedule($conn) {
-    $schedule = $conn->query("SELECT * FROM submission_status LIMIT 1");
+    $query = "
+        SELECT ss.*, 
+               u.email as admin_email,
+               CONCAT(u.first_name, ' ', u.last_name) as admin_name
+        FROM submission_status ss
+        LEFT JOIN users u ON ss.created_by = u.user_id
+        LIMIT 1
+    ";
+    $schedule = $conn->query($query);
     return $schedule->num_rows > 0 ? $schedule->fetch_assoc() : null;
 }
 
+/*
 // Check if submissions are open
 function isSubmissionsOpen($conn) {
-    $schedule = getSubmissionSchedule($conn);
-    if (!$schedule) return false;
-
-    if ($schedule['manual_override']) {
-        return (bool)$schedule['is_open'];
-    }
-
-    if ($schedule['open_date'] && $schedule['close_date']) {
-        $now = date('Y-m-d H:i:s');
-        return ($now >= $schedule['open_date'] && $now <= $schedule['close_date']);
-    }
-
-    return false;
+    require_once __DIR__ . '/../utils/schedule_checker.php';
+    return isSubmissionPeriodOpen($conn);
 }
+*/
 
 // Simple notification logger - FIXED WITH CONN PARAMETER
 function logNotification($conn, $email, $template_id, $status, $error_message = '') {
@@ -170,6 +176,11 @@ function testScheduledReminders() {
         echo "- Manual Override: " . ($schedule['manual_override'] ? 'YES' : 'NO') . "\n";
         echo "- Open Date: " . $schedule['open_date'] . "\n";
         echo "- Close Date: " . $schedule['close_date'] . "\n";
+        echo "- Created By: " . ($schedule['admin_name'] ?? 'N/A') . " (" . ($schedule['admin_email'] ?? 'N/A') . ")\n";
+        echo "- Created At: " . $schedule['created_at'] . "\n";
+        echo "- Updated At: " . $schedule['updated_at'] . "\n";
+    } else {
+        echo "No submission schedule found.\n";
     }
     
     $alumni_count = count(getAlumniForReminders($conn));
@@ -185,9 +196,11 @@ if (basename(__FILE__) == basename($_SERVER['PHP_SELF'])) {
     testScheduledReminders();
 }
 
+/* AUTORUN REMDRS
 // For cron job usage
 if (isset($conn) && $conn) {
     $result = runScheduledReminders($conn);
     error_log("Scheduled reminders: " . $result);
-    echo $result;
+//    echo $result;
 }
+*/

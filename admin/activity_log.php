@@ -9,13 +9,6 @@ include("../connect.php");
 $page_title = "Activity Log";
 $active_page = "activity_log";
 
-// === UNDO HANDLER (commented out since Undo column is removed) ===
-// if (isset($_POST['undo_action']) && isset($_POST['log_id'])) {
-//     $log_id = $_POST['log_id'];
-//     ... your undo logic ...
-// }
-
-
 // Pagination
 $limit = 20;
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;

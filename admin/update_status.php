@@ -9,6 +9,14 @@ if (!isset($_SESSION["user_id"]) || $_SESSION["role"] !== "admin") {
 include("../connect.php");
 require_once '../api/notification/notif_service.php';
 
+function shouldSendNotification($conn) {
+    // Use the same function as other files for consistency
+    if (!function_exists('isSubmissionPeriodOpen')) {
+        require_once dirname(__DIR__) . '/api/utils/deadline.php';
+    }
+    return isSubmissionPeriodOpen($conn);
+}
+
 // Get referrer to determine which page the action came from
 $referrer = $_SERVER['HTTP_REFERER'] ?? '';
 $came_from_batch = strpos($referrer, 'batch_alumni.php') !== false;
@@ -20,7 +28,7 @@ if (isset($_GET['user_id']) && isset($_GET['status'])) {
     $reason = $_GET['reason'] ?? '';
     $admin_id = $_SESSION["user_id"];
 
-    // Validate status
+    // Validate status against database ENUM values
     $valid_statuses = ['Approved', 'Rejected', 'Pending'];
     if (!in_array($status, $valid_statuses)) {
         $_SESSION['message'] = "Invalid status parameter";
@@ -35,7 +43,8 @@ if (isset($_GET['user_id']) && isset($_GET['status'])) {
             $currentStatusQuery->bind_param("i", $user_id);
             $currentStatusQuery->execute();
             $currentStatusResult = $currentStatusQuery->get_result();
-            $currentStatus = $currentStatusResult->fetch_assoc()['submission_status'] ?? '';
+            $currentStatusRow = $currentStatusResult->fetch_assoc();
+            $currentStatus = $currentStatusRow['submission_status'] ?? '';
             $currentStatusQuery->close();
 
             // Update the alumni profile status with rejection reason and timestamp
@@ -49,6 +58,14 @@ if (isset($_GET['user_id']) && isset($_GET['status'])) {
             }
 
             if ($stmt->execute()) {
+                // Update submitted_at timestamp when status changes to Approved
+                if ($status === 'Approved') {
+                    $updateTimestampStmt = $conn->prepare("UPDATE alumni_profile SET submitted_at = NOW() WHERE user_id = ?");
+                    $updateTimestampStmt->bind_param("i", $user_id);
+                    $updateTimestampStmt->execute();
+                    $updateTimestampStmt->close();
+                }
+                
                 // LOG THE ACTION - Enhanced with better context
                 $update_type = '';
                 $details = '';
@@ -60,7 +77,8 @@ if (isset($_GET['user_id']) && isset($_GET['status'])) {
                     $update_type = 'reject';
                     $details = "Rejected alumni profile";
                     if (!empty($reason)) {
-                        $details .= " - Reason: {$reason}";
+                        // Escape for log (not for HTML display)
+                        $details .= " - Reason: " . htmlspecialchars($reason, ENT_QUOTES, 'UTF-8');
                     }
                 } elseif ($status === 'Pending') {
                     $update_type = 'update';
@@ -74,8 +92,8 @@ if (isset($_GET['user_id']) && isset($_GET['status'])) {
                     }
                 }
                 
-                // Insert into update_log
-                $logStmt = $conn->prepare("INSERT INTO update_log (updated_by, updated_id, update_type, update_details) VALUES (?, ?, ?, ?)");
+                // Insert into update_log - Ensure all required fields are set
+                $logStmt = $conn->prepare("INSERT INTO update_log (updated_by, updated_id, update_type, update_details, updated_at) VALUES (?, ?, ?, ?, NOW())");
                 $logStmt->bind_param("iiss", $admin_id, $user_id, $update_type, $details);
                 $logStmt->execute();
                 $logStmt->close();
@@ -88,7 +106,7 @@ if (isset($_GET['user_id']) && isset($_GET['status'])) {
                 } elseif ($status === 'Approved') {
                     $_SESSION['message'] = "Profile approved successfully";
                 } else {
-                    $_SESSION['message'] = "Profile rejected successfully" . ($reason ? " - Reason: " . htmlspecialchars($reason) : "");
+                    $_SESSION['message'] = "Profile rejected successfully" . ($reason ? " - Reason: " . htmlspecialchars($reason, ENT_QUOTES, 'UTF-8') : "");
                 }
                 $_SESSION['message_type'] = "success";
             } else {
@@ -97,17 +115,31 @@ if (isset($_GET['user_id']) && isset($_GET['status'])) {
             $stmt->close();
             
             // === NOTIFICATION INTEGRATION ===
-            if ($status === 'Approved' || $status === 'Rejected') {
+            // Check if notifications should be sent based on schedule
+            if (shouldSendNotification($conn) && ($status === 'Approved' || $status === 'Rejected')) {
+                // Ensure notification functions exist
+                if (!function_exists('send_approval_notification')) {
+                    require_once '../api/notification/notif_service.php';
+                }
+                
                 if ($status === 'Approved') {
-                    // Send approval notification to alumni - USING UPDATED FUNCTION
+                    // Send approval notification to alumni
                     $result = send_approval_notification($conn, $user_id);
                 } elseif ($status === 'Rejected') {
-                    // Send rejection notification to alumni - USING UPDATED FUNCTION
+                    // Send rejection notification to alumni
                     $result = send_rejection_notification($conn, $user_id, $reason);
                 }
                 
                 // Log notification results
-                error_log("Notification sent for user $user_id, status: $status");
+                if (isset($result['success']) && $result['success']) {
+                    error_log("Notification sent for user $user_id, status: $status");
+                } else {
+                    error_log("Notification failed for user $user_id: " . ($result['error'] ?? 'Unknown error'));
+                }
+            } else {
+                // Log why notification wasn't sent
+                $schedule_status = shouldSendNotification($conn) ? "Schedule closed" : "Invalid status";
+                error_log("Notification not sent for user $user_id: $schedule_status");
             }
 
         } catch (Exception $e) {
@@ -150,6 +182,13 @@ elseif ($came_from_all) {
     $redirect_url = "all_alumni.php" . ($query_params ? "?" . http_build_query($query_params) : "");
 }
 
+// Add success/error message parameter to redirect URL
+if (isset($_SESSION['message'])) {
+    $message_type = $_SESSION['message_type'] ?? 'success';
+    $redirect_url .= (strpos($redirect_url, '?') === false ? '?' : '&') . "message=" . urlencode($_SESSION['message']) . "&message_type=" . $message_type;
+    unset($_SESSION['message']);
+    unset($_SESSION['message_type']);
+}
+
 header("Location: $redirect_url");
 exit();
-?>

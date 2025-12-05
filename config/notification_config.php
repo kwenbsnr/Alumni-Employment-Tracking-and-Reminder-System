@@ -10,6 +10,6 @@ define('TEMPLATE_MAPPINGS', [
     'template_approved' => 'alumni_employment_tracking_profile_approved', 
     'template_rejected' => 'alumni_employment_tracking_profile_rejected',
     'alum_resubmit_admin_notif' => 'alumni_employment_tracking_resubmission_admin',
-    'alum_submit_update_admin_notif' => 'alumni_employment_tracking_annual_update_admin',
+    'alum_update_admin_notif' => 'alumni_employment_tracking_annual_update_admin',
     'template_admin_notif' => 'alumni_employment_tracking_new_submission_admin'
 ]);

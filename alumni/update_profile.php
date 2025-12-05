@@ -15,6 +15,7 @@ function log_alumni_activity($conn, $user_id, $action_type, $description = '') {
     $stmt->execute();
     $stmt->close();
 }
+
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
 if (!isset($_SESSION['user_id'])) {
@@ -27,25 +28,6 @@ $user_id = $_SESSION['user_id'];
 
 // Log the main submission
 log_alumni_activity($conn, $user_id, 'profile_submitted', 'Alumni submitted profile for review');
-
-// Conditional logs based on status
-$status = trim($_POST['employment_status'] ?? '');
-
-if (in_array($status, ['Employed', 'Employed & Student'])) {
-    log_alumni_activity($conn, $user_id, 'document_uploaded', 'Uploaded Certificate of Employment (COE)');
-}
-if ($status === 'Self-Employed') {
-    log_alumni_activity($conn, $user_id, 'document_uploaded', 'Uploaded Business Certificate');
-}
-if (in_array($status, ['Student', 'Employed & Student'])) {
-    log_alumni_activity($conn, $user_id, 'document_uploaded', 'Uploaded Certificate of Registration (COR)');
-}
-
-if (!empty($_FILES['profile_photo']['name'])) {
-    log_alumni_activity($conn, $user_id, 'profile_photo_updated', 'Updated profile picture');
-}
-
-log_alumni_activity($conn, $user_id, 'profile_updated', 'Updated personal information and address');
 
 // ---- 1. Profile & Permissions ------------------------------------------------
 $user_stmt = $conn->prepare("
@@ -67,7 +49,7 @@ $user_stmt->close();
 
 // ---- 2. Get complete alumni profile data -------------------------------------
 $alumni_stmt = $conn->prepare("
-    SELECT ap.submission_status, ap.last_profile_update, ap.address_id, ap.employment_status, ap.photo_path
+    SELECT ap.submission_status, ap.last_profile_update, ap.employment_status, ap.photo_path
     FROM alumni_profile ap 
     WHERE ap.user_id = ?
 ");
@@ -98,11 +80,19 @@ if ($is_profile_rejected && !isset($_SESSION['profile_rejected'])) {
     $_SESSION['profile_rejected'] = true;
 }
 
-$existing_address_id = $alumni_profile['address_id'] ?? null;
+// Check if worldwide address exists
+$address_stmt = $conn->prepare("SELECT address_id FROM worldwide_address WHERE user_id = ?");
+$address_stmt->bind_param("i", $user_id);
+$address_stmt->execute();
+$address_result = $address_stmt->get_result();
+$existing_address = $address_result->fetch_assoc();
+$existing_worldwide_address_id = $existing_address ? $existing_address['address_id'] : null;
+$address_stmt->close();
+
 $current_employment_status = $alumni_profile['employment_status'] ?? '';
 $photo_path = $alumni_profile['photo_path'] ?? null;
 
-// ---- 3. Helper: file upload --------------------------------------------------
+// ---- 4. Helper: file upload --------------------------------------------------
 function upload_file($field, $dir, $user_id, $type, $allowed = ['application/pdf']) {
     global $conn;
     
@@ -135,10 +125,6 @@ function upload_file($field, $dir, $user_id, $type, $allowed = ['application/pdf
         throw new Exception("Invalid file type. Allowed: " . implode(', ', $allowed));
     }
     
-    // DEBUG: Log original filename
-    error_log("DEBUG UPLOAD: Original filename: " . $file['name']);
-    error_log("DEBUG UPLOAD: User ID: " . $user_id . ", Type: " . $type);
-    
     // Get user's surname for filename
     $user_stmt = $conn->prepare("SELECT last_name FROM users WHERE user_id = ?");
     $user_stmt->bind_param("i", $user_id);
@@ -147,20 +133,10 @@ function upload_file($field, $dir, $user_id, $type, $allowed = ['application/pdf
     $user_data = $user_result->fetch_assoc();
     $user_stmt->close();
 
-    // DEBUG: Log database result
-    error_log("DEBUG UPLOAD: Database result: " . print_r($user_data, true));
-
     $surname = 'Unknown';
     if ($user_data && !empty($user_data['last_name'])) {
-        // Sanitize surname: remove spaces and special characters, keep original case
         $surname = preg_replace("/[^a-zA-Z0-9]/", "", $user_data['last_name']);
-        
-        // ✅ Capitalize first letter only, keep the rest as-is
         $surname = ucfirst($surname);
-        
-        error_log("DEBUG UPLOAD: Sanitized surname: " . $surname);
-    } else {
-        error_log("DEBUG UPLOAD: Using default 'Unknown' surname");
     }
 
     // Map type codes to document type names for filename
@@ -172,7 +148,6 @@ function upload_file($field, $dir, $user_id, $type, $allowed = ['application/pdf
     ];
     
     $doc_type = $doc_type_map[$type] ?? $type;
-    error_log("DEBUG UPLOAD: Document type: " . $doc_type);
     
     // Get file extension from MIME type
     $extMap = [
@@ -183,7 +158,6 @@ function upload_file($field, $dir, $user_id, $type, $allowed = ['application/pdf
     ];
     
     $ext = $extMap[$mime_type] ?? 'file';
-    error_log("DEBUG UPLOAD: File extension: " . $ext);
 
     if (!is_dir($dir)) {
         if (!mkdir($dir, 0777, true)) {
@@ -195,38 +169,25 @@ function upload_file($field, $dir, $user_id, $type, $allowed = ['application/pdf
     $name = $surname . '_' . $doc_type . '.' . $ext;
     $target = rtrim($dir, '/') . '/' . $name;
 
-    error_log("DEBUG UPLOAD: Generated filename: " . $name);
-    error_log("DEBUG UPLOAD: Target path: " . $target);
-
     if (!move_uploaded_file($file['tmp_name'], $target)) {
-        error_log("DEBUG UPLOAD: move_uploaded_file FAILED for: " . $file['tmp_name'] . " to " . $target);
         throw new Exception("File upload failed. Please try again.");
     }
     
-    error_log("DEBUG UPLOAD: File successfully moved to: " . $target);
-    
     $return_path = str_replace('../', '', $target);
-    error_log("DEBUG UPLOAD: Returning path: " . $return_path);
-    
     return $return_path;
 }
 
-// ---- 4. Document handler (DRY) -----------------------------------------------
+// ---- 5. Document handler (DRY) -----------------------------------------------
 function handle_document($field, $dir, $user_id, $code) {
     global $conn;
     
     if (!isset($_FILES[$field]) || $_FILES[$field]['error'] !== UPLOAD_ERR_OK) {
-        error_log("DEBUG HANDLE_DOC: No file uploaded for field: " . $field);
         return null;
     }
 
-    error_log("DEBUG HANDLE_DOC: Processing document - Field: " . $field . ", Dir: " . $dir . ", User ID: " . $user_id . ", Code: " . $code);
-    
     $new_path = upload_file($field, $dir, $user_id, strtolower($code), ['application/pdf']);
     
     if ($new_path) {
-        error_log("DEBUG HANDLE_DOC: upload_file returned: " . $new_path);
-        
         // Delete old document if exists
         $stmt = $conn->prepare("DELETE FROM alumni_documents WHERE user_id = ? AND document_type = ?");
         $stmt->bind_param("is", $user_id, $code);
@@ -239,15 +200,12 @@ function handle_document($field, $dir, $user_id, $code) {
         $stmt->execute();
         $stmt->close();
         
-        error_log("DEBUG HANDLE_DOC: Document saved to database with path: " . $new_path);
         return true;
-    } else {
-        error_log("DEBUG HANDLE_DOC: upload_file returned NULL");
     }
     return false;
 }
 
-// ---- 5. POST handling --------------------------------------------------------
+// ---- 6. POST handling --------------------------------------------------------
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($is_development) {
         error_log("=== PROFILE UPDATE START ===");
@@ -259,15 +217,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $conn->begin_transaction();
     
     try {
-        // ---- 5.1 Retrieve & sanitise --------------------------------------------
+        // ---- 6.1 Retrieve & sanitise --------------------------------------------
         $contact = !empty($_POST['contact_number']) ? trim($_POST['contact_number']) : '';
         $status = htmlspecialchars(trim($_POST['employment_status'] ?? ''));
 
-        // Address fields
-        $region_id = htmlspecialchars(trim($_POST['region_id'] ?? ''));
-        $province_id = htmlspecialchars(trim($_POST['province_id'] ?? ''));
-        $municipality_id = htmlspecialchars(trim($_POST['municipality_id'] ?? ''));
-        $barangay_id = htmlspecialchars(trim($_POST['barangay_id'] ?? ''));
+        // Worldwide address fields
+        $city = !empty($_POST['city']) ? trim($_POST['city']) : '';
+        $state_province = !empty($_POST['state_province']) ? trim($_POST['state_province']) : '';
+        $country = !empty($_POST['country']) ? trim($_POST['country']) : '';
+        $latitude = !empty($_POST['latitude']) ? trim($_POST['latitude']) : null;
+        $longitude = !empty($_POST['longitude']) ? trim($_POST['longitude']) : null;
+        $formatted_address = !empty($_POST['formatted_address']) ? trim($_POST['formatted_address']) : '';
 
         // Employment fields
         $job_title = !empty($_POST['job_title']) ? trim($_POST['job_title']) : '';
@@ -287,21 +247,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $business_type = 'Others: ' . (!empty($_POST['business_type_other']) ? trim($_POST['business_type_other']) : '');
         }
 
-        // Education fields - Store raw data
-        $school = !empty($_POST['school_name']) ? 
-            trim($_POST['school_name']) : '';
-        $degree = !empty($_POST['degree_pursued']) ? 
-            trim($_POST['degree_pursued']) : '';
+        // Education fields
+        $school = !empty($_POST['school_name']) ? trim($_POST['school_name']) : '';
+        $degree = !empty($_POST['degree_pursued']) ? trim($_POST['degree_pursued']) : '';
         $start_year = !empty($_POST['start_year']) ? trim($_POST['start_year']) : '';
         $end_year = !empty($_POST['end_year']) ? trim($_POST['end_year']) : '';
-
-        // Debug: Check what's being received
-        error_log("Raw POST degree_pursued: " . ($_POST['degree_pursued'] ?? 'NULL'));
-        error_log("Raw POST school_name: " . ($_POST['school_name'] ?? 'NULL'));
-
-        // After processing, log what will be stored
-        error_log("Processed degree_pursued: " . $degree);
-        error_log("Processed school_name: " . $school);
 
         // Validate year format for student statuses
         if (in_array($status, ['Student', 'Employed & Student'])) {
@@ -324,18 +274,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        // ---- 5.2 Backend validation ------------------------------------
+        // Worldwide address validation - ALL FIELDS REQUIRED
+        if (empty($city) || empty($state_province) || empty($country) || !$latitude || !$longitude || empty($formatted_address)) {
+            throw new Exception("Complete address information is required (City, State/Province, Country, map location, and formatted address).");
+        }
+
+        // Validate latitude/longitude format
+        if (!is_numeric($latitude) || !is_numeric($longitude)) {
+            throw new Exception("Invalid coordinates. Please select a valid location on the map.");
+        }
+
+        if ($latitude < -90 || $latitude > 90) {
+            throw new Exception("Latitude must be between -90 and 90 degrees.");
+        }
+
+        if ($longitude < -180 || $longitude > 180) {
+            throw new Exception("Longitude must be between -180 and 180 degrees.");
+        }
+
+        // ---- 6.2 Backend validation ------------------------------------
         if ($can_update) {
             $original_status = trim($_POST['employment_status'] ?? '');
             
-            // Required personal fields (contact number and employment status)
+            // Required personal fields
             if (empty($contact) || empty($original_status)) {
                 throw new Exception("Contact number and employment status are required.");
             }
 
-            // Address required for all statuses
-            if (!$region_id || !$province_id || !$municipality_id || !$barangay_id) {
-                throw new Exception("Complete address is required.");
+            if (!$latitude || !$longitude) {
+                throw new Exception("Please select a location on the map.");
             }
 
             // Employment-specific validation
@@ -357,15 +324,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!$degree) throw new Exception("Degree pursued is required.");
                 if (!$start_year) throw new Exception("Start year is required.");
                 if (!$end_year) throw new Exception("End year is required.");
-                
-                if ($end_year <= $start_year) {
-                    throw new Exception("End Year (Expected Graduation) must be later than Start Year.");
-                }
             }
         }
 
-        // ---- 5.3 Photo handling ---------------------------------------
-
+        // ---- 6.3 Photo handling ---------------------------------------
         if (isset($_FILES['profile_photo']) && $_FILES['profile_photo']['error'] === UPLOAD_ERR_OK) {
             $file = $_FILES['profile_photo'];
             $max_size = 20 * 1024 * 1024;
@@ -399,66 +361,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        // ---- 5.4 Address Handling ---------------------------------------------
-        $address_id = $existing_address_id;
-
-        if ($barangay_id) {
-            // Validate address hierarchy
-            $valid_region = false;
-            $valid_province = false;
-            $valid_municipality = false;
-            $valid_barangay = false;
-
-            // Check region
-            $stmt = $conn->prepare("SELECT 1 FROM table_region WHERE region_id = ?");
-            $stmt->bind_param("s", $region_id);
-            $stmt->execute();
-            if ($stmt->get_result()->num_rows > 0) $valid_region = true;
-            $stmt->close();
-
-            if (!$valid_region) throw new Exception("Invalid region selected");
-
-            // Check province
-            $stmt = $conn->prepare("SELECT 1 FROM table_province WHERE province_id = ? AND region_id = ?");
-            $stmt->bind_param("ss", $province_id, $region_id);
-            $stmt->execute();
-            if ($stmt->get_result()->num_rows > 0) $valid_province = true;
-            $stmt->close();
-
-            if (!$valid_province) throw new Exception("Invalid province selected for the chosen region");
-
-            // Check municipality
-            $stmt = $conn->prepare("SELECT 1 FROM table_municipality WHERE municipality_id = ? AND province_id = ?");
-            $stmt->bind_param("ss", $municipality_id, $province_id);
-            $stmt->execute();
-            if ($stmt->get_result()->num_rows > 0) $valid_municipality = true;
-            $stmt->close();
-
-            if (!$valid_municipality) throw new Exception("Invalid municipality selected for the chosen province");
-
-            // Check barangay
-            $stmt = $conn->prepare("SELECT 1 FROM table_barangay WHERE barangay_id = ? AND municipality_id = ?");
-            $stmt->bind_param("ss", $barangay_id, $municipality_id);
-            $stmt->execute();
-            if ($stmt->get_result()->num_rows > 0) $valid_barangay = true;
-            $stmt->close();
-
-            if (!$valid_barangay) throw new Exception("Invalid barangay selected for the chosen municipality");
-
-            // Create/update address
-            if ($address_id) {
-                $stmt = $conn->prepare("UPDATE address SET barangay_id = ? WHERE address_id = ?");
-                $stmt->bind_param("si", $barangay_id, $address_id);
-            } else {
-                $stmt = $conn->prepare("INSERT INTO address (barangay_id) VALUES (?)");
-                $stmt->bind_param("s", $barangay_id);
-            }
-            $stmt->execute();
-            $address_id = $address_id ?: $conn->insert_id;
-            $stmt->close();
-        }
-
-        // ---- 5.5 Profile INSERT / UPDATE ----------------------------------------
+        // ---- 6.4 Profile INSERT / UPDATE ----------------------------------------
         if ($can_update) {
             $original_status = trim($_POST['employment_status'] ?? '');
             
@@ -471,15 +374,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             if ($profile_exists) {
                 $stmt = $conn->prepare("UPDATE alumni_profile SET 
-                    contact_number=?, employment_status=?, photo_path=?, last_profile_update=NOW(), address_id=?,
+                    contact_number=?, employment_status=?, photo_path=?, last_profile_update=NOW(),
                     submission_status='Pending', submitted_at=NOW()
                     WHERE user_id=?");
-                $stmt->bind_param("sssii", $contact, $original_status, $photo_path, $address_id, $user_id);
+                $stmt->bind_param("sssi", $contact, $original_status, $photo_path, $user_id);  
             } else {
                 $stmt = $conn->prepare("INSERT INTO alumni_profile 
-                    (user_id, contact_number, employment_status, photo_path, last_profile_update, address_id, submission_status, submitted_at)
-                    VALUES (?,?,?,?,NOW(),?,'Pending',NOW())");
-                $stmt->bind_param("isssi", $user_id, $contact, $original_status, $photo_path, $address_id);
+                    (user_id, contact_number, employment_status, photo_path, last_profile_update, submission_status, submitted_at)
+                    VALUES (?,?,?,?,NOW(),'Pending',NOW())");
+                $stmt->bind_param("isss", $user_id, $contact, $original_status, $photo_path);  
             }
 
             if (!$stmt->execute()) {
@@ -487,14 +390,113 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new Exception("Failed to save profile information. Please try again.");
             }
             $stmt->close();
-            
-            // Ensure the profile record is committed before proceeding
-            if ($is_development) {
-                error_log("Alumni profile record created/updated successfully");
-            }
         }
 
-        // ---- 5.6 Employment ------------------------------------------------------
+        // 6.5 Worldwide Address Handling -----------------------------------------
+        // Validate all required address fields
+        if (empty(trim($city))) {
+            throw new Exception("City is required.");
+        }
+        if (empty(trim($state_province))) {
+            throw new Exception("State/Province is required.");
+        }
+        if (empty(trim($country))) {
+            throw new Exception("Country is required.");
+        }
+        if (!$latitude || !$longitude) {
+            throw new Exception("Please select a location on the map.");
+        }
+
+        // Validate latitude/longitude format
+        if (!is_numeric($latitude) || !is_numeric($longitude)) {
+            throw new Exception("Invalid coordinates. Please select a valid location on the map.");
+        }
+
+        if ($latitude < -90 || $latitude > 90) {
+            throw new Exception("Latitude must be between -90 and 90 degrees.");
+        }
+
+        if ($longitude < -180 || $longitude > 180) {
+            throw new Exception("Longitude must be between -180 and 180 degrees.");
+        }
+
+        // Use the formatted address from the form, or create one
+        if (empty($formatted_address)) {
+            $formatted_address = implode(', ', array_filter([
+                trim($city),
+                trim($state_province), 
+                trim($country)
+            ]));
+        }
+
+        // Handle worldwide_address
+        // Check if worldwide address already exists
+        $stmt = $conn->prepare("SELECT address_id FROM worldwide_address WHERE user_id = ?");
+        $stmt->bind_param("i", $user_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $existing_address = $result->fetch_assoc();
+        $stmt->close();
+
+        if ($existing_address) {
+            // Update existing address
+            $stmt = $conn->prepare("UPDATE worldwide_address SET 
+                city = ?, state_province = ?, country = ?, latitude = ?, longitude = ?, 
+                formatted_address = ?, updated_at = CURRENT_TIMESTAMP 
+                WHERE user_id = ?");
+            $stmt->bind_param("sssddsi", 
+                $city, $state_province, $country, $latitude, $longitude,
+                $formatted_address, $user_id
+            );
+        } else {
+            // Insert new address - NOW alumni_profile exists!
+            $stmt = $conn->prepare("INSERT INTO worldwide_address 
+                (user_id, city, state_province, country, latitude, longitude, formatted_address) 
+                VALUES (?, ?, ?, ?, ?, ?, ?)");
+            $stmt->bind_param("isssdds", 
+                $user_id, $city, $state_province, $country, $latitude, $longitude, $formatted_address
+            );
+        }
+
+        if (!$stmt->execute()) {
+            error_log("Worldwide address save error: " . $stmt->error);
+            throw new Exception("Failed to save address information. Please try again.");
+        }
+
+        $stmt->close();
+
+        // ---- 6.5 Profile INSERT / UPDATE ----------------------------------------
+        if ($can_update) {
+            $original_status = trim($_POST['employment_status'] ?? '');
+            
+            // Check if alumni_profile record exists
+            $check_stmt = $conn->prepare("SELECT user_id FROM alumni_profile WHERE user_id = ?");
+            $check_stmt->bind_param("i", $user_id);
+            $check_stmt->execute();
+            $profile_exists = $check_stmt->get_result()->num_rows > 0;
+            $check_stmt->close();
+            
+            if ($profile_exists) {
+                $stmt = $conn->prepare("UPDATE alumni_profile SET 
+                    contact_number=?, employment_status=?, photo_path=?, last_profile_update=NOW(),
+                    submission_status='Pending', submitted_at=NOW()
+                    WHERE user_id=?");
+                $stmt->bind_param("sssi", $contact, $original_status, $photo_path, $user_id);  
+            } else {
+                $stmt = $conn->prepare("INSERT INTO alumni_profile 
+                    (user_id, contact_number, employment_status, photo_path, last_profile_update, submission_status, submitted_at)
+                    VALUES (?,?,?,?,NOW(),'Pending',NOW())");
+                $stmt->bind_param("isss", $user_id, $contact, $original_status, $photo_path);  
+            }
+
+            if (!$stmt->execute()) {
+                error_log("Alumni profile update failed: " . $stmt->error);
+                throw new Exception("Failed to save profile information. Please try again.");
+            }
+            $stmt->close();
+        }
+
+        // ---- 6.6 Employment ------------------------------------------------------
         if ($can_update) {
             // Delete existing employment info first
             $stmt = $conn->prepare("DELETE FROM employment_info WHERE user_id = ?");
@@ -503,9 +505,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->close();
 
             $original_status = trim($_POST['employment_status'] ?? '');
-            if ($is_development) {
-                error_log("Processing employment for status: $original_status");
-            }
             
             // Insert employment info ONLY for relevant statuses
             if (in_array($original_status, ['Employed', 'Self-Employed', 'Employed & Student'])) {
@@ -568,14 +567,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     throw new Exception("Failed to save employment information. Please try again.");
                 }
                 $stmt->close();
-                
-                error_log("Employment info inserted successfully");
-            } else {
-                error_log("Skipping employment insert for status: '{$original_status}'");
             }
         }
 
-        // ---- 5.7 Education -------------------------------------------------------
+        // ---- 6.7 Education -------------------------------------------------------
         if ($can_update) {
             // Delete existing education info first
             $stmt = $conn->prepare("DELETE FROM education_info WHERE user_id = ?");
@@ -587,11 +582,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             // Insert education info ONLY for relevant statuses
             if (in_array($original_status, ['Student', 'Employed & Student'])) {
-                // Validate that education fields are provided for student statuses
-                if (empty($school) || empty($degree) || empty($start_year) || empty($end_year)) {
-                    throw new Exception("All education fields are required for student status.");
-                }
-                
                 $stmt = $conn->prepare("INSERT INTO education_info 
                     (user_id, school_name, degree_pursued, start_year, end_year)
                     VALUES (?,?,?,?,?)");
@@ -602,13 +592,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     throw new Exception("Failed to save education information. Please try again.");
                 }
                 $stmt->close();
-                error_log("Education info inserted for status: '{$original_status}'");
-            } else {
-                error_log("Skipping education insert for status: '{$original_status}'");
             }
         }
 
-        // ---- 5.8 Documents – STATUS-BASED VALIDATION ----------------------------
+        // ---- 6.8 Documents – STATUS-BASED VALIDATION ----------------------------
         $original_status = trim($_POST['employment_status'] ?? '');
 
         // Delete ALL existing documents first when status changes
@@ -627,8 +614,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (in_array($original_status, ['Student', 'Employed & Student'])) {
             $required_docs['COR'] = 'cor_file';
         }
-
-        error_log("Required documents for status '{$original_status}': " . print_r($required_docs, true));
 
         // Process required documents
         foreach ($required_docs as $code => $field) {
@@ -654,33 +639,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         ($code === 'B_CERT' ? 'Business Certificate' : 'Certificate of Registration');
                 throw new Exception("{$doc_name} upload failed. PDF only, max 2MB.");
             }
-            
-            error_log("Successfully processed document: {$code}");
         }
 
         $conn->commit();
 
-        // === NOTIFICATION INTEGRATION ===
-        // Check if this is first-time submission
-        $is_first_time = is_first_time_submission($conn, $user_id);
-        
-        // Check if this is a resubmission after rejection
-        $is_resubmission = was_submission_rejected($conn, $user_id);
-        
-        // Send appropriate notifications to admins - USING UPDATED FUNCTIONS
-        if ($is_first_time) {
-            // First-time submission - send template_admin_notif
-            $result = send_new_submission_admin_notification($conn, $user_id);
-            error_log("First-time submission notification sent for user: $user_id");
-        } elseif ($is_resubmission) {
-            // Resubmission after rejection - send alum_resubmit_admin_notif
-            $result = send_resubmission_admin_notification($conn, $user_id);
-            error_log("Resubmission notification sent for user: $user_id");
-        } else {
-            // Regular update - send alum_update_admin_notif
-            $result = send_update_admin_notification($conn, $user_id);
-            error_log("Regular update notification sent for user: $user_id");
+        // === SCHEDULE CHECK ===
+        // used da deadline.php function instead of duplicate function
+        if (!function_exists('isSubmissionPeriodOpen')) {
+            require_once dirname(__DIR__) . '/api/utils/deadline.php';
         }
+
+        // === NOTIFICATION INTEGRATION ===
+        // Only send notifications if submissions are open
+        if (isSubmissionPeriodOpen($conn)) {
+            // Check if this is first-time submission
+            $is_first_time = is_first_time_submission($conn, $user_id);
+            
+            // Check if this is a resubmission after rejection
+            $is_resubmission = was_submission_rejected($conn, $user_id);
+            
+            // Send appropriate notifications to admins
+            if ($is_first_time) {
+                $result = send_new_submission_admin_notification($conn, $user_id);
+                error_log("First-time submission notification sent for user: $user_id");
+            } elseif ($is_resubmission) {
+                $result = send_resubmission_admin_notification($conn, $user_id);
+                error_log("Resubmission notification sent for user: $user_id");
+            } else {
+                $result = send_update_admin_notification($conn, $user_id);
+                error_log("Regular update notification sent for user: $user_id");
+            }
+        } else {
+            error_log("Notifications not sent: Submission period closed for user: $user_id");
+        }
+
+        // Conditional logs based on status
+        if (in_array($status, ['Employed', 'Employed & Student'])) {
+            log_alumni_activity($conn, $user_id, 'document_uploaded', 'Uploaded Certificate of Employment (COE)');
+        }
+        if ($status === 'Self-Employed') {
+            log_alumni_activity($conn, $user_id, 'document_uploaded', 'Uploaded Business Certificate');
+        }
+        if (in_array($status, ['Student', 'Employed & Student'])) {
+            log_alumni_activity($conn, $user_id, 'document_uploaded', 'Uploaded Certificate of Registration (COR)');
+        }
+
+        if (!empty($_FILES['profile_photo']['name'])) {
+            log_alumni_activity($conn, $user_id, 'profile_photo_updated', 'Updated profile picture');
+        }
+
+        log_alumni_activity($conn, $user_id, 'profile_updated', 'Updated personal information and worldwide address');
 
         // Clear any rejection session flags
         if (isset($_SESSION['profile_rejected'])) {
@@ -710,4 +718,3 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $conn->close();
 ob_end_flush();
-?>

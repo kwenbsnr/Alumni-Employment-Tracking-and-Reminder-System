@@ -129,7 +129,7 @@ ob_start();
                 </span>
                 
                 <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold bg-amber-50 text-amber-700 shadow-sm border border-amber-200 transition duration-150 ease-in-out hover:bg-amber-100">
-                    <i class="fas fa-clock mr-2 text-base"></i> 
+                    <i class="fas fa-user-clock mr-2 text-base"></i> 
                     Pending: <span class="ml-1 font-bold"><?= $batchStats['pending_count'] ?? 0 ?></span>
                 </span>
                 
@@ -240,7 +240,7 @@ ob_start();
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <span class="px-3 py-1.5 inline-flex text-sm font-semibold rounded-full <?= getSubmissionStatusColor($alumni['submission_status']) ?> border <?= getSubmissionStatusBorder($alumni['submission_status']) ?> shadow-sm">
                                     <i class="<?= getSubmissionStatusIcon($alumni['submission_status']) ?> mr-2"></i>
-                                    <?= empty($alumni['submission_status']) ? 'No Profile' : htmlspecialchars($alumni['submission_status']) ?>
+                                    <?= ($alumni['submission_status'] === null || $alumni['submission_status'] === '') ? 'No Profile' : htmlspecialchars($alumni['submission_status']) ?>
                                 </span>
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-500">
@@ -248,13 +248,13 @@ ob_start();
                                     <div class="space-y-1">
                                         <?php foreach ($documents as $doc): ?>
                                             <?php
-                                            $doc_names = ['COR' => 'Registration', 'COE' => 'Employment Cert', 'B_CERT' => 'Business Cert'];
+                                            $doc_names = ['COR' => 'Certificate of Registration', 'COE' => 'Certificate of Employment', 'B_CERT' => 'Business Certificate'];
                                             $name = $doc_names[$doc['document_type']] ?? $doc['document_type'];
                                             ?>
-                                            <div class="flex items-center hover:bg-gray-50 rounded px-2 py-1">
-                                                <span class="text-sm font-medium"><?= $name ?></span>
-                                                <a href="../<?= htmlspecialchars($doc['file_path']) ?>" target="_blank" class="text-blue-600 hover:text-blue-800 ml-2 text-sm">
-                                                    <i class="fas fa-external-link-alt"></i> View
+                                            <div class="flex items-center hover:bg-gray-50 rounded px-2 py-1 transition-colors">
+                                                <span class="font-semibold text-gray-800 text-sm"><?= $name ?></span>
+                                                <a href="../<?= htmlspecialchars($doc['file_path']) ?>" target="_blank" class="text-blue-600 hover:text-blue-800 flex items-center text-sm font-semibold ml-2">
+                                                    <i class="fas fa-external-link-alt mr-1"></i> View
                                                 </a>
                                             </div>
                                         <?php endforeach; ?>
@@ -264,10 +264,10 @@ ob_start();
                                 <?php endif; ?>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <?php if (empty($alumni['submission_status']) || $alumni['submission_status'] === 'Not Started'): ?>
+                                <?php if (empty($alumni['submission_status']) || $alumni['submission_status'] === ''): ?>
                                     <div class="flex justify-left">
                                         <span class="px-3 py-1.5 inline-flex text-sm font-semibold rounded-full bg-gray-100 text-gray-800 border border-gray-200 shadow-sm">
-                                            <i class="fas fa-clock mr-2 text-gray-600"></i>
+                                            <i class="fas fa-user-clock mr-2 text-gray-600"></i>
                                             No Profile
                                         </span>
                                     </div>
@@ -658,8 +658,9 @@ function getEmploymentStatusIcon($s) {
 }
 
 function getSubmissionStatusColor($s) { 
-    if (empty($s)) return 'bg-gray-100 text-gray-800';
-    return ['Approved'=>'bg-green-100 text-green-800','Pending'=>'bg-yellow-100 text-yellow-800','Rejected'=>'bg-red-100 text-red-800'][$s] ?? 'bg-gray-100 text-gray-800'; 
+    // Handle NULL or empty string as "No Profile"
+    if ($s === null || $s === '') return 'bg-gray-100 text-gray-800 border-gray-200';
+    return ['Approved'=>'bg-green-100 text-green-800 border-green-200','Pending'=>'bg-yellow-100 text-yellow-800 border-yellow-200','Rejected'=>'bg-red-100 text-red-800 border-red-200'][$s] ?? 'bg-gray-100 text-gray-800 border-gray-200'; 
 }
 
 function getSubmissionStatusBorder($s) { 
@@ -668,7 +669,8 @@ function getSubmissionStatusBorder($s) {
 }
 
 function getSubmissionStatusIcon($s) { 
-    if (empty($s)) return 'fas fa-user-clock text-gray-600';
+    // Handle NULL or empty string as "No Profile"
+    if ($s === null || $s === '') return 'fas fa-user-clock text-gray-600';
     return ['Approved'=>'fas fa-check-circle text-green-600','Pending'=>'fas fa-clock text-yellow-600','Rejected'=>'fas fa-times-circle text-red-600'][$s] ?? 'fas fa-user-clock text-gray-600'; 
 }
 

@@ -6,34 +6,92 @@ if (!isset($_SESSION["user_id"]) || $_SESSION["role"] !== "admin") {
     header("Location: ../login/login.php");
     exit();
 }
+
+// Include database connection for admin data
+include("../connect.php");
+
+// Helper functions for consistent styling across admin pages
+if (!function_exists('getEmploymentStatusColor')) {
+    function getEmploymentStatusColor($status) {
+        if (empty($status) || $status === 'Not Started') {
+            return 'bg-gray-100 text-gray-800 border-gray-200';
+        }
+        switch ($status) {
+            case 'Unemployed': return 'bg-red-100 text-red-800 border-red-200';
+            case 'Self-Employed': return 'bg-blue-100 text-blue-800 border-blue-200';
+            case 'Employed': return 'bg-green-100 text-green-800 border-green-200';
+            case 'Student': return 'bg-purple-100 text-purple-800 border-purple-200';
+            case 'Employed & Student': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+            default: return 'bg-gray-100 text-gray-800 border-gray-200';
+        }
+    }
+}
+
+if (!function_exists('getSubmissionStatusColor')) {
+    function getSubmissionStatusColor($status) {
+        if (empty($status) || $status === 'Not Started') {
+            return 'bg-gray-100 text-gray-800 border-gray-200';
+        }
+        switch ($status) {
+            case 'Approved': return 'bg-green-100 text-green-800 border-green-200';
+            case 'Pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+            case 'Rejected': return 'bg-red-100 text-red-800 border-red-200';
+            default: return 'bg-gray-100 text-gray-800 border-gray-200';
+        }
+    }
+}
+
+if (!function_exists('getEmploymentStatusIcon')) {
+    function getEmploymentStatusIcon($status) {
+        if (empty($status)) return 'fas fa-user-clock text-gray-600';
+        switch ($status) {
+            case 'Unemployed': return 'fas fa-user-slash text-red-600';
+            case 'Self-Employed': return 'fas fa-briefcase text-blue-600';
+            case 'Employed': return 'fas fa-building text-green-600';
+            case 'Student': return 'fas fa-graduation-cap text-purple-600';
+            case 'Employed & Student': return 'fas fa-user-graduate text-yellow-600';
+            default: return 'fas fa-user-clock text-gray-600';
+        }
+    }
+}
+
+if (!function_exists('getSubmissionStatusIcon')) {
+    function getSubmissionStatusIcon($status) {
+        if (empty($status)) return 'fas fa-user-clock text-gray-600';
+        switch ($status) {
+            case 'Approved': return 'fas fa-check-circle text-green-600';
+            case 'Pending': return 'fas fa-clock text-yellow-600';
+            case 'Rejected': return 'fas fa-times-circle text-red-600';
+            default: return 'fas fa-user-clock text-gray-600';
+        }
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $page_title ?? "Admin Dashboard"; ?></title>
+    <title><?php echo htmlspecialchars($page_title ?? "Admin Dashboard", ENT_QUOTES, 'UTF-8'); ?></title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         /* Custom CSS for modern design */
-       :root {
-    --primary-blue: #3b404aff; /* Change from #072ac8 to gray */
-    --primary-blue-light: #9ca3af; /* Change from #1e40e3 to lighter gray */
-    --primary-blue-dark: #22262cff; /* Change from #051a9c to darker gray */
-}
+        :root {
+            --primary-blue: #3b404aff;
+            --primary-blue-light: #9ca3af;
+            --primary-blue-dark: #22262cff;
+        }
 
-.header-shadow {
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-    border-bottom: 2px solid var(--primary-blue); /* This will now use the gray color */
-}
+        .header-shadow {
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            border-bottom: 2px solid var(--primary-blue);
+        }
 
-.admin-gradient-bg {
-    background: linear-gradient(180deg, var(--primary-blue-dark) 50%, var(--primary-blue-dark) 100%);
-}
+        .admin-gradient-bg {
+            background: linear-gradient(180deg, var(--primary-blue-dark) 50%, var(--primary-blue-dark) 100%);
+        }
 
-        
         .admin-sidebar-item {
             transition: all 0.3s ease;
             position: relative;
@@ -77,11 +135,6 @@ if (!isset($_SESSION["user_id"]) || $_SESSION["role"] !== "admin") {
             border: 2px solid white;
         }
         
-        /* In the <style> section, add this rule */
-    .header-shadow {
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-    border-bottom: 2px solid var(--primary-blue);
-    }
         #customToast {
             opacity: 0;
             transform: translateY(20px);
@@ -209,7 +262,7 @@ document.addEventListener("DOMContentLoaded", () => {
             <!-- Page Title and Breadcrumb -->
             <div>
                 <h1 class="text-3xl font-bold text-gray-800">
-                    <?php echo $page_title ?? "Admin Dashboard"; ?>
+                    <?php echo htmlspecialchars($page_title ?? "Admin Dashboard", ENT_QUOTES, 'UTF-8'); ?>
                 </h1>
                 <nav class="flex text-base text-gray-500 mt-1">
                     <?php
@@ -220,11 +273,12 @@ document.addEventListener("DOMContentLoaded", () => {
                         $welcome_text = "Manage and view all alumni records in the system.";
                     } elseif ($active_page === 'activity_log') {
                         $welcome_text = "Track updates, approvals, rejections, and other admin activities.";
+                    } elseif ($active_page === 'dashboard') {
+                        $welcome_text = "Welcome back! Here's what's happening today.";
                     }
-                    // Add more conditions for other pages as needed
                     ?>
                     
-                    <span class="text-gray-500"><?php echo $welcome_text; ?></span>
+                    <span class="text-gray-500"><?php echo htmlspecialchars($welcome_text, ENT_QUOTES, 'UTF-8'); ?></span>
                 
                 </nav>
             </div>
@@ -268,14 +322,14 @@ document.addEventListener("DOMContentLoaded", () => {
                                 ?>
                                 
                                 <div class="admin-avatar w-10 h-10 rounded-full flex items-center justify-center text-white font-bold">
-                                    <?php echo htmlspecialchars($admin_name); ?>
+                                    <?php echo htmlspecialchars($admin_name, ENT_QUOTES, 'UTF-8'); ?>
                                 </div>
                                 <div class="hidden md:block text-left">
                                     <p class="font-medium text-gray-800 text-lg">
-                                        <?php echo htmlspecialchars($full_admin_name); ?>
+                                        <?php echo htmlspecialchars($full_admin_name, ENT_QUOTES, 'UTF-8'); ?>
                                     </p>
                                     <p class="text-gray-500 text-base">
-                                        <?php echo htmlspecialchars($_SESSION["email"]); ?>
+                                        <?php echo htmlspecialchars($_SESSION["email"], ENT_QUOTES, 'UTF-8'); ?>
                                     </p>
                                 </div>
                             </button>
@@ -292,7 +346,7 @@ document.addEventListener("DOMContentLoaded", () => {
     </div>
 
     <!-- Custom Toast -->
-    <div id="customToast" class="fixed bottom-4 right-4 bg-green-500 text-white p-4 rounded-lg shadow-lg flex items-center space-x-2 z-50">
+    <div id="customToast" class="fixed bottom-4 right-4 bg-green-500 text-white p-4 rounded-lg shadow-lg flex items-center space-x-2 z-50 hidden">
         <i class="fas fa-check-circle"></i>
         <span id="toastMessage"></span>
     </div>
@@ -303,20 +357,27 @@ document.addEventListener("DOMContentLoaded", () => {
         const toastMessage = document.getElementById('toastMessage');
         const icon = toast.querySelector('i');
         toastMessage.textContent = message;
+        
+        // Remove all existing color classes
+        toast.classList.remove('bg-green-500', 'bg-red-500');
+        icon.classList.remove('fa-check-circle', 'fa-times-circle');
+        
         if (type === 'error') {
             toast.classList.add('bg-red-500');
-            toast.classList.remove('bg-green-500');
             icon.classList.add('fa-times-circle');
-            icon.classList.remove('fa-check-circle');
         } else {
             toast.classList.add('bg-green-500');
-            toast.classList.remove('bg-red-500');
             icon.classList.add('fa-check-circle');
-            icon.classList.remove('fa-times-circle');
         }
+        
+        toast.classList.remove('hidden');
         toast.classList.add('show');
+        
         setTimeout(() => {
             toast.classList.remove('show');
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 300);
         }, 3000);
     }
     </script>
