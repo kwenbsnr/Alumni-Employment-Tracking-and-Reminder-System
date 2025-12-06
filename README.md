@@ -26,7 +26,7 @@
 ____________________
 # WHAT TO FIX: 
 ## ADMIN:
-### 1. Unnecessary program field in the hover since da system is exclusively for da bsit prog. pero it's fine rpud for me. i mean if we wish to expand to include other deps in da future,dba at least it's there na. (not really a bug though).
+### 1. Unnecessary program field in the hover since da system is exclusively for da bsit prog. pero it's fine rpud for me. i mean if we wish to expand to include other deps in da future,dba at least it's there na. (not really a bug though). [marian - feel nako mas nice if naa since personal info man sha alumni, and idk quien i think it makes sense if naa]
 ### 2. Toast notif upon approval/rej.
 ____________________
 
