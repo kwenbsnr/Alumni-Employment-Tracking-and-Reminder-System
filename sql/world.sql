@@ -2,10 +2,10 @@
 -- version 5.2.1
 -- https://www.phpmyadmin.net/
 --
--- Host: 127.0.0.1:3306
--- Generation Time: Dec 05, 2025 at 06:01 PM
+-- Host: 127.0.0.1
+-- Generation Time: Dec 07, 2025 at 08:22 AM
 -- Server version: 10.4.32-MariaDB
--- PHP Version: 8.2.12
+-- PHP Version: 8.1.25
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -243,16 +243,7 @@ CREATE TABLE `education_info` (
 --
 
 INSERT INTO `education_info` (`education_id`, `user_id`, `school_name`, `degree_pursued`, `start_year`, `end_year`) VALUES
-(36, 18, 'Zamboanga del Sur State University', 'Master\'s', '2025', '2027'),
-(37, 21, 'Central Mindanao University', 'Master\'s', '2024', '2026'),
-(38, 16, 'Central Mindanao University', 'Master\'s a\'b\'c\'d', '2023', '2026'),
-(39, 37, 'Zamboanga del Sur State University', 'Master\'s mas\'ter\'s', '2022', '2026'),
-(40, 11, 'Central Mindanao University', 'PhD', '2024', '2027'),
-(41, 23, 'Harvard', 'Doctorate', '2025', '2027'),
-(42, 33, 'Mariano Marcos State University', 'Master\'s in Information Technology', '2023', '2025'),
-(44, 6, 'Palawan State University', 'P\'o\'l\'sc/?.i', '2024', '2030'),
 (45, 2, 'University of Sto. Tomas', 'gfvdfv', '2025', '2027'),
-(46, 13, 'Jose Rizal Memorial State University', 'Master\'s', '2025', '2028'),
 (47, 9, 'University of Sto. Tomas', 'PhD', '2023', '2028');
 
 -- --------------------------------------------------------
@@ -276,18 +267,6 @@ CREATE TABLE `employment_info` (
 --
 
 INSERT INTO `employment_info` (`employment_id`, `user_id`, `job_title_id`, `company_name`, `salary_range`, `business_type`, `company_address`) VALUES
-(70, 21, 12, 'Disney', '₱20,000–₱30,000', '', 'USA'),
-(71, 16, 11, 'Disney', '₱40,000–₱50,000', '', 'Cebu'),
-(73, 22, 12, 'Meta', '₱20,000–₱30,000', '', 'USA'),
-(74, 35, NULL, '', '₱40,000–₱50,000', 'Marketing / Advertising', ''),
-(75, 23, 15, 'Meta', '₱10,000–₱20,000', '', 'Zamboanga Del Sur, Philippines'),
-(76, 34, 27, 'Disney', '₱20,000–₱30,000', '', 'Zamboanga Del Sur, Philippines'),
-(77, 8, NULL, '', '₱30,000–₱40,000', 'Others: test others field', ''),
-(78, 14, 28, 'Openai', 'Above ₱50,000', '', 'bla bla \" a\'b/c,d>'),
-(79, 12, 2, 'Facebook', '₱40,000–₱50,000', '', 'USA'),
-(81, 10, NULL, '', '₱40,000–₱50,000', 'Real Estate / Property Leasing', ''),
-(83, 6, 8, 'LatentView Analytics', '₱20,000–₱30,000', '', 'USA'),
-(84, 13, 16, 'Disney', '₱30,000–₱40,000', '', 'Philippines'),
 (86, 25, NULL, '', '₱30,000–₱40,000', 'Construction / Carpentry / Electrical', '');
 
 -- --------------------------------------------------------
@@ -323,10 +302,8 @@ INSERT INTO `job_titles` (`job_title_id`, `title`) VALUES
 (23, 'Marketing'),
 (12, 'Mobile App Developer'),
 (7, 'Network Administrator'),
-(28, 'other try'),
 (3, 'Software Engineer'),
 (8, 'Systems Analyst'),
-(27, 'test input'),
 (4, 'Web Developer');
 
 -- --------------------------------------------------------
@@ -548,7 +525,6 @@ CREATE TABLE `worldwide_address` (
 
 INSERT INTO `worldwide_address` (`address_id`, `user_id`, `city`, `state_province`, `country`, `latitude`, `longitude`, `formatted_address`, `created_at`, `updated_at`) VALUES
 (2, 2, 'San Francisco', 'California', 'USA', 37.79327500, -122.39635900, 'San Francisco, California, USA', '2025-12-04 08:36:09', '2025-12-04 08:36:09'),
-(3, 13, 'Mati', 'Zamboanga del Sur', 'Philippines', 7.71547800, 123.28342400, 'Mati, Zamboanga del Sur, Philippines', '2025-12-04 09:20:34', '2025-12-04 09:20:34'),
 (4, 17, 'Carterton District', 'Wellington', 'New Zealand', -40.81932600, 175.44291700, 'Carterton District, Wellington, New Zealand', '2025-12-04 12:21:11', '2025-12-04 12:21:11'),
 (6, 25, 'Mahakam Ulu', 'Kalimantan Timur', 'Indonesia', 0.69342900, 114.34398200, 'Mahakam Ulu, Kalimantan Timur, Indonesia', '2025-12-05 14:15:57', '2025-12-05 14:15:57'),
 (8, 9, 'Pastoral Unincorporated Area', 'South Australia', 'Australia', -30.78383700, 137.43248900, 'Pastoral Unincorporated Area, South Australia, Australia', '2025-12-05 16:53:24', '2025-12-05 16:53:24');
@@ -562,10 +538,8 @@ INSERT INTO `worldwide_address` (`address_id`, `user_id`, `city`, `state_provinc
 --
 ALTER TABLE `alumni_activity_log`
   ADD PRIMARY KEY (`log_id`),
-  ADD KEY `idx_user_id` (`user_id`),
-  ADD KEY `idx_created_at` (`created_at`),
   ADD KEY `idx_action_type` (`action_type`),
-  ADD KEY `idx_user_created` (`user_id`,`created_at`);
+  ADD KEY `idx_activity_created_at` (`created_at`);
 
 --
 -- Indexes for table `alumni_documents`
@@ -580,7 +554,8 @@ ALTER TABLE `alumni_documents`
 ALTER TABLE `alumni_profile`
   ADD PRIMARY KEY (`user_id`),
   ADD KEY `idx_submission_status` (`submission_status`),
-  ADD KEY `idx_employment_status` (`employment_status`);
+  ADD KEY `idx_employment_status` (`employment_status`),
+  ADD KEY `idx_profile_last_update` (`last_profile_update`);
 
 --
 -- Indexes for table `education_info`
@@ -595,16 +570,14 @@ ALTER TABLE `education_info`
 ALTER TABLE `employment_info`
   ADD PRIMARY KEY (`employment_id`),
   ADD KEY `fk_employment_alumni` (`user_id`),
-  ADD KEY `fk_employment_job` (`job_title_id`),
-  ADD KEY `idx_employment_user` (`user_id`),
-  ADD KEY `idx_user_id` (`user_id`);
+  ADD KEY `fk_employment_job` (`job_title_id`);
 
 --
 -- Indexes for table `job_titles`
 --
 ALTER TABLE `job_titles`
   ADD PRIMARY KEY (`job_title_id`),
-  ADD UNIQUE KEY `title` (`title`);
+  ADD KEY `idx_title` (`title`);
 
 --
 -- Indexes for table `submission_status`
@@ -628,8 +601,6 @@ ALTER TABLE `update_log`
 ALTER TABLE `users`
   ADD PRIMARY KEY (`user_id`),
   ADD UNIQUE KEY `email` (`email`),
-  ADD KEY `idx_users_email` (`email`),
-  ADD KEY `idx_users_role` (`role`),
   ADD KEY `idx_role_batch` (`role`,`batch_year`);
 
 --
@@ -637,7 +608,7 @@ ALTER TABLE `users`
 --
 ALTER TABLE `worldwide_address`
   ADD PRIMARY KEY (`address_id`),
-  ADD UNIQUE KEY `idx_unique_user_address` (`user_id`);
+  ADD KEY `idx_user_id` (`user_id`);
 
 --
 -- AUTO_INCREMENT for dumped tables
@@ -659,7 +630,7 @@ ALTER TABLE `alumni_documents`
 -- AUTO_INCREMENT for table `education_info`
 --
 ALTER TABLE `education_info`
-  MODIFY `education_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=48;
+  MODIFY `education_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=49;
 
 --
 -- AUTO_INCREMENT for table `employment_info`
@@ -689,7 +660,7 @@ ALTER TABLE `update_log`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=49;
+  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=51;
 
 --
 -- AUTO_INCREMENT for table `worldwide_address`
@@ -705,52 +676,51 @@ ALTER TABLE `worldwide_address`
 -- Constraints for table `alumni_activity_log`
 --
 ALTER TABLE `alumni_activity_log`
-  ADD CONSTRAINT `fk_alumni_activity_log_user_id` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+  ADD CONSTRAINT `fk_alumni_activity_log_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `alumni_documents`
 --
 ALTER TABLE `alumni_documents`
-  ADD CONSTRAINT `fk_doc_alumni` FOREIGN KEY (`user_id`) REFERENCES `alumni_profile` (`user_id`) ON DELETE CASCADE;
+  ADD CONSTRAINT `fk_doc_alumni` FOREIGN KEY (`user_id`) REFERENCES `alumni_profile` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `alumni_profile`
 --
 ALTER TABLE `alumni_profile`
-  ADD CONSTRAINT `Pkfk_user_alumni` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE;
+  ADD CONSTRAINT `fk_alumni_profile_users` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `education_info`
 --
 ALTER TABLE `education_info`
-  ADD CONSTRAINT `fk_education_alumni` FOREIGN KEY (`user_id`) REFERENCES `alumni_profile` (`user_id`) ON DELETE CASCADE;
+  ADD CONSTRAINT `fk_education_alumni` FOREIGN KEY (`user_id`) REFERENCES `alumni_profile` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `employment_info`
 --
 ALTER TABLE `employment_info`
-  ADD CONSTRAINT `employment_info_ibfk_1` FOREIGN KEY (`job_title_id`) REFERENCES `job_titles` (`job_title_id`) ON DELETE SET NULL,
-  ADD CONSTRAINT `fk_employment_alumni` FOREIGN KEY (`user_id`) REFERENCES `alumni_profile` (`user_id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `fk_employment_job` FOREIGN KEY (`job_title_id`) REFERENCES `job_titles` (`job_title_id`);
+  ADD CONSTRAINT `fk_employment_alumni` FOREIGN KEY (`user_id`) REFERENCES `alumni_profile` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_employment_job` FOREIGN KEY (`job_title_id`) REFERENCES `job_titles` (`job_title_id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 --
 -- Constraints for table `submission_status`
 --
 ALTER TABLE `submission_status`
-  ADD CONSTRAINT `submission_status_ibfk_1` FOREIGN KEY (`created_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL,
-  ADD CONSTRAINT `submission_status_ibfk_2` FOREIGN KEY (`last_updated_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL;
+  ADD CONSTRAINT `fk_submission_created_by` FOREIGN KEY (`created_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_submission_updated_by` FOREIGN KEY (`last_updated_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 --
 -- Constraints for table `update_log`
 --
 ALTER TABLE `update_log`
-  ADD CONSTRAINT `fk_log_user_updt` FOREIGN KEY (`updated_by`) REFERENCES `users` (`user_id`) ON DELETE CASCADE;
+  ADD CONSTRAINT `fk_update_log_user` FOREIGN KEY (`updated_by`) REFERENCES `users` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `worldwide_address`
 --
 ALTER TABLE `worldwide_address`
-  ADD CONSTRAINT `fk_worldwide_address_user` FOREIGN KEY (`user_id`) REFERENCES `alumni_profile` (`user_id`) ON DELETE CASCADE;
+  ADD CONSTRAINT `fk_worldwide_address_user` FOREIGN KEY (`user_id`) REFERENCES `alumni_profile` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
