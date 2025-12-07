@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Dec 07, 2025 at 08:22 AM
+-- Generation Time: Dec 07, 2025 at 10:50 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.1.25
 
@@ -539,7 +539,8 @@ INSERT INTO `worldwide_address` (`address_id`, `user_id`, `city`, `state_provinc
 ALTER TABLE `alumni_activity_log`
   ADD PRIMARY KEY (`log_id`),
   ADD KEY `idx_action_type` (`action_type`),
-  ADD KEY `idx_activity_created_at` (`created_at`);
+  ADD KEY `idx_activity_created_at` (`created_at`),
+  ADD KEY `fk_alumni_activity_log_user` (`user_id`);
 
 --
 -- Indexes for table `alumni_documents`
@@ -701,7 +702,7 @@ ALTER TABLE `education_info`
 --
 ALTER TABLE `employment_info`
   ADD CONSTRAINT `fk_employment_alumni` FOREIGN KEY (`user_id`) REFERENCES `alumni_profile` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  ADD CONSTRAINT `fk_employment_job` FOREIGN KEY (`job_title_id`) REFERENCES `job_titles` (`job_title_id`) ON DELETE SET NULL ON UPDATE CASCADE;
+  ADD CONSTRAINT `fk_employment_job` FOREIGN KEY (`job_title_id`) REFERENCES `job_titles` (`job_title_id`) ON UPDATE CASCADE;
 
 --
 -- Constraints for table `submission_status`
