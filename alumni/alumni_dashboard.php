@@ -28,10 +28,10 @@ $stmt = $conn->prepare("
         ap.submission_status,
         ap.contact_number,
         COUNT(ad.doc_id) as document_count,
-        wa.formatted_address as address  -- Added worldwide address
+        aa.country, aa.state_province, aa.region, aa.city, aa.street  
     FROM users u
     LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id
-    LEFT JOIN worldwide_address wa ON u.user_id = wa.user_id  -- CORRECTED JOIN: user_id to user_id
+    LEFT JOIN alumni_address aa ON u.user_id = aa.user_id
     LEFT JOIN alumni_documents ad ON u.user_id = ad.user_id
     WHERE u.user_id = ?
     GROUP BY u.user_id
@@ -55,8 +55,11 @@ $has_basic_info = !empty($profile_info) &&
     !empty($profile_info['contact_number']) &&
     !empty($profile_info['employment_status']);
 
-// FIXED: Check worldwide address instead of old address_id
-$has_address = !empty($profile_info) && !empty($profile_info['address']);
+// Check worldwide address
+$has_address = !empty($profile_info) && 
+    !empty($profile_info['country']) && 
+    !empty($profile_info['state_province']) && 
+    !empty($profile_info['city']);
 
 // Check photo
 $has_photo = false;

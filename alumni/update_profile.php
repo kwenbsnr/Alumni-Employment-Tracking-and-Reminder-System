@@ -221,13 +221,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $contact = !empty($_POST['contact_number']) ? trim($_POST['contact_number']) : '';
         $status = htmlspecialchars(trim($_POST['employment_status'] ?? ''));
 
-        // Worldwide address fields
-        $city = !empty($_POST['city']) ? trim($_POST['city']) : '';
-        $state_province = !empty($_POST['state_province']) ? trim($_POST['state_province']) : '';
+        // Address fields
         $country = !empty($_POST['country']) ? trim($_POST['country']) : '';
-        $latitude = !empty($_POST['latitude']) ? trim($_POST['latitude']) : null;
-        $longitude = !empty($_POST['longitude']) ? trim($_POST['longitude']) : null;
-        $formatted_address = !empty($_POST['formatted_address']) ? trim($_POST['formatted_address']) : '';
+        $state_province = !empty($_POST['state_province']) ? trim($_POST['state_province']) : '';
+        $region = !empty($_POST['region']) ? trim($_POST['region']) : '';
+        $city = !empty($_POST['city']) ? trim($_POST['city']) : '';
+        $street = !empty($_POST['street']) ? trim($_POST['street']) : '';
 
         // Employment fields
         $job_title = !empty($_POST['job_title']) ? trim($_POST['job_title']) : '';
@@ -275,21 +274,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // Address validation - REQUIRED FIELDS
-        if (empty($city) || empty($state_province) || empty($country) || empty($formatted_address)) {
-            throw new Exception("Complete address information is required (City, State/Province, Country, and Full Address).");
+        if (empty($country) || empty($state_province) || empty($city)) {
+            throw new Exception("Address information is required (Country, State/Province, and City).");
         }
 
-        // Use the formatted address from the form
-        if (empty($formatted_address)) {
-            $formatted_address = implode(', ', array_filter([
-                trim($city),
-                trim($state_province), 
-                trim($country)
-            ]));
-        }
+        // Generate formatted address in correct order
+        $address_parts = array_filter([
+            $street,
+            $city,
+            $region,
+            $state_province,
+            $country
+        ]);
+        $formatted_address = implode(', ', $address_parts);
 
-        // Handle worldwide_address
-        $stmt = $conn->prepare("SELECT address_id FROM worldwide_address WHERE user_id = ?");
+        // ---- Address handling ----
+        $stmt = $conn->prepare("SELECT address_id FROM alumni_address WHERE user_id = ?");
         $stmt->bind_param("i", $user_id);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -298,25 +298,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($existing_address) {
             // Update existing address
-            $stmt = $conn->prepare("UPDATE worldwide_address SET 
-                city = ?, state_province = ?, country = ?, 
-                formatted_address = ?, updated_at = CURRENT_TIMESTAMP 
+            $stmt = $conn->prepare("UPDATE alumni_address SET 
+                country = ?, state_province = ?, region = ?, city = ?, street = ?, 
+                updated_at = CURRENT_TIMESTAMP 
                 WHERE user_id = ?");
-            $stmt->bind_param("ssssi", 
-                $city, $state_province, $country, $formatted_address, $user_id
+            $stmt->bind_param("sssssi", 
+                $country, $state_province, $region, $city, $street, $user_id
             );
         } else {
             // Insert new address
-            $stmt = $conn->prepare("INSERT INTO worldwide_address 
-                (user_id, city, state_province, country, formatted_address) 
-                VALUES (?, ?, ?, ?, ?)");
-            $stmt->bind_param("issss", 
-                $user_id, $city, $state_province, $country, $formatted_address
+            $stmt = $conn->prepare("INSERT INTO alumni_address 
+                (user_id, country, state_province, region, city, street) 
+                VALUES (?, ?, ?, ?, ?, ?)");
+            $stmt->bind_param("isssss", 
+                $user_id, $country, $state_province, $region, $city, $street
             );
         }
 
         if (!$stmt->execute()) {
-            error_log("Worldwide address save error: " . $stmt->error);
+            error_log("Address save error: " . $stmt->error);
             throw new Exception("Failed to save address information. Please try again.");
         }
         $stmt->close();
@@ -431,22 +431,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         if (empty(trim($country))) {
             throw new Exception("Country is required.");
-        }
-        if (!$latitude || !$longitude) {
-            throw new Exception("Please select a location on the map.");
-        }
-
-        // Validate latitude/longitude format
-        if (!is_numeric($latitude) || !is_numeric($longitude)) {
-            throw new Exception("Invalid coordinates. Please select a valid location on the map.");
-        }
-
-        if ($latitude < -90 || $latitude > 90) {
-            throw new Exception("Latitude must be between -90 and 90 degrees.");
-        }
-
-        if ($longitude < -180 || $longitude > 180) {
-            throw new Exception("Longitude must be between -180 and 180 degrees.");
         }
 
         // Use the formatted address from the form, or create one

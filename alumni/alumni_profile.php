@@ -13,7 +13,6 @@ $user_id = $_SESSION['user_id'];
 $page_title = "Profile Management";
 $active_page = "profile";
 
-// Fetch profile data WITH WORLDWIDE ADDRESS 
 $stmt = $conn->prepare("
     SELECT 
         u.user_id, u.email, u.student_id, u.date_of_birth, u.gender, u.program, 
@@ -29,10 +28,10 @@ $stmt = $conn->prepare("
         ap.contact_number, 
         ap.employment_status, ap.photo_path,
         ap.submission_status, ap.last_profile_update, ap.rejection_reason,
-        wa.city, wa.state_province, wa.country, wa.formatted_address
+        aa.country, aa.state_province, aa.region, aa.city, aa.street
     FROM users u
     LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id
-    LEFT JOIN worldwide_address wa ON u.user_id = wa.user_id
+    LEFT JOIN alumni_address aa ON u.user_id = aa.user_id
     WHERE u.user_id = ?
 ");
 
@@ -424,53 +423,55 @@ document.addEventListener('DOMContentLoaded', function() {
                   <i class="fas fa-map-marker-alt text-green-600"></i>
                 </div>
                 <h3 class="text-xl font-bold text-gray-800">Address Information</h3>
-                <!-- DEBUG BUTTON -->
-                <button type="button" onclick="testGeocoding()" class="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600">
-                    <i class="fas fa-bug mr-1"></i>Test Geocoding
-                </button>
+
               </div>
               
               <?php if (!empty($profile['city']) || !empty($profile['formatted_address'])): ?>
                 <div class="space-y-4">
-                  <!-- Address Summary -->
-                  <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                    <p class="font-medium text-gray-700 mb-2">
-                      <i class="fas fa-map-signs text-green-500 mr-2"></i>
-                      Complete Address
-                    </p>
-                    <p class="text-gray-600 text-sm"><?php echo htmlspecialchars($profile['formatted_address'] ?? 'N/A'); ?></p>
-                  </div>
-                  
-                  <!-- Location Details -->
-                  <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                      <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">City</p>
-                      <p class="text-gray-800 font-medium"><?php echo htmlspecialchars($profile['city'] ?? 'N/A'); ?></p>
-                    </div>
-                    <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                      <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">State/Province</p>
-                      <p class="text-gray-800 font-medium"><?php echo htmlspecialchars($profile['state_province'] ?? 'N/A'); ?></p>
-                    </div>
-                    <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                      <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Country</p>
-                      <p class="text-gray-800 font-medium"><?php echo htmlspecialchars($profile['country'] ?? 'N/A'); ?></p>
-                    </div>
-                  </div>
-                  
-                  <!-- Coordinates -->
-                  <?php if (!empty($profile['latitude']) && !empty($profile['longitude'])): ?>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
-                        <p class="text-xs font-semibold text-blue-500 uppercase tracking-wide mb-1">Latitude</p>
-                        <p class="text-blue-700 font-mono font-medium"><?php echo htmlspecialchars($profile['latitude']); ?></p>
-                      </div>
-                      <div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
-                        <p class="text-xs font-semibold text-blue-500 uppercase tracking-wide mb-1">Longitude</p>
-                        <p class="text-blue-700 font-mono font-medium"><?php echo htmlspecialchars($profile['longitude']); ?></p>
-                      </div>
-                    </div>
-                  <?php endif; ?>
+                    <?php
+                  $address_parts = array_filter([
+                        $profile['street'] ?? '',
+                        $profile['city'] ?? '',
+                        $profile['region'] ?? '',
+                        $profile['state_province'] ?? '',
+                        $profile['country'] ?? ''
+                    ]);
 
+                    $formatted_address = !empty($address_parts) ? implode(', ', $address_parts) : 'N/A';
+                    ?>
+
+                    <!-- Address Summary -->
+                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        <p class="font-medium text-gray-700 mb-2">
+                            <i class="fas fa-map-signs text-green-500 mr-2"></i>
+                            Complete Address
+                        </p>
+                        <p class="text-gray-600 text-sm"><?php echo htmlspecialchars($formatted_address); ?></p>
+                    </div>
+
+                    <!-- Location Details -->
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+                        <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Country</p>
+                            <p class="text-gray-800 font-medium"><?php echo htmlspecialchars($profile['country'] ?? 'N/A'); ?></p>
+                        </div>
+                        <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">State/Province</p>
+                            <p class="text-gray-800 font-medium"><?php echo htmlspecialchars($profile['state_province'] ?? 'N/A'); ?></p>
+                        </div>
+                        <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Region</p>
+                            <p class="text-gray-800 font-medium"><?php echo htmlspecialchars($profile['region'] ?? 'N/A'); ?></p>
+                        </div>
+                        <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">City</p>
+                            <p class="text-gray-800 font-medium"><?php echo htmlspecialchars($profile['city'] ?? 'N/A'); ?></p>
+                        </div>
+                        <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Street</p>
+                            <p class="text-gray-800 font-medium"><?php echo htmlspecialchars($profile['street'] ?? 'N/A'); ?></p>
+                        </div>
+                    </div>
                 </div>
               <?php else: ?>
                 <div class="text-center py-6">
@@ -788,25 +789,25 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                 </div>
 
-                <!-- Address Section - SIMPLIFIED WITHOUT MAP -->
+                <!-- Address Section -->
                 <div class="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
                     <h3 class="text-lg font-semibold mb-3 flex items-center">
                         <i class="fas fa-map-marker-alt text-blue-600 mr-2"></i>
                         Address Information
                     </h3>
 
-                    <!-- Address Form Fields - ALL REQUIRED FIELDS -->
+                    <!-- Address Form Fields -->
                     <div class="space-y-4">
-                        <!-- City, State, Country Row -->
+                        <!-- Country, State/Province, Region Row -->
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">
-                                    City <span class="text-red-500">*</span>
+                                    Country <span class="text-red-500">*</span>
                                 </label>
-                                <input type="text" id="city" name="city" 
+                                <input type="text" id="country" name="country" 
                                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    value="<?php echo htmlspecialchars($profile['city'] ?? ''); ?>"
-                                    placeholder="City or town" required>
+                                    value="<?php echo htmlspecialchars($profile['country'] ?? ''); ?>"
+                                    placeholder="Country (e.g., Philippines)" required>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">
@@ -815,38 +816,40 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <input type="text" id="state-province" name="state_province" 
                                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     value="<?php echo htmlspecialchars($profile['state_province'] ?? ''); ?>"
-                                    placeholder="State, province, or region" required>
+                                    placeholder="State or Province (e.g., Zamboanga del Sur)" required>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">
-                                    Country <span class="text-red-500">*</span>
+                                    Region
                                 </label>
-                                <input type="text" id="country" name="country" 
+                                <input type="text" id="region" name="region" 
                                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    value="<?php echo htmlspecialchars($profile['country'] ?? ''); ?>"
-                                    placeholder="Country" required>
+                                    value="<?php echo htmlspecialchars($profile['region'] ?? ''); ?>"
+                                    placeholder="Region (e.g., Region IX)">
                             </div>
                         </div>
                         
-                        <!-- Formatted Address (Auto-generated) -->
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">
-                                <i class="fas fa-map-signs mr-1"></i>
-                                Complete Address <span class="text-red-500">*</span>
-                            </label>
-                            <textarea id="formatted-address" name="formatted_address" 
-                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                rows="3" placeholder="Full address including street, city, state, and country" required><?php echo htmlspecialchars($profile['formatted_address'] ?? ''); ?></textarea>
-                            <p class="text-xs text-gray-500 mt-1">Enter your complete mailing address</p>
+                        <!-- City and Street Row -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    City/Municipality <span class="text-red-500">*</span>
+                                </label>
+                                <input type="text" id="city" name="city" 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    value="<?php echo htmlspecialchars($profile['city'] ?? ''); ?>"
+                                    placeholder="City or Municipality (e.g., Dumingag)" required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    Street/Barangay
+                                </label>
+                                <input type="text" id="street" name="street" 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    value="<?php echo htmlspecialchars($profile['street'] ?? ''); ?>"
+                                    placeholder="Street, Barangay, or Village">
+                            </div>
                         </div>
-                    </div>
-                    
-                    <!-- Address Helper -->
-                    <div class="mt-4 bg-blue-50 rounded-lg p-3 border border-blue-200">
-                        <p class="text-blue-700 text-sm flex items-center">
-                            <i class="fas fa-info-circle text-blue-500 mr-2"></i>
-                            Please enter your complete current address. This helps us maintain accurate alumni records.
-                        </p>
                     </div>
                 </div>
 
