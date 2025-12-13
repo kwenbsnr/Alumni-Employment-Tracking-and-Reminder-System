@@ -221,7 +221,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Address fields
         $country = !empty($_POST['country']) ? trim($_POST['country']) : '';
         $state_province = !empty($_POST['state_province']) ? trim($_POST['state_province']) : '';
-        $region = !empty($_POST['region']) ? trim($_POST['region']) : '';
         $city = !empty($_POST['city']) ? trim($_POST['city']) : '';
         $street = !empty($_POST['street']) ? trim($_POST['street']) : '';
 
@@ -429,7 +428,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->close();
         }
 
-        // ---- Address handling - NOW PROFILE EXISTS (foreign key satisfied) ----
+        // ---- Address handling ----
         $stmt = $conn->prepare("SELECT address_id FROM alumni_address WHERE user_id = ?");
         $stmt->bind_param("i", $user_id);
         $stmt->execute();
@@ -440,19 +439,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($existing_address) {
             // Update existing address
             $stmt = $conn->prepare("UPDATE alumni_address SET 
-                city = ?, state_province = ?, region = ?, street = ?, country = ?, 
+                city = ?, state_province = ?, street = ?, country = ?, 
                 updated_at = CURRENT_TIMESTAMP 
                 WHERE user_id = ?");
-            $stmt->bind_param("sssssi", 
-                $city, $state_province, $region, $street, $country, $user_id
+            $stmt->bind_param("ssssi", 
+                $city, $state_province, $street, $country, $user_id
             );
         } else {
             // Insert new address - NOW alumni_profile exists!
             $stmt = $conn->prepare("INSERT INTO alumni_address 
-                (user_id, city, state_province, region, street, country) 
-                VALUES (?, ?, ?, ?, ?, ?)");
-            $stmt->bind_param("isssss", 
-                $user_id, $city, $state_province, $region, $street, $country
+                (user_id, city, state_province, street, country) 
+                VALUES (?, ?, ?, ?, ?)");
+            $stmt->bind_param("issss", 
+                $user_id, $city, $state_province, $street, $country
             );
         }
 

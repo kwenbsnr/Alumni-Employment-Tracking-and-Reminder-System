@@ -28,7 +28,7 @@ $stmt = $conn->prepare("
         ap.contact_number, 
         ap.employment_status, ap.photo_path,
         ap.submission_status, ap.last_profile_update, ap.rejection_reason,
-        aa.city, aa.state_province, aa.region, aa.street, aa.country
+        aa.city, aa.state_province, aa.street, aa.country
     FROM users u
     LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id
     LEFT JOIN alumni_address aa ON u.user_id = aa.user_id
@@ -429,10 +429,9 @@ document.addEventListener('DOMContentLoaded', function() {
               <?php if (!empty($profile['city']) || !empty($profile['formatted_address'])): ?>
                 <div class="space-y-4">
                     <?php
-                  $address_parts = array_filter([
+                    $address_parts = array_filter([
                         $profile['street'] ?? '',
                         $profile['city'] ?? '',
-                        $profile['region'] ?? '',
                         $profile['state_province'] ?? '',
                         $profile['country'] ?? ''
                     ]);
@@ -450,7 +449,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
 
                     <!-- Location Details -->
-                    <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
                         <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
                             <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Country</p>
                             <p class="text-gray-800 font-medium"><?php echo htmlspecialchars($profile['country'] ?? 'N/A'); ?></p>
@@ -458,10 +457,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
                             <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">State/Province</p>
                             <p class="text-gray-800 font-medium"><?php echo htmlspecialchars($profile['state_province'] ?? 'N/A'); ?></p>
-                        </div>
-                        <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Region</p>
-                            <p class="text-gray-800 font-medium"><?php echo htmlspecialchars($profile['region'] ?? 'N/A'); ?></p>
                         </div>
                         <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
                             <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">City</p>
@@ -473,6 +468,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                     </div>
                 </div>
+   
               <?php else: ?>
                 <div class="text-center py-6">
                   <div class="bg-gray-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-3">
@@ -798,8 +794,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
                     <!-- Address Form Fields -->
                     <div class="space-y-4">
-                        <!-- Country, State/Province, Region Row -->
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <!-- Country, State/Province Row -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">
                                     Country <span class="text-red-500">*</span>
@@ -817,15 +813,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     value="<?php echo htmlspecialchars($profile['state_province'] ?? ''); ?>"
                                     placeholder="State or Province (e.g., Zamboanga del Sur)" required>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">
-                                    Region
-                                </label>
-                                <input type="text" id="region" name="region" 
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    value="<?php echo htmlspecialchars($profile['region'] ?? ''); ?>"
-                                    placeholder="Region (e.g., Region IX)">
                             </div>
                         </div>
                         
