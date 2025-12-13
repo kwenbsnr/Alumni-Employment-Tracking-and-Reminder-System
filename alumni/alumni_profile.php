@@ -320,15 +320,12 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
 
     <?php elseif ($is_profile_new): ?>
-
+        <!--
         <div class="bg-blue-50 rounded-xl px-4 py-3 border border-blue-200">
-
-            <!--
             <p class="text-sm font-medium text-blue-900">Validate alumni profile and update employment information</p>
             <p class="text-xs text-blue-700 mt-1">View and validate your preloaded personal and academic information.</p>
-            -->
         </div>
-
+        -->
     <?php elseif (!$submission_open): ?>
 
         <div class="bg-gray-100 rounded-xl px-4 py-2.5">
