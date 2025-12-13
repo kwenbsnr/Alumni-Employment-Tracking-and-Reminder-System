@@ -80,13 +80,13 @@ if ($is_profile_rejected && !isset($_SESSION['profile_rejected'])) {
     $_SESSION['profile_rejected'] = true;
 }
 
-// Check if worldwide address exists
-$address_stmt = $conn->prepare("SELECT address_id FROM worldwide_address WHERE user_id = ?");
+// Check if address exists
+$address_stmt = $conn->prepare("SELECT address_id FROM alumni_address WHERE user_id = ?");
 $address_stmt->bind_param("i", $user_id);
 $address_stmt->execute();
 $address_result = $address_stmt->get_result();
 $existing_address = $address_result->fetch_assoc();
-$existing_worldwide_address_id = $existing_address ? $existing_address['address_id'] : null;
+$existing_alumni_address_id = $existing_address ? $existing_address['address_id'] : null;
 $address_stmt->close();
 
 $current_employment_status = $alumni_profile['employment_status'] ?? '';
@@ -438,37 +438,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ]));
         }
 
-        // Handle worldwide_address
-        // Check if worldwide address already exists
-        $stmt = $conn->prepare("SELECT address_id FROM worldwide_address WHERE user_id = ?");
-        $stmt->bind_param("i", $user_id);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $existing_address = $result->fetch_assoc();
-        $stmt->close();
-
-        if ($existing_address) {
-            // Update existing address
-            $stmt = $conn->prepare("UPDATE worldwide_address SET 
-                city = ?, state_province = ?, country = ?, latitude = ?, longitude = ?, 
-                formatted_address = ?, updated_at = CURRENT_TIMESTAMP 
-                WHERE user_id = ?");
-            $stmt->bind_param("sssddsi", 
-                $city, $state_province, $country, $latitude, $longitude,
-                $formatted_address, $user_id
-            );
-        } else {
-            // Insert new address - NOW alumni_profile exists!
-            $stmt = $conn->prepare("INSERT INTO worldwide_address 
-                (user_id, city, state_province, country, latitude, longitude, formatted_address) 
-                VALUES (?, ?, ?, ?, ?, ?, ?)");
-            $stmt->bind_param("isssdds", 
-                $user_id, $city, $state_province, $country, $latitude, $longitude, $formatted_address
-            );
-        }
-
         if (!$stmt->execute()) {
-            error_log("Worldwide address save error: " . $stmt->error);
+            error_log("Address save error: " . $stmt->error);
             throw new Exception("Failed to save address information. Please try again.");
         }
 
