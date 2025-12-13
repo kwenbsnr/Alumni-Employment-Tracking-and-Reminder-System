@@ -13,7 +13,6 @@ $user_id = $_SESSION['user_id'];
 $page_title = "Profile Management";
 $active_page = "profile";
 
-// Fetch profile data WITH WORLDWIDE ADDRESS 
 $stmt = $conn->prepare("
     SELECT 
         u.user_id, u.email, u.student_id, u.date_of_birth, u.gender, u.program, 
@@ -29,10 +28,10 @@ $stmt = $conn->prepare("
         ap.contact_number, 
         ap.employment_status, ap.photo_path,
         ap.submission_status, ap.last_profile_update, ap.rejection_reason,
-        wa.city, wa.state_province, wa.country, wa.latitude, wa.longitude, wa.formatted_address
+        aa.city, aa.state_province, aa.region, aa.street, aa.country
     FROM users u
     LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id
-    LEFT JOIN worldwide_address wa ON u.user_id = wa.user_id  -- Changed join condition
+    LEFT JOIN alumni_address aa ON u.user_id = aa.user_id
     WHERE u.user_id = ?
 ");
 
@@ -424,53 +423,55 @@ document.addEventListener('DOMContentLoaded', function() {
                   <i class="fas fa-map-marker-alt text-green-600"></i>
                 </div>
                 <h3 class="text-xl font-bold text-gray-800">Address Information</h3>
-                <!-- DEBUG BUTTON - ADD HERE -->
-                <button type="button" onclick="testGeocoding()" class="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600">
-                    <i class="fas fa-bug mr-1"></i>Test Geocoding
-                </button>
+
               </div>
               
               <?php if (!empty($profile['city']) || !empty($profile['formatted_address'])): ?>
                 <div class="space-y-4">
-                  <!-- Address Summary -->
-                  <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                    <p class="font-medium text-gray-700 mb-2">
-                      <i class="fas fa-map-signs text-green-500 mr-2"></i>
-                      Complete Address
-                    </p>
-                    <p class="text-gray-600 text-sm"><?php echo htmlspecialchars($profile['formatted_address'] ?? 'N/A'); ?></p>
-                  </div>
-                  
-                  <!-- Location Details -->
-                  <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                      <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">City</p>
-                      <p class="text-gray-800 font-medium"><?php echo htmlspecialchars($profile['city'] ?? 'N/A'); ?></p>
-                    </div>
-                    <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                      <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">State/Province</p>
-                      <p class="text-gray-800 font-medium"><?php echo htmlspecialchars($profile['state_province'] ?? 'N/A'); ?></p>
-                    </div>
-                    <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                      <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Country</p>
-                      <p class="text-gray-800 font-medium"><?php echo htmlspecialchars($profile['country'] ?? 'N/A'); ?></p>
-                    </div>
-                  </div>
-                  
-                  <!-- Coordinates -->
-                  <?php if (!empty($profile['latitude']) && !empty($profile['longitude'])): ?>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
-                        <p class="text-xs font-semibold text-blue-500 uppercase tracking-wide mb-1">Latitude</p>
-                        <p class="text-blue-700 font-mono font-medium"><?php echo htmlspecialchars($profile['latitude']); ?></p>
-                      </div>
-                      <div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
-                        <p class="text-xs font-semibold text-blue-500 uppercase tracking-wide mb-1">Longitude</p>
-                        <p class="text-blue-700 font-mono font-medium"><?php echo htmlspecialchars($profile['longitude']); ?></p>
-                      </div>
-                    </div>
-                  <?php endif; ?>
+                    <?php
+                  $address_parts = array_filter([
+                        $profile['street'] ?? '',
+                        $profile['city'] ?? '',
+                        $profile['region'] ?? '',
+                        $profile['state_province'] ?? '',
+                        $profile['country'] ?? ''
+                    ]);
 
+                    $formatted_address = !empty($address_parts) ? implode(', ', $address_parts) : 'N/A';
+                    ?>
+
+                    <!-- Address Summary -->
+                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        <p class="font-medium text-gray-700 mb-2">
+                            <i class="fas fa-map-signs text-green-500 mr-2"></i>
+                            Complete Address
+                        </p>
+                        <p class="text-gray-600 text-sm"><?php echo htmlspecialchars($formatted_address); ?></p>
+                    </div>
+
+                    <!-- Location Details -->
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+                        <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Country</p>
+                            <p class="text-gray-800 font-medium"><?php echo htmlspecialchars($profile['country'] ?? 'N/A'); ?></p>
+                        </div>
+                        <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">State/Province</p>
+                            <p class="text-gray-800 font-medium"><?php echo htmlspecialchars($profile['state_province'] ?? 'N/A'); ?></p>
+                        </div>
+                        <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Region</p>
+                            <p class="text-gray-800 font-medium"><?php echo htmlspecialchars($profile['region'] ?? 'N/A'); ?></p>
+                        </div>
+                        <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">City</p>
+                            <p class="text-gray-800 font-medium"><?php echo htmlspecialchars($profile['city'] ?? 'N/A'); ?></p>
+                        </div>
+                        <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Street</p>
+                            <p class="text-gray-800 font-medium"><?php echo htmlspecialchars($profile['street'] ?? 'N/A'); ?></p>
+                        </div>
+                    </div>
                 </div>
               <?php else: ?>
                 <div class="text-center py-6">
@@ -788,112 +789,66 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                 </div>
 
-                               <!-- Address Section - ENHANCED WITH ALL REQUIRED FIELDS -->
+                <!-- Address Section -->
                 <div class="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
                     <h3 class="text-lg font-semibold mb-3 flex items-center">
                         <i class="fas fa-map-marker-alt text-blue-600 mr-2"></i>
-                        Address Information (Worldwide)
+                        Address Information
                     </h3>
 
-                    <!-- Map Container -->
-                    <div class="mb-4">
-                        <div id="address-map" style="height: 350px; width: 100%;" class="border border-gray-300 rounded-md"></div>
-                        <div class="flex justify-between items-center mt-2">
-                            <p class="text-sm text-gray-500">
-                                <i class="fas fa-mouse-pointer mr-1"></i>
-                                Click on map to set location
-                            </p>
-                            <button type="button" id="use-current-location-btn" 
-                                    class="text-sm text-blue-600 hover:text-blue-800 flex items-center">
-                                <i class="fas fa-location-crosshairs mr-1"></i>
-                                Use Current Location
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Address Form Fields - ALL REQUIRED FIELDS -->
+                    <!-- Address Form Fields -->
                     <div class="space-y-4">
-                        <!-- City, State, Country Row -->
+                        <!-- Country, State/Province, Region Row -->
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">
-                                    <!-- <i class="fas fa-city mr-1"></i> -->
-                                    City
-                                </label>
-                                <input type="text" id="city" name="city" 
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 address-field"
-                                    value="<?php echo htmlspecialchars($profile['city'] ?? ''); ?>"
-                                    placeholder="City or town" required>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">
-                                    <!-- <i class="fas fa-landmark mr-1"></i> -->
-                                    State/Province
-                                </label>
-                                <input type="text" id="state-province" name="state_province" 
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 address-field"
-                                    value="<?php echo htmlspecialchars($profile['state_province'] ?? ''); ?>"
-                                    placeholder="State, province, or region" required>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">
-                                    <!-- <i class="fas fa-globe mr-1"></i> -->
-                                    Country
+                                    Country <span class="text-red-500">*</span>
                                 </label>
                                 <input type="text" id="country" name="country" 
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 address-field"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     value="<?php echo htmlspecialchars($profile['country'] ?? ''); ?>"
-                                    placeholder="Country" required>
-                            </div>
-                        </div>
-
-                        <!-- Latitude & Longitude Row -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">
-                                    <i class="fas fa-latitude mr-1"></i>
-                                    Latitude 
-                                </label>
-                                <input type="text" id="latitude" name="latitude" 
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100"
-                                    value="<?php echo htmlspecialchars($profile['latitude'] ?? ''); ?>" 
-                                    required readonly>
-                                <p class="text-xs text-gray-500 mt-1">Automatically set from map</p>
+                                    placeholder="Country (e.g., Philippines)" required>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">
-                                    <i class="fas fa-longitude mr-1"></i>
-                                    Longitude 
+                                    State/Province <span class="text-red-500">*</span>
                                 </label>
-                                <input type="text" id="longitude" name="longitude" 
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100"
-                                    value="<?php echo htmlspecialchars($profile['longitude'] ?? ''); ?>" 
-                                    required readonly>
-                                <p class="text-xs text-gray-500 mt-1">Automatically set from map</p>
+                                <input type="text" id="state-province" name="state_province" 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    value="<?php echo htmlspecialchars($profile['state_province'] ?? ''); ?>"
+                                    placeholder="State or Province (e.g., Zamboanga del Sur)" required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    Region
+                                </label>
+                                <input type="text" id="region" name="region" 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    value="<?php echo htmlspecialchars($profile['region'] ?? ''); ?>"
+                                    placeholder="Region (e.g., Region IX)">
                             </div>
                         </div>
                         
-                        <!-- Formatted Address Preview -->
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">
-                                <i class="fas fa-map-signs mr-1"></i>
-                                Full Address (Auto-generated) *
-                            </label>
-                            <div id="formatted-address-preview" 
-                                class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-600 min-h-[40px]">
-                                <?php echo !empty($profile['formatted_address']) ? htmlspecialchars($profile['formatted_address']) : 'Address will be generated from fields above...'; ?>
+                        <!-- City and Street Row -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    City/Municipality <span class="text-red-500">*</span>
+                                </label>
+                                <input type="text" id="city" name="city" 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    value="<?php echo htmlspecialchars($profile['city'] ?? ''); ?>"
+                                    placeholder="City or Municipality (e.g., Dumingag)" required>
                             </div>
-                            <input type="hidden" id="formatted-address" name="formatted_address" 
-                                value="<?php echo htmlspecialchars($profile['formatted_address'] ?? ''); ?>" required>
-                            <p class="text-xs text-gray-500 mt-1">Automatically generated from city, state, and country</p>
-                        </div>
-                    </div>
-                    
-                    <!-- Address Validation Status -->
-                    <div id="address-validation" class="mt-4 hidden">
-                        <div class="flex items-center p-3 rounded-md" id="address-validation-message">
-                            <i class="fas fa-info-circle mr-2"></i>
-                            <span id="validation-text"></span>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    Street/Barangay
+                                </label>
+                                <input type="text" id="street" name="street" 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    value="<?php echo htmlspecialchars($profile['street'] ?? ''); ?>"
+                                    placeholder="Street, Barangay, or Village">
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1122,124 +1077,6 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 
 <script>
-// ===== GLOBAL VARIABLES =====
-let map;
-let marker;
-let selectedLatLng;
-let debounceTimer;
-let mapInitialized = false;
-let isAddressLoading = false;
-
-// ===== UTILITY FUNCTIONS (DEFINE FIRST) =====
-
-// Show validation message - DEFINE EARLY for error handlers
-function showValidation(message, type) {
-    const container = document.getElementById('address-validation');
-    const messageEl = document.getElementById('address-validation-message');
-    const textEl = document.getElementById('validation-text');
-    
-    if (!container || !messageEl || !textEl) return;
-    
-    // Clear previous classes
-    messageEl.className = 'flex items-center p-3 rounded-md';
-    
-    // Add type-specific classes
-    switch(type) {
-        case 'success':
-            messageEl.classList.add('bg-green-100', 'text-green-800', 'border', 'border-green-200');
-            break;
-        case 'error':
-            messageEl.classList.add('bg-red-100', 'text-red-800', 'border', 'border-red-200');
-            break;
-        case 'warning':
-            messageEl.classList.add('bg-yellow-100', 'text-yellow-800', 'border', 'border-yellow-200');
-            break;
-        case 'info':
-            messageEl.classList.add('bg-blue-100', 'text-blue-800', 'border', 'border-blue-200');
-            break;
-    }
-    
-    textEl.textContent = message;
-    container.classList.remove('hidden');
-    
-    // Auto-hide success messages after 3 seconds
-    if (type === 'success') {
-        setTimeout(() => {
-            container.classList.add('hidden');
-        }, 3000);
-    }
-}
-
-// ===== GLOBAL ERROR HANDLERS =====
-window.addEventListener('error', function(e) {
-    if (e.message && (e.message.includes('geocode') || 
-                      e.message.includes('map') || 
-                      e.message.includes('Leaflet') ||
-                      e.filename && e.filename.includes('alumni_profile'))) {
-        console.error('Global error caught:', e);
-        // Use setTimeout to ensure DOM is ready
-        setTimeout(() => {
-            showValidation('A JavaScript error occurred. Please refresh the page.', 'error');
-        }, 100);
-    }
-});
-
-window.addEventListener('unhandledrejection', function(e) {
-    console.error('Unhandled promise rejection:', e.reason);
-    if (e.reason && e.reason.message && 
-        (e.reason.message.includes('fetch') || 
-         e.reason.message.includes('geocode') ||
-         e.reason.message.includes('network'))) {
-        setTimeout(() => {
-            showValidation('Network error. Please check connection.', 'error');
-        }, 100);
-    }
-});
-
-// ===== INITIALIZATION =====
-// Auto-close modal if form was just submitted
-<?php if (isset($_SESSION['form_submitted']) && $_SESSION['form_submitted']): ?>
-    <?php unset($_SESSION['form_submitted']); // Clear the flag ?>
-    const modal = document.getElementById('profileUpdateModal');
-    if (modal) {
-        modal.classList.add('hidden');
-        modal.classList.remove('show', 'flex');
-    }
-<?php endif; ?>
-
-// FIXED: Auto-open modal for rejected profiles with existing data
-<?php if ($auto_open_modal): ?>
-document.addEventListener('DOMContentLoaded', () => {
-    const modal = document.getElementById('profileUpdateModal');
-    if (modal) {
-        // Small delay to ensure page is fully loaded
-        setTimeout(() => {
-            modal.classList.remove('hidden');
-            modal.classList.add('show', 'flex');
-            // Reset map initialization flag when modal opens
-            mapInitialized = false;
-            setTimeout(() => {
-                console.log('Auto-opening map for rejected profile');
-                if (typeof initMap === 'function') {
-                    initMap();
-                }
-            }, 100);
-        }, 100);
-    }
-});
-<?php endif; ?>
-
-// DUPLICATE HANDLER COMMENTED OUT
-// document.addEventListener('DOMContentLoaded', function() {
-//     // Remove success/error parameters from URL without reloading
-//     const url = new URL(window.location);
-//     if (url.searchParams.has('success') || url.searchParams.has('error')) {
-//         url.searchParams.delete('success');
-//         url.searchParams.delete('error');
-//         window.history.replaceState({}, '', url);
-//     }
-// });
-
 // ===== SINGLE DOMContentLoaded HANDLER =====
 document.addEventListener('DOMContentLoaded', () => {
     console.log('DOM fully loaded and parsed');
@@ -1258,13 +1095,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeFormValidation();
     initializeAddressFields();
     initializeStudentYearOptions();
-    
-    // Also initialize for auto-opening modal
-    <?php if ($auto_open_modal): ?>
-    setTimeout(() => {
-        updateStudentYearOptions();
-    }, 200);
-    <?php endif; ?>
 });
 
 // ===== PROFILE PICTURE HANDLING =====
@@ -1324,17 +1154,8 @@ function initializeModal() {
             updateProfileModal.classList.remove('hidden');
             updateProfileModal.classList.add('show', 'flex');
             
-            // Reset map initialization flag when modal opens
-            mapInitialized = false;
-            
-            // Wait for modal to be fully visible
-            setTimeout(() => {
-                console.log('Initializing map after modal open');
-                if (typeof initMap === 'function') {
-                    initMap();
-                }
-                updateStudentYearOptions();
-            }, 300);
+            // Update student year options when modal opens
+            updateStudentYearOptions();
         });
     } else {
         updateProfileBtn.style.cursor = 'not-allowed';
@@ -1364,18 +1185,6 @@ function initializeModal() {
             if (updateProfileModal) {
                 updateProfileModal.classList.add('hidden');
                 updateProfileModal.classList.remove('show', 'flex');
-                
-                // Clean up map to prevent memory leaks
-                if (map) {
-                    try {
-                        map.remove();
-                        map = null;
-                        marker = null;
-                        mapInitialized = false;
-                    } catch (e) {
-                        console.log('Error cleaning up map:', e);
-                    }
-                }
             }
         });
     }
@@ -1496,12 +1305,6 @@ function toggleEmploymentSections(status) {
 
 // ===== FORM VALIDATION =====
 function validateFormSubmission() {
-    // Prevent address loading interference
-    if (isAddressLoading) {
-        alert('Address data is still loading. Please wait.');
-        return false;
-    }
-    
     // Validate student years
     if (!validateStudentYears()) {
         return false;
@@ -1519,25 +1322,17 @@ function validateFormSubmission() {
     // Required fields
     const requiredFields = [
         { field: 'contact_number', message: 'Contact Number is required.' },
-        { field: 'employment_status', message: 'Employment Status is required.' }
+        { field: 'employment_status', message: 'Employment Status is required.' },
+        { field: 'city', message: 'City is required.' },
+        { field: 'state_province', message: 'State/Province is required.' },
+        { field: 'country', message: 'Country is required.' },
+        { field: 'formatted_address', message: 'Complete Address is required.' }
     ];
 
     for (const { field, message } of requiredFields) {
         const element = document.querySelector(`[name="${field}"]`);
         if (element && !element.value.trim()) {
             alert(message);
-            return false;
-        }
-    }
-
-    // Worldwide address validation
-    const addressFields = ['city', 'state_province', 'country', 'latitude', 'longitude', 'formatted_address'];
-    const addressMessages = ['City', 'State/Province', 'Country', 'Latitude', 'Longitude', 'Formatted Address'];
-
-    for (let i = 0; i < addressFields.length; i++) {
-        const element = document.querySelector(`[name="${addressFields[i]}"]`);
-        if (element && !element.value.trim()) {
-            alert(addressMessages[i] + ' is required for address.');
             return false;
         }
     }
@@ -1687,438 +1482,40 @@ function validateStudentYears() {
 
 // ===== ADDRESS FIELD INITIALIZATION =====
 function initializeAddressFields() {
-    // Update formatted address when fields change
-    const addressFields = document.querySelectorAll('.address-field');
-    addressFields.forEach(field => {
-        field.addEventListener('input', function() {
-            updateFormattedAddress();
-            debounceGeocode();
-        });
-    });
-
-    // Use current location button
-    const useCurrentLocationBtn = document.getElementById('use-current-location-btn');
-    if (useCurrentLocationBtn) {
-        useCurrentLocationBtn.addEventListener('click', useCurrentLocation);
-    }
-
-    // Form submission validation for address
-    const alumniProfileForm = document.getElementById('alumniProfileForm');
-    if (alumniProfileForm) {
-        alumniProfileForm.addEventListener('submit', function(event) {
-            if (!validateAddress()) {
-                event.preventDefault();
-                showValidation('Please complete all address fields and select a location on the map.', 'error');
-                return false;
-            }
-            return true;
-        });
-    }
+    // Auto-generate formatted address when fields change
+    const cityField = document.getElementById('city');
+    const stateField = document.getElementById('state-province');
+    const countryField = document.getElementById('country');
+    const addressField = document.getElementById('formatted-address');
     
-    // Initialize formatted address on load
-    updateFormattedAddress();
-}
-
-// ===== MAP FUNCTIONS =====
-function initMap() {
-    console.log('initMap called, mapInitialized:', mapInitialized);
-    
-    if (mapInitialized && map) {
-        console.log('Map already initialized, returning');
-        return;
-    }
-    
-    // Clean up any existing map
-    if (map) {
-        try {
-            map.remove();
-            map = null;
-            marker = null;
-        } catch (e) {
-            console.log('Error removing old map:', e);
-        }
-    }
-    
-    // Try to get current location, fallback to default
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const defaultCenter = [position.coords.latitude, position.coords.longitude];
-                setupMap(defaultCenter, 13);
-            },
-            () => {
-                // Default center (Philippines) if location access denied
-                const defaultCenter = [12.8797, 121.7740];
-                setupMap(defaultCenter, 6);
-            },
-            { timeout: 5000 }
-        );
-    } else {
-        const defaultCenter = [12.8797, 121.7740];
-        setupMap(defaultCenter, 6);
-    }
-}
-
-function setupMap(center, zoom) {
-    console.log('setupMap called with center:', center, 'zoom:', zoom);
-    
-    const mapContainer = document.getElementById('address-map');
-    if (!mapContainer) {
-        console.error('Map container not found');
-        return;
-    }
-    
-    try {
-        // Clear container
-        mapContainer.innerHTML = '';
-        
-        // Create new map
-        map = L.map('address-map').setView(center, zoom);
-        
-        // Add OpenStreetMap tiles
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors',
-            maxZoom: 19
-        }).addTo(map);
-        
-        // Add scale control
-        L.control.scale().addTo(map);
-        
-        // Single click event handler
-        map.off('click'); // Remove any existing handlers
-        map.on('click', function(e) {
-            console.log('Map clicked at:', e.latlng);
-            selectedLatLng = e.latlng;
-            updateMarker(selectedLatLng);
-            retryGeocode(selectedLatLng.lat, selectedLatLng.lng, 2);
-        });
-        
-        mapInitialized = true;
-        console.log('Map setup complete');
-        
-        // Load existing address if any
-        setTimeout(loadExistingAddress, 500);
-        
-    } catch (error) {
-        console.error('Error setting up map:', error);
-        showValidation('Error initializing map. Please refresh the page.', 'error');
-    }
-}
-
-function updateMarker(latlng) {
-    if (marker) {
-        map.removeLayer(marker);
-    }
-    marker = L.marker(latlng).addTo(map)
-        .bindPopup('Selected Location')
-        .openPopup();
-    
-    // Center map on marker with smooth animation
-    map.flyTo(latlng, 15, {
-        duration: 0.5
-    });
-    
-    const latInput = document.getElementById('latitude');
-    const lngInput = document.getElementById('longitude');
-    if (latInput && lngInput) {
-        latInput.value = latlng.lat.toFixed(6);
-        lngInput.value = latlng.lng.toFixed(6);
-    }
-}
-
-// ===== GEOCODING FUNCTIONS =====
-async function reverseGeocode(lat, lon) {
-    try {
-        console.log('=== reverseGeocode called ===');
-        console.log('Lat:', lat, 'Type:', typeof lat);
-        console.log('Lon:', lon, 'Type:', typeof lon);
-        
-        // Set loading state
-        isAddressLoading = true;
-        
-        // Validate coordinates before sending
-        if (lat === undefined || lon === undefined || lat === null || lon === null) {
-            throw new Error('Coordinates are undefined/null');
-        }
-        
-        lat = parseFloat(lat);
-        lon = parseFloat(lon);
-        
-        if (isNaN(lat) || isNaN(lon)) {
-            throw new Error('Coordinates are not valid numbers');
-        }
-        
-        if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
-            throw new Error('Coordinates out of valid range');
-        }
-        
-        showValidation('Getting address details...', 'info');
-        
-        // Clear previous validation
-        const validationContainer = document.getElementById('address-validation');
-        if (validationContainer) {
-            validationContainer.classList.add('hidden');
-        }
-        
-        const response = await fetch(`../api/geocode.php?action=reverse&lat=${lat}&lon=${lon}`);
-        
-        console.log('API Response status:', response.status);
-        
-        if (!response.ok) {
-            throw new Error(`API HTTP error: ${response.status}`);
-        }
-        
-        const result = await response.json();
-        
-        console.log('API Result:', result);
-        
-        if (!result.success) {
-            throw new Error(result.error || 'Address lookup failed');
-        }
-        
-        const address = result.address;
-        
-        if (!address) {
-            throw new Error('No address data in response');
-        }
-        
-        // Populate form fields
-        const cityField = document.getElementById('city');
-        const stateField = document.getElementById('state-province');
-        const countryField = document.getElementById('country');
-        
-        if (cityField) {
-            cityField.value = address.city || '';
-            console.log('City field set to:', address.city);
-        }
-        
-        if (stateField) {
-            stateField.value = address.state_province || '';
-            console.log('State field set to:', address.state_province);
-        }
-        
-        if (countryField) {
-            countryField.value = address.country || '';
-            console.log('Country field set to:', address.country);
-        }
-        
-        // Force update formatted address
-        setTimeout(() => {
-            updateFormattedAddress();
-            showValidation('✓ Address populated successfully!', 'success');
-            isAddressLoading = false; // Reset loading state
-        }, 100);
-        
-    } catch (error) {
-        console.error('Reverse geocoding error:', error);
-        showValidation(`Error: ${error.message}. Please try again or enter manually.`, 'error');
-        isAddressLoading = false; // Reset loading state on error
-        throw error; // Re-throw for retry logic
-    }
-}
-
-async function retryGeocode(lat, lon, retries = 3) {
-    console.log(`retryGeocode called, attempts: ${retries}`);
-    
-    for (let i = 0; i < retries; i++) {
-        try {
-            console.log(`Attempt ${i + 1}/${retries}`);
-            return await reverseGeocode(lat, lon);
-        } catch (error) {
-            console.log(`Geocode attempt ${i + 1} failed:`, error.message);
-            if (i === retries - 1) {
-                console.log('All attempts failed');
-                throw error;
-            }
-            
-            // Wait before retry (exponential backoff)
-            const delay = 1000 * Math.pow(2, i); // 1s, 2s, 4s
-            console.log(`Waiting ${delay}ms before retry...`);
-            await new Promise(resolve => setTimeout(resolve, delay));
-        }
-    }
-}
-
-function updateFormattedAddress() {
-    const city = document.getElementById('city')?.value.trim() || '';
-    const state = document.getElementById('state-province')?.value.trim() || '';
-    const country = document.getElementById('country')?.value.trim() || '';
-    
-    console.log('updateFormattedAddress called with:', { city, state, country });
-    
-    const parts = [];
-    if (city) parts.push(city);
-    if (state) parts.push(state);
-    if (country) parts.push(country);
-    
-    const formattedAddress = parts.join(', ');
-    
-    console.log('Generated formatted address:', formattedAddress);
-    
-    // Update preview
-    const previewElement = document.getElementById('formatted-address-preview');
-    if (previewElement) {
-        previewElement.textContent = formattedAddress || 'Address will be generated from fields above...';
-        console.log('Preview element updated');
-    }
-    
-    // Update hidden input for form submission
-    const hiddenInput = document.getElementById('formatted-address');
-    if (hiddenInput) {
-        hiddenInput.value = formattedAddress;
-        console.log('Hidden input value:', hiddenInput.value);
-    }
-    
-    return formattedAddress;
-}
-
-function loadExistingAddress() {
-    const existingLat = document.getElementById('latitude')?.value;
-    const existingLng = document.getElementById('longitude')?.value;
-    
-    if (existingLat && existingLng && !isNaN(parseFloat(existingLat)) && !isNaN(parseFloat(existingLng))) {
-        const latLng = L.latLng(parseFloat(existingLat), parseFloat(existingLng));
-        selectedLatLng = latLng;
-        updateMarker(latLng);
-    }
-}
-
-function useCurrentLocation() {
-    if (navigator.geolocation) {
-        showValidation('Getting your current location...', 'info');
-        
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const lat = position.coords.latitude;
-                const lon = position.coords.longitude;
-                selectedLatLng = L.latLng(lat, lon);
-                updateMarker(selectedLatLng);
-                reverseGeocode(lat, lon);
-            },
-            (error) => {
-                showValidation('Could not get your location. Please allow location access.', 'error');
-                console.error('Geolocation error:', error);
-            },
-            {
-                enableHighAccuracy: true,
-                timeout: 5000,
-                maximumAge: 0
-            }
-        );
-    } else {
-        showValidation('Geolocation is not supported by your browser', 'error');
-    }
-}
-
-async function geocodeFromForm() {
-    const city = document.getElementById('city')?.value.trim() || '';
-    const state = document.getElementById('state-province')?.value.trim() || '';
-    const country = document.getElementById('country')?.value.trim() || '';
-    
-    if (!city && !state && !country) {
-        showValidation('Please fill in at least one address field', 'warning');
-        return;
-    }
-    
-    const address = `${city}, ${state}, ${country}`.replace(/,\s*$/, '');
-    
-    try {
-        showValidation('Searching for address...', 'info');
-        
-        const response = await fetch(`../api/geocode.php?action=geocode&address=${encodeURIComponent(address)}`);
-        const result = await response.json();
-        
-        console.log('Forward geocoding results:', result);
-        
-        if (result.success && result.results && result.results.length > 0) {
-            const firstResult = result.results[0];
-            const lat = parseFloat(firstResult.lat);
-            const lon = parseFloat(firstResult.lon);
-            
-            selectedLatLng = L.latLng(lat, lon);
-            updateMarker(selectedLatLng);
-            showValidation('Address found and located on map!', 'success');
-        } else {
-            showValidation('Address not found. Please try different city/state/country combination.', 'warning');
-        }
-    } catch (error) {
-        console.error('Geocoding error:', error);
-        showValidation('Error searching address. Please try again.', 'error');
-    }
-}
-
-function debounceGeocode() {
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => {
-        const city = document.getElementById('city')?.value.trim() || '';
-        const state = document.getElementById('state-province')?.value.trim() || '';
-        const country = document.getElementById('country')?.value.trim() || '';
+    function updateFormattedAddress() {
+        const city = cityField?.value.trim() || '';
+        const state = stateField?.value.trim() || '';
+        const country = countryField?.value.trim() || '';
         
         if (city && state && country) {
-            geocodeFromForm();
+            // Provide a suggested format
+            addressField.value = `${city}, ${state}, ${country}`;
         }
-    }, 1000);
-}
-
-function validateAddress() {
-    const requiredFields = [
-        { id: 'city', name: 'City' },
-        { id: 'state-province', name: 'State/Province' },
-        { id: 'country', name: 'Country' },
-        { id: 'latitude', name: 'Latitude' },
-        { id: 'longitude', name: 'Longitude' }
-    ];
-    
-    let missingFields = [];
-    
-    requiredFields.forEach(field => {
-        const fieldElement = document.getElementById(field.id);
-        if (!fieldElement || !fieldElement.value.trim()) {
-            missingFields.push(field.name);
-        }
-    });
-    
-    if (missingFields.length > 0) {
-        showValidation(`Missing required fields: ${missingFields.join(', ')}`, 'error');
-        return false;
     }
     
-    showValidation('Address is complete and ready!', 'success');
-    return true;
+    if (cityField) cityField.addEventListener('blur', updateFormattedAddress);
+    if (stateField) stateField.addEventListener('blur', updateFormattedAddress);
+    if (countryField) countryField.addEventListener('blur', updateFormattedAddress);
 }
 
-// ===== DEBUG FUNCTIONS =====
-async function testGeocoding() {
-    console.log('=== DEBUG: Testing geocoding ===');
-    
-    // Test with Manila coordinates
-    const lat = 14.5995;
-    const lng = 120.9842;
-    
-    console.log('Testing with lat:', lat, 'lng:', lng);
-    
-    try {
-        const response = await fetch(`../api/geocode.php?action=reverse&lat=${lat}&lon=${lng}`);
-        const result = await response.json();
-        
-        console.log('API Result:', result);
-        
-        if (result.success) {
-            // Manually populate the fields to test
-            document.getElementById('city').value = result.address.city;
-            document.getElementById('state-province').value = result.address.state_province;
-            document.getElementById('country').value = result.address.country;
-            document.getElementById('latitude').value = lat;
-            document.getElementById('longitude').value = lng;
-            
-            updateFormattedAddress();
-            
-            alert('Debug: Fields populated with Manila data! Check console for details.');
-        }
-    } catch (error) {
-        console.error('Debug error:', error);
+// Auto-open modal for rejected profiles
+<?php if ($auto_open_modal): ?>
+document.addEventListener('DOMContentLoaded', () => {
+    const modal = document.getElementById('profileUpdateModal');
+    if (modal) {
+        setTimeout(() => {
+            modal.classList.remove('hidden');
+            modal.classList.add('show', 'flex');
+        }, 100);
     }
-}
+});
+<?php endif; ?>
 </script>
 
 <?php
