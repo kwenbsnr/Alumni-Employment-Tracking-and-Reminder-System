@@ -101,6 +101,7 @@ if ($is_unemployed) {
         $has_photo          // Profile photo
         // Documents excluded for unemployed
     ];
+    
 } else {
     // Employed/self-employed/student need all 4 sections
     $required_sections = [
@@ -420,7 +421,7 @@ ob_start();
                                 <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                                     <div class="flex items-center gap-2 font-medium <?php echo $has_basic_info ? 'text-emerald-600' : 'text-gray-600'; ?>">
                                         <i class="fas <?php echo $has_basic_info ? 'fa-check-circle' : 'fa-circle-dot'; ?> <?php echo $has_basic_info ? 'text-emerald-500' : 'text-gray-400'; ?>"></i>
-                                        <span class="text-xs">Basic Info & Employment</span>
+                                        <span class="text-xs">Basic Information & Employment</span>
                                     </div>
                                     <div class="flex items-center gap-2 font-medium <?php echo $has_address ? 'text-emerald-600' : 'text-gray-600'; ?>">
                                         <i class="fas <?php echo $has_address ? 'fa-check-circle' : 'fa-circle-dot'; ?> <?php echo $has_address ? 'text-emerald-500' : 'text-gray-400'; ?>"></i>
