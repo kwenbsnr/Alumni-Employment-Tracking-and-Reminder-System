@@ -28,7 +28,7 @@ $stmt = $conn->prepare("
         ap.contact_number, 
         ap.employment_status, ap.photo_path,
         ap.submission_status, ap.last_profile_update, ap.rejection_reason,
-        aa.country, aa.state_province, aa.region, aa.city, aa.street
+        aa.city, aa.state_province, aa.region, aa.street, aa.country
     FROM users u
     LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id
     LEFT JOIN alumni_address aa ON u.user_id = aa.user_id

@@ -10,7 +10,7 @@ $page_title = "Dashboard";
 $active_page = "dashboard";
 $user_id = $_SESSION["user_id"];
 
-// ---- 1. CORRECTED FETCH SQL QUERY WITH WORLDWIDE ADDRESS ----
+// ---- 1. CORRECTED FETCH SQL QUERY ----
 $stmt = $conn->prepare("
     SELECT
         CONCAT(
@@ -28,7 +28,7 @@ $stmt = $conn->prepare("
         ap.submission_status,
         ap.contact_number,
         COUNT(ad.doc_id) as document_count,
-        aa.country, aa.state_province, aa.region, aa.city, aa.street  
+        aa.city, aa.state_province, aa.region, aa.street, aa.country
     FROM users u
     LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id
     LEFT JOIN alumni_address aa ON u.user_id = aa.user_id

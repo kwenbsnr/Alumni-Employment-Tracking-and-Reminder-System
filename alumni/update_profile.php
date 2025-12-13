@@ -274,11 +274,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // Address validation - REQUIRED FIELDS
-        if (empty($country) || empty($state_province) || empty($city)) {
+       if (empty($country) || empty($state_province) || empty($city)) {
             throw new Exception("Address information is required (Country, State/Province, and City).");
         }
 
-        // Generate formatted address in correct order
+        // Generate formatted address (optional, for display purposes)
         $address_parts = array_filter([
             $street,
             $city,
@@ -299,19 +299,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($existing_address) {
             // Update existing address
             $stmt = $conn->prepare("UPDATE alumni_address SET 
-                country = ?, state_province = ?, region = ?, city = ?, street = ?, 
+                city = ?, state_province = ?, region = ?, street = ?, country = ?, 
                 updated_at = CURRENT_TIMESTAMP 
                 WHERE user_id = ?");
             $stmt->bind_param("sssssi", 
-                $country, $state_province, $region, $city, $street, $user_id
+                $city, $state_province, $region, $street, $country, $user_id
             );
         } else {
             // Insert new address
             $stmt = $conn->prepare("INSERT INTO alumni_address 
-                (user_id, country, state_province, region, city, street) 
+                (user_id, city, state_province, region, street, country) 
                 VALUES (?, ?, ?, ?, ?, ?)");
             $stmt->bind_param("isssss", 
-                $user_id, $country, $state_province, $region, $city, $street
+                $user_id, $city, $state_province, $region, $street, $country
             );
         }
 
@@ -328,10 +328,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Required personal fields
             if (empty($contact) || empty($original_status)) {
                 throw new Exception("Contact number and employment status are required.");
-            }
-
-            if (!$latitude || !$longitude) {
-                throw new Exception("Please select a location on the map.");
             }
 
             // Employment-specific validation
