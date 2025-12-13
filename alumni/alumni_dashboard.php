@@ -28,7 +28,7 @@ $stmt = $conn->prepare("
         ap.submission_status,
         ap.contact_number,
         COUNT(ad.doc_id) as document_count,
-        aa.city, aa.state_province, aa.region, aa.street, aa.country
+        aa.city, aa.state_province, aa.street, aa.country
     FROM users u
     LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id
     LEFT JOIN alumni_address aa ON u.user_id = aa.user_id

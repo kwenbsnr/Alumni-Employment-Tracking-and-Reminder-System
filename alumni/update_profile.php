@@ -26,9 +26,6 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
-// Log the main submission
-log_alumni_activity($conn, $user_id, 'profile_submitted', 'Alumni submitted profile for review');
-
 // ---- 1. Profile & Permissions ------------------------------------------------
 $user_stmt = $conn->prepare("
     SELECT 
@@ -224,7 +221,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Address fields
         $country = !empty($_POST['country']) ? trim($_POST['country']) : '';
         $state_province = !empty($_POST['state_province']) ? trim($_POST['state_province']) : '';
-        $region = !empty($_POST['region']) ? trim($_POST['region']) : '';
         $city = !empty($_POST['city']) ? trim($_POST['city']) : '';
         $street = !empty($_POST['street']) ? trim($_POST['street']) : '';
 
@@ -274,54 +270,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // Address validation - REQUIRED FIELDS
-       if (empty($country) || empty($state_province) || empty($city)) {
+        if (empty($country) || empty($state_province) || empty($city)) {
             throw new Exception("Address information is required (Country, State/Province, and City).");
         }
 
-        // Generate formatted address (optional, for display purposes)
-        $address_parts = array_filter([
-            $street,
-            $city,
-            $region,
-            $state_province,
-            $country
-        ]);
-        $formatted_address = implode(', ', $address_parts);
-
-        // ---- Address handling ----
-        $stmt = $conn->prepare("SELECT address_id FROM alumni_address WHERE user_id = ?");
-        $stmt->bind_param("i", $user_id);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $existing_address = $result->fetch_assoc();
-        $stmt->close();
-
-        if ($existing_address) {
-            // Update existing address
-            $stmt = $conn->prepare("UPDATE alumni_address SET 
-                city = ?, state_province = ?, region = ?, street = ?, country = ?, 
-                updated_at = CURRENT_TIMESTAMP 
-                WHERE user_id = ?");
-            $stmt->bind_param("sssssi", 
-                $city, $state_province, $region, $street, $country, $user_id
-            );
-        } else {
-            // Insert new address
-            $stmt = $conn->prepare("INSERT INTO alumni_address 
-                (user_id, city, state_province, region, street, country) 
-                VALUES (?, ?, ?, ?, ?, ?)");
-            $stmt->bind_param("isssss", 
-                $user_id, $city, $state_province, $region, $street, $country
-            );
-        }
-
-        if (!$stmt->execute()) {
-            error_log("Address save error: " . $stmt->error);
-            throw new Exception("Failed to save address information. Please try again.");
-        }
-        $stmt->close();
-
-        // ---- 6.2 Backend validation ------------------------------------
+        // ---- 6.2 BACKEND VALIDATION - MUST HAPPEN FIRST ------------------------------------
         if ($can_update) {
             $original_status = trim($_POST['employment_status'] ?? '');
             
@@ -386,7 +339,63 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        // ---- 6.4 Profile INSERT / UPDATE ----------------------------------------
+        // === DOCUMENT VALIDATION - Check BEFORE any database inserts ===
+        $original_status = trim($_POST['employment_status'] ?? '');
+        
+        // Check required documents based on status
+        $required_docs = [];
+        $doc_errors = [];
+        
+        if (in_array($original_status, ['Employed', 'Employed & Student'])) {
+            $required_docs['COE'] = 'coe_file';
+        }
+        if ($original_status === 'Self-Employed') {
+            $required_docs['B_CERT'] = 'business_file';
+        }
+        if (in_array($original_status, ['Student', 'Employed & Student'])) {
+            $required_docs['COR'] = 'cor_file';
+        }
+        
+        // Validate each required document
+        foreach ($required_docs as $code => $field) {
+            if (!isset($_FILES[$field]) || $_FILES[$field]['error'] !== UPLOAD_ERR_OK) {
+                $doc_name = $code === 'COE' ? 'Certificate of Employment' : 
+                        ($code === 'B_CERT' ? 'Business Certificate' : 'Certificate of Registration');
+                
+                if (isset($_FILES[$field]) && $_FILES[$field]['error'] === UPLOAD_ERR_NO_FILE) {
+                    throw new Exception("{$doc_name} is required for your employment status ({$original_status}).");
+                } elseif (isset($_FILES[$field]['error'])) {
+                    throw new Exception("{$doc_name} upload error (code: {$_FILES[$field]['error']}). Please try again.");
+                } else {
+                    throw new Exception("{$doc_name} is required for your employment status ({$original_status}).");
+                }
+            }
+            
+            // Additional validation for uploaded files
+            if (isset($_FILES[$field]) && $_FILES[$field]['error'] === UPLOAD_ERR_OK) {
+                // Check file type
+                $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                $mime_type = finfo_file($finfo, $_FILES[$field]['tmp_name']);
+                finfo_close($finfo);
+                
+                if ($mime_type !== 'application/pdf') {
+                    $doc_name = $code === 'COE' ? 'Certificate of Employment' : 
+                            ($code === 'B_CERT' ? 'Business Certificate' : 'Certificate of Registration');
+                    throw new Exception("{$doc_name} must be a PDF file.");
+                }
+                
+                // Check file size (2MB limit)
+                if ($_FILES[$field]['size'] > (2 * 1024 * 1024)) {
+                    $doc_name = $code === 'COE' ? 'Certificate of Employment' : 
+                            ($code === 'B_CERT' ? 'Business Certificate' : 'Certificate of Registration');
+                    throw new Exception("{$doc_name} exceeds 2MB size limit.");
+                }
+            }
+        }
+
+        // === ALL VALIDATION PASSED - PROCEED WITH DATABASE OPERATIONS ===
+
+        // ---- 6.4 Profile INSERT / UPDATE - MUST BE FIRST (creates foreign key) ----------------------------------------
         if ($can_update) {
             $original_status = trim($_POST['employment_status'] ?? '');
             
@@ -398,12 +407,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $check_stmt->close();
             
             if ($profile_exists) {
+                // Update existing profile
                 $stmt = $conn->prepare("UPDATE alumni_profile SET 
                     contact_number=?, employment_status=?, photo_path=?, last_profile_update=NOW(),
                     submission_status='Pending', submitted_at=NOW()
                     WHERE user_id=?");
                 $stmt->bind_param("sssi", $contact, $original_status, $photo_path, $user_id);  
             } else {
+                // Insert new profile
                 $stmt = $conn->prepare("INSERT INTO alumni_profile 
                     (user_id, contact_number, employment_status, photo_path, last_profile_update, submission_status, submitted_at)
                     VALUES (?,?,?,?,NOW(),'Pending',NOW())");
@@ -417,64 +428,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->close();
         }
 
-        // 6.5 Worldwide Address Handling -----------------------------------------
-        // Validate all required address fields
-        if (empty(trim($city))) {
-            throw new Exception("City is required.");
-        }
-        if (empty(trim($state_province))) {
-            throw new Exception("State/Province is required.");
-        }
-        if (empty(trim($country))) {
-            throw new Exception("Country is required.");
-        }
+        // ---- Address handling ----
+        $stmt = $conn->prepare("SELECT address_id FROM alumni_address WHERE user_id = ?");
+        $stmt->bind_param("i", $user_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $existing_address = $result->fetch_assoc();
+        $stmt->close();
 
-        // Use the formatted address from the form, or create one
-        if (empty($formatted_address)) {
-            $formatted_address = implode(', ', array_filter([
-                trim($city),
-                trim($state_province), 
-                trim($country)
-            ]));
+        if ($existing_address) {
+            // Update existing address
+            $stmt = $conn->prepare("UPDATE alumni_address SET 
+                city = ?, state_province = ?, street = ?, country = ?, 
+                updated_at = CURRENT_TIMESTAMP 
+                WHERE user_id = ?");
+            $stmt->bind_param("ssssi", 
+                $city, $state_province, $street, $country, $user_id
+            );
+        } else {
+            // Insert new address - NOW alumni_profile exists!
+            $stmt = $conn->prepare("INSERT INTO alumni_address 
+                (user_id, city, state_province, street, country) 
+                VALUES (?, ?, ?, ?, ?)");
+            $stmt->bind_param("issss", 
+                $user_id, $city, $state_province, $street, $country
+            );
         }
 
         if (!$stmt->execute()) {
             error_log("Address save error: " . $stmt->error);
             throw new Exception("Failed to save address information. Please try again.");
         }
-
         $stmt->close();
-
-        // ---- 6.5 Profile INSERT / UPDATE ----------------------------------------
-        if ($can_update) {
-            $original_status = trim($_POST['employment_status'] ?? '');
-            
-            // Check if alumni_profile record exists
-            $check_stmt = $conn->prepare("SELECT user_id FROM alumni_profile WHERE user_id = ?");
-            $check_stmt->bind_param("i", $user_id);
-            $check_stmt->execute();
-            $profile_exists = $check_stmt->get_result()->num_rows > 0;
-            $check_stmt->close();
-            
-            if ($profile_exists) {
-                $stmt = $conn->prepare("UPDATE alumni_profile SET 
-                    contact_number=?, employment_status=?, photo_path=?, last_profile_update=NOW(),
-                    submission_status='Pending', submitted_at=NOW()
-                    WHERE user_id=?");
-                $stmt->bind_param("sssi", $contact, $original_status, $photo_path, $user_id);  
-            } else {
-                $stmt = $conn->prepare("INSERT INTO alumni_profile 
-                    (user_id, contact_number, employment_status, photo_path, last_profile_update, submission_status, submitted_at)
-                    VALUES (?,?,?,?,NOW(),'Pending',NOW())");
-                $stmt->bind_param("isss", $user_id, $contact, $original_status, $photo_path);  
-            }
-
-            if (!$stmt->execute()) {
-                error_log("Alumni profile update failed: " . $stmt->error);
-                throw new Exception("Failed to save profile information. Please try again.");
-            }
-            $stmt->close();
-        }
 
         // ---- 6.6 Employment ------------------------------------------------------
         if ($can_update) {
@@ -575,56 +560,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        // ---- 6.8 Documents – STATUS-BASED VALIDATION ----------------------------
-        $original_status = trim($_POST['employment_status'] ?? '');
-
+        // ---- 6.8 Documents – ACTUAL UPLOAD (After validation passed) ----------------------------
         // Delete ALL existing documents first when status changes
         $stmt = $conn->prepare("DELETE FROM alumni_documents WHERE user_id = ?");
         $stmt->bind_param("i", $user_id);
         $stmt->execute();
         $stmt->close();
 
-        $required_docs = [];
-        if (in_array($original_status, ['Employed', 'Employed & Student'])) {
-            $required_docs['COE'] = 'coe_file';
-        }
-        if ($original_status === 'Self-Employed') {
-            $required_docs['B_CERT'] = 'business_file';
-        }
-        if (in_array($original_status, ['Student', 'Employed & Student'])) {
-            $required_docs['COR'] = 'cor_file';
-        }
-
-        // Process required documents
+        // Process each required document
         foreach ($required_docs as $code => $field) {
-            // Check if file was uploaded and has no errors
-            if (!isset($_FILES[$field]) || $_FILES[$field]['error'] !== UPLOAD_ERR_OK) {
-                $doc_name = $code === 'COE' ? 'Certificate of Employment' : 
-                        ($code === 'B_CERT' ? 'Business Certificate' : 'Certificate of Registration');
-                throw new Exception("{$doc_name} is required for your employment status ({$original_status}).");
-            }
-            
-            // Check if file has a name (was actually selected)
-            if (empty($_FILES[$field]['name'])) {
-                $doc_name = $code === 'COE' ? 'Certificate of Employment' : 
-                        ($code === 'B_CERT' ? 'Business Certificate' : 'Certificate of Registration');
-                throw new Exception("{$doc_name} is required for your employment status ({$original_status}). Please select a file.");
-            }
-            
-            $dir = $code === 'COE' ? '../uploads/coe/' : 
-                ($code === 'B_CERT' ? '../uploads/business/' : '../uploads/cor/');
-            
-            if (!handle_document($field, $dir, $user_id, $code)) {
-                $doc_name = $code === 'COE' ? 'Certificate of Employment' : 
-                        ($code === 'B_CERT' ? 'Business Certificate' : 'Certificate of Registration');
-                throw new Exception("{$doc_name} upload failed. PDF only, max 2MB.");
+            if (isset($_FILES[$field]) && $_FILES[$field]['error'] === UPLOAD_ERR_OK) {
+                $dir = $code === 'COE' ? '../uploads/coe/' : 
+                       ($code === 'B_CERT' ? '../uploads/business/' : '../uploads/cor/');
+                
+                if (!handle_document($field, $dir, $user_id, $code)) {
+                    $doc_name = $code === 'COE' ? 'Certificate of Employment' : 
+                               ($code === 'B_CERT' ? 'Business Certificate' : 'Certificate of Registration');
+                    throw new Exception("{$doc_name} upload failed. Please try again.");
+                }
             }
         }
 
+        // Commit transaction
         $conn->commit();
 
         // === SCHEDULE CHECK ===
-        // used da deadline.php function instead of duplicate function
         if (!function_exists('isSubmissionPeriodOpen')) {
             require_once dirname(__DIR__) . '/api/utils/deadline.php';
         }
@@ -653,7 +613,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             error_log("Notifications not sent: Submission period closed for user: $user_id");
         }
 
-        // Conditional logs based on status
+        // Activity logs
         if (in_array($status, ['Employed', 'Employed & Student'])) {
             log_alumni_activity($conn, $user_id, 'document_uploaded', 'Uploaded Certificate of Employment (COE)');
         }
@@ -668,7 +628,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             log_alumni_activity($conn, $user_id, 'profile_photo_updated', 'Updated profile picture');
         }
 
-        log_alumni_activity($conn, $user_id, 'profile_updated', 'Updated personal information and worldwide address');
+        log_alumni_activity($conn, $user_id, 'profile_updated', 'Updated personal information and address');
 
         // Clear any rejection session flags
         if (isset($_SESSION['profile_rejected'])) {
