@@ -274,23 +274,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        // Worldwide address validation - ALL FIELDS REQUIRED
-        if (empty($city) || empty($state_province) || empty($country) || !$latitude || !$longitude || empty($formatted_address)) {
-            throw new Exception("Complete address information is required (City, State/Province, Country, map location, and formatted address).");
+        // Address validation - REQUIRED FIELDS
+        if (empty($city) || empty($state_province) || empty($country) || empty($formatted_address)) {
+            throw new Exception("Complete address information is required (City, State/Province, Country, and Full Address).");
         }
 
-        // Validate latitude/longitude format
-        if (!is_numeric($latitude) || !is_numeric($longitude)) {
-            throw new Exception("Invalid coordinates. Please select a valid location on the map.");
+        // Use the formatted address from the form
+        if (empty($formatted_address)) {
+            $formatted_address = implode(', ', array_filter([
+                trim($city),
+                trim($state_province), 
+                trim($country)
+            ]));
         }
 
-        if ($latitude < -90 || $latitude > 90) {
-            throw new Exception("Latitude must be between -90 and 90 degrees.");
+        // Handle worldwide_address
+        $stmt = $conn->prepare("SELECT address_id FROM worldwide_address WHERE user_id = ?");
+        $stmt->bind_param("i", $user_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $existing_address = $result->fetch_assoc();
+        $stmt->close();
+
+        if ($existing_address) {
+            // Update existing address
+            $stmt = $conn->prepare("UPDATE worldwide_address SET 
+                city = ?, state_province = ?, country = ?, 
+                formatted_address = ?, updated_at = CURRENT_TIMESTAMP 
+                WHERE user_id = ?");
+            $stmt->bind_param("ssssi", 
+                $city, $state_province, $country, $formatted_address, $user_id
+            );
+        } else {
+            // Insert new address
+            $stmt = $conn->prepare("INSERT INTO worldwide_address 
+                (user_id, city, state_province, country, formatted_address) 
+                VALUES (?, ?, ?, ?, ?)");
+            $stmt->bind_param("issss", 
+                $user_id, $city, $state_province, $country, $formatted_address
+            );
         }
 
-        if ($longitude < -180 || $longitude > 180) {
-            throw new Exception("Longitude must be between -180 and 180 degrees.");
+        if (!$stmt->execute()) {
+            error_log("Worldwide address save error: " . $stmt->error);
+            throw new Exception("Failed to save address information. Please try again.");
         }
+        $stmt->close();
 
         // ---- 6.2 Backend validation ------------------------------------
         if ($can_update) {
