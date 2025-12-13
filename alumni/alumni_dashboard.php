@@ -1,5 +1,5 @@
 <?php
-// alumni_dashboard.php
+
 session_start();
 if (!isset($_SESSION["user_id"]) || $_SESSION["role"] !== "alumni") {
     header("Location: ../login/login.php");
@@ -101,6 +101,7 @@ if ($is_unemployed) {
         $has_photo          // Profile photo
         // Documents excluded for unemployed
     ];
+    
 } else {
     // Employed/self-employed/student need all 4 sections
     $required_sections = [
@@ -411,16 +412,16 @@ ob_start();
                                 </p>
                                 <p class="text-xs text-gray-700 mb-3">
                                     <?php
-                                    echo $profile_status === 'Complete' ? '✅ Great job! Your profile is fully verified. Enjoy full access.'
-                                                : ($profile_status === 'Pending Approval' ? '⏳ We are currently reviewing your information. This may take 1-2 business days.'
+                                    echo $profile_status === 'Complete' ? '✅ Great job! Your profile is fully verified.'
+                                                : ($profile_status === 'Pending Approval' ? '⏳ We are currently reviewing your information.'
                                                 : ($profile_status === 'Rejected' ? '⚠️ Action required! Please review the feedback provided and update the necessary sections.'
-                                                : '🔔 Complete the following steps to submit your profile for verification.'));
+                                                : '🔔 Complete the following steps for verification.'));
                                     ?>
                                 </p>
                                 <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                                     <div class="flex items-center gap-2 font-medium <?php echo $has_basic_info ? 'text-emerald-600' : 'text-gray-600'; ?>">
                                         <i class="fas <?php echo $has_basic_info ? 'fa-check-circle' : 'fa-circle-dot'; ?> <?php echo $has_basic_info ? 'text-emerald-500' : 'text-gray-400'; ?>"></i>
-                                        <span class="text-xs">Basic Info & Employment</span>
+                                        <span class="text-xs">Basic Information & Employment</span>
                                     </div>
                                     <div class="flex items-center gap-2 font-medium <?php echo $has_address ? 'text-emerald-600' : 'text-gray-600'; ?>">
                                         <i class="fas <?php echo $has_address ? 'fa-check-circle' : 'fa-circle-dot'; ?> <?php echo $has_address ? 'text-emerald-500' : 'text-gray-400'; ?>"></i>
@@ -472,8 +473,8 @@ ob_start();
                                     </div>
                                 </div>
                                 <div>
-                                    <p class="font-bold text-gray-800 text-sm">Update Profile</p>
-                                    <p class="text-xs text-gray-500 mt-0.5">Edit personal & work info</p>
+                                    <p class="font-bold text-gray-800 text-sm">Validate Profile</p>
+                                    <p class="text-xs text-gray-500 mt-0.5">Validate personal & work information</p>
                                 </div>
                             </div>
                             <i class="fas fa-arrow-right text-purple-500 text-md group-hover:translate-x-1 transition-transform duration-300"></i>
@@ -489,7 +490,7 @@ ob_start();
                                 </div>
                                 <div>
                                     <p class="font-bold text-gray-800 text-sm">Upload Files</p>
-                                    <p class="text-xs text-gray-500 mt-0.5">Add certificates & docs</p>
+                                    <p class="text-xs text-gray-500 mt-0.5">Add required documents</p>
                                 </div>
                             </div>
                             <i class="fas fa-arrow-right text-emerald-500 text-md group-hover:translate-x-1 transition-transform duration-300"></i>
@@ -655,7 +656,7 @@ ob_start();
                 <i class="fas fa-envelope text-green-600 text-lg"></i>
             </div>
             <h4 class="font-semibold text-gray-800 text-sm whitespace-nowrap">Email Support</h4>
-            <p class="text-xs text-gray-600 truncate max-w-full">alumtrak@jhcsc.edu.ph</p>
+            <p class="text-xs text-gray-600 truncate max-w-full">alumtrak@gmail.com</p>
         </div>
 
                 <div class="flex flex-col items-center p-3 bg-blue-50 text-center border-2 border-blue-100 rounded-lg hover:shadow-sm transition-all duration-300">

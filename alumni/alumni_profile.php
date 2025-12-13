@@ -261,7 +261,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 elseif ($is_profile_pending) echo 'Pending Review';
 
-                elseif ($is_profile_new) echo 'Create Your Profile';
+                elseif ($is_profile_new) echo 'Validate Your Profile';
 
                 elseif ($can_update) echo 'Update Profile';
 
@@ -315,20 +315,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
             </p>
 
-            <p class="text-xs text-amber-700 mt-2">We'll notify you via email once approved (usually within 24-48 hours)</p>
+            <p class="text-xs text-amber-700 mt-2">We'll notify you via email once approved</p>
 
         </div>
 
     <?php elseif ($is_profile_new): ?>
-
+        <!--
         <div class="bg-blue-50 rounded-xl px-4 py-3 border border-blue-200">
-
-            <p class="text-sm font-medium text-blue-900">Complete your profile to get verified</p>
-
-            <p class="text-xs text-blue-700 mt-1">Unlock full access and visibility</p>
-
+            <p class="text-sm font-medium text-blue-900">Validate alumni profile and update employment information</p>
+            <p class="text-xs text-blue-700 mt-1">View and validate your preloaded personal and academic information.</p>
         </div>
-
+        -->
     <?php elseif (!$submission_open): ?>
 
         <div class="bg-gray-100 rounded-xl px-4 py-2.5">
@@ -363,7 +360,7 @@ document.addEventListener('DOMContentLoaded', function() {
         ?> text-white font-semibold text-base py-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center gap-3 transform hover:scale-[1.02] active:scale-100">
             <i class="fas <?php echo $is_profile_rejected ? 'fa-tools' : 'fa-edit'; ?> text-lg"></i>
             <span class="tracking-tight">
-                <?php echo $is_profile_rejected ? 'Edit & Resubmit Profile' : ($is_profile_new ? 'Create My Profile Now' : 'Update Profile Information'); ?>
+                <?php echo $is_profile_rejected ? 'Edit & Resubmit Profile' : ($is_profile_new ? 'Validate My Profile Now' : 'Update Profile Information'); ?>
             </span>
         </button>
         <p class="text-center text-xs text-gray-500 mt-3 font-medium">
@@ -475,7 +472,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <i class="fas fa-map-marker-alt text-gray-400 text-2xl"></i>
                   </div>
                   <p class="text-gray-500 font-medium">No address information</p>
-                  <p class="text-gray-400 text-sm mt-1">Update your profile to add address details</p>
+                  <p class="text-gray-400 text-sm mt-1">Update by adding address details</p>
                 </div>
               <?php endif; ?>
             </div>
@@ -682,8 +679,8 @@ document.addEventListener('DOMContentLoaded', function() {
         <!-- Show empty state when no personal data exists -->
                 <div class="bg-white p-8 rounded-xl shadow-lg border-2 border-dashed border-gray-300 text-center">
             <i class="fas fa-user-circle text-gray-400 text-6xl mb-4"></i>
-            <h3 class="text-xl font-bold text-gray-600 mb-2">No Profile Information</h3>
-            <p class="text-gray-500 mb-4">Your profile information will appear here once you complete and submit it.</p>
+            <h3 class="text-xl font-bold text-gray-600 mb-2">Profile Information Unavailable Yet</h3>
+            <p class="text-gray-500 mb-4">Your profile information will appear here once you validate and submit it.</p>
             
             <?php if ($is_profile_rejected): ?>
                 <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-md text-left max-w-md mx-auto">
@@ -691,7 +688,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <i class="fas fa-exclamation-circle text-red-600 text-lg mt-0.5 flex-shrink-0"></i>
                         <div class="flex-1">
                             <p class="font-bold text-red-900 text-base">Your previous profile was rejected</p>
-                            <p class="text-red-700 mt-1 text-sm">Please complete your profile again and resubmit for approval.</p>
+                            <p class="text-red-700 mt-1 text-sm">Please review your submission for approval.</p>
                         </div>
                     </div>
                 </div>
