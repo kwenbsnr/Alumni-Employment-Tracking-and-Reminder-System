@@ -2,6 +2,27 @@
 
 // NotificationId: alumni_employment_tracking_update_your_profile
 
+function safe_query($conn, $query, $params = []) {
+    $stmt = $conn->prepare($query);
+    if (!$stmt) {
+        error_log("SQL Prepare Error: " . $conn->error);
+        error_log("Query: " . $query);
+        return false;
+    }
+    
+    if (!empty($params)) {
+        $types = str_repeat('s', count($params));
+        $stmt->bind_param($types, ...$params);
+    }
+    
+    if (!$stmt->execute()) {
+        error_log("SQL Execute Error: " . $stmt->error);
+        return false;
+    }
+    
+    return $stmt->get_result();
+}
+
 // Use absolute paths for reliability
 $root_path = dirname(__DIR__, 2); // Go up two levels from api/notification/
 require_once $root_path . '/vendor/autoload.php';
@@ -80,7 +101,7 @@ function get_complete_alumni_data($conn, $user_id) {
             u.gender,
             u.program,
             ap.employment_status,
-            ap.contact_number,
+            u.contact_number,
             ap.last_profile_update,
             ap.submission_status,
             ap.rejection_reason,

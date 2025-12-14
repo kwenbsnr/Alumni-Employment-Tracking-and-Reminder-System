@@ -12,9 +12,7 @@ $is_development = $_SERVER['SERVER_NAME'] === 'localhost' ||
                   (isset($_ENV['APP_ENV']) && $_ENV['APP_ENV'] === 'development');
 
 include("../connect.php");
-
-// !!TEMPORARY DISABLE NOTIFICATIONS WHILE FIXING SQL ERROR IN notif_service.php
-// require_once '../api/notification/notif_service.php';
+require_once '../api/notification/notif_service.php';
 
 function log_alumni_activity($conn, $user_id, $action_type, $description = '') {
     $stmt = $conn->prepare("INSERT INTO alumni_activity_log (user_id, action_type, description) VALUES (?, ?, ?)");
@@ -417,13 +415,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($can_update) {
             $original_status = trim($_POST['employment_status'] ?? '');
             
-            // Check users table
-            $check_stmt = $conn->prepare("SELECT contact_number FROM users WHERE user_id = ?");
-            $check_stmt->bind_param("i", $user_id);
-            $check_stmt->execute();
-            $user_check = $check_stmt->get_result()->fetch_assoc();
-            error_log("User contact number: " . ($user_check['contact_number'] ?? 'NOT SAVED'));
-
             // Check if alumni_profile record exists
             $check_stmt = $conn->prepare("SELECT user_id FROM alumni_profile WHERE user_id = ?");
             $check_stmt->bind_param("i", $user_id);
@@ -608,9 +599,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Commit transaction
         $conn->commit();
-        // Verify data was saved
-        error_log("=== VERIFYING DATA SAVE ===");
-
+        
         /*
         // === SCHEDULED REMINDERS CHECK ===
         if (file_exists(dirname(__DIR__) . '/api/scheduled_reminders.php')) {
@@ -694,18 +683,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 }                                                                                                    
-
-// DEBUG: Check if reaching the end
-error_log("=== REACHING END OF UPDATE_PROFILE.PHP ===");
-
-// If we get here w/o redirecting, something is wrong
-if (!headers_sent()) {
-    error_log("Headers not sent yet - should have redirected");
-    header("Location: alumni_profile.php?error=Unexpected+error+in+update+process");
-} else {
-    error_log("HEADERS ALREADY SENT - Output somewhere");
-    error_log("Output buffer status: " . ob_get_status());
-}
 
 $conn->close();
 ob_end_flush();
