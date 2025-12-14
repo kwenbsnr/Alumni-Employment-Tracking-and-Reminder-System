@@ -44,76 +44,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     try {
         // ---- 1. Retrieve & sanitise personal information -----------------------
+        // Read-only fields (preserved from database)
+        $student_id = htmlspecialchars(trim($_POST['student_id'] ?? ''));
+        $email = htmlspecialchars(trim($_POST['email'] ?? ''));
+        $program = htmlspecialchars(trim($_POST['program'] ?? ''));
+        $batch_year = htmlspecialchars(trim($_POST['batch_year'] ?? ''));
+        $citizenship = htmlspecialchars(trim($_POST['citizenship'] ?? 'Filipino'));
+        $date_of_birth = htmlspecialchars(trim($_POST['date_of_birth'] ?? ''));
+        $gender = htmlspecialchars(trim($_POST['gender'] ?? ''));
+        
+        // Name fields (read-only but preserved)
         $first_name = htmlspecialchars(trim($_POST['first_name'] ?? ''));
         $last_name = htmlspecialchars(trim($_POST['last_name'] ?? ''));
         $middle_name = htmlspecialchars(trim($_POST['middle_name'] ?? ''));
         $suffix = htmlspecialchars(trim($_POST['suffix'] ?? ''));
-        $date_of_birth = htmlspecialchars(trim($_POST['date_of_birth'] ?? ''));
-        $gender = htmlspecialchars(trim($_POST['gender'] ?? ''));
-        $civil_status = htmlspecialchars(trim($_POST['civil_status'] ?? ''));
-        $citizenship = htmlspecialchars(trim($_POST['citizenship'] ?? ''));
-        $contact_number = htmlspecialchars(trim($_POST['contact_number'] ?? ''));
-        $program = htmlspecialchars(trim($_POST['program'] ?? ''));
-        $batch_year = htmlspecialchars(trim($_POST['batch_year'] ?? ''));
         
-        // Address fields
+        // Editable fields
+        $civil_status = htmlspecialchars(trim($_POST['civil_status'] ?? ''));
+        $contact_number = htmlspecialchars(trim($_POST['contact_number'] ?? ''));
+        
+        // Address fields (editable)
         $street = htmlspecialchars(trim($_POST['street'] ?? ''));
         $city = htmlspecialchars(trim($_POST['city'] ?? ''));
         $state_province = htmlspecialchars(trim($_POST['state_province'] ?? ''));
         $country = htmlspecialchars(trim($_POST['country'] ?? ''));
         
-        // ---- 2. BACKEND VALIDATION (Personal information only) ----------------
-        $required_personal = [
-            'first_name' => 'First Name',
-            'last_name' => 'Last Name',
-            'date_of_birth' => 'Date of Birth',
-            'gender' => 'Gender',
-            'program' => 'Program',
-            'batch_year' => 'Batch Year',
-            'contact_number' => 'Contact Number'
-        ];
-        
-        $required_address = [
-            'street' => 'Street Address',
-            'city' => 'City',
-            'state_province' => 'State/Province',
-            'country' => 'Country'
-        ];
-        
-        foreach ($required_personal as $field => $label) {
-            if (empty($$field)) {
-                throw new Exception("{$label} is required.");
-            }
+        // ---- 2. BACKEND VALIDATION --------------------------------------------
+        // Validate required editable fields
+        if (empty($contact_number)) {
+            throw new Exception("Contact Number is required.");
         }
         
-        foreach ($required_address as $field => $label) {
-            if (empty($$field)) {
-                throw new Exception("{$label} is required.");
-            }
+        if (empty($street) || empty($city) || empty($state_province) || empty($country)) {
+            throw new Exception("All address fields are required.");
         }
         
-        // Validate batch year
-        if (!preg_match('/^\d{4}$/', $batch_year) || $batch_year < 1900 || $batch_year > date('Y')) {
-            throw new Exception("Invalid batch year.");
-        }
-        
-        // Validate date of birth
-        $dob_date = DateTime::createFromFormat('Y-m-d', $date_of_birth);
-        if (!$dob_date || $dob_date->format('Y-m-d') !== $date_of_birth) {
-            throw new Exception("Invalid date of birth format.");
-        }
-        
-        // Check if user is at least 16 years old
-        $today = new DateTime();
-        $age = $today->diff($dob_date)->y;
-        if ($age < 16) {
-            throw new Exception("You must be at least 16 years old.");
-        }
-        
-        // Validate gender
-        $valid_genders = ['Male', 'Female', 'Other'];
-        if (!in_array($gender, $valid_genders)) {
-            throw new Exception("Invalid gender selection.");
+        // Validate contact number
+        if (!preg_match('/^[0-9]{5,15}$/', $contact_number)) {
+            throw new Exception("Contact number must be 5-15 digits.");
         }
         
         // Validate civil status if provided
@@ -122,11 +90,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!in_array($civil_status, $valid_civil_statuses)) {
                 throw new Exception("Invalid civil status selection.");
             }
-        }
-        
-        // Validate contact number
-        if (!preg_match('/^[0-9]{5,15}$/', $contact_number)) {
-            throw new Exception("Contact number must be 5-15 digits.");
         }
         
         // ---- 3. Handle Profile Photo Upload ------------------------------------
@@ -187,35 +150,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $photo_path = 'uploads/profile_photos/' . $filename;
         }
         
-        // ---- 4. Update users table --------------------------------------------
+        // ---- 4. Update users table (only editable fields) ----------------------
         $stmt = $conn->prepare("
             UPDATE users SET 
-                first_name = ?,
-                last_name = ?,
-                middle_name = ?,
-                suffix = ?,
-                date_of_birth = ?,
-                gender = ?,
                 civil_status = ?,
-                citizenship = ?,
-                contact_number = ?,
-                program = ?,
-                batch_year = ?
+                contact_number = ?
             WHERE user_id = ?
         ");
         $stmt->bind_param(
-            "sssssssssssi",
-            $first_name,
-            $last_name,
-            $middle_name,
-            $suffix,
-            $date_of_birth,
-            $gender,
+            "ssi",
             $civil_status,
-            $citizenship,
             $contact_number,
-            $program,
-            $batch_year,
             $user_id
         );
         
@@ -304,7 +249,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $conn->commit();
         
         // Log activity
-        $activity_desc = 'Updated personal information';
+        $activity_desc = 'Updated personal information (contact and address)';
         if ($photo_path) {
             $activity_desc .= ' and uploaded new profile photo';
         }

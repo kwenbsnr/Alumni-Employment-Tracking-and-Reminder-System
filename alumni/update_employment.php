@@ -147,7 +147,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Validate based on employment status
         switch ($employment_status) {
             case 'Employed':
-            case 'Employed & Student':
                 if (empty($job_title_input)) {
                     throw new Exception("Job title is required for employed status.");
                 }
@@ -165,6 +164,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 break;
                 
+            case 'Employed & Student':
+                // BOTH employment AND student validations
+                if (empty($job_title_input)) {
+                    throw new Exception("Job title is required for 'Employed & Student' status.");
+                }
+                if ($job_title_input === 'Other' && empty($other_job_title)) {
+                    throw new Exception("Please specify job title if 'Other' is selected.");
+                }
+                if (empty($company_name)) {
+                    throw new Exception("Company name is required for 'Employed & Student' status.");
+                }
+                if (empty($company_address)) {
+                    throw new Exception("Company address is required for 'Employed & Student' status.");
+                }
+                if (empty($salary_range)) {
+                    throw new Exception("Salary range is required for 'Employed & Student' status.");
+                }
+                if (empty($school_name)) {
+                    throw new Exception("School name is required for 'Employed & Student' status.");
+                }
+                if (empty($degree_pursued)) {
+                    throw new Exception("Degree pursued is required for 'Employed & Student' status.");
+                }
+                if (empty($start_year) || empty($end_year)) {
+                    throw new Exception("Start year and end year are required for 'Employed & Student' status.");
+                }
+                if ($end_year <= $start_year) {
+                    throw new Exception("End year must be later than start year.");
+                }
+                break;
+                
             case 'Self-Employed':
                 if (empty($business_type)) {
                     throw new Exception("Business type is required for self-employed status.");
@@ -175,7 +205,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 break;
                 
             case 'Student':
-            case 'Employed & Student':
                 if (empty($school_name)) {
                     throw new Exception("School name is required for student status.");
                 }
@@ -189,24 +218,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     throw new Exception("End year must be later than start year.");
                 }
                 break;
+                
+            case 'Unemployed':
+                // No additional validation needed
+                break;
         }
 
         // ---- 3. Document Validation ----------------------------------------
+        $required_docs = [];
+        
         if (in_array($employment_status, ['Employed', 'Employed & Student'])) {
-            if (!isset($_FILES['coe_file']) || $_FILES['coe_file']['error'] !== UPLOAD_ERR_OK) {
-                throw new Exception("Certificate of Employment (COE) is required for employed status.");
-            }
+            $required_docs['coe_file'] = 'Certificate of Employment (COE)';
         }
         
         if ($employment_status === 'Self-Employed') {
-            if (!isset($_FILES['business_file']) || $_FILES['business_file']['error'] !== UPLOAD_ERR_OK) {
-                throw new Exception("Business Certificate is required for self-employed status.");
-            }
+            $required_docs['business_file'] = 'Business Certificate';
         }
         
         if (in_array($employment_status, ['Student', 'Employed & Student'])) {
-            if (!isset($_FILES['cor_file']) || $_FILES['cor_file']['error'] !== UPLOAD_ERR_OK) {
-                throw new Exception("Certificate of Registration (COR) is required for student status.");
+            $required_docs['cor_file'] = 'Certificate of Registration (COR)';
+        }
+        
+        foreach ($required_docs as $field => $doc_name) {
+            if (!isset($_FILES[$field]) || $_FILES[$field]['error'] !== UPLOAD_ERR_OK) {
+                throw new Exception("{$doc_name} is required for your employment status ({$employment_status}).");
             }
         }
 
@@ -214,6 +249,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $job_title_id = null;
         if (in_array($employment_status, ['Employed', 'Employed & Student']) && !empty($job_title_input)) {
             $final_job_title = ($job_title_input === 'Other') ? $other_job_title : $job_title_input;
+            
+            if (empty($final_job_title)) {
+                throw new Exception("Job title is required for employment status.");
+            }
             
             // Check if job title exists
             $stmt = $conn->prepare("SELECT job_title_id FROM job_titles WHERE title = ?");
@@ -270,13 +309,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Insert new employment info for relevant statuses
         if (in_array($employment_status, ['Employed', 'Self-Employed', 'Employed & Student'])) {
             // Handle business type according to schema (VARCHAR 255)
-            $final_business_type = $business_type;
-            if ($business_type === 'Others (Please specify)' && !empty($business_type_other)) {
-                $final_business_type = $business_type_other;
-            }
-            
-            // For Self-Employed, clear company fields
+            $final_business_type = null;
             if ($employment_status === 'Self-Employed') {
+                $final_business_type = ($business_type === 'Others (Please specify)') ? $business_type_other : $business_type;
+                // Clear company fields for Self-Employed
                 $company_name = '';
                 $company_address = '';
             }
@@ -334,32 +370,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Upload and insert new documents
         if (in_array($employment_status, ['Employed', 'Employed & Student'])) {
             $coe_path = upload_employment_document('coe_file', $user_id, 'coe');
-            if ($coe_path) {
-                $stmt = $conn->prepare("INSERT INTO alumni_documents (user_id, document_type, file_path) VALUES (?, 'COE', ?)");
-                $stmt->bind_param("is", $user_id, $coe_path);
-                $stmt->execute();
-                $stmt->close();
+            if (!$coe_path) {
+                throw new Exception("Failed to upload Certificate of Employment (COE).");
             }
+            
+            $stmt = $conn->prepare("INSERT INTO alumni_documents (user_id, document_type, file_path) VALUES (?, 'COE', ?)");
+            $stmt->bind_param("is", $user_id, $coe_path);
+            $stmt->execute();
+            $stmt->close();
         }
         
         if ($employment_status === 'Self-Employed') {
             $business_path = upload_employment_document('business_file', $user_id, 'business');
-            if ($business_path) {
-                $stmt = $conn->prepare("INSERT INTO alumni_documents (user_id, document_type, file_path) VALUES (?, 'B_CERT', ?)");
-                $stmt->bind_param("is", $user_id, $business_path);
-                $stmt->execute();
-                $stmt->close();
+            if (!$business_path) {
+                throw new Exception("Failed to upload Business Certificate.");
             }
+            
+            $stmt = $conn->prepare("INSERT INTO alumni_documents (user_id, document_type, file_path) VALUES (?, 'B_CERT', ?)");
+            $stmt->bind_param("is", $user_id, $business_path);
+            $stmt->execute();
+            $stmt->close();
         }
         
         if (in_array($employment_status, ['Student', 'Employed & Student'])) {
             $cor_path = upload_employment_document('cor_file', $user_id, 'cor');
-            if ($cor_path) {
-                $stmt = $conn->prepare("INSERT INTO alumni_documents (user_id, document_type, file_path) VALUES (?, 'COR', ?)");
-                $stmt->bind_param("is", $user_id, $cor_path);
-                $stmt->execute();
-                $stmt->close();
+            if (!$cor_path) {
+                throw new Exception("Failed to upload Certificate of Registration (COR).");
             }
+            
+            $stmt = $conn->prepare("INSERT INTO alumni_documents (user_id, document_type, file_path) VALUES (?, 'COR', ?)");
+            $stmt->bind_param("is", $user_id, $cor_path);
+            $stmt->execute();
+            $stmt->close();
         }
 
         // Commit transaction

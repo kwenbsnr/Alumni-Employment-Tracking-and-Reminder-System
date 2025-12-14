@@ -18,20 +18,13 @@ $user_id = $_SESSION['user_id'];
 $page_title = "Profile Management";
 $active_page = "profile";
 
-// Get personal info from users table, address from alumni_address, and photo from alumni_profile
+// Get personal info from users table and address from alumni_address
 $stmt = $conn->prepare("
     SELECT
         u.email,
-        CONCAT(
-            u.first_name, 
-            IF(u.middle_name IS NOT NULL AND u.middle_name != '', CONCAT(' ', u.middle_name), ''),
-            ' ',
-            u.last_name,
-            IF(u.suffix IS NOT NULL AND u.suffix != '', CONCAT(' ', u.suffix), '')
-        ) as official_name,
         u.student_id,
         u.program,
-        u.batch_year as year_graduated,
+        u.batch_year,
         u.citizenship,
         u.civil_status,
         u.contact_number,
@@ -57,6 +50,19 @@ $stmt->execute();
 $result = $stmt->get_result();
 $profile = $result->fetch_assoc() ?: [];
 $stmt->close();
+
+// Build official name for display
+$official_name = '';
+if (!empty($profile['first_name'])) {
+    $official_name = $profile['first_name'];
+    if (!empty($profile['middle_name'])) {
+        $official_name .= ' ' . $profile['middle_name'];
+    }
+    $official_name .= ' ' . $profile['last_name'];
+    if (!empty($profile['suffix'])) {
+        $official_name .= ' ' . $profile['suffix'];
+    }
+}
 
 // Check if profile has personal data for display 
 $has_personal_data = !empty($profile) && 
@@ -163,8 +169,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="space-y-1">
                             <dt class="font-medium text-gray-500 text-sm mb-1">Name</dt>
                             <dd class="font-semibold text-gray-700 text-base">
-                                <?php echo !empty($profile['official_name']) ? htmlspecialchars($profile['official_name'], ENT_QUOTES, 'UTF-8') : 'N/A'; ?>
+                                <?php echo htmlspecialchars($official_name, ENT_QUOTES, 'UTF-8'); ?>
                             </dd>
+                        </div>
+                        <div class="space-y-1">
+                            <dt class="font-medium text-gray-500 text-sm mb-1">Student ID</dt>
+                            <dd class="font-semibold text-gray-700 text-base"><?php echo htmlspecialchars($profile['student_id'] ?? 'N/A'); ?></dd>
                         </div>
                         <div class="space-y-1">
                             <dt class="font-medium text-gray-500 text-sm mb-1">Email</dt>
@@ -177,6 +187,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="space-y-1">
                             <dt class="font-medium text-gray-500 text-sm mb-1">Program</dt>
                             <dd class="font-semibold text-gray-700 text-base"><?php echo htmlspecialchars($profile['program'] ?? 'N/A'); ?></dd>
+                        </div>
+                        <div class="space-y-1">
+                            <dt class="font-medium text-gray-500 text-sm mb-1">Batch Year</dt>
+                            <dd class="font-semibold text-gray-700 text-base"><?php echo htmlspecialchars($profile['batch_year'] ?? 'N/A'); ?></dd>
                         </div>
                         <?php if (!empty($profile['citizenship'])): ?>
                         <div class="space-y-1">
@@ -206,7 +220,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="p-4 bg-blue-50 border-t border-blue-100 rounded-b-xl">
                     <p class="text-xs text-blue-600 flex items-center">
                         <i class="fas fa-info-circle mr-2"></i>
-                        Basic identification information
+                        Student information (read-only) & Personal details (editable)
                     </p>
                 </div>
             </div>
@@ -256,7 +270,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="p-4 bg-green-50 border-t border-green-100 rounded-b-xl">
                     <p class="text-xs text-green-600 flex items-center">
                         <i class="fas fa-globe-americas mr-2"></i>
-                        Location details
+                        Location details (editable)
                     </p>
                 </div>
             </div>
@@ -356,45 +370,99 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                 </div>
 
-                <!-- Personal Information -->
+                <!-- Read-Only Student Information -->
+                <div class="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
+                    <h3 class="text-base font-semibold text-gray-800 mb-4 flex items-center">
+                        <div class="bg-gray-100 rounded-lg p-2 mr-3">
+                            <i class="fas fa-graduation-cap text-gray-600 text-sm"></i>
+                        </div>
+                        Student Information
+                        <span class="text-xs font-normal text-gray-600 ml-2 bg-gray-100 px-2 py-1 rounded">Read-Only</span>
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <?php
+                        $readonly_fields = [
+                            ['label' => 'Student ID', 'value' => $profile['student_id'] ?? 'N/A', 'name' => 'student_id'],
+                            ['label' => 'Email', 'value' => $profile['email'] ?? 'N/A', 'name' => 'email'],
+                            ['label' => 'Program', 'value' => $profile['program'] ?? 'N/A', 'name' => 'program'],
+                            ['label' => 'Batch Year', 'value' => $profile['batch_year'] ?? 'N/A', 'name' => 'batch_year'],
+                            ['label' => 'Citizenship', 'value' => $profile['citizenship'] ?? 'Filipino', 'name' => 'citizenship'],
+                            ['label' => 'Date of Birth', 'value' => !empty($profile['date_of_birth']) && $profile['date_of_birth'] != '0000-00-00' ? 
+                                date('M j, Y', strtotime($profile['date_of_birth'])) : 'N/A', 'name' => 'date_of_birth'],
+                            ['label' => 'Gender', 'value' => $profile['gender'] ?? 'N/A', 'name' => 'gender']
+                        ];
+                        
+                        foreach ($readonly_fields as $field):
+                        ?>
+                        <div class="space-y-1">
+                            <label class="block text-sm font-medium text-gray-700"><?php echo $field['label']; ?></label>
+                            <div class="bg-gray-50 rounded-lg p-3 border border-gray-300">
+                                <input type="hidden" name="<?php echo $field['name']; ?>" value="<?php echo htmlspecialchars($profile[$field['name']] ?? ''); ?>">
+                                <span class="font-semibold text-gray-800"><?php echo htmlspecialchars($field['value']); ?></span>
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                    <div class="mt-4 bg-gray-50 rounded-lg p-3 border border-gray-200">
+                        <p class="text-gray-700 text-xs flex items-center">
+                            <i class="fas fa-info-circle text-gray-500 mr-2"></i>
+                            These fields cannot be modified as they are part of your official student record
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Editable Personal Information -->
                 <div class="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
                     <h3 class="text-base font-semibold text-gray-800 mb-4 flex items-center">
                         <div class="bg-blue-100 rounded-lg p-2 mr-3">
-                            <i class="fas fa-user text-blue-600 text-sm"></i>
+                            <i class="fas fa-user-edit text-blue-600 text-sm"></i>
                         </div>
-                        Personal Information
+                        Editable Personal Information
                     </h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <!-- Personal Details -->
+                        <!-- Editable Name Fields -->
                         <div class="space-y-1">
-                            <label class="block text-sm font-medium text-gray-700">First Name <span class="text-red-500">*</span></label>
-                            <input type="text" name="first_name" value="<?php echo !empty($profile['first_name']) ? htmlspecialchars($profile['first_name']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" required autocomplete="given-name">
+                            <label class="block text-sm font-medium text-gray-700">First Name</label>
+                            <div class="bg-gray-50 rounded-lg p-3 border border-gray-300">
+                                <input type="hidden" name="first_name" value="<?php echo htmlspecialchars($profile['first_name'] ?? ''); ?>">
+                                <span class="font-semibold text-gray-800"><?php echo htmlspecialchars($profile['first_name'] ?? 'N/A'); ?></span>
+                            </div>
                         </div>
                         <div class="space-y-1">
-                            <label class="block text-sm font-medium text-gray-700">Last Name <span class="text-red-500">*</span></label>
-                            <input type="text" name="last_name" value="<?php echo !empty($profile['last_name']) ? htmlspecialchars($profile['last_name']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" required autocomplete="family-name">
+                            <label class="block text-sm font-medium text-gray-700">Last Name</label>
+                            <div class="bg-gray-50 rounded-lg p-3 border border-gray-300">
+                                <input type="hidden" name="last_name" value="<?php echo htmlspecialchars($profile['last_name'] ?? ''); ?>">
+                                <span class="font-semibold text-gray-800"><?php echo htmlspecialchars($profile['last_name'] ?? 'N/A'); ?></span>
+                            </div>
                         </div>
                         <div class="space-y-1">
                             <label class="block text-sm font-medium text-gray-700">Middle Name</label>
-                            <input type="text" name="middle_name" value="<?php echo !empty($profile['middle_name']) ? htmlspecialchars($profile['middle_name']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" autocomplete="additional-name">
+                            <div class="bg-gray-50 rounded-lg p-3 border border-gray-300">
+                                <input type="hidden" name="middle_name" value="<?php echo htmlspecialchars($profile['middle_name'] ?? ''); ?>">
+                                <span class="font-semibold text-gray-800"><?php echo htmlspecialchars($profile['middle_name'] ?? 'N/A'); ?></span>
+                            </div>
                         </div>
                         <div class="space-y-1">
                             <label class="block text-sm font-medium text-gray-700">Suffix</label>
-                            <input type="text" name="suffix" value="<?php echo !empty($profile['suffix']) ? htmlspecialchars($profile['suffix']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" autocomplete="honorific-suffix">
+                            <div class="bg-gray-50 rounded-lg p-3 border border-gray-300">
+                                <input type="hidden" name="suffix" value="<?php echo htmlspecialchars($profile['suffix'] ?? ''); ?>">
+                                <span class="font-semibold text-gray-800"><?php echo htmlspecialchars($profile['suffix'] ?? 'N/A'); ?></span>
+                            </div>
                         </div>
+                        
+                        <!-- Editable Contact Information -->
                         <div class="space-y-1">
-                            <label class="block text-sm font-medium text-gray-700">Date of Birth <span class="text-red-500">*</span></label>
-                            <input type="date" name="date_of_birth" value="<?php echo !empty($profile['date_of_birth']) ? htmlspecialchars($profile['date_of_birth']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" required autocomplete="bday">
+                            <label class="block text-sm font-medium text-gray-700">Contact Number <span class="text-red-500">*</span></label>
+                            <input type="tel" name="contact_number" 
+                                   value="<?php echo !empty($profile['contact_number']) ? htmlspecialchars($profile['contact_number']) : ''; ?>" 
+                                   class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" 
+                                   required autocomplete="tel" 
+                                   pattern="[0-9]{5,15}" 
+                                   title="Contact number must be 5-15 digits">
+                            <p class="text-xs text-gray-500 mt-1">Enter your current phone number</p>
                         </div>
-                        <div class="space-y-1">
-                            <label class="block text-sm font-medium text-gray-700">Gender <span class="text-red-500">*</span></label>
-                            <select name="gender" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" required>
-                                <option value="">Select Gender</option>
-                                <option value="Male" <?php echo ($profile['gender'] ?? '') === 'Male' ? 'selected' : ''; ?>>Male</option>
-                                <option value="Female" <?php echo ($profile['gender'] ?? '') === 'Female' ? 'selected' : ''; ?>>Female</option>
-                                <option value="Other" <?php echo ($profile['gender'] ?? '') === 'Other' ? 'selected' : ''; ?>>Other</option>
-                            </select>
-                        </div>
+                        
+                        <!-- Editable Civil Status -->
                         <div class="space-y-1">
                             <label class="block text-sm font-medium text-gray-700">Civil Status</label>
                             <select name="civil_status" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200">
@@ -406,26 +474,10 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <option value="Divorced" <?php echo ($profile['civil_status'] ?? '') === 'Divorced' ? 'selected' : ''; ?>>Divorced</option>
                             </select>
                         </div>
-                        <div class="space-y-1">
-                            <label class="block text-sm font-medium text-gray-700">Citizenship</label>
-                            <input type="text" name="citizenship" value="<?php echo !empty($profile['citizenship']) ? htmlspecialchars($profile['citizenship']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" autocomplete="country">
-                        </div>
-                        <div class="space-y-1">
-                            <label class="block text-sm font-medium text-gray-700">Contact Number <span class="text-red-500">*</span></label>
-                            <input type="tel" name="contact_number" value="<?php echo !empty($profile['contact_number']) ? htmlspecialchars($profile['contact_number']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" required autocomplete="tel" pattern="[0-9]{5,15}" title="Contact number must be 5-15 digits">
-                        </div>
-                        <div class="space-y-1">
-                            <label class="block text-sm font-medium text-gray-700">Program <span class="text-red-500">*</span></label>
-                            <input type="text" name="program" value="<?php echo !empty($profile['program']) ? htmlspecialchars($profile['program']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" required autocomplete="organization">
-                        </div>
-                        <div class="space-y-1">
-                            <label class="block text-sm font-medium text-gray-700">Batch Year <span class="text-red-500">*</span></label>
-                            <input type="number" name="batch_year" min="1900" max="<?php echo date('Y'); ?>" value="<?php echo !empty($profile['batch_year']) ? htmlspecialchars($profile['batch_year']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" required>
-                        </div>
                     </div>
                 </div>
                 
-                <!-- Address Information -->
+                <!-- Editable Address Information -->
                 <div class="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
                     <h3 class="text-base font-semibold text-gray-800 mb-4 flex items-center">
                         <div class="bg-green-100 rounded-lg p-2 mr-3">
