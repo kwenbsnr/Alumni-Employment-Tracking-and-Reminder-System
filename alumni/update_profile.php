@@ -469,7 +469,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $city, $state_province, $street, $country, $user_id
             );
         } else {
-            // Insert new address - NOW alumni_profile exists!
+            // Insert new address
             $stmt = $conn->prepare("INSERT INTO alumni_address 
                 (user_id, city, state_province, street, country) 
                 VALUES (?, ?, ?, ?, ?)");

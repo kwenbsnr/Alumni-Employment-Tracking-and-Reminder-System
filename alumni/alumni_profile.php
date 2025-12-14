@@ -430,77 +430,55 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
           </div>
 
-          <!-- Address Information Card -->
-          <div class="bg-white rounded-xl shadow-lg border-l-4 border-green-500 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-green-50 flex flex-col h-full">
-            <div class="p-6 flex-1">
-              <div class="flex items-center space-x-3 mb-4 pb-2 border-b border-gray-100">
-                <div class="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
-                  <i class="fas fa-map-marker-alt text-green-600"></i>
-                </div>
-                <h3 class="text-xl font-bold text-gray-800">Address Information</h3>
-
-              </div>
-              
-              <?php if (!empty($profile['city']) || !empty($profile['formatted_address'])): ?>
-                <div class="space-y-4">
-                    <?php
-                    $address_parts = array_filter([
-                        $profile['street'] ?? '',
-                        $profile['city'] ?? '',
-                        $profile['state_province'] ?? '',
-                        $profile['country'] ?? ''
-                    ]);
-
-                    $formatted_address = !empty($address_parts) ? implode(', ', $address_parts) : 'N/A';
-                    ?>
-
-                    <!-- Address Summary -->
-                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                        <p class="font-medium text-gray-700 mb-2">
-                            <i class="fas fa-map-signs text-green-500 mr-2"></i>
-                            Complete Address
-                        </p>
-                        <p class="text-gray-600 text-sm"><?php echo htmlspecialchars($formatted_address); ?></p>
+            <!-- Address Information Card -->
+            <div class="bg-white rounded-xl shadow-lg border-l-4 border-green-500 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-green-50 flex flex-col h-full">
+                <div class="p-6 flex-1">
+                    <div class="flex items-center space-x-3 mb-4 pb-2 border-b border-gray-100">
+                        <div class="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
+                            <i class="fas fa-map-marker-alt text-green-600"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-800">Address Information</h3>
                     </div>
-
-                    <!-- Location Details -->
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-                        <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Country</p>
-                            <p class="text-gray-800 font-medium"><?php echo htmlspecialchars($profile['country'] ?? 'N/A'); ?></p>
+                    
+                    <?php if (!empty($profile['city']) || !empty($profile['street']) || !empty($profile['state_province']) || !empty($profile['country'])): ?>
+                        <div class="space-y-4">
+                            <!-- Location Details -->
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                                <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Country</p>
+                                    <p class="text-gray-800 font-medium"><?php echo htmlspecialchars($profile['country'] ?? 'N/A'); ?></p>
+                                </div>
+                                <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">State/Province</p>
+                                    <p class="text-gray-800 font-medium"><?php echo htmlspecialchars($profile['state_province'] ?? 'N/A'); ?></p>
+                                </div>
+                                <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">City</p>
+                                    <p class="text-gray-800 font-medium"><?php echo htmlspecialchars($profile['city'] ?? 'N/A'); ?></p>
+                                </div>
+                                <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Street</p>
+                                    <p class="text-gray-800 font-medium"><?php echo htmlspecialchars($profile['street'] ?? 'N/A'); ?></p>
+                                </div>
+                            </div>
                         </div>
-                        <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">State/Province</p>
-                            <p class="text-gray-800 font-medium"><?php echo htmlspecialchars($profile['state_province'] ?? 'N/A'); ?></p>
+                    <?php else: ?>
+                        <div class="text-center py-6">
+                            <div class="bg-gray-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-3">
+                                <i class="fas fa-map-marker-alt text-gray-400 text-2xl"></i>
+                            </div>
+                            <p class="text-gray-500 font-medium">No address information</p>
+                            <p class="text-gray-400 text-sm mt-1">Update by adding address details</p>
                         </div>
-                        <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">City</p>
-                            <p class="text-gray-800 font-medium"><?php echo htmlspecialchars($profile['city'] ?? 'N/A'); ?></p>
-                        </div>
-                        <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Street</p>
-                            <p class="text-gray-800 font-medium"><?php echo htmlspecialchars($profile['street'] ?? 'N/A'); ?></p>
-                        </div>
-                    </div>
+                    <?php endif; ?>
                 </div>
-   
-              <?php else: ?>
-                <div class="text-center py-6">
-                  <div class="bg-gray-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-3">
-                    <i class="fas fa-map-marker-alt text-gray-400 text-2xl"></i>
-                  </div>
-                  <p class="text-gray-500 font-medium">No address information</p>
-                  <p class="text-gray-400 text-sm mt-1">Update by adding address details</p>
+                <div class="p-4 bg-green-50 border-t border-green-100 rounded-b-xl">
+                    <p class="text-xs text-green-600 flex items-center">
+                        <i class="fas fa-globe-americas mr-2"></i>
+                        Location details
+                    </p>
                 </div>
-              <?php endif; ?>
             </div>
-            <div class="p-4 bg-green-50 border-t border-green-100 rounded-b-xl">
-              <p class="text-xs text-green-600 flex items-center">
-                <i class="fas fa-globe-americas mr-2"></i>
-                Worldwide location details
-              </p>
-            </div>
-          </div>
 
           <!-- Employment/Academic Details Card -->
           <div class="bg-white rounded-xl shadow-lg border-l-4 border-purple-500 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-purple-50 flex flex-col h-full">
@@ -1097,7 +1075,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeProfilePicture();
     initializeModal();
     initializeFormValidation();
-    initializeAddressFields();
+ //   initializeAddressFields();
     initializeStudentYearOptions();
 });
 
@@ -1330,7 +1308,7 @@ function validateFormSubmission() {
         { field: 'city', message: 'City is required.' },
         { field: 'state_province', message: 'State/Province is required.' },
         { field: 'country', message: 'Country is required.' },
-        { field: 'formatted_address', message: 'Complete Address is required.' }
+        // { field: 'formatted_address', message: 'Complete Address is required.' }
     ];
 
     for (const { field, message } of requiredFields) {
@@ -1484,6 +1462,7 @@ function validateStudentYears() {
     return true;
 }
 
+/*
 // ===== ADDRESS FIELD INITIALIZATION =====
 function initializeAddressFields() {
     // Auto-generate formatted address when fields change
@@ -1507,6 +1486,7 @@ function initializeAddressFields() {
     if (stateField) stateField.addEventListener('blur', updateFormattedAddress);
     if (countryField) countryField.addEventListener('blur', updateFormattedAddress);
 }
+    */
 
 // Auto-open modal for rejected profiles
 <?php if ($auto_open_modal): ?>
