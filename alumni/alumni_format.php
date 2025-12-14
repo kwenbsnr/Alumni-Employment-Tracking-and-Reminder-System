@@ -298,6 +298,10 @@ $page_title = $page_title ?? "Alumni Page";
                         <i class="fas fa-user w-5" aria-hidden="true"></i>
                         <span>Profile Management</span>
                     </a>
+                    <a href="alumni_employment.php" class="sidebar-item <?php echo ($active_page ?? '') === 'employment' ? 'active' : ''; ?> flex items-center space-x-3 p-3 rounded-lg">
+                        <i class="fas fa-briefcase w-5" aria-hidden="true"></i>
+                        <span>Employment Information</span>
+                    </a>
                 </nav>
             </div>
 
