@@ -2,7 +2,7 @@
 $host = "localhost";   
 $user = "root";        
 $pass = "";            
-$db   = "world"; 
+$db   = "alumni_tracking"; 
 
 $conn = new mysqli($host, $user, $pass, $db);
 

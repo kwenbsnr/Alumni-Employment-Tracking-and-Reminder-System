@@ -25,8 +25,6 @@
 ```
 ____________________
 
-BY MARIAN:
-
 Notification System Fixes:
 
 - One notification per action - When admin approves/rejects/changes status, only one notification is sent
@@ -58,45 +56,3 @@ Summary report, and detailed alumni list with filter out of emp status integrati
 
 Dashbaord:
 - just fixed the positioning, layout and everything.
-
-  
-# WHAT TO FIX: 
-## ADMIN:
-### 1. Unnecessary program field in the hover since da system is exclusively for da bsit prog. pero it's fine rpud for me. i mean if we wish to expand to include other deps in da future,dba at least it's there na. (not really a bug though).
-### 2. Toast notif upon approval/rej.
-____________________
-
-Summary of Changes Implemented
-- Submissions now close and open based on the admin toggle or scheduled dates.
-
-- When submissions are closed, alumni cannot submit or edit their profiles.
-
-- No data gets deleted—all approved, pending, and rejected submissions remain stored.
-
-- Admin can still review, approve, reject, or revisit any existing profile at any time.
-
-- The open/close feature now works only as a control for new entries, without affecting existing records.
-
-____________________
-No Info Entered
-- Can submit when the submission is open. Can’t if closed. 
-
-Pending Profiles
-- Can edit profile for as long as sub is open. 
-- When closed, edit is not available.
-
-Approved Profiles
-- Cannot edit even if open/closed. 
-- Can edit again after 6 months. 
-
-Rejected Profiles
-- Can edit if not closed (just like pending cases).
-
-____________________ 
-
-1. Changed the user and alumni profile sql. 
-2. School Information Integration (working 100% and reflects on admin) 
-3. Fixed the completion status. 
-4. Changed most of the admin codes (fixed the errors from the sql update) 
-5. Updated the user profile hover on admin (100% working and data fetched) 
-6. Added an open/close submission with date customization and 100% reflects on the alumni. 
