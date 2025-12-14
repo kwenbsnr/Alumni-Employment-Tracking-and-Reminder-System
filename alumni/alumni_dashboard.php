@@ -12,7 +12,8 @@ $user_id = $_SESSION["user_id"];
 
 // ---- 1. UPDATED FETCH SQL QUERY ----
 $stmt = $conn->prepare("
-    SELECT
+    SELECT 
+        u.user_id, 
         CONCAT(
             u.first_name, 
             IF(u.middle_name IS NOT NULL AND u.middle_name != '', CONCAT(' ', u.middle_name), ''),
@@ -20,23 +21,19 @@ $stmt = $conn->prepare("
             u.last_name,
             IF(u.suffix IS NOT NULL AND u.suffix != '', CONCAT(' ', u.suffix), '')
         ) as official_name,
-        u.student_id,
-        u.program,
-        u.batch_year as year_graduated,
-        u.citizenship,          -- FROM users table
-        u.civil_status,         -- FROM users table
-        u.contact_number,       -- FROM users table (MOVED FROM alumni_profile)
+        u.email, u.role,
+        u.contact_number,     
+        ap.photo_path, 
+        ap.employment_status, 
         ap.last_profile_update,
-        ap.employment_status,
-        ap.submission_status,
-        COUNT(ad.doc_id) as document_count,
+        ap.submitted_at,
+        u.citizenship,
+        u.civil_status,
         aa.city, aa.state_province, aa.street, aa.country
     FROM users u
     LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id
     LEFT JOIN alumni_address aa ON u.user_id = aa.user_id
-    LEFT JOIN alumni_documents ad ON u.user_id = ad.user_id
     WHERE u.user_id = ?
-    GROUP BY u.user_id
 ");
 
 $stmt->bind_param("i", $user_id);
@@ -52,7 +49,7 @@ if (!empty($profile_info) && !empty($profile_info['official_name'])) {
 }
 
 // --- UPDATED PROFILE COMPLETION LOGIC ---
-// Basic required fields that everyone needs - NOW INCLUDES citizenship and civil_status
+// Basic required fields that everyone needs
 $has_basic_info = !empty($profile_info) && 
     !empty($profile_info['contact_number']) &&
     !empty($profile_info['employment_status']) &&
@@ -99,11 +96,50 @@ if (!$is_unemployed) {
 // Profile is complete when all required sections are filled
 $is_profile_complete = $has_basic_info && $has_address && $has_photo && $has_documents;
 
-// Final display status - SIMPLIFIED
-$submission_status = $profile_info['submission_status'] ?? 'Not Submitted';
+// ---- DOCUMENT STATUS CALCULATION ----
+$stmt_doc_status = $conn->prepare("
+    SELECT 
+        COUNT(*) as total,
+        SUM(CASE WHEN document_status = 'Approved' THEN 1 ELSE 0 END) as approved,
+        SUM(CASE WHEN document_status = 'Pending' THEN 1 ELSE 0 END) as pending,
+        SUM(CASE WHEN document_status = 'Rejected' THEN 1 ELSE 0 END) as rejected
+    FROM alumni_documents 
+    WHERE user_id = ?
+");
+$stmt_doc_status->bind_param("i", $user_id);
+$stmt_doc_status->execute();
+$doc_result = $stmt_doc_status->get_result();
+$doc_data = $doc_result->fetch_assoc() ?: [];
+$stmt_doc_status->close();
+
+$total_docs = $doc_data['total'] ?? 0;
+$approved_docs = $doc_data['approved'] ?? 0;
+$pending_docs = $doc_data['pending'] ?? 0;
+$rejected_docs = $doc_data['rejected'] ?? 0;
+
+// Calculate overall document status
+if ($total_docs === 0) {
+    $document_status = 'No Documents';
+    $document_message = 'Upload required documents';
+} elseif ($rejected_docs > 0) {
+    $document_status = 'Rejected';
+    $document_message = 'Needs resubmission';
+} elseif ($approved_docs === $total_docs) {
+    $document_status = 'Approved';
+    $document_message = 'All documents approved';
+} elseif ($pending_docs > 0) {
+    $document_status = 'Under Review';
+    $document_message = 'Awaiting administrator review';
+} else {
+    $document_status = 'Submitted';
+    $document_message = 'Ready for review';
+}
+
+// Use document status for profile status
+$submission_status = $document_status;
 $profile_status = 'Incomplete';
 
-if ($submission_status === 'Rejected') {
+if ($document_status === 'Rejected') {
     $profile_status = 'Rejected';
     
     // FORCE DOCUMENTS TO BE UNCHECKED WHEN REJECTED (since rejection is usually document-related)
@@ -112,9 +148,9 @@ if ($submission_status === 'Rejected') {
         $is_profile_complete = false;
     }
 } elseif ($is_profile_complete) {
-    if ($submission_status === 'Approved') {
+    if ($document_status === 'Approved') {
         $profile_status = 'Complete';
-    } elseif ($submission_status === 'Pending') {
+    } elseif ($document_status === 'Under Review') {
         $profile_status = 'Pending Approval';
     } else {
         $profile_status = 'Ready to Submit';
@@ -128,40 +164,16 @@ $needs_semiannual_update = !empty($profile_info) &&
 
 $needs_profile_update = empty($profile_info) || !$is_profile_complete || $needs_semiannual_update;
 
-// Profile & Document status
+// Profile & Document status arrays for display
 $profile = [
-    'employment_status' => $profile_info['employment_status'] ?? 'Not Set',
-    'submission_status' => $profile_info['submission_status'] ?? 'Not Submitted'
-];
-$document = [
-    'submission_status' => $profile_info['submission_status'] ?? 'No Profile',
-    'document_count' => $profile_info['document_count'] ?? 0
+    'employment_status' => $profile_info['employment_status'] ?? 'Not Set'
 ];
 
-// Enhanced document status - FIXED for consistent rejection display
-if (!empty($profile_info)) {
-    $submission_status = $profile_info['submission_status'] ?? '';
-    
-    if ($submission_status === 'Approved') {
-        $document['submission_status'] = 'Approved';
-        $document['message'] = 'All documents approved';
-    } elseif ($submission_status === 'Rejected') {
-        $document['submission_status'] = 'Rejected';
-        $document['message'] = 'Needs resubmission';
-    } elseif ($submission_status === 'Pending') {
-        $document['submission_status'] = 'Under Review';
-        $document['message'] = 'Awaiting administrator review';
-    } elseif ($document['document_count'] > 0) {
-        $document['submission_status'] = 'Draft';
-        $document['message'] = 'Ready for submission';
-    } else {
-        $document['submission_status'] = 'No Documents';
-        $document['message'] = 'Upload required documents';
-    }
-} else {
-    $document['submission_status'] = 'No Profile';
-    $document['message'] = 'Complete your profile first';
-}
+$document = [
+    'submission_status' => $document_status,
+    'message' => $document_message,
+    'document_count' => $total_docs
+];
 
 // Fetch recent activities
 $stmt_act = $conn->prepare("
@@ -223,7 +235,7 @@ ob_start();
                         <?php
                             echo $profile_status === 'Complete' ? 'bg-gradient-to-r from-emerald-400 to-green-600' :
                                 ($profile_status === 'Pending Approval' ? 'bg-gradient-to-r from-amber-400 to-orange-500' : 
-                                'bg-gradient-to-r from-red-400 to-pink-500');
+                                ($profile_status === 'Rejected' ? 'bg-gradient-to-r from-red-400 to-pink-500' : 'bg-gradient-to-r from-gray-400 to-gray-600'));
                         ?>">
                     </div>
                     <div class="p-6 bg-white relative overflow-hidden">
@@ -232,7 +244,7 @@ ob_start();
                                 // Use a soft gradient based on status
                                 echo $profile_status === 'Complete' ? 'bg-gradient-to-br from-emerald-100 to-white' :
                                     ($profile_status === 'Pending Approval' ? 'bg-gradient-to-br from-amber-100 to-white' : 
-                                    'bg-gradient-to-br from-red-100 to-white');
+                                    ($profile_status === 'Rejected' ? 'bg-gradient-to-br from-red-100 to-white' : 'bg-gradient-to-br from-gray-100 to-white'));
                             ?>">
                         </div>
                         <div class="relative z-10">
@@ -241,17 +253,19 @@ ob_start();
                                     <div class="w-14 h-14 <?php
                                         echo $profile_status === 'Complete' ? 'bg-gradient-to-br from-emerald-500 to-green-600 text-white shadow-xl' :
                                             ($profile_status === 'Pending Approval' ? 'bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-xl' : 
-                                            'bg-gradient-to-br from-red-500 to-pink-500 text-white shadow-xl');
+                                            ($profile_status === 'Rejected' ? 'bg-gradient-to-br from-red-500 to-pink-500 text-white shadow-xl' : 'bg-gradient-to-br from-gray-500 to-gray-600 text-white shadow-xl'));
                                         ?> flex items-center justify-center rounded-2xl">
                                         <i class="fas fa-user-check text-xl"></i> 
                                     </div>
                                     <div class="absolute -top-1 -right-1 w-6 h-6 <?php
                                         echo $profile_status === 'Complete' ? 'bg-emerald-500' :
-                                            ($profile_status === 'Pending Approval' ? 'bg-amber-500' : 'bg-red-500');
+                                            ($profile_status === 'Pending Approval' ? 'bg-amber-500' : 
+                                            ($profile_status === 'Rejected' ? 'bg-red-500' : 'bg-gray-500'));
                                         ?> rounded-full flex items-center justify-center border-3 border-white shadow-lg">
                                         <i class="fas <?php
                                             echo $profile_status === 'Complete' ? 'fa-check' :
-                                                ($profile_status === 'Pending Approval' ? 'fa-clock' : 'fa-exclamation');
+                                                ($profile_status === 'Pending Approval' ? 'fa-clock' : 
+                                                ($profile_status === 'Rejected' ? 'fa-exclamation' : 'fa-circle'));
                                                 ?> text-white text-xs"></i>
                                     </div>
                                 </div>
@@ -261,7 +275,7 @@ ob_start();
                                         <span class="text-sm font-extrabold <?php
                                             echo $profile_status === 'Complete' ? 'text-emerald-700 bg-emerald-100 border-2 border-emerald-400' :
                                                 ($profile_status === 'Pending Approval' ? 'text-amber-700 bg-amber-100 border-2 border-amber-400' :
-                                                'text-red-700 bg-red-100 border-2 border-red-400');
+                                                ($profile_status === 'Rejected' ? 'text-red-700 bg-red-100 border-2 border-red-400' : 'text-gray-700 bg-gray-100 border-2 border-gray-400'));
                                                 ?> px-3 py-1 rounded-lg shadow-inner uppercase tracking-wider text-xs">
                                                 <?php echo $profile_status; ?>
                                         </span>
@@ -294,6 +308,7 @@ ob_start();
                                         if ($empStatusDisplay === 'Employed') $empStatusDisplay = 'Currently working';
                                         if ($empStatusDisplay === 'Self-Employed') $empStatusDisplay = 'Running own business/freelance';
                                         if ($empStatusDisplay === 'Student') $empStatusDisplay = 'Currently enrolled in higher education';
+                                        if ($empStatusDisplay === 'Unemployed') $empStatusDisplay = 'Currently seeking employment';
                                         echo $empStatusDisplay;
                                         ?>
                                     </p>
@@ -305,9 +320,9 @@ ob_start();
                                     <?php
                                     $empMsg = '';
                                     $status = $profile_info['employment_status'] ?? '';
-                                    if ($status === 'Employed') $empMsg = 'Verification needed.';
-                                    elseif ($status === 'Self-Employed') $empMsg = 'Business docs needed.';
-                                    elseif ($status === 'Student') $empMsg = 'Enrollment proof needed.';
+                                    if ($status === 'Employed') $empMsg = 'Certificate of Employment needed.';
+                                    elseif ($status === 'Self-Employed') $empMsg = 'Business Certificate needed.';
+                                    elseif ($status === 'Student') $empMsg = 'Certificate of Registration needed.';
                                     elseif ($status === 'Unemployed') $empMsg = 'No documents required.';
                                     if ($empMsg):
                                     ?>
@@ -333,7 +348,6 @@ ob_start();
                                     <p class="text-sm text-purple-800 leading-snug">
                                         <?php
                                         $docMsg = $document['message'] ?? 'All required documents must be uploaded and approved.';
-                                        if ($document['submission_status'] === 'Approved') $docMsg = 'All documents verified and approved!';
                                         echo $docMsg;
                                         ?>
                                     </p>
@@ -343,6 +357,11 @@ ob_start();
                                             <?php echo $document['document_count']; ?> file<?php echo $document['document_count'] != 1 ? 's' : ''; ?> uploaded
                                         </span>
                                     </div>
+                                    <?php if ($rejected_docs > 0): ?>
+                                        <div class="mt-2 text-xs bg-red-50 text-red-700 px-3 py-1.5 rounded-lg border border-red-100">
+                                            <i class="fas fa-exclamation-triangle mr-1"></i> <?php echo $rejected_docs; ?> document(s) rejected
+                                        </div>
+                                    <?php endif; ?>
                                 </div>
                             </div>
 
@@ -479,16 +498,6 @@ ob_start();
                                         case 'profile_submitted':
                                             $icon = 'fa-paper-plane';
                                             $color = 'text-blue-600';
-                                            break;
-                                        case 'profile_approved':
-                                            $icon = 'fa-badge-check';
-                                            $color = 'text-emerald-500';
-                                            $bgColor = 'bg-emerald-50';
-                                            break;
-                                        case 'profile_rejected':
-                                            $icon = 'fa-circle-xmark';
-                                            $color = 'text-red-600';
-                                            $bgColor = 'bg-red-50';
                                             break;
                                         case 'document_uploaded':
                                         case (strpos($act['action_type'], 'uploaded_') === 0):

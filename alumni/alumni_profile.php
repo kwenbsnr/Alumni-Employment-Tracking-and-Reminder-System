@@ -13,6 +13,12 @@ if (!isset($_SESSION['user_id'])) {
 
 include("../connect.php");
 
+// Check if submission period is open
+if (!function_exists('isSubmissionPeriodOpen')) {
+    require_once dirname(__DIR__) . '/api/utils/deadline.php';
+}
+$submission_open = isSubmissionPeriodOpen($conn);
+
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
 $user_id = $_SESSION['user_id'];
@@ -20,9 +26,8 @@ $page_title = "Profile Management";
 $active_page = "profile";
 
 $stmt = $conn->prepare("
-    SELECT 
-        u.user_id, u.email, u.student_id, u.date_of_birth, u.gender, u.program, 
-        u.contact_number, u.citizenship, u.civil_status,  
+    SELECT
+        u.email,
         CONCAT(
             u.first_name, 
             IF(u.middle_name IS NOT NULL AND u.middle_name != '', CONCAT(' ', u.middle_name), ''),
@@ -30,10 +35,28 @@ $stmt = $conn->prepare("
             u.last_name,
             IF(u.suffix IS NOT NULL AND u.suffix != '', CONCAT(' ', u.suffix), '')
         ) as official_name,
-        u.batch_year,
-        u.first_name, u.middle_name, u.last_name, u.suffix,
-        ap.photo_path, 
-        ap.submission_status, ap.last_profile_update, ap.rejection_reason,
+        u.student_id,
+        u.program,
+        u.batch_year as year_graduated,
+        u.citizenship,
+        u.civil_status,
+        u.contact_number,
+        u.date_of_birth,
+        u.gender,
+        ap.last_profile_update,
+        ap.employment_status,
+        ap.submitted_at,
+        ap.photo_path,
+        -- Document stat calcs
+        (SELECT COUNT(*) FROM alumni_documents WHERE user_id = u.user_id) as total_docs,
+        (SELECT COUNT(*) FROM alumni_documents WHERE user_id = u.user_id AND document_status = 'Approved') as approved_docs,
+        (SELECT COUNT(*) FROM alumni_documents WHERE user_id = u.user_id AND document_status = 'Rejected') as rejected_docs,
+        (SELECT COUNT(*) FROM alumni_documents WHERE user_id = u.user_id AND document_status = 'Pending') as pending_docs,
+        -- Get latest rejection reason if any
+        (SELECT GROUP_CONCAT(rejection_reason SEPARATOR '; ') 
+         FROM alumni_documents 
+         WHERE user_id = u.user_id AND document_status = 'Rejected'
+         AND rejection_reason IS NOT NULL) as rejection_reasons,
         aa.city, aa.state_province, aa.street, aa.country
     FROM users u
     LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id
@@ -47,42 +70,56 @@ $result = $stmt->get_result();
 $profile = $result->fetch_assoc() ?: [];
 $stmt->close();
 
-// FIXED: Profile permissions logic
-$submission_status = $profile['submission_status'] ?? null;
-$last_profile_update = $profile['last_profile_update'] ?? null;
+// FIXED: Document-based status logic instead of profile-based
+$has_profile = !empty($profile) && !empty($profile['employment_status']);
+$total_docs = $profile['total_docs'] ?? 0;
+$approved_docs = $profile['approved_docs'] ?? 0;
+$rejected_docs = $profile['rejected_docs'] ?? 0;
+$pending_docs = $profile['pending_docs'] ?? 0;
+$rejection_reasons = $profile['rejection_reasons'] ?? null;
 
-// Enhanced permission logic
-$is_profile_new = empty($profile) || $submission_status === null;
-$is_profile_rejected = !empty($profile) && $submission_status === 'Rejected';
-$is_profile_approved = !empty($profile) && $submission_status === 'Approved';
-$is_profile_pending = !empty($profile) && $submission_status === 'Pending';
+// FIXED: Check if profile has personal data for display 
+$has_personal_data = !empty($profile) && 
+                     (!empty($profile['contact_number']) || 
+                      !empty($profile['employment_status']) ||
+                      !empty($profile['city']));
 
-//  Check if profile has personal data for display 
-$has_personal_data = !empty($profile) && (!empty($profile['contact_number']) || !empty($profile['employment_status']));
+// Document-based statuses
+$has_rejected_docs = $rejected_docs > 0;
+$has_pending_docs = $pending_docs > 0;
+$all_docs_approved = ($total_docs > 0) && ($approved_docs == $total_docs);
 
-if (!function_exists('isSubmissionPeriodOpen')) {
-    require_once dirname(__DIR__) . '/api/utils/deadline.php';
+// Profile status logic (based on documents, not profile)
+if (!$has_profile) {
+    $profile_status = 'new';  // No profile data yet
+} elseif ($has_rejected_docs) {
+    $profile_status = 'documents_rejected';
+} elseif ($has_pending_docs) {
+    $profile_status = 'documents_pending';
+} elseif ($all_docs_approved && $has_profile) {
+    $profile_status = 'documents_approved';
+} else {
+    $profile_status = 'incomplete';
 }
-$submission_open = isSubmissionPeriodOpen($conn);
 
-// Semiannual update allowed only if previously approved and 6 months passed
-$can_update_semiannual = $is_profile_approved && (
+// Enhanced permission logic (simplified)
+$last_profile_update = $profile['last_profile_update'] ?? null;
+$can_update_semiannual = $has_profile && (
     $last_profile_update === null || 
     strtotime($last_profile_update . ' +6 months') <= time()
 );
 
 // User can update ONLY if:
 // 1. Submissions are globally OPEN, AND
-// 2. (It's a new profile OR rejected OR pending OR semiannual update is due)
+// 2. (No profile yet OR has rejected documents OR can do semiannual update)
 $can_update = $submission_open && (
-    $is_profile_new || 
-    $is_profile_rejected || 
-    $is_profile_pending || 
+    !$has_profile || 
+    $has_rejected_docs || 
     $can_update_semiannual
 );
 
-// FIXED: Auto-modal opening logic - only open when there's data to edit
-$auto_open_modal = isset($_SESSION['profile_rejected']) && $_SESSION['profile_rejected'] && $has_personal_data;
+// FIXED: Auto-modal opening logic
+$auto_open_modal = isset($_SESSION['profile_rejected']) && $_SESSION['profile_rejected'] && $has_profile;
 if ($auto_open_modal) {
     unset($_SESSION['profile_rejected']);
 }
@@ -139,211 +176,122 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <div class="space-y-6 mt-3 mb-5">
-<!-- Status Card - Modern, Professional & Perfectly Balanced (2025 Design) -->
-
+<!-- Status Card - Document-Based Status -->
 <div id="updateProfileBtn" class="
-
     <?php
-
-    if ($is_profile_rejected) {
-
+    if ($profile_status === 'documents_rejected') {
         echo 'bg-red-50 border-red-200 hover:border-red-300 shadow-sm hover:shadow-md cursor-pointer';
-
-    } elseif ($is_profile_approved) {
-
+    } elseif ($profile_status === 'documents_approved') {
         echo 'bg-emerald-50 border-emerald-200 cursor-not-allowed opacity-95';
-
-    } elseif ($is_profile_pending) {
-
+    } elseif ($profile_status === 'documents_pending') {
         echo 'bg-amber-50 border-amber-200 cursor-not-allowed opacity-95';
-
-    } elseif ($can_update || $is_profile_new) {
-
+    } elseif ($profile_status === 'new' || $can_update) {
         echo 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-300 hover:border-green-400 shadow-sm hover:shadow-lg cursor-pointer';
-
     } else {
-
         echo 'bg-gray-50 border-gray-300 cursor-not-allowed opacity-80';
-
     }
-
     ?>
-
     rounded-2xl p-5 transition-all duration-300 border-2 border-t-[6px]
-
     <?php
-
-    if ($is_profile_rejected) echo 'border-t-red-500';
-
-    elseif ($is_profile_approved) echo 'border-t-emerald-500';
-
-    elseif ($is_profile_pending) echo 'border-t-amber-500';
-
-    elseif ($can_update || $is_profile_new) echo 'border-t-green-500';
-
+    if ($profile_status === 'documents_rejected') echo 'border-t-red-500';
+    elseif ($profile_status === 'documents_approved') echo 'border-t-emerald-500';
+    elseif ($profile_status === 'documents_pending') echo 'border-t-amber-500';
+    elseif ($profile_status === 'new' || $can_update) echo 'border-t-green-500';
     else echo 'border-t-gray-400';
-
     ?>
-
 ">
 
     <!-- Header: Icon + Title -->
-
     <div class="flex items-center justify-between mb-3">
-
         <div class="flex items-center gap-3">
-
             <i class="fas text-2xl
-
                 <?php
-
-                if ($is_profile_rejected) echo 'fa-exclamation-triangle text-red-600';
-
-                elseif ($is_profile_approved) echo 'fa-check-circle text-emerald-600';
-
-                elseif ($is_profile_pending) echo 'fa-clock text-amber-600';
-
-                elseif ($can_update || $is_profile_new) echo 'fa-user-edit text-green-600';
-
+                if ($profile_status === 'documents_rejected') echo 'fa-exclamation-triangle text-red-600';
+                elseif ($profile_status === 'documents_approved') echo 'fa-check-circle text-emerald-600';
+                elseif ($profile_status === 'documents_pending') echo 'fa-clock text-amber-600';
+                elseif ($profile_status === 'new' || $can_update) echo 'fa-user-edit text-green-600';
                 else echo 'fa-lock text-gray-500';
-
                 ?>
-
             "></i>
-
             <h3 class="text-lg font-bold tracking-tight
-
                 <?php
-
-                if ($is_profile_rejected) echo 'text-red-900';
-
-                elseif ($is_profile_approved) echo 'text-emerald-900';
-
-                elseif ($is_profile_pending) echo 'text-amber-900';
-
-                elseif ($can_update || $is_profile_new) echo 'text-green-900';
-
+                if ($profile_status === 'documents_rejected') echo 'text-red-900';
+                elseif ($profile_status === 'documents_approved') echo 'text-emerald-900';
+                elseif ($profile_status === 'documents_pending') echo 'text-amber-900';
+                elseif ($profile_status === 'new' || $can_update) echo 'text-green-900';
                 else echo 'text-gray-700';
-
                 ?>">
-
                 <?php
-
-                if ($is_profile_rejected) echo 'Profile Rejected';
-
-                elseif ($is_profile_approved) echo 'Profile Approved';
-
-                elseif ($is_profile_pending) echo 'Pending Review';
-
-                elseif ($is_profile_new) echo 'Validate Your Profile';
-
+                if ($profile_status === 'documents_rejected') echo 'Documents Rejected';
+                elseif ($profile_status === 'documents_approved') echo 'Documents Approved';
+                elseif ($profile_status === 'documents_pending') echo 'Documents Pending Review';
+                elseif ($profile_status === 'new') echo 'Complete Your Profile';
                 elseif ($can_update) echo 'Update Profile';
-
                 else echo 'Editing Locked';
-
                 ?>
-
             </h3>
-
         </div>
-
-        <?php if ($is_profile_rejected || $can_update || $is_profile_new): ?>
-
-            <i class="fas fa-arrow-right text-lg <?php echo $is_profile_rejected ? 'text-red-500' : 'text-green-600'; ?> opacity-80"></i>
-
+        <?php if ($profile_status === 'documents_rejected' || $profile_status === 'new' || $can_update): ?>
+            <i class="fas fa-arrow-right text-lg <?php echo $profile_status === 'documents_rejected' ? 'text-red-500' : 'text-green-600'; ?> opacity-80"></i>
         <?php endif; ?>
-
     </div>
 
-    <!-- Status-Specific Message (Clean & Modern) -->
-
-    <?php if ($is_profile_rejected): ?>
-
+    <!-- Status-Specific Message -->
+    <?php if ($profile_status === 'documents_rejected'): ?>
         <div class="bg-red-100 rounded-xl px-4 py-3 border border-red-200">
-
-            <p class="text-sm font-semibold text-red-900">Your profile was rejected</p>
-
-            <?php if (!empty($profile['rejection_reason'])): ?>
-
+            <p class="text-sm font-semibold text-red-900">Your documents were rejected</p>
+            <?php if (!empty($rejection_reasons)): ?>
                 <p class="text-xs text-red-700 mt-1 leading-relaxed">
-
-                    <span class="font-medium">Reason:</span> <?php echo htmlspecialchars($profile['rejection_reason']); ?>
-
+                    <span class="font-medium">Reason:</span> <?php echo htmlspecialchars($rejection_reasons); ?>
                 </p>
-
             <?php endif; ?>
-
             <p class="text-xs font-medium text-red-800 mt-2">Please fix the issues and resubmit</p>
-
         </div>
-
-    <?php elseif ($is_profile_pending): ?>
-
+    <?php elseif ($profile_status === 'documents_pending'): ?>
         <div class="bg-amber-100 rounded-xl px-4 py-3 border border-amber-200">
-
             <p class="text-sm font-medium text-amber-900 flex items-center gap-2">
-
                 <i class="fas fa-spinner fa-pulse text-amber-600"></i>
-
-                Your profile is under review
-
+                Your documents are under review
             </p>
-
-            <p class="text-xs text-amber-700 mt-2">We'll notify you via email once approved</p>
-
+            <p class="text-xs text-amber-700 mt-2">We'll notify you once approved</p>
         </div>
-
-    <?php elseif ($is_profile_new): ?>
-        <!--
-        <div class="bg-blue-50 rounded-xl px-4 py-3 border border-blue-200">
-            <p class="text-sm font-medium text-blue-900">Validate alumni profile and update employment information</p>
-            <p class="text-xs text-blue-700 mt-1">View and validate your preloaded personal and academic information.</p>
+    <?php elseif ($profile_status === 'new'): ?>
+        <div class="bg-blue-100 rounded-xl px-4 py-3 border border-blue-200">
+            <p class="text-sm font-medium text-blue-900">Complete your alumni profile</p>
+            <p class="text-xs text-blue-700 mt-1">Submit your personal information and documents</p>
         </div>
-        -->
     <?php elseif (!$submission_open): ?>
-
         <div class="bg-gray-100 rounded-xl px-4 py-2.5">
-
             <p class="text-xs font-medium text-gray-700 text-center">Profile updates are temporarily closed by admin</p>
-
         </div>
-
-    <?php elseif ($is_profile_approved): ?>
-
+    <?php elseif ($profile_status === 'documents_approved'): ?>
         <?php
-
         $last_update = $profile['last_profile_update'] ?? null;
-
         $next_update = $last_update ? date('F j, Y', strtotime($last_update . ' +6 months')) : 'six months from approval';
-
         ?>
-
         <p class="text-sm text-emerald-800 font-medium">
-
-            Approved ✓ — Next update available: <span class="font-bold"><?php echo $next_update; ?></span>
-
+            All documents approved ✓ — Next update available: <span class="font-bold"><?php echo $next_update; ?></span>
         </p>
-
     <?php endif; ?>
 
- <!-- Action Button - Only when editable (Prominent & Modern) -->
-<?php if ($is_profile_rejected || $can_update || $is_profile_new): ?>
-    <div class="mt-5">
-        <button type="button" class="w-full <?php
-            echo $is_profile_rejected ? 'bg-red-600 hover:bg-red-700 focus:ring-red-300' : 'bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-300';
-        ?> text-white font-semibold text-base py-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center gap-3 transform hover:scale-[1.02] active:scale-100">
-            <i class="fas <?php echo $is_profile_rejected ? 'fa-tools' : 'fa-edit'; ?> text-lg"></i>
-            <span class="tracking-tight">
-                <?php echo $is_profile_rejected ? 'Edit & Resubmit Profile' : ($is_profile_new ? 'Validate My Profile Now' : 'Update Profile Information'); ?>
-            </span>
-        </button>
-        <p class="text-center text-xs text-gray-500 mt-3 font-medium">
-            <?php echo $is_profile_rejected ? 'Make corrections to get approved quickly' : 'Keep your information up to date'; ?>
-        </p>
-    </div>
-<?php endif; ?>
-
+    <!-- Action Button -->
+    <?php if ($profile_status === 'documents_rejected' || $profile_status === 'new' || $can_update): ?>
+        <div class="mt-5">
+            <button type="button" class="w-full <?php
+                echo $profile_status === 'documents_rejected' ? 'bg-red-600 hover:bg-red-700 focus:ring-red-300' : 'bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-300';
+            ?> text-white font-semibold text-base py-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center gap-3 transform hover:scale-[1.02] active:scale-100">
+                <i class="fas <?php echo $profile_status === 'documents_rejected' ? 'fa-tools' : 'fa-edit'; ?> text-lg"></i>
+                <span class="tracking-tight">
+                    <?php echo $profile_status === 'documents_rejected' ? 'Fix & Resubmit Documents' : ($profile_status === 'new' ? 'Complete My Profile' : 'Update Profile'); ?>
+                </span>
+            </button>
+            <p class="text-center text-xs text-gray-500 mt-3 font-medium">
+                <?php echo $profile_status === 'documents_rejected' ? 'Upload corrected documents' : 'Keep your information up to date'; ?>
+            </p>
+        </div>
+    <?php endif; ?>
 </div>
+
     <!-- FIXED: Show profile cards only when personal data exists -->
     <?php if ($has_personal_data): ?>
         <!-- Consistent 2x2 Grid Layout -->
