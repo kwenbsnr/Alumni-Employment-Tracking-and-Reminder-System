@@ -42,13 +42,15 @@ if (!$submission_open) {
     exit();
 }
 
-// Get current employment status
+// Check if alumni_profile record exists
 $stmt = $conn->prepare("SELECT employment_status FROM alumni_profile WHERE user_id = ?");
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
 $result = $stmt->get_result();
-$current_status = $result->fetch_assoc()['employment_status'] ?? '';
+$alumni_profile = $result->fetch_assoc();
 $stmt->close();
+
+$current_status = $alumni_profile['employment_status'] ?? '';
 
 // ---- POST handling --------------------------------------------------------
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -120,6 +122,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$job_title) throw new Exception("Job title is required.");
             if (!$company) throw new Exception("Company name is required.");
             if (!$company_address) throw new Exception("Company address is required.");
+            if (!$salary) throw new Exception("Salary range is required.");
         }
         
         if ($status === 'Self-Employed') {
@@ -136,9 +139,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$end_year) throw new Exception("End year is required.");
         }
 
-        // ---- 3. Update alumni_profile with employment status only -----------
-        $stmt = $conn->prepare("UPDATE alumni_profile SET employment_status = ?, last_profile_update = NOW() WHERE user_id = ?");
-        $stmt->bind_param("si", $status, $user_id);
+        // ---- 3. Ensure alumni_profile record exists and update employment status -----------
+        if ($alumni_profile) {
+            // Update existing alumni_profile
+            $stmt = $conn->prepare("UPDATE alumni_profile SET employment_status = ?, last_profile_update = NOW() WHERE user_id = ?");
+            $stmt->bind_param("si", $status, $user_id);
+        } else {
+            // Insert new alumni_profile record (with NULL photo_path since we don't have it in employment form)
+            $stmt = $conn->prepare("INSERT INTO alumni_profile (user_id, employment_status, last_profile_update) VALUES (?, ?, NOW())");
+            $stmt->bind_param("is", $user_id, $status);
+        }
+        
         if (!$stmt->execute()) {
             throw new Exception("Failed to update employment status.");
         }
@@ -286,11 +297,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             return $return_path;
         }
 
-        // Delete existing documents first
-        $stmt = $conn->prepare("DELETE FROM alumni_documents WHERE user_id = ?");
-        $stmt->bind_param("i", $user_id);
-        $stmt->execute();
-        $stmt->close();
+        // Delete existing documents first (optional - could keep old documents)
+        // $stmt = $conn->prepare("DELETE FROM alumni_documents WHERE user_id = ?");
+        // $stmt->bind_param("i", $user_id);
+        // $stmt->execute();
+        // $stmt->close();
 
         // Process each required document
         $required_docs = [];
@@ -312,8 +323,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $new_path = handle_employment_document($field, $dir, $user_id, $code);
                 
                 if ($new_path) {
-                    // Insert new document
+                    // Delete old document of same type if exists
                     $doc_code = strtoupper($code === 'coe' ? 'COE' : ($code === 'business' ? 'B_CERT' : 'COR'));
+                    $stmt = $conn->prepare("DELETE FROM alumni_documents WHERE user_id = ? AND document_type = ?");
+                    $stmt->bind_param("is", $user_id, $doc_code);
+                    $stmt->execute();
+                    $stmt->close();
+                    
+                    // Insert new document
                     $stmt = $conn->prepare("INSERT INTO alumni_documents (user_id, document_type, file_path) VALUES (?, ?, ?)");
                     $stmt->bind_param("iss", $user_id, $doc_code, $new_path);
                     $stmt->execute();

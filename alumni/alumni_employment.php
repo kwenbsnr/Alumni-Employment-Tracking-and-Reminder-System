@@ -644,6 +644,18 @@ function validateEmploymentForm() {
     if (['Student', 'Employed & Student'].includes(status)) {
         const startYear = document.querySelector('[name="start_year"]')?.value;
         const endYear = document.querySelector('[name="end_year"]')?.value;
+        const schoolName = document.querySelector('[name="school_name"]')?.value;
+        const degreePursued = document.querySelector('[name="degree_pursued"]')?.value;
+        
+        if (!schoolName || !schoolName.trim()) {
+            alert('School Name is required for student status.');
+            return false;
+        }
+        
+        if (!degreePursued || !degreePursued.trim()) {
+            alert('Degree Pursued is required for student status.');
+            return false;
+        }
         
         if (!startYear || !endYear) {
             alert('Both Start Year and End Year are required for student status.');
