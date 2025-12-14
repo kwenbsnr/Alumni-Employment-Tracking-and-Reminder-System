@@ -19,14 +19,6 @@ $is_development = $_SERVER['SERVER_NAME'] === 'localhost' ||
                   (isset($_ENV['APP_ENV']) && $_ENV['APP_ENV'] === 'development');
 
 include("../connect.php");
-require_once '../api/notification/notif_service.php';
-
-function log_alumni_activity($conn, $user_id, $action_type, $description = '') {
-    $stmt = $conn->prepare("INSERT INTO alumni_activity_log (user_id, action_type, description) VALUES (?, ?, ?)");
-    $stmt->bind_param("iss", $user_id, $action_type, $description);
-    $stmt->execute();
-    $stmt->close();
-}
 
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
@@ -38,103 +30,31 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
-// ---- 1. Profile & Permissions ------------------------------------------------
-$user_stmt = $conn->prepare("
-    SELECT 
-        CONCAT(
-            first_name, 
-            IF(middle_name IS NOT NULL AND middle_name != '', CONCAT(' ', middle_name), ''),
-            ' ',
-            last_name,
-            IF(suffix IS NOT NULL AND suffix != '', CONCAT(' ', suffix), '')
-        ) as name,
-        contact_number 
-    FROM users 
-    WHERE user_id = ?
-");
-$user_stmt->bind_param("i", $user_id);
-$user_stmt->execute();
-$profile = $user_stmt->get_result()->fetch_assoc() ?: [];
-$user_stmt->close();
-
-// ---- 2. Get complete alumni profile data -------------------------------------
-$alumni_stmt = $conn->prepare("
-    SELECT ap.submission_status, ap.last_profile_update, ap.employment_status, ap.photo_path
-    FROM alumni_profile ap 
-    WHERE ap.user_id = ?
-");
-$alumni_stmt->bind_param("i", $user_id);
-$alumni_stmt->execute();
-$alumni_profile = $alumni_stmt->get_result()->fetch_assoc() ?: [];
-$alumni_stmt->close();
-
-// ---- 3. Profile Permissions --------------------------------------------------------
-$is_profile_rejected = !empty($alumni_profile) && ($alumni_profile['submission_status'] ?? '') === 'Rejected';
-$is_profile_pending = !empty($alumni_profile) && ($alumni_profile['submission_status'] ?? '') === 'Pending';
-
-$can_update_semiannual = empty($alumni_profile) || 
-                        ($alumni_profile['last_profile_update'] === null || 
-                        strtotime($alumni_profile['last_profile_update'] . ' +6 months') <= time());
-
-$can_update = $can_update_semiannual || $is_profile_rejected || $is_profile_pending;
-
-// PERMISSION CHECK - PREVENT UNAUTHORIZED UPDATES
-if (!$can_update) {
-    header("Location: alumni_profile.php?error=" . urlencode(
-        "You can only update every 6 months unless your submission was rejected."
-    ));
-    exit;
-}
-
-if ($is_profile_rejected && !isset($_SESSION['profile_rejected'])) {
-    $_SESSION['profile_rejected'] = true;
-}
-
-// Check if address exists
-$address_stmt = $conn->prepare("SELECT address_id FROM alumni_address WHERE user_id = ?");
-$address_stmt->bind_param("i", $user_id);
-$address_stmt->execute();
-$address_result = $address_stmt->get_result();
-$existing_address = $address_result->fetch_assoc();
-$existing_alumni_address_id = $existing_address ? $existing_address['address_id'] : null;
-$address_stmt->close();
-
-$current_employment_status = $alumni_profile['employment_status'] ?? '';
-$photo_path = $alumni_profile['photo_path'] ?? null;
-
-// ---- 4. Helper: file upload --------------------------------------------------
-function upload_file($field, $dir, $user_id, $type, $allowed = ['application/pdf']) {
+// ---- 1. Profile Photo Upload Helper -----------------------------------------
+function upload_profile_photo($user_id) {
     global $conn;
     
-    if (!isset($_FILES[$field]) || $_FILES[$field]['error'] !== UPLOAD_ERR_OK) {
-        if ($_FILES[$field]['error'] === UPLOAD_ERR_INI_SIZE || $_FILES[$field]['error'] === UPLOAD_ERR_FORM_SIZE) {
-            $doc_name = $field === 'coe_file' ? 'Certificate of Employment' : 
-                    ($field === 'business_file' ? 'Business Certificate' : 
-                    ($field === 'cor_file' ? 'Certificate of Registration' : 'File'));
-            throw new Exception("{$doc_name} is too large. Maximum allowed size is 2MB.");
-        }
+    if (!isset($_FILES['profile_photo']) || $_FILES['profile_photo']['error'] !== UPLOAD_ERR_OK) {
         return null;
     }
 
-    $file = $_FILES[$field];
+    $file = $_FILES['profile_photo'];
     $max_size = 2 * 1024 * 1024; // 2MB
 
     if ($file['size'] > $max_size) {
-        $doc_name = $field === 'coe_file' ? 'Certificate of Employment' : 
-                ($field === 'business_file' ? 'Business Certificate' : 
-                ($field === 'cor_file' ? 'Certificate of Registration' : 'File'));
-        throw new Exception("{$doc_name} exceeds the 2MB size limit. Please choose a smaller file.");
+        throw new Exception("Profile photo is too large. Maximum allowed is 2MB.");
     }
-    
-    // Verify MIME type using finfo for better security
+
+    // Validate file type
+    $valid_types = ['image/jpeg', 'image/jpg', 'image/png'];
     $finfo = finfo_open(FILEINFO_MIME_TYPE);
     $mime_type = finfo_file($finfo, $file['tmp_name']);
     finfo_close($finfo);
     
-    if (!in_array($mime_type, $allowed)) {
-        throw new Exception("Invalid file type. Allowed: " . implode(', ', $allowed));
+    if (!in_array($mime_type, $valid_types)) {
+        throw new Exception("Invalid file type. Only JPG and PNG files are allowed.");
     }
-    
+
     // Get user's surname for filename
     $user_stmt = $conn->prepare("SELECT last_name FROM users WHERE user_id = ?");
     $user_stmt->bind_param("i", $user_id);
@@ -149,73 +69,29 @@ function upload_file($field, $dir, $user_id, $type, $allowed = ['application/pdf
         $surname = ucfirst($surname);
     }
 
-    // Map type codes to document type names for filename
-    $doc_type_map = [
-        'profile' => 'profile',
-        'coe' => 'COE',
-        'business' => 'B_CERT', 
-        'cor' => 'COR'
-    ];
-    
-    $doc_type = $doc_type_map[$type] ?? $type;
-    
-    // Get file extension from MIME type
-    $extMap = [
-        'image/jpeg' => 'jpg', 
-        'image/jpg' => 'jpg',
-        'image/png' => 'png', 
-        'application/pdf' => 'pdf'
-    ];
-    
-    $ext = $extMap[$mime_type] ?? 'file';
-
-    if (!is_dir($dir)) {
-        if (!mkdir($dir, 0777, true)) {
+    // Create uploads directory if it doesn't exist
+    $upload_dir = '../uploads/photos/';
+    if (!is_dir($upload_dir)) {
+        if (!mkdir($upload_dir, 0777, true)) {
             throw new Exception("Could not create upload directory.");
         }
     }
 
-    // Generate filename: surname_docType.extension
-    $name = $surname . '_' . $doc_type . '.' . $ext;
-    $target = rtrim($dir, '/') . '/' . $name;
+    // Generate unique filename
+    $timestamp = time();
+    $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
+    $filename = $surname . '_profile_' . $timestamp . '.' . $ext;
+    $target_path = $upload_dir . $filename;
 
-    if (!move_uploaded_file($file['tmp_name'], $target)) {
-        throw new Exception("File upload failed. Please try again.");
+    if (!move_uploaded_file($file['tmp_name'], $target_path)) {
+        throw new Exception("Failed to upload profile photo. Please try again.");
     }
     
-    $return_path = str_replace('../', '', $target);
-    return $return_path;
+    // Return relative path for database storage
+    return 'uploads/photos/' . $filename;
 }
 
-// ---- 5. Document handler (DRY) -----------------------------------------------
-function handle_document($field, $dir, $user_id, $code) {
-    global $conn;
-    
-    if (!isset($_FILES[$field]) || $_FILES[$field]['error'] !== UPLOAD_ERR_OK) {
-        return null;
-    }
-
-    $new_path = upload_file($field, $dir, $user_id, strtolower($code), ['application/pdf']);
-    
-    if ($new_path) {
-        // Delete old document if exists
-        $stmt = $conn->prepare("DELETE FROM alumni_documents WHERE user_id = ? AND document_type = ?");
-        $stmt->bind_param("is", $user_id, $code);
-        $stmt->execute();
-        $stmt->close();
-        
-        // Insert new document
-        $stmt = $conn->prepare("INSERT INTO alumni_documents (user_id, document_type, file_path) VALUES (?, ?, ?)");
-        $stmt->bind_param("iss", $user_id, $code, $new_path);
-        $stmt->execute();
-        $stmt->close();
-        
-        return true;
-    }
-    return false;
-}
-
-// ---- 6. POST handling --------------------------------------------------------
+// ---- POST handling --------------------------------------------------------
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($is_development) {
         error_log("=== PROFILE UPDATE START ===");
@@ -226,7 +102,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     $conn->begin_transaction();
     
-     
     try {
         // ---- 1. Retrieve & sanitise PERSONAL DATA ONLY -----------------------
         $contact = !empty($_POST['contact_number']) ? trim($_POST['contact_number']) : '';
@@ -247,38 +122,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new Exception("Address information is required (Country, State/Province, and City).");
         }
 
-        // ---- 3. Photo handling ---------------------------------------
+        // ---- 3. Profile Photo Handling ---------------------------------------
+        $photo_path = null;
         if (isset($_FILES['profile_photo']) && $_FILES['profile_photo']['error'] === UPLOAD_ERR_OK) {
-            $file = $_FILES['profile_photo'];
-            $max_size = 20 * 1024 * 1024;
-
-            if ($file['size'] > $max_size) {
-                throw new Exception("Photo is too large. Maximum allowed is 20MB.");
-            }
-
-            if (!in_array($file['type'], ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'])) {
-                throw new Exception("Invalid file type. Only JPG, PNG, GIF, and WebP are allowed.");
-            }
-
-            $new_photo = upload_file('profile_photo', '../uploads/photos/', $user_id, 'profile', 
-            ['image/jpeg','image/jpg','image/png','image/gif','image/webp']);
-
-            if (!$new_photo) {
-                throw new Exception("Photo upload failed. Please try again.");
-            }
-
-            // Delete old photo if exists and different
-            if ($photo_path && $photo_path !== $new_photo && file_exists('../' . $photo_path)) {
-                @unlink('../' . $photo_path);
-            }
-
-            $photo_path = $new_photo;
-            
+            $photo_path = upload_profile_photo($user_id);
         } else {
-            // No new photo uploaded
-            if (empty($photo_path)) {
-                throw new Exception("Profile photo is required.");
-            }
+            // Keep existing photo if no new photo uploaded
+            $stmt = $conn->prepare("SELECT photo_path FROM alumni_profile WHERE user_id = ?");
+            $stmt->bind_param("i", $user_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $existing_photo = $result->fetch_assoc();
+            $stmt->close();
+            
+            $photo_path = $existing_photo['photo_path'] ?? null;
         }
 
         // === UPDATE USERS TABLE WITH CONTACT NUMBER ==========
@@ -291,7 +148,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->close();
         }
 
-        // === UPDATE alumni_profile TABLE WITH PHOTO PATH ONLY ==========
+        // === UPDATE alumni_profile TABLE WITH PHOTO PATH ==========
         // Check if alumni_profile record exists
         $check_stmt = $conn->prepare("SELECT user_id FROM alumni_profile WHERE user_id = ?");
         $check_stmt->bind_param("i", $user_id);
@@ -300,22 +157,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $check_stmt->close();
         
         if ($profile_exists) {
-            // Update existing profile - only photo_path and timestamp
+            // Update existing profile - photo_path and timestamp
             $stmt = $conn->prepare("UPDATE alumni_profile SET 
-                photo_path=?, last_profile_update=NOW()
-                WHERE user_id=?");
+                photo_path = ?, 
+                last_profile_update = NOW()
+                WHERE user_id = ?");
             $stmt->bind_param("si", $photo_path, $user_id);
         } else {
-            // Insert new profile - only user_id and photo_path
+            // Insert new profile - user_id and photo_path
             $stmt = $conn->prepare("INSERT INTO alumni_profile 
                 (user_id, photo_path, last_profile_update)
-                VALUES (?,?,NOW())");
+                VALUES (?, ?, NOW())");
             $stmt->bind_param("is", $user_id, $photo_path);
         }
 
         if (!$stmt->execute()) {
             error_log("Alumni profile update failed: " . $stmt->error);
-            throw new Exception("Failed to save profile information. Please try again.");
+            throw new Exception("Failed to save profile photo. Please try again.");
         }
         $stmt->close();
 
@@ -355,20 +213,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Commit transaction
         $conn->commit();
 
-        // Activity logs
-        if (!empty($_FILES['profile_photo']['name'])) {
-            log_alumni_activity($conn, $user_id, 'profile_photo_updated', 'Updated profile picture');
+        // Update session with new photo path for sidebar display
+        if ($photo_path) {
+            $_SESSION['user_photo'] = $photo_path;
         }
-
-        log_alumni_activity($conn, $user_id, 'profile_updated', 'Updated personal information and address');
-
-        // Clear any rejection session flags
-        if (isset($_SESSION['profile_rejected'])) {
-            unset($_SESSION['profile_rejected']);
-        }
-
-        // Set session flag to indicate successful submission
-        $_SESSION['form_submitted'] = true;
 
         // Redirect after successful submission
         header("Location: alumni_profile.php?success=Personal information updated successfully!");
