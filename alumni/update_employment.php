@@ -38,6 +38,7 @@ if (!function_exists('isSubmissionPeriodOpen')) {
 $submission_open = isSubmissionPeriodOpen($conn);
 
 if (!$submission_open) {
+    ob_end_clean();
     header("Location: alumni_employment.php?error=" . urlencode("Employment updates are currently closed by administrator."));
     exit();
 }
@@ -410,17 +411,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Log activity
         log_alumni_activity($conn, $user_id, 'employment_updated', 'Updated employment information');
 
-        // Redirect after successful submission
-        header("Location: alumni_employment.php?success=Employment information submitted successfully! Documents are pending review.");
-        exit;
+        // Clear output buffer before redirect
+        ob_end_clean();
+        
+        // Redirect with consistent success message
+        header("Location: alumni_employment.php?success=Employment information submitted successfully!");
+        exit();
 
     } catch (Exception $e) {
         $conn->rollback();
         error_log("Critical: Employment update failed for user $user_id - " . ($e->getMessage() ?? 'Unknown error'));
+        
+        // Clear output buffer before redirect
+        ob_end_clean();
+        
         header("Location: alumni_employment.php?error=" . urlencode($e->getMessage()));
-        exit;
+        exit();
     }
 }
 
-$conn->close();
-ob_end_flush();
+// If not POST request, redirect back
+ob_end_clean();
+header("Location: alumni_employment.php");
+exit();

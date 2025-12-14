@@ -2,8 +2,7 @@
 // Strict error reporting
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
-ob_start();
-
+// REMOVE DUPLICATE ob_start() - LINE 4
 session_start();
 if (!isset($_SESSION['user_id'])) {
     header("Location: ../login/login.php");
@@ -20,9 +19,11 @@ $active_page = "employment";
 
 // Fetch employment info ONLY
 $stmt = $conn->prepare("
-    SELECT ei.*, jt.title AS job_title, ei.business_type 
+    SELECT ei.*, jt.title AS job_title, ei.business_type,
+           aa.city, aa.state_province, aa.street, aa.country
     FROM employment_info ei 
     LEFT JOIN job_titles jt ON ei.job_title_id = jt.job_title_id 
+    LEFT JOIN alumni_address aa ON ei.user_id = aa.user_id
     WHERE ei.user_id = ?
 ");
 $stmt->bind_param("i", $user_id);
@@ -30,6 +31,21 @@ $stmt->execute();
 $result = $stmt->get_result();
 $employment = $result->fetch_assoc() ?: [];
 $stmt->close();
+
+// Build company address from alumni_address if available
+$company_address = '';
+if (!empty($employment['street'])) {
+    $company_address = $employment['street'];
+    if (!empty($employment['city'])) {
+        $company_address .= ', ' . $employment['city'];
+    }
+    if (!empty($employment['state_province'])) {
+        $company_address .= ', ' . $employment['state_province'];
+    }
+    if (!empty($employment['country'])) {
+        $company_address .= ', ' . $employment['country'];
+    }
+}
 
 // Fetch education info
 $stmt = $conn->prepare("SELECT * FROM education_info WHERE user_id = ?");
@@ -47,8 +63,8 @@ if (strpos($business_type, 'Others: ') === 0) {
     $business_type = 'Others (Please specify)';
 }
 
-// Fetch employment status from alumni_profile (needed for display only)
-$stmt = $conn->prepare("SELECT employment_status FROM alumni_profile WHERE user_id = ?");
+// Fetch employment status from users table (assuming it's stored there)
+$stmt = $conn->prepare("SELECT employment_status FROM users WHERE user_id = ?");
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -65,6 +81,40 @@ $submission_open = isSubmissionPeriodOpen($conn);
 
 ob_start();
 ?>
+
+<?php if (isset($_GET['success'])): ?>
+    <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4 relative" role="alert">
+        <div class="flex items-center">
+            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+            </svg>
+            <strong class="font-bold">Success! </strong>
+            <span class="block sm:inline ml-1"><?php echo htmlspecialchars($_GET['success'], ENT_QUOTES, 'UTF-8'); ?></span>
+        </div>
+        <button type="button" class="absolute top-0 bottom-0 right-0 px-4 py-3" onclick="this.parentElement.remove()">
+            <svg class="w-4 h-4 fill-current" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+            </svg>
+        </button>
+    </div>
+<?php endif; ?>
+
+<?php if (isset($_GET['error'])): ?>
+    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 relative" role="alert">
+        <div class="flex items-center">
+            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+            </svg>
+            <strong class="font-bold">Error! </strong>
+            <span class="block sm:inline ml-1"><?php echo htmlspecialchars($_GET['error'], ENT_QUOTES, 'UTF-8'); ?></span>
+        </div>
+        <button type="button" class="absolute top-0 bottom-0 right-0 px-4 py-3" onclick="this.parentElement.remove()">
+            <svg class="w-4 h-4 fill-current" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+            </svg>
+        </button>
+    </div>
+<?php endif; ?>
 
 <div class="space-y-6 mt-3 mb-5">
     <!-- Status Card for Employment Information -->
@@ -446,6 +496,15 @@ ob_start();
 </div>
 
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+    const url = new URL(window.location);
+        if (url.searchParams.has('success') || url.searchParams.has('error')) {
+            url.searchParams.delete('success');
+            url.searchParams.delete('error');
+            window.history.replaceState({}, '', url);
+        }
+});
+
 document.addEventListener('DOMContentLoaded', () => {
     // Modal functionality
     const updateEmploymentBtn = document.getElementById('updateEmploymentBtn');

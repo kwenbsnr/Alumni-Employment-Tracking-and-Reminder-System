@@ -51,6 +51,23 @@ $result = $stmt->get_result();
 $profile = $result->fetch_assoc() ?: [];
 $stmt->close();
 
+// Helper function to display N/A for empty values
+function displayValue($value) {
+    return !empty($value) && $value !== '0000-00-00' ? htmlspecialchars($value) : 'N/A';
+}
+
+// Calculate age from date of birth
+function calculateAge($date_of_birth) {
+    if (empty($date_of_birth) || $date_of_birth === '0000-00-00') {
+        return 'N/A';
+    }
+    
+    $birth_date = new DateTime($date_of_birth);
+    $today = new DateTime();
+    $age = $today->diff($birth_date)->y;
+    return $age . ' years old';
+}
+
 // Build official name for display
 $official_name = '';
 if (!empty($profile['first_name'])) {
@@ -169,41 +186,37 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="space-y-1">
                             <dt class="font-medium text-gray-500 text-sm mb-1">Name</dt>
                             <dd class="font-semibold text-gray-700 text-base">
-                                <?php echo htmlspecialchars($official_name, ENT_QUOTES, 'UTF-8'); ?>
+                                <?php echo !empty($official_name) ? htmlspecialchars($official_name) : 'N/A'; ?>
                             </dd>
                         </div>
                         <div class="space-y-1">
                             <dt class="font-medium text-gray-500 text-sm mb-1">Student ID</dt>
-                            <dd class="font-semibold text-gray-700 text-base"><?php echo htmlspecialchars($profile['student_id'] ?? 'N/A'); ?></dd>
+                            <dd class="font-semibold text-gray-700 text-base"><?php echo displayValue($profile['student_id'] ?? ''); ?></dd>
                         </div>
                         <div class="space-y-1">
                             <dt class="font-medium text-gray-500 text-sm mb-1">Email</dt>
-                            <dd class="font-semibold text-gray-700 text-base"><?php echo htmlspecialchars($profile['email'] ?? 'N/A'); ?></dd>
+                            <dd class="font-semibold text-gray-700 text-base"><?php echo displayValue($profile['email'] ?? ''); ?></dd>
                         </div>
                         <div class="space-y-1">
                             <dt class="font-medium text-gray-500 text-sm mb-1">Contact Number</dt>
-                            <dd class="font-semibold text-gray-700 text-base"><?php echo htmlspecialchars($profile['contact_number'] ?? 'N/A'); ?></dd>
+                            <dd class="font-semibold text-gray-700 text-base"><?php echo displayValue($profile['contact_number'] ?? ''); ?></dd>
                         </div>
                         <div class="space-y-1">
                             <dt class="font-medium text-gray-500 text-sm mb-1">Program</dt>
-                            <dd class="font-semibold text-gray-700 text-base"><?php echo htmlspecialchars($profile['program'] ?? 'N/A'); ?></dd>
+                            <dd class="font-semibold text-gray-700 text-base"><?php echo displayValue($profile['program'] ?? ''); ?></dd>
                         </div>
                         <div class="space-y-1">
                             <dt class="font-medium text-gray-500 text-sm mb-1">Batch Year</dt>
-                            <dd class="font-semibold text-gray-700 text-base"><?php echo htmlspecialchars($profile['batch_year'] ?? 'N/A'); ?></dd>
+                            <dd class="font-semibold text-gray-700 text-base"><?php echo displayValue($profile['batch_year'] ?? ''); ?></dd>
                         </div>
-                        <?php if (!empty($profile['citizenship'])): ?>
                         <div class="space-y-1">
                             <dt class="font-medium text-gray-500 text-sm mb-1">Citizenship</dt>
-                            <dd class="font-semibold text-gray-700 text-base"><?php echo htmlspecialchars($profile['citizenship']); ?></dd>
+                            <dd class="font-semibold text-gray-700 text-base"><?php echo displayValue($profile['citizenship'] ?? ''); ?></dd>
                         </div>
-                        <?php endif; ?>
-                        <?php if (!empty($profile['civil_status'])): ?>
                         <div class="space-y-1">
                             <dt class="font-medium text-gray-500 text-sm mb-1">Civil Status</dt>
-                            <dd class="font-semibold text-gray-700 text-base"><?php echo htmlspecialchars($profile['civil_status']); ?></dd>
+                            <dd class="font-semibold text-gray-700 text-base"><?php echo displayValue($profile['civil_status'] ?? ''); ?></dd>
                         </div>
-                        <?php endif; ?>
                         <div class="space-y-1">
                             <dt class="font-medium text-gray-500 text-sm mb-1">Date of Birth</dt>
                             <dd class="font-semibold text-gray-700 text-base">
@@ -212,8 +225,12 @@ document.addEventListener('DOMContentLoaded', function() {
                             </dd>
                         </div>
                         <div class="space-y-1">
+                            <dt class="font-medium text-gray-500 text-sm mb-1">Age</dt>
+                            <dd class="font-semibold text-gray-700 text-base"><?php echo calculateAge($profile['date_of_birth'] ?? ''); ?></dd>
+                        </div>
+                        <div class="space-y-1">
                             <dt class="font-medium text-gray-500 text-sm mb-1">Gender</dt>
-                            <dd class="font-semibold text-gray-700 text-base"><?php echo htmlspecialchars($profile['gender'] ?? 'N/A'); ?></dd>
+                            <dd class="font-semibold text-gray-700 text-base"><?php echo displayValue($profile['gender'] ?? ''); ?></dd>
                         </div>
                     </dl>
                 </div>
@@ -241,19 +258,19 @@ document.addEventListener('DOMContentLoaded', function() {
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
                                     <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Country</p>
-                                    <p class="text-gray-800 font-medium"><?php echo htmlspecialchars($profile['country'] ?? 'N/A'); ?></p>
+                                    <p class="text-gray-800 font-medium"><?php echo displayValue($profile['country'] ?? ''); ?></p>
                                 </div>
                                 <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
                                     <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">State/Province</p>
-                                    <p class="text-gray-800 font-medium"><?php echo htmlspecialchars($profile['state_province'] ?? 'N/A'); ?></p>
+                                    <p class="text-gray-800 font-medium"><?php echo displayValue($profile['state_province'] ?? ''); ?></p>
                                 </div>
                                 <div class="bg-gray-50 p-3 rounded-lg border border-gray-200 md:col-span-2">
                                     <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">City</p>
-                                    <p class="text-gray-800 font-medium"><?php echo htmlspecialchars($profile['city'] ?? 'N/A'); ?></p>
+                                    <p class="text-gray-800 font-medium"><?php echo displayValue($profile['city'] ?? ''); ?></p>
                                 </div>
                                 <div class="bg-gray-50 p-3 rounded-lg border border-gray-200 md:col-span-2">
                                     <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Street Address</p>
-                                    <p class="text-gray-800 font-medium"><?php echo htmlspecialchars($profile['street'] ?? 'N/A'); ?></p>
+                                    <p class="text-gray-800 font-medium"><?php echo displayValue($profile['street'] ?? ''); ?></p>
                                 </div>
                             </div>
                         </div>
@@ -382,14 +399,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <?php
                         $readonly_fields = [
-                            ['label' => 'Student ID', 'value' => $profile['student_id'] ?? 'N/A', 'name' => 'student_id'],
-                            ['label' => 'Email', 'value' => $profile['email'] ?? 'N/A', 'name' => 'email'],
-                            ['label' => 'Program', 'value' => $profile['program'] ?? 'N/A', 'name' => 'program'],
-                            ['label' => 'Batch Year', 'value' => $profile['batch_year'] ?? 'N/A', 'name' => 'batch_year'],
-                            ['label' => 'Citizenship', 'value' => $profile['citizenship'] ?? 'Filipino', 'name' => 'citizenship'],
+                            ['label' => 'Student ID', 'value' => displayValue($profile['student_id'] ?? ''), 'name' => 'student_id'],
+                            ['label' => 'Email', 'value' => displayValue($profile['email'] ?? ''), 'name' => 'email'],
+                            ['label' => 'Program', 'value' => displayValue($profile['program'] ?? ''), 'name' => 'program'],
+                            ['label' => 'Batch Year', 'value' => displayValue($profile['batch_year'] ?? ''), 'name' => 'batch_year'],
+                            ['label' => 'Citizenship', 'value' => displayValue($profile['citizenship'] ?? ''), 'name' => 'citizenship'],
                             ['label' => 'Date of Birth', 'value' => !empty($profile['date_of_birth']) && $profile['date_of_birth'] != '0000-00-00' ? 
                                 date('M j, Y', strtotime($profile['date_of_birth'])) : 'N/A', 'name' => 'date_of_birth'],
-                            ['label' => 'Gender', 'value' => $profile['gender'] ?? 'N/A', 'name' => 'gender']
+                            ['label' => 'Gender', 'value' => displayValue($profile['gender'] ?? ''), 'name' => 'gender'],
+                            ['label' => 'Age', 'value' => calculateAge($profile['date_of_birth'] ?? ''), 'name' => 'age_display']
                         ];
                         
                         foreach ($readonly_fields as $field):
@@ -397,7 +415,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="space-y-1">
                             <label class="block text-sm font-medium text-gray-700"><?php echo $field['label']; ?></label>
                             <div class="bg-gray-50 rounded-lg p-3 border border-gray-300">
+                                <?php if ($field['name'] !== 'age_display'): ?>
                                 <input type="hidden" name="<?php echo $field['name']; ?>" value="<?php echo htmlspecialchars($profile[$field['name']] ?? ''); ?>">
+                                <?php endif; ?>
                                 <span class="font-semibold text-gray-800"><?php echo htmlspecialchars($field['value']); ?></span>
                             </div>
                         </div>
@@ -422,32 +442,24 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <!-- Editable Name Fields -->
                         <div class="space-y-1">
-                            <label class="block text-sm font-medium text-gray-700">First Name</label>
-                            <div class="bg-gray-50 rounded-lg p-3 border border-gray-300">
-                                <input type="hidden" name="first_name" value="<?php echo htmlspecialchars($profile['first_name'] ?? ''); ?>">
-                                <span class="font-semibold text-gray-800"><?php echo htmlspecialchars($profile['first_name'] ?? 'N/A'); ?></span>
-                            </div>
+                            <label class="block text-sm font-medium text-gray-700">First Name <span class="text-red-500">*</span></label>
+                            <input type="text" name="first_name" value="<?php echo !empty($profile['first_name']) ? htmlspecialchars($profile['first_name']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" required autocomplete="given-name">
+                            <p class="text-xs text-gray-500 mt-1">Your legal first name</p>
                         </div>
                         <div class="space-y-1">
-                            <label class="block text-sm font-medium text-gray-700">Last Name</label>
-                            <div class="bg-gray-50 rounded-lg p-3 border border-gray-300">
-                                <input type="hidden" name="last_name" value="<?php echo htmlspecialchars($profile['last_name'] ?? ''); ?>">
-                                <span class="font-semibold text-gray-800"><?php echo htmlspecialchars($profile['last_name'] ?? 'N/A'); ?></span>
-                            </div>
+                            <label class="block text-sm font-medium text-gray-700">Last Name <span class="text-red-500">*</span></label>
+                            <input type="text" name="last_name" value="<?php echo !empty($profile['last_name']) ? htmlspecialchars($profile['last_name']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" required autocomplete="family-name">
+                            <p class="text-xs text-gray-500 mt-1">Your legal last name (may change after marriage)</p>
                         </div>
                         <div class="space-y-1">
                             <label class="block text-sm font-medium text-gray-700">Middle Name</label>
-                            <div class="bg-gray-50 rounded-lg p-3 border border-gray-300">
-                                <input type="hidden" name="middle_name" value="<?php echo htmlspecialchars($profile['middle_name'] ?? ''); ?>">
-                                <span class="font-semibold text-gray-800"><?php echo htmlspecialchars($profile['middle_name'] ?? 'N/A'); ?></span>
-                            </div>
+                            <input type="text" name="middle_name" value="<?php echo !empty($profile['middle_name']) ? htmlspecialchars($profile['middle_name']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" autocomplete="additional-name">
+                            <p class="text-xs text-gray-500 mt-1">Your middle name or maiden name</p>
                         </div>
                         <div class="space-y-1">
                             <label class="block text-sm font-medium text-gray-700">Suffix</label>
-                            <div class="bg-gray-50 rounded-lg p-3 border border-gray-300">
-                                <input type="hidden" name="suffix" value="<?php echo htmlspecialchars($profile['suffix'] ?? ''); ?>">
-                                <span class="font-semibold text-gray-800"><?php echo htmlspecialchars($profile['suffix'] ?? 'N/A'); ?></span>
-                            </div>
+                            <input type="text" name="suffix" value="<?php echo !empty($profile['suffix']) ? htmlspecialchars($profile['suffix']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" autocomplete="honorific-suffix" placeholder="e.g., Jr., Sr., III">
+                            <p class="text-xs text-gray-500 mt-1">Optional suffix (Jr., Sr., III, etc.)</p>
                         </div>
                         
                         <!-- Editable Contact Information -->
@@ -473,6 +485,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <option value="Separated" <?php echo ($profile['civil_status'] ?? '') === 'Separated' ? 'selected' : ''; ?>>Separated</option>
                                 <option value="Divorced" <?php echo ($profile['civil_status'] ?? '') === 'Divorced' ? 'selected' : ''; ?>>Divorced</option>
                             </select>
+                            <p class="text-xs text-gray-500 mt-1">Your current civil status</p>
                         </div>
                     </div>
                 </div>
@@ -488,19 +501,23 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="space-y-1 md:col-span-2">
                             <label class="block text-sm font-medium text-gray-700">Street Address <span class="text-red-500">*</span></label>
-                            <input type="text" name="street" value="<?php echo !empty($profile['street']) ? htmlspecialchars($profile['street']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" required autocomplete="street-address">
+                            <input type="text" name="street" value="<?php echo !empty($profile['street']) ? htmlspecialchars($profile['street']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" required autocomplete="street-address" placeholder="House No., Street, Barangay">
+                            <p class="text-xs text-gray-500 mt-1">Complete street address</p>
                         </div>
                         <div class="space-y-1">
                             <label class="block text-sm font-medium text-gray-700">City <span class="text-red-500">*</span></label>
-                            <input type="text" name="city" value="<?php echo !empty($profile['city']) ? htmlspecialchars($profile['city']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" required autocomplete="address-level2">
+                            <input type="text" name="city" value="<?php echo !empty($profile['city']) ? htmlspecialchars($profile['city']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" required autocomplete="address-level2" placeholder="City or Municipality">
+                            <p class="text-xs text-gray-500 mt-1">City or municipality</p>
                         </div>
                         <div class="space-y-1">
                             <label class="block text-sm font-medium text-gray-700">State/Province <span class="text-red-500">*</span></label>
-                            <input type="text" name="state_province" value="<?php echo !empty($profile['state_province']) ? htmlspecialchars($profile['state_province']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" required autocomplete="address-level1">
+                            <input type="text" name="state_province" value="<?php echo !empty($profile['state_province']) ? htmlspecialchars($profile['state_province']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" required autocomplete="address-level1" placeholder="State or Province">
+                            <p class="text-xs text-gray-500 mt-1">State or province</p>
                         </div>
                         <div class="space-y-1">
                             <label class="block text-sm font-medium text-gray-700">Country <span class="text-red-500">*</span></label>
                             <input type="text" name="country" value="<?php echo !empty($profile['country']) ? htmlspecialchars($profile['country']) : 'Philippines'; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" required autocomplete="country-name">
+                            <p class="text-xs text-gray-500 mt-1">Country of residence</p>
                         </div>
                     </div>
                 </div>

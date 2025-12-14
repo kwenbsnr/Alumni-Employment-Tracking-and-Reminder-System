@@ -53,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $date_of_birth = htmlspecialchars(trim($_POST['date_of_birth'] ?? ''));
         $gender = htmlspecialchars(trim($_POST['gender'] ?? ''));
         
-        // Name fields (read-only but preserved)
+        // Editable Name fields
         $first_name = htmlspecialchars(trim($_POST['first_name'] ?? ''));
         $last_name = htmlspecialchars(trim($_POST['last_name'] ?? ''));
         $middle_name = htmlspecialchars(trim($_POST['middle_name'] ?? ''));
@@ -71,12 +71,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         // ---- 2. BACKEND VALIDATION --------------------------------------------
         // Validate required editable fields
-        if (empty($contact_number)) {
-            throw new Exception("Contact Number is required.");
+        $required_fields = [
+            'first_name' => 'First Name',
+            'last_name' => 'Last Name',
+            'contact_number' => 'Contact Number',
+            'street' => 'Street Address',
+            'city' => 'City',
+            'state_province' => 'State/Province',
+            'country' => 'Country'
+        ];
+        
+        foreach ($required_fields as $field => $label) {
+            if (empty($$field)) {
+                throw new Exception("{$label} is required.");
+            }
         }
         
-        if (empty($street) || empty($city) || empty($state_province) || empty($country)) {
-            throw new Exception("All address fields are required.");
+        // Validate name lengths according to database schema
+        if (strlen($first_name) > 100) {
+            throw new Exception("First name cannot exceed 100 characters.");
+        }
+        
+        if (strlen($last_name) > 100) {
+            throw new Exception("Last name cannot exceed 100 characters.");
+        }
+        
+        if (strlen($middle_name) > 100) {
+            throw new Exception("Middle name cannot exceed 100 characters.");
+        }
+        
+        if (strlen($suffix) > 10) {
+            throw new Exception("Suffix cannot exceed 10 characters.");
         }
         
         // Validate contact number
@@ -90,6 +115,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!in_array($civil_status, $valid_civil_statuses)) {
                 throw new Exception("Invalid civil status selection.");
             }
+        }
+        
+        // Validate address field lengths according to database schema
+        if (strlen($street) > 255) {
+            throw new Exception("Street address cannot exceed 255 characters.");
+        }
+        
+        if (strlen($city) > 100) {
+            throw new Exception("City cannot exceed 100 characters.");
+        }
+        
+        if (strlen($state_province) > 100) {
+            throw new Exception("State/Province cannot exceed 100 characters.");
+        }
+        
+        if (strlen($country) > 100) {
+            throw new Exception("Country cannot exceed 100 characters.");
         }
         
         // ---- 3. Handle Profile Photo Upload ------------------------------------
@@ -114,7 +156,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new Exception("Invalid file type. Only JPG and PNG files are allowed.");
             }
             
-            // Get user's surname for filename
+            // Get user's surname for filename (using original last name from database)
             $user_stmt = $conn->prepare("SELECT last_name FROM users WHERE user_id = ?");
             $user_stmt->bind_param("i", $user_id);
             $user_stmt->execute();
@@ -150,15 +192,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $photo_path = 'uploads/profile_photos/' . $filename;
         }
         
-        // ---- 4. Update users table (only editable fields) ----------------------
+        // ---- 4. Update users table (editable fields only) ----------------------
         $stmt = $conn->prepare("
             UPDATE users SET 
+                first_name = ?,
+                last_name = ?,
+                middle_name = ?,
+                suffix = ?,
                 civil_status = ?,
                 contact_number = ?
             WHERE user_id = ?
         ");
         $stmt->bind_param(
-            "ssi",
+            "ssssssi",
+            $first_name,
+            $last_name,
+            $middle_name,
+            $suffix,
             $civil_status,
             $contact_number,
             $user_id
@@ -249,10 +299,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $conn->commit();
         
         // Log activity
-        $activity_desc = 'Updated personal information (contact and address)';
+        $activity_desc = 'Updated personal information';
+        $changes = [];
+        if ($first_name !== $profile['first_name'] ?? '') $changes[] = 'first name';
+        if ($last_name !== $profile['last_name'] ?? '') $changes[] = 'last name';
+        if ($middle_name !== $profile['middle_name'] ?? '') $changes[] = 'middle name';
+        if ($suffix !== $profile['suffix'] ?? '') $changes[] = 'suffix';
+        if ($civil_status !== $profile['civil_status'] ?? '') $changes[] = 'civil status';
+        if ($contact_number !== $profile['contact_number'] ?? '') $changes[] = 'contact number';
+        if ($street !== $profile['street'] ?? '') $changes[] = 'address';
+        
+        if (!empty($changes)) {
+            $activity_desc .= ': ' . implode(', ', $changes);
+        }
+        
         if ($photo_path) {
             $activity_desc .= ' and uploaded new profile photo';
         }
+        
         log_alumni_activity($conn, $user_id, 'profile_updated', $activity_desc);
         
         // Redirect after successful submission
@@ -269,4 +333,3 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $conn->close();
 ob_end_flush();
-?>
