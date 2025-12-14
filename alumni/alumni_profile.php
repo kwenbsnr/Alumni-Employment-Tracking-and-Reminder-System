@@ -1,4 +1,10 @@
 <?php
+
+// Strict error reporting
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+ob_start();
+
 session_start();
 if (!isset($_SESSION['user_id'])) {
     header("Location: ../login/login.php");
