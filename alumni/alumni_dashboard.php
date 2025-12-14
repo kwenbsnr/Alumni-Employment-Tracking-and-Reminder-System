@@ -10,7 +10,7 @@ $page_title = "Dashboard";
 $active_page = "dashboard";
 $user_id = $_SESSION["user_id"];
 
-// ---- 1. CORRECTED FETCH SQL QUERY ----
+// ---- 1. UPDATED FETCH SQL QUERY ----
 $stmt = $conn->prepare("
     SELECT
         CONCAT(
@@ -23,10 +23,12 @@ $stmt = $conn->prepare("
         u.student_id,
         u.program,
         u.batch_year as year_graduated,
+        u.citizenship,          -- FROM users table
+        u.civil_status,         -- FROM users table
+        u.contact_number,       -- FROM users table (MOVED FROM alumni_profile)
         ap.last_profile_update,
         ap.employment_status,
         ap.submission_status,
-        ap.contact_number,
         COUNT(ad.doc_id) as document_count,
         aa.city, aa.state_province, aa.street, aa.country
     FROM users u
@@ -49,11 +51,13 @@ if (!empty($profile_info) && !empty($profile_info['official_name'])) {
     $full_name = htmlspecialchars($profile_info['official_name']);
 }
 
-// --- SIMPLIFIED PROFILE COMPLETION LOGIC ---
-// Basic required fields that everyone needs
+// --- UPDATED PROFILE COMPLETION LOGIC ---
+// Basic required fields that everyone needs - NOW INCLUDES citizenship and civil_status
 $has_basic_info = !empty($profile_info) && 
     !empty($profile_info['contact_number']) &&
-    !empty($profile_info['employment_status']);
+    !empty($profile_info['employment_status']) &&
+    !empty($profile_info['citizenship']) &&
+    !empty($profile_info['civil_status']);
 
 // Check worldwide address
 $has_address = !empty($profile_info) && 
@@ -763,24 +767,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
 /* Hide scrollbar for IE, Edge and Firefox */
 .no-scrollbar {
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
+    -ms-overflow-style: none;  
+    scrollbar-width: none;  
 }
 
-/* Smooth transitions for all interactive elements */
 * {
     transition-property: color, background-color, border-color, transform, box-shadow;
     transition-duration: 300ms;
     transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Enhanced focus states for accessibility */
 button:focus, a:focus {
     outline: 2px solid #3b82f6;
     outline-offset: 2px;
 }
 
-/* Ensure no scroll bars on main dashboard */
 .min-h-screen {
     overflow-x: hidden;
 }

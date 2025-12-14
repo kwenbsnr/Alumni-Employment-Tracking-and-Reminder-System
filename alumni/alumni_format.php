@@ -11,8 +11,12 @@ $stmt = $conn->prepare("
             IF(u.suffix IS NOT NULL AND u.suffix != '', CONCAT(' ', u.suffix), '')
         ) as official_name,
         u.email, u.role,
-        ap.photo_path, ap.contact_number, ap.employment_status, 
-        ap.submission_status, ap.submitted_at, ap.last_profile_update
+        u.contact_number,        -- FROM users table (MOVED FROM alumni_profile)
+        ap.photo_path, 
+        ap.employment_status, 
+        ap.submission_status, 
+        ap.submitted_at, 
+        ap.last_profile_update
     FROM users u
     LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id
     WHERE u.user_id = ?
