@@ -1,5 +1,12 @@
 <?php
 
+// PREVENT EXECUTION WHEN INCLUDED FROM UPDATE_PROFILE.PHP
+if (strpos($_SERVER['PHP_SELF'], 'update_profile.php') !== false) {
+    // Just return without doing anything
+    error_log("Scheduled reminders: Skipped execution during profile update");
+    return;
+}
+
 // Debug: Log when this file is included
 error_log("SCHEDULED_REMINDERS.PHP included from: " . $_SERVER['PHP_SELF']);
 

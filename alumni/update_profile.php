@@ -1,4 +1,9 @@
 <?php
+
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+
 ob_start();
 session_start();
 
@@ -7,7 +12,9 @@ $is_development = $_SERVER['SERVER_NAME'] === 'localhost' ||
                   (isset($_ENV['APP_ENV']) && $_ENV['APP_ENV'] === 'development');
 
 include("../connect.php");
-require_once '../api/notification/notif_service.php';
+
+// !!TEMPORARY DISABLE NOTIFICATIONS WHILE FIXING SQL ERROR IN notif_service.php
+// require_once '../api/notification/notif_service.php';
 
 function log_alumni_activity($conn, $user_id, $action_type, $description = '') {
     $stmt = $conn->prepare("INSERT INTO alumni_activity_log (user_id, action_type, description) VALUES (?, ?, ?)");
