@@ -595,6 +595,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Commit transaction
         $conn->commit();
 
+        // === SCHEDULED REMINDERS CHECK ===
+        if (file_exists(dirname(__DIR__) . '/api/scheduled_reminders.php')) {
+            require_once dirname(__DIR__) . '/api/scheduled_reminders.php';
+        }
+
         // === SCHEDULE CHECK ===
         if (!function_exists('isSubmissionPeriodOpen')) {
             require_once dirname(__DIR__) . '/api/utils/deadline.php';
