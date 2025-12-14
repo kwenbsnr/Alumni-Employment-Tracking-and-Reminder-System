@@ -1,11 +1,18 @@
 <?php
-
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
+// Development error reporting only
+if ($_SERVER['SERVER_NAME'] === 'localhost' || $_SERVER['SERVER_NAME'] === '127.0.0.1') {
+    error_reporting(E_ALL);
+    ini_set('display_errors', 1);
+}
 
 ob_start();
 session_start();
+
+if (!isset($_SESSION['user_id'])) {
+    ob_end_clean();
+    header("Location: ../login/login.php");
+    exit();
+}
 
 $is_development = $_SERVER['SERVER_NAME'] === 'localhost' || 
                   $_SERVER['SERVER_NAME'] === '127.0.0.1' || 
@@ -605,7 +612,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (file_exists(dirname(__DIR__) . '/api/scheduled_reminders.php')) {
             require_once dirname(__DIR__) . '/api/scheduled_reminders.php';
         }
-        
+        */
 
         // === SCHEDULE CHECK ===
         if (!function_exists('isSubmissionPeriodOpen')) {
@@ -635,11 +642,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             error_log("Notifications not sent: Submission period closed for user: $user_id");
         }
-        */
 
         // TEMPORARILY DISABLE NOTIFICATIONS WHILE FIXING SQL ERROR IN notif_service.php
         // TEMPORARY LOGGING ONLY
-        error_log("Notifications temporarily disabled while fixing SQL error in notif_service.php for user: $user_id");
+        // error_log("Notifications temporarily disabled while fixing SQL error in notif_service.php for user: $user_id");
 
         // Activity logs
         if (in_array($status, ['Employed', 'Employed & Student'])) {
