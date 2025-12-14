@@ -1,0 +1,74 @@
+<div class="email-wrapper" data-uid="019a7626-ed4f-70bd-ab58-78a7fc93d663" style="background: white; padding: 0px; border-radius: 8px; max-width: 600px; margin: 0px auto; box-shadow: rgba(0, 0, 0, 0.1) 0px 2px 8px; font-family: Arial, sans-serif;">
+    <!-- Header - Using table for email client compatibility -->
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background: linear-gradient(135deg, #0d7033 0%, #1a8c46 100%); border-top-left-radius: 8px; border-top-right-radius: 8px;">
+        <tbody>
+            <tr>
+                <td style="padding: 25px 30px;">
+                    <table cellpadding="0" cellspacing="0" border="0" align="left">
+                        <tbody>
+                            <tr>
+                                <td style="padding-right: 25px; vertical-align: middle;">
+                                    <img src="https://assets.notificationapi.com/ls4kt1i6t2hhh7rxd51k00rjj3/1762345161371.png" alt="JHCSC Logo" width="110" height="115" style="width: 110px; height: 115px; display: block; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.25));">
+                                </td>
+                                <td style="vertical-align: middle;">
+                                    <p data-uid="019a7626-ed4f-70bd-ab58-78ab70d25c76" style="font-size: 22px; font-weight: bold; margin: 0 0 8px 0; color: white; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2); line-height: 1.2;">
+                                JH Cerilles State College
+                                    </p>
+                                    <p data-uid="019a7626-ed4f-70bd-ab58-78ac1c76e47e" style="font-size: 14px; margin: 0; color: #e0f7ea; letter-spacing: 0.3px; line-height: 1.4;">
+                                Mati, San Miguel, Zamboanga del Sur, Philippines
+                                    </p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <div class="email-wrapper" data-uid="019a7325-034d-7204-af02-02159b9371ab" style="padding: 20px;">
+        <p data-uid="019a7325-034d-7204-af02-021612d803c0" style="font-size: 17px; font-weight: bold; color: #15803d; margin-bottom: 15px;">
+            Dear {{name}},
+        </p>
+        <div class="email-wrapper" data-uid="019a7325-034d-7204-af02-021792669de1" style="color: #444444; line-height: 1.5; font-size: 14px;">
+            <p data-uid="019a7325-034d-7204-af02-02188f437896" style="margin-bottom: 15px;">
+                Thank you for submitting your alumni profile information to the JHCSC Alumtrak System. We're pleased to inform you that your submission has been reviewed and approved!
+            </p>
+            <div class="email-wrapper" data-uid="019a7325-034d-7204-af02-02197091bf72" style="background: #f0f9ff; border-left: 3px solid #0ea5e9; padding: 15px; margin: 15px 0px;">
+                <p data-uid="019a7325-034d-7204-af02-021a5a1927cd" style="font-weight: bold; margin-bottom: 5px; color: #0369a1;">
+                    Submission Status: 
+                <span style="color: #1e40af; font-weight: bold;">
+                    Approved
+                </span>
+                </p>
+            </div>
+            <p data-uid="019a7325-034d-7204-af02-021de092294e" style="margin-bottom: 15px;">
+                <br>
+                Welcome to our growing community of JHCSC BSIT alumni! We look forward to staying connected and supporting journey.
+            </p>
+            <p data-uid="019a7325-034d-7204-af02-021ebf052ee1">  
+                <!--style="color: #15803d;" green text if we want to implement in da future-->
+                Best regards,<br><strong>Office of Alumni Relations - School of Computing Studies</strong>
+            </p> <br>
+            <p data-uid="019a7325-034d-7204-af02-021c205abeda" style="text-align: center; margin: 25px 0px;">
+                <a href="{{alumni_portal_link}}" style="background: #15803d; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+                Access Alumni Portal
+            </a>
+            </p>
+        </div>
+    </div>
+    <div class="email-wrapper" data-uid="019a7680-4094-7877-bee6-b7d8688d5f10" style="background: #f8f9fa; padding: 15px; text-align: center; border-top: 1px solid #e0e0e0; color: #555555; font-size: 12px;">
+        <div class="email-wrapper" data-uid="019a7680-4095-794f-b4aa-a9d3eceeb531" style="line-height: 1.4;">
+            <p data-uid="019a7680-4095-794f-b4aa-a9d72a24df53" style="margin: 0px;">
+                Email: alumtrak@jhcsc.edu.ph | Phone: (063) 912 345 6789
+            </p>
+        </div>
+        <div class="email-wrapper" data-uid="019a7680-4095-794f-b4aa-a9d8960af9c2" style="margin-top: 8px; font-size: 11px; color: #777777;">
+            <p data-uid="019a7680-4095-794f-b4aa-a9d92a5ed8e9" style="margin: 0px 0px 4px;">
+                You are receiving this email as a verified alumni of JHCSC.
+            </p>
+            <p data-uid="019a7680-4095-794f-b4aa-a9da45791cd5" style="margin: 0px;">
+                © 2025 <a href="https://jhcsc.edu.ph/" style="color: #046bfb;">JH Cerilles State College</a>. All rights reserved.
+            </p>
+        </div>
+    </div>
+</div>

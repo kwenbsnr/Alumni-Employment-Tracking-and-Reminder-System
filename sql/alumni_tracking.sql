@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3306
--- Generation Time: Dec 14, 2025 at 12:10 PM
+-- Generation Time: Dec 14, 2025 at 12:15 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -226,21 +226,6 @@ CREATE TABLE `alumni_address` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `alumni_address`
---
-
-INSERT INTO `alumni_address` (`address_id`, `user_id`, `city`, `state_province`, `street`, `country`, `created_at`, `updated_at`) VALUES
-(2, 2, 'San Francisco', 'California', NULL, 'USA', '2025-12-04 08:36:09', '2025-12-04 08:36:09'),
-(4, 17, 'Carterton District', 'Wellington', NULL, 'New Zealand', '2025-12-04 12:21:11', '2025-12-04 12:21:11'),
-(6, 25, 'Mahakam Ulu', 'Kalimantan Timur', NULL, 'Indonesia', '2025-12-05 14:15:57', '2025-12-05 14:15:57'),
-(13, 20, 'Puerto Princesa', 'Palawan', NULL, 'Philippines', '2025-12-12 06:09:18', '2025-12-14 09:16:27'),
-(14, 9, 'Santo Niño', 'Zamboanga del Sur', NULL, 'Philippines', '2025-12-12 06:32:04', '2025-12-12 06:32:04'),
-(15, 47, 'Pagadian City', 'Zamboanga del Sur', NULL, 'Philippines', '2025-12-12 08:24:22', '2025-12-12 08:24:22'),
-(18, 18, 'Newington', 'Connecticut', '6', 'USA', '2025-12-13 07:27:56', '2025-12-13 07:27:56'),
-(19, 4, 'Pagadian City', 'California', 'Purok 1', 'New Zealand', '2025-12-13 07:41:38', '2025-12-13 07:41:38'),
-(20, 5, 'Pagadian City', 'California', 'Purok 1', 'Philippines', '2025-12-13 07:46:59', '2025-12-13 07:46:59');
-
 -- --------------------------------------------------------
 
 --
@@ -253,21 +238,6 @@ CREATE TABLE `alumni_documents` (
   `document_type` enum('COR','COE','B_CERT') NOT NULL,
   `file_path` varchar(255) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `alumni_documents`
---
-
-INSERT INTO `alumni_documents` (`doc_id`, `user_id`, `document_type`, `file_path`) VALUES
-(113, 2, 'COR', 'uploads/cor/Bisnar_COR.pdf'),
-(117, 25, 'B_CERT', 'uploads/business/Dablo_b_cert.pdf'),
-(122, 20, 'COR', 'uploads/cor/Escoreal_COR.pdf'),
-(123, 9, 'COR', 'uploads/cor/Omar_COR.pdf'),
-(124, 47, 'COE', 'uploads/coe/Oliveros_COE.pdf'),
-(125, 18, 'COR', 'uploads/cor/Ticmon_COR.pdf'),
-(126, 4, 'COE', 'uploads/coe/Tanaman_COE.pdf'),
-(127, 4, 'COR', 'uploads/cor/Tanaman_COR.pdf'),
-(128, 5, 'COE', 'uploads/coe/Repe_COE.pdf');
 
 -- --------------------------------------------------------
 
@@ -301,17 +271,6 @@ CREATE TABLE `education_info` (
   `end_year` year(4) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `education_info`
---
-
-INSERT INTO `education_info` (`education_id`, `user_id`, `school_name`, `degree_pursued`, `start_year`, `end_year`) VALUES
-(45, 2, 'University of Sto. Tomas', 'gfvdfv', '2025', '2027'),
-(48, 20, 'jhcsc', 'maser:s', '2025', '2029'),
-(49, 9, 'Iddk Universiyt', 'Master\'s\'\'s;dls', '2021', '2025'),
-(50, 18, 'Zamboanga del Sur State University', 'ssa', '2024', '2026'),
-(51, 4, 'Central Mindanao University', 'abcef', '2022', '2030');
-
 -- --------------------------------------------------------
 
 --
@@ -327,16 +286,6 @@ CREATE TABLE `employment_info` (
   `business_type` varchar(255) DEFAULT NULL,
   `company_address` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `employment_info`
---
-
-INSERT INTO `employment_info` (`employment_id`, `user_id`, `job_title_id`, `company_name`, `salary_range`, `business_type`, `company_address`) VALUES
-(86, 25, NULL, '', '₱30,000–₱40,000', 'Construction / Carpentry / Electrical', ''),
-(91, 47, 11, 'Meta', '₱40,000–₱50,000', '', 'Manila, Philippines'),
-(92, 4, 15, 'Aztec Civilization', '₱20,000–₱30,000', '', 'Manila, Philippines'),
-(93, 5, 12, 'Aztec Civilization', '₱40,000–₱50,000', '', 'Manila, Philippines');
 
 -- --------------------------------------------------------
 
@@ -371,10 +320,8 @@ INSERT INTO `job_titles` (`job_title_id`, `title`) VALUES
 (23, 'Marketing'),
 (12, 'Mobile App Developer'),
 (7, 'Network Administrator'),
-(28, 'other try'),
 (3, 'Software Engineer'),
 (8, 'Systems Analyst'),
-(27, 'test input'),
 (4, 'Web Developer');
 
 -- --------------------------------------------------------
@@ -626,9 +573,7 @@ ALTER TABLE `education_info`
 ALTER TABLE `employment_info`
   ADD PRIMARY KEY (`employment_id`),
   ADD KEY `fk_employment_alumni` (`user_id`),
-  ADD KEY `fk_employment_job` (`job_title_id`),
-  ADD KEY `idx_employment_user` (`user_id`),
-  ADD KEY `idx_user_id` (`user_id`);
+  ADD KEY `fk_employment_job` (`job_title_id`);
 
 --
 -- Indexes for table `job_titles`

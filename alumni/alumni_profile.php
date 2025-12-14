@@ -16,6 +16,7 @@ $active_page = "profile";
 $stmt = $conn->prepare("
     SELECT 
         u.user_id, u.email, u.student_id, u.date_of_birth, u.gender, u.program, 
+        u.contact_number, u.citizenship, u.civil_status,  -- Added new fields from users table
         CONCAT(
             u.first_name, 
             IF(u.middle_name IS NOT NULL AND u.middle_name != '', CONCAT(' ', u.middle_name), ''),
@@ -25,8 +26,7 @@ $stmt = $conn->prepare("
         ) as official_name,
         u.batch_year,
         u.first_name, u.middle_name, u.last_name, u.suffix,
-        ap.contact_number, 
-        ap.employment_status, ap.photo_path,
+        ap.employment_status, ap.photo_path, 
         ap.submission_status, ap.last_profile_update, ap.rejection_reason,
         aa.city, aa.state_province, aa.street, aa.country
     FROM users u
@@ -402,6 +402,18 @@ document.addEventListener('DOMContentLoaded', function() {
                   <dt class="font-medium text-gray-500 text-sm mb-1">Program</dt>
                   <dd class="font-semibold text-gray-700 text-base"><?php echo htmlspecialchars($profile['program'] ?? 'N/A'); ?></dd>
                 </div>
+                <?php if (!empty($profile['citizenship'])): ?>
+                <div class="space-y-1">
+                  <dt class="font-medium text-gray-500 text-sm mb-1">Citizenship</dt>
+                  <dd class="font-semibold text-gray-700 text-base"><?php echo htmlspecialchars($profile['citizenship']); ?></dd>
+                </div>
+                <?php endif; ?>
+                <?php if (!empty($profile['civil_status'])): ?>
+                <div class="space-y-1">
+                  <dt class="font-medium text-gray-500 text-sm mb-1">Civil Status</dt>
+                  <dd class="font-semibold text-gray-700 text-base"><?php echo htmlspecialchars($profile['civil_status']); ?></dd>
+                </div>
+                <?php endif; ?>
               </dl>
             </div>
             <div class="p-4 bg-blue-50 border-t border-blue-100 rounded-b-xl">
@@ -760,7 +772,9 @@ document.addEventListener('DOMContentLoaded', function() {
                                 ['label' => 'Date of Birth', 'value' => !empty($profile['date_of_birth']) && $profile['date_of_birth'] != '0000-00-00' ? date('M j, Y', strtotime($profile['date_of_birth'])) : 'Not set'],
                                 ['label' => 'Gender', 'value' => $profile['gender'] ?? 'Not set'],
                                 ['label' => 'Program', 'value' => $profile['program'] ?? 'BSIT'],
-                                ['label' => 'Year Graduated', 'value' => $profile['batch_year'] ?? 'Not set']
+                                ['label' => 'Year Graduated', 'value' => $profile['batch_year'] ?? 'Not set'],
+                                ['label' => 'Citizenship', 'value' => $profile['citizenship'] ?? 'Not set'],
+                                ['label' => 'Civil Status', 'value' => $profile['civil_status'] ?? 'Not set']
                             ];
                             
                             foreach ($schoolFields as $field):

@@ -35,7 +35,8 @@ $user_stmt = $conn->prepare("
             ' ',
             last_name,
             IF(suffix IS NOT NULL AND suffix != '', CONCAT(' ', suffix), '')
-        ) as name 
+        ) as name,
+        contact_number  -- Now from users table
     FROM users 
     WHERE user_id = ?
 ");
@@ -339,6 +340,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
+        // === UPDATE USERS TABLE WITH CONTACT NUMBER ==========
+        if (!empty($contact)) {
+            $stmt = $conn->prepare("UPDATE users SET contact_number = ? WHERE user_id = ?");
+            $stmt->bind_param("si", $contact, $user_id);
+            if (!$stmt->execute()) {
+                throw new Exception("Failed to update contact number in user profile.");
+            }
+            $stmt->close();
+        }
+
         // === DOCUMENT VALIDATION - Check BEFORE any database inserts ===
         $original_status = trim($_POST['employment_status'] ?? '');
         
@@ -407,18 +418,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $check_stmt->close();
             
             if ($profile_exists) {
-                // Update existing profile
+                // Update existing profile - REMOVED contact_number from update
                 $stmt = $conn->prepare("UPDATE alumni_profile SET 
-                    contact_number=?, employment_status=?, photo_path=?, last_profile_update=NOW(),
+                    employment_status=?, photo_path=?, last_profile_update=NOW(),
                     submission_status='Pending', submitted_at=NOW()
                     WHERE user_id=?");
-                $stmt->bind_param("sssi", $contact, $original_status, $photo_path, $user_id);  
+                $stmt->bind_param("ssi", $original_status, $photo_path, $user_id);  
             } else {
-                // Insert new profile
+                // Insert new profile - REMOVED contact_number from insert
                 $stmt = $conn->prepare("INSERT INTO alumni_profile 
-                    (user_id, contact_number, employment_status, photo_path, last_profile_update, submission_status, submitted_at)
-                    VALUES (?,?,?,?,NOW(),'Pending',NOW())");
-                $stmt->bind_param("isss", $user_id, $contact, $original_status, $photo_path);  
+                    (user_id, employment_status, photo_path, last_profile_update, submission_status, submitted_at)
+                    VALUES (?,?,?,NOW(),'Pending',NOW())");
+                $stmt->bind_param("iss", $user_id, $original_status, $photo_path);  
             }
 
             if (!$stmt->execute()) {

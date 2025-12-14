@@ -1,0 +1,123 @@
+<div class="email-wrapper" data-uid="019a7680-4094-7877-bee6-b7bb9df5a0e7" style="background: white; padding: 0px; border-radius: 8px; max-width: 600px; margin: 0px auto; box-shadow: rgba(0, 0, 0, 0.1) 0px 2px 8px; font-family: Arial, sans-serif;">
+<div class="email-wrapper" data-uid="019a7626-ed4f-70bd-ab58-78a7fc93d663" style="background: white; padding: 0px; border-radius: 8px; max-width: 600px; margin: 0px auto; box-shadow: rgba(0, 0, 0, 0.1) 0px 2px 8px; font-family: Arial, sans-serif;">
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background: linear-gradient(135deg, #0d7033 0%, #1a8c46 100%); border-top-left-radius: 8px; border-top-right-radius: 8px;">
+        <tbody>
+            <tr>
+                <td style="padding: 25px 30px;">
+                    <table cellpadding="0" cellspacing="0" border="0" align="left">
+                        <tbody>
+                            <tr>
+                                <td style="padding-right: 25px; vertical-align: middle;">
+                                    <img src="https://assets.notificationapi.com/ls4kt1i6t2hhh7rxd51k00rjj3/1762345161371.png" alt="JHCSC Logo" width="110" height="115" style="width: 110px; height: 115px; display: block; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.25));">
+                                </td>
+                                <td style="vertical-align: middle;">
+                                    <p data-uid="019a7626-ed4f-70bd-ab58-78ab70d25c76" style="font-size: 22px; font-weight: bold; margin: 0 0 8px 0; color: white; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2); line-height: 1.2;">
+                                JH Cerilles State College
+                                    </p>
+                                    <p data-uid="019a7626-ed4f-70bd-ab58-78ac1c76e47e" style="font-size: 14px; margin: 0; color: #e0f7ea; letter-spacing: 0.3px; line-height: 1.4;">
+                                Mati, San Miguel, Zamboanga del Sur, Philippines
+                                    </p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+
+    <!-- Green Bar -->
+    <div style="height: 2px; background: linear-gradient(90deg, #22c55e 0%, #16a34a 50%, #22c55e 100%);"></div>
+    
+    <!-- Content -->
+    <div style="padding: 25px;">
+        <div style="font-size: 18px; font-weight: bold; color: #15803d; margin-bottom: 20px;">
+            Dear {{name}},
+        </div>
+        <div style="color: #444; line-height: 1.6; font-size: 14px;">
+            <p style="margin-bottom: 18px;">
+                As one of our valued alumni from the <strong>Bachelor of Science in Information Technology (BSIT)</strong> program, we'd love to stay connected with you and your professional journey.
+            </p>
+            
+            <!-- SEMIANNUAL UPDATE SECTION -->
+            <!-- <div style="background: #f0f9ff; border-left: 4px solid #0ea5e9; padding: 16px; margin: 20px 0; border-radius: 0 6px 6px 0; display: {{#if update_type}} {{#equals update_type 'semiannual'}}block{{else}}none{{/equals}} {{else}}none{{/if}};">
+                <div style="font-weight: bold; margin-bottom: 8px; color: #0369a1; font-size: 15px;">
+                    Semiannual Profile Update Required
+                </div>
+                <div style="color: #1e40af; line-height: 1.5;">
+                    It's been <strong>{{months_since_update}}</strong> since your last update. To keep our records current, please update your profile by <strong>{{deadline_date}}</strong>.
+                </div>
+            </div> -->
+
+            <!-- SEMIANNUAL UPDATE SECTION  -->
+            {{#if update_type}}
+            {{#equals update_type 'semiannual'}}
+            <div style="background: #f0f9ff; border-left: 4px solid #0ea5e9; padding: 16px; margin: 20px 0; border-radius: 0 6px 6px 0;">
+                <div style="font-weight: bold; margin-bottom: 8px; color: #0369a1; font-size: 15px;">
+                    Semiannual Profile Update Required
+                </div>
+                <div style="color: #1e40af; line-height: 1.5;">
+                    It's been <strong>{{months_since_update}}</strong> months since your last update. To keep our records current, please update your profile by <strong>{{deadline_date}}</strong>.
+                </div>
+            </div>
+            {{/equals}}
+            {{/if}}
+            
+            <!-- Update Request -->
+            <div style="background: #f0fdf4; border-left: 3px solid #22c55e; padding: 18px; margin: 20px 0; border-radius: 0 6px 6px 0;">
+                <p style="font-weight: bold; margin-bottom: 10px; color: #166534;">
+                    Please take a moment to update your profile and employment information through our Alumni Portal. Your updated details help us:
+                </p>
+                <ul style="margin: 0; padding-left: 20px; color: #166534;">
+                    <li style="margin-bottom: 8px;">Keep accurate records of and track the progress of our alumni</li>
+                    <li>Strengthen institutional records to support the continuous improvement of the program</li>
+                </ul>
+            </div>
+
+          <p style="margin-top: 20px; margin-bottom: 20px; color: #4b5563;">
+                Thank you for helping us keep the JHCSC alumni community strong and connected.
+            </p>
+
+            <!-- Signature -->
+                <p data-uid="019a7626-ed4f-70bd-ab58-78be6279345d">
+                    Best regards,<br>
+                    <strong>Office of Alumni Relations  - School of Computing Studies</strong><br>
+                </p>
+            </div>
+
+            
+            <!-- CTA Button -->
+            <div style="text-align: center; margin: 25px 0;">
+                <a href="{{alumni_portal_link}}" style="background: linear-gradient(135deg, #15803d 0%, #16a34a 100%); color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; font-size: 15px; box-shadow: 0 4px 12px rgba(21, 128, 61, 0.2);">
+                    Update Your Alumni Profile
+                </a>
+            </div>
+            
+
+        </div>
+    </div>
+ 
+    <!-- Footer -->
+   <div class="email-wrapper" data-uid="019a7680-4094-7877-bee6-b7d8688d5f10" style="background: #f8f9fa; padding: 15px; text-align: center; border-top: 1px solid #e0e0e0; color: #555555; font-size: 12px;">
+        <div class="email-wrapper" data-uid="019a7680-4095-794f-b4aa-a9d3eceeb531" style="line-height: 1.4;">
+            <p data-uid="019a7680-4095-794f-b4aa-a9d53738aac2" style="margin: 0px 0px 6px;">
+                Office of Alumni Relations - School of Computing Studies
+            </p>
+            <p data-uid="019a7680-4095-794f-b4aa-a9d6ebda92b2" style="margin: 0px 0px 6px;">
+                Mati, San Miguel, Zamboanga del Sur, Philippines
+            </p>
+            <p data-uid="019a7680-4095-794f-b4aa-a9d72a24df53" style="margin: 0px;">
+                Email: alumtrak@jhcsc.edu.ph | Phone: (063) 912 345 6789
+            </p>
+        </div>
+        <div class="email-wrapper" data-uid="019a7680-4095-794f-b4aa-a9d8960af9c2" style="margin-top: 8px; font-size: 11px; color: #777777;">
+            <p data-uid="019a7680-4095-794f-b4aa-a9d92a5ed8e9" style="margin: 0px 0px 4px;">
+                You are receiving this email as a verified alumni of JHCSC BSIT program.
+            </p>
+            <p data-uid="019a7680-4095-794f-b4aa-a9da45791cd5" style="margin: 0px;">
+                © 2025 <a href="https://jhcsc.edu.ph/" style="color: #046bfb;">JH Cerilles State College</a>. All rights reserved.
+            </p>
+        </div>
+    </div>
+</div>
