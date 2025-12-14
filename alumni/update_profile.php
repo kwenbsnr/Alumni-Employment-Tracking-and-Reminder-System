@@ -36,7 +36,7 @@ $user_stmt = $conn->prepare("
             last_name,
             IF(suffix IS NOT NULL AND suffix != '', CONCAT(' ', suffix), '')
         ) as name,
-        contact_number  -- Now from users table
+        contact_number 
     FROM users 
     WHERE user_id = ?
 ");
@@ -404,9 +404,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        // === ALL VALIDATION PASSED - PROCEED WITH DATABASE OPERATIONS ===
+        // === PROCEED WITH DB OPERATIONS ===
 
-        // ---- 6.4 Profile INSERT / UPDATE - MUST BE FIRST (creates foreign key) ----------------------------------------
+        // ---- 6.4 Profile INSERT / UPDATE  ----------------------------------------
         if ($can_update) {
             $original_status = trim($_POST['employment_status'] ?? '');
             
@@ -595,10 +595,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Commit transaction
         $conn->commit();
 
+        /*
         // === SCHEDULED REMINDERS CHECK ===
         if (file_exists(dirname(__DIR__) . '/api/scheduled_reminders.php')) {
             require_once dirname(__DIR__) . '/api/scheduled_reminders.php';
         }
+        
 
         // === SCHEDULE CHECK ===
         if (!function_exists('isSubmissionPeriodOpen')) {
@@ -628,6 +630,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             error_log("Notifications not sent: Submission period closed for user: $user_id");
         }
+        */
+
+        // TEMPORARILY DISABLE NOTIFICATIONS WHILE FIXING SQL ERROR IN notif_service.php
+        // TEMPORARY LOGGING ONLY
+        error_log("Notifications temporarily disabled while fixing SQL error in notif_service.php for user: $user_id");
 
         // Activity logs
         if (in_array($status, ['Employed', 'Employed & Student'])) {

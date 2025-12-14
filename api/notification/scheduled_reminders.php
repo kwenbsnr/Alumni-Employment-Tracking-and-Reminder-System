@@ -33,23 +33,22 @@ function getAlumniForReminders($conn) {
     
     $query = "
         SELECT u.user_id, 
-               CONCAT(
-                   u.first_name,
-                   IF(u.middle_name IS NOT NULL AND u.middle_name != '', CONCAT(' ', u.middle_name), ''),
-                   ' ',
-                   u.last_name,
-                   IF(u.suffix IS NOT NULL AND u.suffix != '', CONCAT(' ', u.suffix), '')
-               ) as alumni_name,
-               u.email as alumni_email, 
-               u.contact_number, 
-               u.batch_year as graduation_year, ap.employment_status,
-               ap.last_profile_update, ap.submission_status
+            CONCAT(
+                u.first_name,
+                IF(u.middle_name IS NOT NULL AND u.middle_name != '', CONCAT(' ', u.middle_name), ''),
+                ' ',
+                u.last_name,
+                IF(u.suffix IS NOT NULL AND u.suffix != '', CONCAT(' ', u.suffix), '')
+            ) as alumni_name,
+            u.email as alumni_email, 
+            u.batch_year as graduation_year, ap.employment_status,
+            ap.last_profile_update, ap.submission_status
         FROM users u 
         INNER JOIN alumni_profile ap ON u.user_id = ap.user_id 
         WHERE u.role = 'alumni' 
         AND ap.submission_status != 'Approved'
         AND (ap.last_profile_update IS NULL OR 
-             ap.last_profile_update < DATE_SUB(NOW(), INTERVAL 6 MONTH))
+            ap.last_profile_update < DATE_SUB(NOW(), INTERVAL 6 MONTH))
         ORDER BY u.batch_year DESC, alumni_name
     ";
     

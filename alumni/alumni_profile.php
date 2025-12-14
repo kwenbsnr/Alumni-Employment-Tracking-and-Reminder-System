@@ -16,7 +16,7 @@ $active_page = "profile";
 $stmt = $conn->prepare("
     SELECT 
         u.user_id, u.email, u.student_id, u.date_of_birth, u.gender, u.program, 
-        u.contact_number, u.citizenship, u.civil_status,  -- Added new fields from users table
+        u.contact_number, u.citizenship, u.civil_status,  
         CONCAT(
             u.first_name, 
             IF(u.middle_name IS NOT NULL AND u.middle_name != '', CONCAT(' ', u.middle_name), ''),
@@ -862,7 +862,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="space-y-1">
                             <label class="block text-sm font-medium text-gray-700">Contact Number</label>
-                            <input type="tel" name="contact_number" autocomplete="tel" value="<?php echo !empty($profile['contact_number']) ? htmlspecialchars($profile['contact_number']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" required pattern="[0-9]{10,11}" title="Contact number must be 11 digits">
+                            <input type="tel" name="contact_number" autocomplete="tel" value="<?php echo !empty($profile['contact_number']) ? htmlspecialchars($profile['contact_number']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" required pattern="[0-9]{5,15}" title="Contact number must be 5-15 digits (international numbers accepted)">                        
                         </div>
                         <div class="space-y-1">
                             <label class="block text-sm font-medium text-gray-700">Employment Status</label>

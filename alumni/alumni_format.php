@@ -11,7 +11,7 @@ $stmt = $conn->prepare("
             IF(u.suffix IS NOT NULL AND u.suffix != '', CONCAT(' ', u.suffix), '')
         ) as official_name,
         u.email, u.role,
-        u.contact_number,        -- FROM users table (MOVED FROM alumni_profile)
+        u.contact_number,     
         ap.photo_path, 
         ap.employment_status, 
         ap.submission_status, 
