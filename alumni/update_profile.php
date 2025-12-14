@@ -20,76 +20,16 @@ $is_development = $_SERVER['SERVER_NAME'] === 'localhost' ||
 
 include("../connect.php");
 
+function log_alumni_activity($conn, $user_id, $action_type, $description = '') {
+    $stmt = $conn->prepare("INSERT INTO alumni_activity_log (user_id, action_type, description) VALUES (?, ?, ?)");
+    $stmt->bind_param("iss", $user_id, $action_type, $description);
+    $stmt->execute();
+    $stmt->close();
+}
+
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
-if (!isset($_SESSION['user_id'])) {
-    ob_end_clean();
-    header("Location: ../login/login.php");
-    exit();
-}
-
 $user_id = $_SESSION['user_id'];
-
-// ---- 1. Profile Photo Upload Helper -----------------------------------------
-function upload_profile_photo($user_id) {
-    global $conn;
-    
-    if (!isset($_FILES['profile_photo']) || $_FILES['profile_photo']['error'] !== UPLOAD_ERR_OK) {
-        return null;
-    }
-
-    $file = $_FILES['profile_photo'];
-    $max_size = 2 * 1024 * 1024; // 2MB
-
-    if ($file['size'] > $max_size) {
-        throw new Exception("Profile photo is too large. Maximum allowed is 2MB.");
-    }
-
-    // Validate file type
-    $valid_types = ['image/jpeg', 'image/jpg', 'image/png'];
-    $finfo = finfo_open(FILEINFO_MIME_TYPE);
-    $mime_type = finfo_file($finfo, $file['tmp_name']);
-    finfo_close($finfo);
-    
-    if (!in_array($mime_type, $valid_types)) {
-        throw new Exception("Invalid file type. Only JPG and PNG files are allowed.");
-    }
-
-    // Get user's surname for filename
-    $user_stmt = $conn->prepare("SELECT last_name FROM users WHERE user_id = ?");
-    $user_stmt->bind_param("i", $user_id);
-    $user_stmt->execute();
-    $user_result = $user_stmt->get_result();
-    $user_data = $user_result->fetch_assoc();
-    $user_stmt->close();
-
-    $surname = 'Unknown';
-    if ($user_data && !empty($user_data['last_name'])) {
-        $surname = preg_replace("/[^a-zA-Z0-9]/", "", $user_data['last_name']);
-        $surname = ucfirst($surname);
-    }
-
-    // Create uploads directory if it doesn't exist
-    $upload_dir = '../uploads/photos/';
-    if (!is_dir($upload_dir)) {
-        if (!mkdir($upload_dir, 0777, true)) {
-            throw new Exception("Could not create upload directory.");
-        }
-    }
-
-    // Generate unique filename
-    $timestamp = time();
-    $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
-    $filename = $surname . '_profile_' . $timestamp . '.' . $ext;
-    $target_path = $upload_dir . $filename;
-
-    if (!move_uploaded_file($file['tmp_name'], $target_path)) {
-        throw new Exception("Failed to upload profile photo. Please try again.");
-    }
-    
-    // Return relative path for database storage
-    return 'uploads/photos/' . $filename;
-}
 
 // ---- POST handling --------------------------------------------------------
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -103,121 +43,273 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $conn->begin_transaction();
     
     try {
-        // ---- 1. Retrieve & sanitise PERSONAL DATA ONLY -----------------------
-        $contact = !empty($_POST['contact_number']) ? trim($_POST['contact_number']) : '';
-
-        // Address fields
-        $country = !empty($_POST['country']) ? trim($_POST['country']) : '';
-        $state_province = !empty($_POST['state_province']) ? trim($_POST['state_province']) : '';
-        $city = !empty($_POST['city']) ? trim($_POST['city']) : '';
-        $street = !empty($_POST['street']) ? trim($_POST['street']) : '';
-
-        // ---- 2. BACKEND VALIDATION - PERSONAL DATA ONLY --------------------
-        if (empty($contact)) {
-            throw new Exception("Contact number is required.");
-        }
-
-        // Address validation - REQUIRED FIELDS
-        if (empty($country) || empty($state_province) || empty($city)) {
-            throw new Exception("Address information is required (Country, State/Province, and City).");
-        }
-
-        // ---- 3. Profile Photo Handling ---------------------------------------
-        $photo_path = null;
-        if (isset($_FILES['profile_photo']) && $_FILES['profile_photo']['error'] === UPLOAD_ERR_OK) {
-            $photo_path = upload_profile_photo($user_id);
-        } else {
-            // Keep existing photo if no new photo uploaded
-            $stmt = $conn->prepare("SELECT photo_path FROM alumni_profile WHERE user_id = ?");
-            $stmt->bind_param("i", $user_id);
-            $stmt->execute();
-            $result = $stmt->get_result();
-            $existing_photo = $result->fetch_assoc();
-            $stmt->close();
-            
-            $photo_path = $existing_photo['photo_path'] ?? null;
-        }
-
-        // === UPDATE USERS TABLE WITH CONTACT NUMBER ==========
-        if (!empty($contact)) {
-            $stmt = $conn->prepare("UPDATE users SET contact_number = ? WHERE user_id = ?");
-            $stmt->bind_param("si", $contact, $user_id);
-            if (!$stmt->execute()) {
-                throw new Exception("Failed to update contact number in user profile.");
-            }
-            $stmt->close();
-        }
-
-        // === UPDATE alumni_profile TABLE WITH PHOTO PATH ==========
-        // Check if alumni_profile record exists
-        $check_stmt = $conn->prepare("SELECT user_id FROM alumni_profile WHERE user_id = ?");
-        $check_stmt->bind_param("i", $user_id);
-        $check_stmt->execute();
-        $profile_exists = $check_stmt->get_result()->num_rows > 0;
-        $check_stmt->close();
+        // ---- 1. Retrieve & sanitise personal information -----------------------
+        $first_name = htmlspecialchars(trim($_POST['first_name'] ?? ''));
+        $last_name = htmlspecialchars(trim($_POST['last_name'] ?? ''));
+        $middle_name = htmlspecialchars(trim($_POST['middle_name'] ?? ''));
+        $suffix = htmlspecialchars(trim($_POST['suffix'] ?? ''));
+        $date_of_birth = htmlspecialchars(trim($_POST['date_of_birth'] ?? ''));
+        $gender = htmlspecialchars(trim($_POST['gender'] ?? ''));
+        $civil_status = htmlspecialchars(trim($_POST['civil_status'] ?? ''));
+        $citizenship = htmlspecialchars(trim($_POST['citizenship'] ?? ''));
+        $contact_number = htmlspecialchars(trim($_POST['contact_number'] ?? ''));
+        $program = htmlspecialchars(trim($_POST['program'] ?? ''));
+        $batch_year = htmlspecialchars(trim($_POST['batch_year'] ?? ''));
         
-        if ($profile_exists) {
-            // Update existing profile - photo_path and timestamp
-            $stmt = $conn->prepare("UPDATE alumni_profile SET 
-                photo_path = ?, 
-                last_profile_update = NOW()
-                WHERE user_id = ?");
-            $stmt->bind_param("si", $photo_path, $user_id);
-        } else {
-            // Insert new profile - user_id and photo_path
-            $stmt = $conn->prepare("INSERT INTO alumni_profile 
-                (user_id, photo_path, last_profile_update)
-                VALUES (?, ?, NOW())");
-            $stmt->bind_param("is", $user_id, $photo_path);
+        // Address fields
+        $street = htmlspecialchars(trim($_POST['street'] ?? ''));
+        $city = htmlspecialchars(trim($_POST['city'] ?? ''));
+        $state_province = htmlspecialchars(trim($_POST['state_province'] ?? ''));
+        $country = htmlspecialchars(trim($_POST['country'] ?? ''));
+        
+        // ---- 2. BACKEND VALIDATION (Personal information only) ----------------
+        $required_personal = [
+            'first_name' => 'First Name',
+            'last_name' => 'Last Name',
+            'date_of_birth' => 'Date of Birth',
+            'gender' => 'Gender',
+            'program' => 'Program',
+            'batch_year' => 'Batch Year',
+            'contact_number' => 'Contact Number'
+        ];
+        
+        $required_address = [
+            'street' => 'Street Address',
+            'city' => 'City',
+            'state_province' => 'State/Province',
+            'country' => 'Country'
+        ];
+        
+        foreach ($required_personal as $field => $label) {
+            if (empty($$field)) {
+                throw new Exception("{$label} is required.");
+            }
         }
+        
+        foreach ($required_address as $field => $label) {
+            if (empty($$field)) {
+                throw new Exception("{$label} is required.");
+            }
+        }
+        
+        // Validate batch year
+        if (!preg_match('/^\d{4}$/', $batch_year) || $batch_year < 1900 || $batch_year > date('Y')) {
+            throw new Exception("Invalid batch year.");
+        }
+        
+        // Validate date of birth
+        $dob_date = DateTime::createFromFormat('Y-m-d', $date_of_birth);
+        if (!$dob_date || $dob_date->format('Y-m-d') !== $date_of_birth) {
+            throw new Exception("Invalid date of birth format.");
+        }
+        
+        // Check if user is at least 16 years old
+        $today = new DateTime();
+        $age = $today->diff($dob_date)->y;
+        if ($age < 16) {
+            throw new Exception("You must be at least 16 years old.");
+        }
+        
+        // Validate gender
+        $valid_genders = ['Male', 'Female', 'Other'];
+        if (!in_array($gender, $valid_genders)) {
+            throw new Exception("Invalid gender selection.");
+        }
+        
+        // Validate civil status if provided
+        if (!empty($civil_status)) {
+            $valid_civil_statuses = ['Single', 'Married', 'Widowed', 'Separated', 'Divorced'];
+            if (!in_array($civil_status, $valid_civil_statuses)) {
+                throw new Exception("Invalid civil status selection.");
+            }
+        }
+        
+        // Validate contact number
+        if (!preg_match('/^[0-9]{5,15}$/', $contact_number)) {
+            throw new Exception("Contact number must be 5-15 digits.");
+        }
+        
+        // ---- 3. Handle Profile Photo Upload ------------------------------------
+        $photo_path = null;
+        
+        if (isset($_FILES['profile_photo']) && $_FILES['profile_photo']['error'] === UPLOAD_ERR_OK) {
+            $file = $_FILES['profile_photo'];
+            $max_size = 2 * 1024 * 1024; // 2MB
+            
+            // Validate file size
+            if ($file['size'] > $max_size) {
+                throw new Exception("Profile photo exceeds the 2MB size limit.");
+            }
+            
+            // Validate file type
+            $allowed_types = ['image/jpeg', 'image/jpg', 'image/png'];
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $mime_type = finfo_file($finfo, $file['tmp_name']);
+            finfo_close($finfo);
+            
+            if (!in_array($mime_type, $allowed_types)) {
+                throw new Exception("Invalid file type. Only JPG and PNG files are allowed.");
+            }
+            
+            // Get user's surname for filename
+            $user_stmt = $conn->prepare("SELECT last_name FROM users WHERE user_id = ?");
+            $user_stmt->bind_param("i", $user_id);
+            $user_stmt->execute();
+            $user_result = $user_stmt->get_result();
+            $user_data = $user_result->fetch_assoc();
+            $user_stmt->close();
 
+            $surname = 'Unknown';
+            if ($user_data && !empty($user_data['last_name'])) {
+                $surname = preg_replace("/[^a-zA-Z0-9]/", "", $user_data['last_name']);
+                $surname = ucfirst($surname);
+            }
+            
+            // Generate unique filename
+            $timestamp = time();
+            $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
+            $filename = $surname . '_' . $user_id . '_' . $timestamp . '.' . $extension;
+            
+            // Upload directory
+            $upload_dir = '../uploads/profile_photos/';
+            if (!file_exists($upload_dir)) {
+                mkdir($upload_dir, 0755, true);
+            }
+            
+            $target_path = $upload_dir . $filename;
+            
+            // Move uploaded file
+            if (!move_uploaded_file($file['tmp_name'], $target_path)) {
+                throw new Exception("Failed to upload profile photo. Please try again.");
+            }
+            
+            // Store relative path in database
+            $photo_path = 'uploads/profile_photos/' . $filename;
+        }
+        
+        // ---- 4. Update users table --------------------------------------------
+        $stmt = $conn->prepare("
+            UPDATE users SET 
+                first_name = ?,
+                last_name = ?,
+                middle_name = ?,
+                suffix = ?,
+                date_of_birth = ?,
+                gender = ?,
+                civil_status = ?,
+                citizenship = ?,
+                contact_number = ?,
+                program = ?,
+                batch_year = ?
+            WHERE user_id = ?
+        ");
+        $stmt->bind_param(
+            "sssssssssssi",
+            $first_name,
+            $last_name,
+            $middle_name,
+            $suffix,
+            $date_of_birth,
+            $gender,
+            $civil_status,
+            $citizenship,
+            $contact_number,
+            $program,
+            $batch_year,
+            $user_id
+        );
+        
         if (!$stmt->execute()) {
-            error_log("Alumni profile update failed: " . $stmt->error);
-            throw new Exception("Failed to save profile photo. Please try again.");
+            throw new Exception("Failed to update personal information.");
         }
         $stmt->close();
-
-        // ---- Address handling ----
+        
+        // ---- 5. Update alumni_profile table -----------------------------------
+        if ($photo_path) {
+            // Update with new photo
+            $stmt = $conn->prepare("
+                INSERT INTO alumni_profile (user_id, photo_path, last_profile_update)
+                VALUES (?, ?, NOW())
+                ON DUPLICATE KEY UPDATE 
+                    photo_path = VALUES(photo_path),
+                    last_profile_update = NOW()
+            ");
+            $stmt->bind_param("is", $user_id, $photo_path);
+        } else {
+            // Update without changing photo
+            $stmt = $conn->prepare("
+                INSERT INTO alumni_profile (user_id, last_profile_update)
+                VALUES (?, NOW())
+                ON DUPLICATE KEY UPDATE last_profile_update = NOW()
+            ");
+            $stmt->bind_param("i", $user_id);
+        }
+        
+        if (!$stmt->execute()) {
+            throw new Exception("Failed to update profile information.");
+        }
+        $stmt->close();
+        
+        // ---- 6. Update alumni_address table -----------------------------------
+        // Check if address exists
         $stmt = $conn->prepare("SELECT address_id FROM alumni_address WHERE user_id = ?");
         $stmt->bind_param("i", $user_id);
         $stmt->execute();
         $result = $stmt->get_result();
-        $existing_address = $result->fetch_assoc();
+        $address_exists = $result->num_rows > 0;
         $stmt->close();
-
-        if ($existing_address) {
+        
+        if ($address_exists) {
             // Update existing address
-            $stmt = $conn->prepare("UPDATE alumni_address SET 
-                city = ?, state_province = ?, street = ?, country = ?, 
-                updated_at = CURRENT_TIMESTAMP 
-                WHERE user_id = ?");
-            $stmt->bind_param("ssssi", 
-                $city, $state_province, $street, $country, $user_id
+            $stmt = $conn->prepare("
+                UPDATE alumni_address SET 
+                    street = ?,
+                    city = ?,
+                    state_province = ?,
+                    country = ?,
+                    updated_at = NOW()
+                WHERE user_id = ?
+            ");
+            $stmt->bind_param(
+                "ssssi",
+                $street,
+                $city,
+                $state_province,
+                $country,
+                $user_id
             );
         } else {
             // Insert new address
-            $stmt = $conn->prepare("INSERT INTO alumni_address 
-                (user_id, city, state_province, street, country) 
-                VALUES (?, ?, ?, ?, ?)");
-            $stmt->bind_param("issss", 
-                $user_id, $city, $state_province, $street, $country
+            $stmt = $conn->prepare("
+                INSERT INTO alumni_address 
+                (user_id, street, city, state_province, country, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, NOW(), NOW())
+            ");
+            $stmt->bind_param(
+                "issss",
+                $user_id,
+                $street,
+                $city,
+                $state_province,
+                $country
             );
         }
-
+        
         if (!$stmt->execute()) {
-            error_log("Address save error: " . $stmt->error);
-            throw new Exception("Failed to save address information. Please try again.");
+            throw new Exception("Failed to update address information.");
         }
         $stmt->close();
-
+        
         // Commit transaction
         $conn->commit();
-
-        // Update session with new photo path for sidebar display
+        
+        // Log activity
+        $activity_desc = 'Updated personal information';
         if ($photo_path) {
-            $_SESSION['user_photo'] = $photo_path;
+            $activity_desc .= ' and uploaded new profile photo';
         }
-
+        log_alumni_activity($conn, $user_id, 'profile_updated', $activity_desc);
+        
         // Redirect after successful submission
         header("Location: alumni_profile.php?success=Personal information updated successfully!");
         exit;
@@ -228,7 +320,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         header("Location: alumni_profile.php?error=" . urlencode($e->getMessage()));
         exit;
     }
-}                                                                                        
+}
 
 $conn->close();
 ob_end_flush();
+?>

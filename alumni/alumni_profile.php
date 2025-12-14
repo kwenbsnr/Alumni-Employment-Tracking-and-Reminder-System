@@ -37,6 +37,10 @@ $stmt = $conn->prepare("
         u.contact_number,
         u.date_of_birth,
         u.gender,
+        u.first_name,
+        u.last_name,
+        u.middle_name,
+        u.suffix,
         ap.photo_path,
         aa.city, 
         aa.state_province, 
@@ -144,53 +148,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     <!-- Show profile cards only when personal data exists -->
     <?php if ($has_personal_data): ?>
-        <!-- Profile Photo and Personal Info in a single row -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- Profile Photo Card -->
-            <div class="bg-white rounded-xl shadow-lg border-l-4 border-purple-500 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-purple-50 flex flex-col h-full">
-                <div class="p-6 flex-1">
-                    <div class="flex items-center space-x-3 mb-4 pb-2 border-b border-gray-100">
-                        <div class="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
-                            <i class="fas fa-camera text-purple-600"></i>
-                        </div>
-                        <h3 class="text-xl font-bold text-gray-800">Profile Photo</h3>
-                    </div>
-                    
-                    <div class="text-center">
-                        <div class="relative inline-block mb-4">
-                            <div class="w-40 h-40 rounded-full overflow-hidden mx-auto border-4 border-gray-300 bg-gray-100">
-                                <img id="currentProfilePhoto" src="<?php 
-                                    echo !empty($profile['photo_path']) ? 
-                                    '../' . htmlspecialchars($profile['photo_path']) : 
-                                    'https://placehold.co/160x160/eeeeee/333333?text=Upload+Photo'; 
-                                ?>" alt="Profile Picture" class="w-full h-full object-cover">
-                            </div>
-                            <?php if (!empty($profile['photo_path'])): ?>
-                            <div class="absolute bottom-2 right-2 bg-green-500 rounded-full p-2 shadow-md">
-                                <i class="fas fa-check text-white text-xs"></i>
-                            </div>
-                            <?php endif; ?>
-                        </div>
-                        
-                        <?php if (!empty($profile['photo_path'])): ?>
-                            <p class="text-sm text-gray-700 font-medium mb-2">Profile photo uploaded</p>
-                            <p class="text-xs text-gray-500">Click "Update Personal Information" to change</p>
-                        <?php else: ?>
-                            <p class="text-sm text-gray-700 font-medium mb-2">No profile photo yet</p>
-                            <p class="text-xs text-gray-500">Upload a photo when updating your profile</p>
-                        <?php endif; ?>
-                    </div>
-                </div>
-                <div class="p-4 bg-purple-50 border-t border-purple-100 rounded-b-xl">
-                    <p class="text-xs text-purple-600 flex items-center">
-                        <i class="fas fa-portrait mr-2"></i>
-                        Your profile picture
-                    </p>
-                </div>
-            </div>
-
+        <!-- Personal Information Cards in a single row -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <!-- Personal Information Card -->
-            <div class="bg-white rounded-xl shadow-lg border-l-4 border-blue-500 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-blue-50 flex flex-col h-full lg:col-span-2">
+            <div class="bg-white rounded-xl shadow-lg border-l-4 border-blue-500 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-blue-50 flex flex-col h-full">
                 <div class="p-6 flex-1">
                     <div class="flex items-center space-x-3 mb-4 pb-2 border-b border-gray-100">
                         <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
@@ -229,6 +190,17 @@ document.addEventListener('DOMContentLoaded', function() {
                             <dd class="font-semibold text-gray-700 text-base"><?php echo htmlspecialchars($profile['civil_status']); ?></dd>
                         </div>
                         <?php endif; ?>
+                        <div class="space-y-1">
+                            <dt class="font-medium text-gray-500 text-sm mb-1">Date of Birth</dt>
+                            <dd class="font-semibold text-gray-700 text-base">
+                                <?php echo !empty($profile['date_of_birth']) && $profile['date_of_birth'] != '0000-00-00' ? 
+                                    date('M j, Y', strtotime($profile['date_of_birth'])) : 'N/A'; ?>
+                            </dd>
+                        </div>
+                        <div class="space-y-1">
+                            <dt class="font-medium text-gray-500 text-sm mb-1">Gender</dt>
+                            <dd class="font-semibold text-gray-700 text-base"><?php echo htmlspecialchars($profile['gender'] ?? 'N/A'); ?></dd>
+                        </div>
                     </dl>
                 </div>
                 <div class="p-4 bg-blue-50 border-t border-blue-100 rounded-b-xl">
@@ -238,55 +210,55 @@ document.addEventListener('DOMContentLoaded', function() {
                     </p>
                 </div>
             </div>
-        </div>
 
-        <!-- Address Information Card (Full width below) -->
-        <div class="bg-white rounded-xl shadow-lg border-l-4 border-green-500 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-green-50 flex flex-col h-full">
-            <div class="p-6 flex-1">
-                <div class="flex items-center space-x-3 mb-4 pb-2 border-b border-gray-100">
-                    <div class="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
-                        <i class="fas fa-map-marker-alt text-green-600"></i>
+            <!-- Address Information Card -->
+            <div class="bg-white rounded-xl shadow-lg border-l-4 border-green-500 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:bg-green-50 flex flex-col h-full">
+                <div class="p-6 flex-1">
+                    <div class="flex items-center space-x-3 mb-4 pb-2 border-b border-gray-100">
+                        <div class="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
+                            <i class="fas fa-map-marker-alt text-green-600"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-800">Address Information</h3>
                     </div>
-                    <h3 class="text-xl font-bold text-gray-800">Address Information</h3>
+                    
+                    <?php if (!empty($profile['city']) || !empty($profile['street']) || !empty($profile['state_province']) || !empty($profile['country'])): ?>
+                        <div class="space-y-4">
+                            <!-- Location Details -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Country</p>
+                                    <p class="text-gray-800 font-medium"><?php echo htmlspecialchars($profile['country'] ?? 'N/A'); ?></p>
+                                </div>
+                                <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">State/Province</p>
+                                    <p class="text-gray-800 font-medium"><?php echo htmlspecialchars($profile['state_province'] ?? 'N/A'); ?></p>
+                                </div>
+                                <div class="bg-gray-50 p-3 rounded-lg border border-gray-200 md:col-span-2">
+                                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">City</p>
+                                    <p class="text-gray-800 font-medium"><?php echo htmlspecialchars($profile['city'] ?? 'N/A'); ?></p>
+                                </div>
+                                <div class="bg-gray-50 p-3 rounded-lg border border-gray-200 md:col-span-2">
+                                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Street Address</p>
+                                    <p class="text-gray-800 font-medium"><?php echo htmlspecialchars($profile['street'] ?? 'N/A'); ?></p>
+                                </div>
+                            </div>
+                        </div>
+                    <?php else: ?>
+                        <div class="text-center py-6">
+                            <div class="bg-gray-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-3">
+                                <i class="fas fa-map-marker-alt text-gray-400 text-2xl"></i>
+                            </div>
+                            <p class="text-gray-500 font-medium">No address information</p>
+                            <p class="text-gray-400 text-sm mt-1">Update by adding address details</p>
+                        </div>
+                    <?php endif; ?>
                 </div>
-                
-                <?php if (!empty($profile['city']) || !empty($profile['street']) || !empty($profile['state_province']) || !empty($profile['country'])): ?>
-                    <div class="space-y-4">
-                        <!-- Location Details -->
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-                            <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Country</p>
-                                <p class="text-gray-800 font-medium"><?php echo htmlspecialchars($profile['country'] ?? 'N/A'); ?></p>
-                            </div>
-                            <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">State/Province</p>
-                                <p class="text-gray-800 font-medium"><?php echo htmlspecialchars($profile['state_province'] ?? 'N/A'); ?></p>
-                            </div>
-                            <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">City</p>
-                                <p class="text-gray-800 font-medium"><?php echo htmlspecialchars($profile['city'] ?? 'N/A'); ?></p>
-                            </div>
-                            <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                                <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Street</p>
-                                <p class="text-gray-800 font-medium"><?php echo htmlspecialchars($profile['street'] ?? 'N/A'); ?></p>
-                            </div>
-                        </div>
-                    </div>
-                <?php else: ?>
-                    <div class="text-center py-6">
-                        <div class="bg-gray-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-3">
-                            <i class="fas fa-map-marker-alt text-gray-400 text-2xl"></i>
-                        </div>
-                        <p class="text-gray-500 font-medium">No address information</p>
-                        <p class="text-gray-400 text-sm mt-1">Update by adding address details</p>
-                    </div>
-                <?php endif; ?>
-            </div>
-            <div class="p-4 bg-green-50 border-t border-green-100 rounded-b-xl">
-                <p class="text-xs text-green-600 flex items-center">
-                    <i class="fas fa-globe-americas mr-2"></i>
-                    Location details
-                </p>
+                <div class="p-4 bg-green-50 border-t border-green-100 rounded-b-xl">
+                    <p class="text-xs text-green-600 flex items-center">
+                        <i class="fas fa-globe-americas mr-2"></i>
+                        Location details
+                    </p>
+                </div>
             </div>
         </div>
     <?php else: ?>
@@ -319,154 +291,168 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="flex-1 overflow-y-auto p-6 bg-gray-50">
             <form id="alumniProfileForm" class="space-y-6" action="update_profile.php" method="post" enctype="multipart/form-data">
                 
-                <!-- Profile Picture + School Info -->
-                <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                    <!-- Profile Picture -->
-                    <div class="lg:col-span-1 bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
-                        <div class="text-center">
-                            <div class="relative inline-block mb-4">
-                                <div class="w-32 h-32 rounded-full overflow-hidden mx-auto border-2 border-gray-300 bg-gray-100">
+                <!-- Profile Picture Upload Section -->
+                <div class="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
+                    <h3 class="text-base font-semibold text-gray-800 mb-4 flex items-center">
+                        <div class="bg-purple-100 rounded-lg p-2 mr-3">
+                            <i class="fas fa-camera text-purple-600 text-sm"></i>
+                        </div>
+                        Profile Photo
+                        <?php if (!empty($profile['photo_path'])): ?>
+                            <span class="text-xs font-normal text-green-600 ml-2 bg-green-50 px-2 py-1 rounded flex items-center">
+                                <i class="fas fa-check-circle mr-1"></i>Current photo will be replaced
+                            </span>
+                        <?php endif; ?>
+                    </h3>
+                    
+                    <div class="flex flex-col md:flex-row items-center gap-6">
+                        <!-- Photo Preview -->
+                        <div class="flex-shrink-0">
+                            <div class="relative inline-block">
+                                <div class="w-32 h-32 rounded-full overflow-hidden mx-auto border-4 border-gray-300 bg-gray-100">
                                     <img id="profilePreview" src="<?php 
                                         echo !empty($profile['photo_path']) ? 
-                                        '../' . htmlspecialchars($profile['photo_path']) : 
+                                        '../' . htmlspecialchars($profile['photo_path']) . '?v=' . time() : 
                                         'https://placehold.co/128x128/eeeeee/333333?text=Upload+Photo'; 
                                     ?>" alt="Profile Picture" class="w-full h-full object-cover">
                                 </div>
-                                <div class="absolute bottom-2 right-2 bg-blue-500 rounded-full p-2 shadow-md">
-                                    <i class="fas fa-camera text-white text-xs"></i>
+                                <?php if (!empty($profile['photo_path'])): ?>
+                                <div class="absolute bottom-2 right-2 bg-green-500 rounded-full p-2 shadow-md">
+                                    <i class="fas fa-check text-white text-xs"></i>
                                 </div>
-                            </div>
-                            <button type="button" id="uploadPictureBtn" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition duration-200 w-full mb-2 shadow-sm hover:shadow">
-                                <i class="fas fa-upload mr-2"></i>Choose Photo
-                            </button>
-                            <input type="file" id="profilePictureInput" name="profile_photo" accept="image/jpeg,image/png,image/jpg" class="hidden">
-                            <p class="text-xs text-gray-500 mt-2">
-                                <i class="fas fa-info-circle mr-1"></i>JPG or PNG, max 2MB
-                            </p>
-                            <?php if (!empty($profile['photo_path'])): ?>
-                                <p class="text-xs text-green-600 mt-1">
-                                    <i class="fas fa-check-circle mr-1"></i>Current photo will be replaced
-                                </p>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-
-                    <!-- School Information -->
-                    <div class="lg:col-span-3 bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
-                        <h3 class="text-base font-semibold text-gray-800 mb-4 flex items-center">
-                            <div class="bg-blue-100 rounded-lg p-2 mr-3">
-                                <i class="fas fa-graduation-cap text-blue-600 text-sm"></i>
-                            </div>
-                            School Information
-                            <span class="text-xs font-normal text-blue-600 ml-2 bg-blue-50 px-2 py-1 rounded">Auto-filled</span>
-                        </h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <?php
-                            $schoolFields = [
-                                ['label' => 'Student ID', 'value' => $profile['student_id'] ?? 'Not set'],
-                                ['label' => 'Full Name', 'value' => $profile['official_name'] ?? 'Not set'],
-                                ['label' => 'Date of Birth', 'value' => !empty($profile['date_of_birth']) && $profile['date_of_birth'] != '0000-00-00' ? date('M j, Y', strtotime($profile['date_of_birth'])) : 'Not set'],
-                                ['label' => 'Gender', 'value' => $profile['gender'] ?? 'Not set'],
-                                ['label' => 'Program', 'value' => $profile['program'] ?? 'BSIT'],
-                                ['label' => 'Year Graduated', 'value' => $profile['batch_year'] ?? 'Not set'],
-                                ['label' => 'Citizenship', 'value' => $profile['citizenship'] ?? 'Not set'],
-                                ['label' => 'Civil Status', 'value' => $profile['civil_status'] ?? 'Not set']
-                            ];
-                            
-                            foreach ($schoolFields as $field):
-                            ?>
-                            <div class="space-y-1">
-                                <label class="block text-xs font-medium text-gray-600 uppercase tracking-wide"><?php echo $field['label']; ?></label>
-                                <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                                    <span class="font-semibold text-gray-800 text-sm"><?php echo htmlspecialchars($field['value']); ?></span>
-                                </div>
-                            </div>
-                            <?php endforeach; ?>
-                        </div>
-                        <div class="mt-4 bg-blue-50 rounded-lg p-3 border border-blue-200">
-                            <p class="text-blue-700 text-xs flex items-center">
-                                <i class="fas fa-info-circle text-blue-500 mr-2"></i>
-                                Automatically filled from student records
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Contact Information -->
-                <div class="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
-                    <h3 class="text-base font-semibold text-gray-800 mb-4 flex items-center">
-                        <div class="bg-green-100 rounded-lg p-2 mr-3">
-                            <i class="fas fa-phone text-green-600 text-sm"></i>
-                        </div>
-                        Contact Information
-                    </h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="space-y-1">
-                            <label class="block text-sm font-medium text-gray-700">Contact Number <span class="text-red-500">*</span></label>
-                            <input type="tel" name="contact_number" autocomplete="tel" 
-                                   value="<?php echo !empty($profile['contact_number']) ? htmlspecialchars($profile['contact_number']) : ''; ?>" 
-                                   class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" 
-                                   required pattern="[0-9]{5,15}" 
-                                   title="Contact number must be 5-15 digits">
-                            <p class="text-xs text-gray-500 mt-1">Enter your current phone number</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Address Section -->
-                <div class="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
-                    <h3 class="text-lg font-semibold mb-3 flex items-center">
-                        <i class="fas fa-map-marker-alt text-blue-600 mr-2"></i>
-                        Address Information <span class="text-red-500">*</span>
-                    </h3>
-
-                    <div class="space-y-4">
-                        <!-- Country, State/Province Row -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">
-                                    Country <span class="text-red-500">*</span>
-                                </label>
-                                <input type="text" id="country" name="country" 
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    value="<?php echo htmlspecialchars($profile['country'] ?? ''); ?>"
-                                    placeholder="Country (e.g., Philippines)" required>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">
-                                    State/Province <span class="text-red-500">*</span>
-                                </label>
-                                <input type="text" id="state-province" name="state_province" 
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    value="<?php echo htmlspecialchars($profile['state_province'] ?? ''); ?>"
-                                    placeholder="State or Province (e.g., Zamboanga del Sur)" required>
+                                <?php endif; ?>
                             </div>
                         </div>
                         
-                        <!-- City and Street Row -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">
-                                    City/Municipality <span class="text-red-500">*</span>
-                                </label>
-                                <input type="text" id="city" name="city" 
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    value="<?php echo htmlspecialchars($profile['city'] ?? ''); ?>"
-                                    placeholder="City or Municipality (e.g., Dumingag)" required>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">
-                                    Street/Barangay
-                                </label>
-                                <input type="text" id="street" name="street" 
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    value="<?php echo htmlspecialchars($profile['street'] ?? ''); ?>"
-                                    placeholder="Street, Barangay, or Village">
+                        <!-- Upload Controls -->
+                        <div class="flex-1">
+                            <div class="space-y-3">
+                                <div>
+                                    <button type="button" id="uploadPictureBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-2.5 rounded-lg transition duration-200 shadow-sm hover:shadow flex items-center gap-2">
+                                        <i class="fas fa-upload"></i>
+                                        <span>Choose Photo</span>
+                                    </button>
+                                    <input type="file" id="profilePictureInput" name="profile_photo" accept="image/jpeg,image/png,image/jpg" class="hidden">
+                                </div>
+                                
+                                <div class="text-sm text-gray-600 space-y-1">
+                                    <p class="flex items-center">
+                                        <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+                                        JPG or PNG format, maximum 2MB
+                                    </p>
+                                    <p class="flex items-center">
+                                        <i class="fas fa-user-circle text-purple-500 mr-2"></i>
+                                        Photo will appear in sidebar and profile
+                                    </p>
+                                    <?php if (empty($profile['photo_path'])): ?>
+                                    <p class="flex items-center text-amber-600">
+                                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                                        No profile photo uploaded yet
+                                    </p>
+                                    <?php endif; ?>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
+                <!-- Personal Information -->
+                <div class="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
+                    <h3 class="text-base font-semibold text-gray-800 mb-4 flex items-center">
+                        <div class="bg-blue-100 rounded-lg p-2 mr-3">
+                            <i class="fas fa-user text-blue-600 text-sm"></i>
+                        </div>
+                        Personal Information
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Personal Details -->
+                        <div class="space-y-1">
+                            <label class="block text-sm font-medium text-gray-700">First Name <span class="text-red-500">*</span></label>
+                            <input type="text" name="first_name" value="<?php echo !empty($profile['first_name']) ? htmlspecialchars($profile['first_name']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" required autocomplete="given-name">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="block text-sm font-medium text-gray-700">Last Name <span class="text-red-500">*</span></label>
+                            <input type="text" name="last_name" value="<?php echo !empty($profile['last_name']) ? htmlspecialchars($profile['last_name']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" required autocomplete="family-name">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="block text-sm font-medium text-gray-700">Middle Name</label>
+                            <input type="text" name="middle_name" value="<?php echo !empty($profile['middle_name']) ? htmlspecialchars($profile['middle_name']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" autocomplete="additional-name">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="block text-sm font-medium text-gray-700">Suffix</label>
+                            <input type="text" name="suffix" value="<?php echo !empty($profile['suffix']) ? htmlspecialchars($profile['suffix']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" autocomplete="honorific-suffix">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="block text-sm font-medium text-gray-700">Date of Birth <span class="text-red-500">*</span></label>
+                            <input type="date" name="date_of_birth" value="<?php echo !empty($profile['date_of_birth']) ? htmlspecialchars($profile['date_of_birth']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" required autocomplete="bday">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="block text-sm font-medium text-gray-700">Gender <span class="text-red-500">*</span></label>
+                            <select name="gender" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" required>
+                                <option value="">Select Gender</option>
+                                <option value="Male" <?php echo ($profile['gender'] ?? '') === 'Male' ? 'selected' : ''; ?>>Male</option>
+                                <option value="Female" <?php echo ($profile['gender'] ?? '') === 'Female' ? 'selected' : ''; ?>>Female</option>
+                                <option value="Other" <?php echo ($profile['gender'] ?? '') === 'Other' ? 'selected' : ''; ?>>Other</option>
+                            </select>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="block text-sm font-medium text-gray-700">Civil Status</label>
+                            <select name="civil_status" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200">
+                                <option value="">Select Status</option>
+                                <option value="Single" <?php echo ($profile['civil_status'] ?? '') === 'Single' ? 'selected' : ''; ?>>Single</option>
+                                <option value="Married" <?php echo ($profile['civil_status'] ?? '') === 'Married' ? 'selected' : ''; ?>>Married</option>
+                                <option value="Widowed" <?php echo ($profile['civil_status'] ?? '') === 'Widowed' ? 'selected' : ''; ?>>Widowed</option>
+                                <option value="Separated" <?php echo ($profile['civil_status'] ?? '') === 'Separated' ? 'selected' : ''; ?>>Separated</option>
+                                <option value="Divorced" <?php echo ($profile['civil_status'] ?? '') === 'Divorced' ? 'selected' : ''; ?>>Divorced</option>
+                            </select>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="block text-sm font-medium text-gray-700">Citizenship</label>
+                            <input type="text" name="citizenship" value="<?php echo !empty($profile['citizenship']) ? htmlspecialchars($profile['citizenship']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" autocomplete="country">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="block text-sm font-medium text-gray-700">Contact Number <span class="text-red-500">*</span></label>
+                            <input type="tel" name="contact_number" value="<?php echo !empty($profile['contact_number']) ? htmlspecialchars($profile['contact_number']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" required autocomplete="tel" pattern="[0-9]{5,15}" title="Contact number must be 5-15 digits">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="block text-sm font-medium text-gray-700">Program <span class="text-red-500">*</span></label>
+                            <input type="text" name="program" value="<?php echo !empty($profile['program']) ? htmlspecialchars($profile['program']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" required autocomplete="organization">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="block text-sm font-medium text-gray-700">Batch Year <span class="text-red-500">*</span></label>
+                            <input type="number" name="batch_year" min="1900" max="<?php echo date('Y'); ?>" value="<?php echo !empty($profile['batch_year']) ? htmlspecialchars($profile['batch_year']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" required>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Address Information -->
+                <div class="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
+                    <h3 class="text-base font-semibold text-gray-800 mb-4 flex items-center">
+                        <div class="bg-green-100 rounded-lg p-2 mr-3">
+                            <i class="fas fa-home text-green-600 text-sm"></i>
+                        </div>
+                        Address Information
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="space-y-1 md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700">Street Address <span class="text-red-500">*</span></label>
+                            <input type="text" name="street" value="<?php echo !empty($profile['street']) ? htmlspecialchars($profile['street']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" required autocomplete="street-address">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="block text-sm font-medium text-gray-700">City <span class="text-red-500">*</span></label>
+                            <input type="text" name="city" value="<?php echo !empty($profile['city']) ? htmlspecialchars($profile['city']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" required autocomplete="address-level2">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="block text-sm font-medium text-gray-700">State/Province <span class="text-red-500">*</span></label>
+                            <input type="text" name="state_province" value="<?php echo !empty($profile['state_province']) ? htmlspecialchars($profile['state_province']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" required autocomplete="address-level1">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="block text-sm font-medium text-gray-700">Country <span class="text-red-500">*</span></label>
+                            <input type="text" name="country" value="<?php echo !empty($profile['country']) ? htmlspecialchars($profile['country']) : 'Philippines'; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" required autocomplete="country-name">
+                        </div>
+                    </div>
+                </div>
+                
                 <!-- Submit Button -->
                 <div class="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
                     <div class="flex justify-between items-center">

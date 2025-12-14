@@ -42,15 +42,76 @@ if (!$submission_open) {
     exit();
 }
 
-// Check if alumni_profile record exists
-$stmt = $conn->prepare("SELECT employment_status FROM alumni_profile WHERE user_id = ?");
-$stmt->bind_param("i", $user_id);
-$stmt->execute();
-$result = $stmt->get_result();
-$alumni_profile = $result->fetch_assoc();
-$stmt->close();
+// ---- Document Upload Helper -----------------------------------------------
+function upload_employment_document($field, $user_id, $type) {
+    global $conn;
+    
+    if (!isset($_FILES[$field]) || $_FILES[$field]['error'] !== UPLOAD_ERR_OK) {
+        return null;
+    }
 
-$current_status = $alumni_profile['employment_status'] ?? '';
+    $file = $_FILES[$field];
+    $max_size = 2 * 1024 * 1024; // 2MB
+
+    if ($file['size'] > $max_size) {
+        $doc_name = $field === 'coe_file' ? 'Certificate of Employment' : 
+                ($field === 'business_file' ? 'Business Certificate' : 
+                ($field === 'cor_file' ? 'Certificate of Registration' : 'File'));
+        throw new Exception("{$doc_name} exceeds the 2MB size limit.");
+    }
+    
+    // Verify MIME type
+    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+    $mime_type = finfo_file($finfo, $file['tmp_name']);
+    finfo_close($finfo);
+    
+    if ($mime_type !== 'application/pdf') {
+        throw new Exception("Invalid file type. Only PDF files are allowed for documents.");
+    }
+    
+    // Get user's surname for filename
+    $user_stmt = $conn->prepare("SELECT last_name FROM users WHERE user_id = ?");
+    $user_stmt->bind_param("i", $user_id);
+    $user_stmt->execute();
+    $user_result = $user_stmt->get_result();
+    $user_data = $user_result->fetch_assoc();
+    $user_stmt->close();
+
+    $surname = 'Unknown';
+    if ($user_data && !empty($user_data['last_name'])) {
+        $surname = preg_replace("/[^a-zA-Z0-9]/", "", $user_data['last_name']);
+        $surname = ucfirst($surname);
+    }
+
+    // Document type mapping
+    $doc_type_map = [
+        'coe' => 'COE',
+        'business' => 'B_CERT', 
+        'cor' => 'COR'
+    ];
+    
+    $doc_type = $doc_type_map[$type] ?? $type;
+    
+    // Create uploads directory
+    $upload_dir = '../uploads/documents/';
+    if (!is_dir($upload_dir)) {
+        if (!mkdir($upload_dir, 0777, true)) {
+            throw new Exception("Could not create upload directory.");
+        }
+    }
+
+    // Generate unique filename
+    $timestamp = time();
+    $filename = $surname . '_' . $doc_type . '_' . $timestamp . '.pdf';
+    $target_path = $upload_dir . $filename;
+
+    if (!move_uploaded_file($file['tmp_name'], $target_path)) {
+        throw new Exception("File upload failed. Please try again.");
+    }
+    
+    // Return relative path
+    return 'uploads/documents/' . $filename;
+}
 
 // ---- POST handling --------------------------------------------------------
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -64,90 +125,134 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $conn->begin_transaction();
     
     try {
-        // ---- 1. Retrieve & sanitise --------------------------------------------
-        $status = htmlspecialchars(trim($_POST['employment_status'] ?? ''));
-
-        // Employment fields
-        $job_title = !empty($_POST['job_title']) ? trim($_POST['job_title']) : '';
-        if ($job_title === 'Other') {
-            if (empty(trim($_POST['other_job_title'] ?? ''))) {
-                throw new Exception("Please specify your job title in the 'Other Job Title' field.");
-            }
-            $job_title = trim($_POST['other_job_title']);
-        }
-
-        $company = !empty($_POST['company_name']) ? trim($_POST['company_name']) : '';
+        // ---- 1. Retrieve & sanitize data ------------------------------------
+        $employment_status = !empty($_POST['employment_status']) ? trim($_POST['employment_status']) : '';
+        $job_title_input = !empty($_POST['job_title']) ? trim($_POST['job_title']) : '';
+        $other_job_title = !empty($_POST['other_job_title']) ? trim($_POST['other_job_title']) : '';
+        $company_name = !empty($_POST['company_name']) ? trim($_POST['company_name']) : '';
         $company_address = !empty($_POST['company_address']) ? trim($_POST['company_address']) : '';
-        $salary = !empty($_POST['salary_range']) ? trim($_POST['salary_range']) : '';
-
         $business_type = !empty($_POST['business_type']) ? trim($_POST['business_type']) : '';
-        if ($business_type === 'Others (Please specify)') {
-            $business_type = 'Others: ' . (!empty($_POST['business_type_other']) ? trim($_POST['business_type_other']) : '');
-        }
-
-        // Education fields
-        $school = !empty($_POST['school_name']) ? trim($_POST['school_name']) : '';
-        $degree = !empty($_POST['degree_pursued']) ? trim($_POST['degree_pursued']) : '';
-        $start_year = !empty($_POST['start_year']) ? trim($_POST['start_year']) : '';
-        $end_year = !empty($_POST['end_year']) ? trim($_POST['end_year']) : '';
-
-        // Validate year format for student statuses
-        if (in_array($status, ['Student', 'Employed & Student'])) {
-            $current_year = date('Y');
-            
-            if (!preg_match('/^\d{4}$/', $start_year) || $start_year < 2000) {
-                throw new Exception("Invalid start year format.");
-            }
-            
-            if (!preg_match('/^\d{4}$/', $end_year) || $end_year < 2000) {
-                throw new Exception("Invalid end year format.");
-            }
-            
-            if ($end_year <= $start_year) {
-                throw new Exception("End Year (Expected Graduation) must be later than Start Year.");
-            }
-            
-            if ($end_year > ($current_year + 10)) {
-                throw new Exception("End Year seems too far in the future. Please verify your expected graduation year.");
-            }
-        }
+        $business_type_other = !empty($_POST['business_type_other']) ? trim($_POST['business_type_other']) : '';
+        $salary_range = !empty($_POST['salary_range']) ? trim($_POST['salary_range']) : '';
+        $school_name = !empty($_POST['school_name']) ? trim($_POST['school_name']) : '';
+        $degree_pursued = !empty($_POST['degree_pursued']) ? trim($_POST['degree_pursued']) : '';
+        $start_year = !empty($_POST['start_year']) ? (int)$_POST['start_year'] : null;
+        $end_year = !empty($_POST['end_year']) ? (int)$_POST['end_year'] : null;
 
         // ---- 2. BACKEND VALIDATION ------------------------------------
-        if (empty($status)) {
+        if (empty($employment_status)) {
             throw new Exception("Employment status is required.");
         }
 
-        // Employment-specific validation
-        if (in_array($status, ['Employed', 'Employed & Student'])) {
-            if (!$job_title) throw new Exception("Job title is required.");
-            if (!$company) throw new Exception("Company name is required.");
-            if (!$company_address) throw new Exception("Company address is required.");
-            if (!$salary) throw new Exception("Salary range is required.");
+        // Validate based on employment status
+        switch ($employment_status) {
+            case 'Employed':
+            case 'Employed & Student':
+                if (empty($job_title_input)) {
+                    throw new Exception("Job title is required for employed status.");
+                }
+                if ($job_title_input === 'Other' && empty($other_job_title)) {
+                    throw new Exception("Please specify job title if 'Other' is selected.");
+                }
+                if (empty($company_name)) {
+                    throw new Exception("Company name is required for employed status.");
+                }
+                if (empty($company_address)) {
+                    throw new Exception("Company address is required for employed status.");
+                }
+                if (empty($salary_range)) {
+                    throw new Exception("Salary range is required for employed status.");
+                }
+                break;
+                
+            case 'Self-Employed':
+                if (empty($business_type)) {
+                    throw new Exception("Business type is required for self-employed status.");
+                }
+                if ($business_type === 'Others (Please specify)' && empty($business_type_other)) {
+                    throw new Exception("Please specify business type if 'Others' is selected.");
+                }
+                break;
+                
+            case 'Student':
+            case 'Employed & Student':
+                if (empty($school_name)) {
+                    throw new Exception("School name is required for student status.");
+                }
+                if (empty($degree_pursued)) {
+                    throw new Exception("Degree pursued is required for student status.");
+                }
+                if (empty($start_year) || empty($end_year)) {
+                    throw new Exception("Start year and end year are required for student status.");
+                }
+                if ($end_year <= $start_year) {
+                    throw new Exception("End year must be later than start year.");
+                }
+                break;
+        }
+
+        // ---- 3. Document Validation ----------------------------------------
+        if (in_array($employment_status, ['Employed', 'Employed & Student'])) {
+            if (!isset($_FILES['coe_file']) || $_FILES['coe_file']['error'] !== UPLOAD_ERR_OK) {
+                throw new Exception("Certificate of Employment (COE) is required for employed status.");
+            }
         }
         
-        if ($status === 'Self-Employed') {
-            if (!$business_type) throw new Exception("Business type is required.");
-            $company = '';
-            $company_address = '';
+        if ($employment_status === 'Self-Employed') {
+            if (!isset($_FILES['business_file']) || $_FILES['business_file']['error'] !== UPLOAD_ERR_OK) {
+                throw new Exception("Business Certificate is required for self-employed status.");
+            }
+        }
+        
+        if (in_array($employment_status, ['Student', 'Employed & Student'])) {
+            if (!isset($_FILES['cor_file']) || $_FILES['cor_file']['error'] !== UPLOAD_ERR_OK) {
+                throw new Exception("Certificate of Registration (COR) is required for student status.");
+            }
         }
 
-        // Education validation
-        if (in_array($status, ['Student', 'Employed & Student'])) {
-            if (!$school) throw new Exception("School name is required.");
-            if (!$degree) throw new Exception("Degree pursued is required.");
-            if (!$start_year) throw new Exception("Start year is required.");
-            if (!$end_year) throw new Exception("End year is required.");
+        // ---- 4. Handle Job Titles (According to Schema) --------------------
+        $job_title_id = null;
+        if (in_array($employment_status, ['Employed', 'Employed & Student']) && !empty($job_title_input)) {
+            $final_job_title = ($job_title_input === 'Other') ? $other_job_title : $job_title_input;
+            
+            // Check if job title exists
+            $stmt = $conn->prepare("SELECT job_title_id FROM job_titles WHERE title = ?");
+            $stmt->bind_param("s", $final_job_title);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            
+            if ($result->num_rows > 0) {
+                $row = $result->fetch_assoc();
+                $job_title_id = $row['job_title_id'];
+            } else {
+                // Insert new job title
+                $stmt = $conn->prepare("INSERT INTO job_titles (title) VALUES (?)");
+                $stmt->bind_param("s", $final_job_title);
+                $stmt->execute();
+                $job_title_id = $stmt->insert_id;
+            }
+            $stmt->close();
         }
 
-        // ---- 3. Ensure alumni_profile record exists and update employment status -----------
-        if ($alumni_profile) {
-            // Update existing alumni_profile
-            $stmt = $conn->prepare("UPDATE alumni_profile SET employment_status = ?, last_profile_update = NOW() WHERE user_id = ?");
-            $stmt->bind_param("si", $status, $user_id);
+        // ---- 5. Update alumni_profile --------------------------------------
+        $stmt = $conn->prepare("SELECT user_id FROM alumni_profile WHERE user_id = ?");
+        $stmt->bind_param("i", $user_id);
+        $stmt->execute();
+        $profile_exists = $stmt->get_result()->num_rows > 0;
+        $stmt->close();
+        
+        if ($profile_exists) {
+            $stmt = $conn->prepare("UPDATE alumni_profile SET 
+                employment_status = ?, 
+                last_profile_update = NOW(),
+                submitted_at = NOW()
+                WHERE user_id = ?");
+            $stmt->bind_param("si", $employment_status, $user_id);
         } else {
-            // Insert new alumni_profile record (with NULL photo_path since we don't have it in employment form)
-            $stmt = $conn->prepare("INSERT INTO alumni_profile (user_id, employment_status, last_profile_update) VALUES (?, ?, NOW())");
-            $stmt->bind_param("is", $user_id, $status);
+            $stmt = $conn->prepare("INSERT INTO alumni_profile 
+                (user_id, employment_status, last_profile_update, submitted_at)
+                VALUES (?, ?, NOW(), NOW())");
+            $stmt->bind_param("is", $user_id, $employment_status);
         }
         
         if (!$stmt->execute()) {
@@ -155,215 +260,116 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         $stmt->close();
 
-        // ---- 4. Employment info ---------------------------------------------
-        // Delete existing employment info first
+        // ---- 6. Handle employment_info (According to Schema) ---------------
+        // Delete existing employment info
         $stmt = $conn->prepare("DELETE FROM employment_info WHERE user_id = ?");
         $stmt->bind_param("i", $user_id);
         $stmt->execute();
         $stmt->close();
         
-        // Insert employment info ONLY for relevant statuses
-        if (in_array($status, ['Employed', 'Self-Employed', 'Employed & Student'])) {
-            $job_title_id = null;
+        // Insert new employment info for relevant statuses
+        if (in_array($employment_status, ['Employed', 'Self-Employed', 'Employed & Student'])) {
+            // Handle business type according to schema (VARCHAR 255)
+            $final_business_type = $business_type;
+            if ($business_type === 'Others (Please specify)' && !empty($business_type_other)) {
+                $final_business_type = $business_type_other;
+            }
             
-            // Handle job title for employed statuses
-            if (in_array($status, ['Employed', 'Employed & Student']) && !empty($job_title)) {
-                $stmt = $conn->prepare("SELECT job_title_id FROM job_titles WHERE title = ?");
-                $stmt->bind_param("s", $job_title);
-                $stmt->execute();
-                $result = $stmt->get_result();
-                if ($result->num_rows > 0) {
-                    $row = $result->fetch_assoc();
-                    $job_title_id = $row['job_title_id'];
-                } else {
-                    $ins = $conn->prepare("INSERT INTO job_titles (title) VALUES (?)");
-                    $ins->bind_param("s", $job_title);
-                    $ins->execute();
-                    $job_title_id = $conn->insert_id;
-                    $ins->close();
-                }
-                $stmt->close();
-            }
-
-            // For Self-Employed, ensure company fields are empty and job_title_id is null
-            if ($status === 'Self-Employed') {
-                $job_title_id = null;
-                $company = '';
+            // For Self-Employed, clear company fields
+            if ($employment_status === 'Self-Employed') {
+                $company_name = '';
                 $company_address = '';
-                
-                // Salary range is optional for Self-Employed
-                if (empty($salary)) {
-                    $salary = null;
-                }
             }
-
-            // Insert employment info
-            $stmt = $conn->prepare("
-                INSERT INTO employment_info 
-                (user_id, job_title_id, company_name, company_address, business_type, salary_range)
-                VALUES (?, ?, ?, ?, ?, ?)
-            ");
-            $stmt->bind_param(
-                "iissss",
-                $user_id,
-                $job_title_id,
-                $company,
-                $company_address,
-                $business_type,
-                $salary
+            
+            $stmt = $conn->prepare("INSERT INTO employment_info 
+                (user_id, job_title_id, company_name, salary_range, business_type, company_address) 
+                VALUES (?, ?, ?, ?, ?, ?)");
+            $stmt->bind_param("iissss", 
+                $user_id, 
+                $job_title_id, 
+                $company_name, 
+                $salary_range, 
+                $final_business_type, 
+                $company_address
             );
-
+            
             if (!$stmt->execute()) {
-                error_log("Employment info insertion failed: " . $stmt->error);
-                throw new Exception("Failed to save employment information. Please try again.");
+                error_log("Employment info insert failed: " . $stmt->error);
+                throw new Exception("Failed to save employment information.");
             }
             $stmt->close();
         }
 
-        // ---- 5. Education -------------------------------------------------------
-        // Delete existing education info first
+        // ---- 7. Handle education_info --------------------------------------
         $stmt = $conn->prepare("DELETE FROM education_info WHERE user_id = ?");
         $stmt->bind_param("i", $user_id);
         $stmt->execute();
         $stmt->close();
         
-        // Insert education info ONLY for relevant statuses
-        if (in_array($status, ['Student', 'Employed & Student'])) {
+        if (in_array($employment_status, ['Student', 'Employed & Student'])) {
             $stmt = $conn->prepare("INSERT INTO education_info 
-                (user_id, school_name, degree_pursued, start_year, end_year)
-                VALUES (?,?,?,?,?)");
-            $stmt->bind_param("issss", $user_id, $school, $degree, $start_year, $end_year);
-
+                (user_id, school_name, degree_pursued, start_year, end_year) 
+                VALUES (?, ?, ?, ?, ?)");
+            $stmt->bind_param("issii", 
+                $user_id, 
+                $school_name, 
+                $degree_pursued, 
+                $start_year, 
+                $end_year
+            );
+            
             if (!$stmt->execute()) {
-                error_log("Education info insertion failed: " . $stmt->error);
-                throw new Exception("Failed to save education information. Please try again.");
+                throw new Exception("Failed to save education information.");
             }
             $stmt->close();
         }
 
-        // ---- 6. Document handler -----------------------------------------------
-        function handle_employment_document($field, $dir, $user_id, $code) {
-            global $conn;
-            
-            if (!isset($_FILES[$field]) || $_FILES[$field]['error'] !== UPLOAD_ERR_OK) {
-                return null;
+        // ---- 8. Handle Documents -------------------------------------------
+        // Delete existing documents for this user
+        $stmt = $conn->prepare("DELETE FROM alumni_documents WHERE user_id = ?");
+        $stmt->bind_param("i", $user_id);
+        $stmt->execute();
+        $stmt->close();
+        
+        // Upload and insert new documents
+        if (in_array($employment_status, ['Employed', 'Employed & Student'])) {
+            $coe_path = upload_employment_document('coe_file', $user_id, 'coe');
+            if ($coe_path) {
+                $stmt = $conn->prepare("INSERT INTO alumni_documents (user_id, document_type, file_path) VALUES (?, 'COE', ?)");
+                $stmt->bind_param("is", $user_id, $coe_path);
+                $stmt->execute();
+                $stmt->close();
             }
-
-            // File validation
-            $file = $_FILES[$field];
-            $max_size = 2 * 1024 * 1024; // 2MB
-
-            if ($file['size'] > $max_size) {
-                throw new Exception("File exceeds the 2MB size limit.");
-            }
-            
-            $finfo = finfo_open(FILEINFO_MIME_TYPE);
-            $mime_type = finfo_file($finfo, $file['tmp_name']);
-            finfo_close($finfo);
-            
-            if ($mime_type !== 'application/pdf') {
-                throw new Exception("Invalid file type. Only PDF files are allowed.");
-            }
-            
-            // Get user's surname for filename
-            $user_stmt = $conn->prepare("SELECT last_name FROM users WHERE user_id = ?");
-            $user_stmt->bind_param("i", $user_id);
-            $user_stmt->execute();
-            $user_result = $user_stmt->get_result();
-            $user_data = $user_result->fetch_assoc();
-            $user_stmt->close();
-
-            $surname = 'Unknown';
-            if ($user_data && !empty($user_data['last_name'])) {
-                $surname = preg_replace("/[^a-zA-Z0-9]/", "", $user_data['last_name']);
-                $surname = ucfirst($surname);
-            }
-
-            $doc_type_map = [
-                'coe' => 'COE',
-                'business' => 'B_CERT', 
-                'cor' => 'COR'
-            ];
-            
-            $doc_type = $doc_type_map[$code] ?? $code;
-            $name = $surname . '_' . $doc_type . '.pdf';
-            $target = rtrim($dir, '/') . '/' . $name;
-
-            if (!move_uploaded_file($file['tmp_name'], $target)) {
-                throw new Exception("File upload failed. Please try again.");
-            }
-            
-            $return_path = str_replace('../', '', $target);
-            return $return_path;
-        }
-
-        // Delete existing documents first (optional - could keep old documents)
-        // $stmt = $conn->prepare("DELETE FROM alumni_documents WHERE user_id = ?");
-        // $stmt->bind_param("i", $user_id);
-        // $stmt->execute();
-        // $stmt->close();
-
-        // Process each required document
-        $required_docs = [];
-        if (in_array($status, ['Employed', 'Employed & Student'])) {
-            $required_docs['coe'] = 'coe_file';
-        }
-        if ($status === 'Self-Employed') {
-            $required_docs['business'] = 'business_file';
-        }
-        if (in_array($status, ['Student', 'Employed & Student'])) {
-            $required_docs['cor'] = 'cor_file';
         }
         
-        foreach ($required_docs as $code => $field) {
-            if (isset($_FILES[$field]) && $_FILES[$field]['error'] === UPLOAD_ERR_OK) {
-                $dir = $code === 'coe' ? '../uploads/coe/' : 
-                       ($code === 'business' ? '../uploads/business/' : '../uploads/cor/');
-                
-                $new_path = handle_employment_document($field, $dir, $user_id, $code);
-                
-                if ($new_path) {
-                    // Delete old document of same type if exists
-                    $doc_code = strtoupper($code === 'coe' ? 'COE' : ($code === 'business' ? 'B_CERT' : 'COR'));
-                    $stmt = $conn->prepare("DELETE FROM alumni_documents WHERE user_id = ? AND document_type = ?");
-                    $stmt->bind_param("is", $user_id, $doc_code);
-                    $stmt->execute();
-                    $stmt->close();
-                    
-                    // Insert new document
-                    $stmt = $conn->prepare("INSERT INTO alumni_documents (user_id, document_type, file_path) VALUES (?, ?, ?)");
-                    $stmt->bind_param("iss", $user_id, $doc_code, $new_path);
-                    $stmt->execute();
-                    $stmt->close();
-                }
-            } else {
-                $doc_name = $code === 'coe' ? 'Certificate of Employment' : 
-                           ($code === 'business' ? 'Business Certificate' : 'Certificate of Registration');
-                throw new Exception("{$doc_name} is required for your employment status ({$status}).");
+        if ($employment_status === 'Self-Employed') {
+            $business_path = upload_employment_document('business_file', $user_id, 'business');
+            if ($business_path) {
+                $stmt = $conn->prepare("INSERT INTO alumni_documents (user_id, document_type, file_path) VALUES (?, 'B_CERT', ?)");
+                $stmt->bind_param("is", $user_id, $business_path);
+                $stmt->execute();
+                $stmt->close();
+            }
+        }
+        
+        if (in_array($employment_status, ['Student', 'Employed & Student'])) {
+            $cor_path = upload_employment_document('cor_file', $user_id, 'cor');
+            if ($cor_path) {
+                $stmt = $conn->prepare("INSERT INTO alumni_documents (user_id, document_type, file_path) VALUES (?, 'COR', ?)");
+                $stmt->bind_param("is", $user_id, $cor_path);
+                $stmt->execute();
+                $stmt->close();
             }
         }
 
         // Commit transaction
         $conn->commit();
-        
-        // Activity logs
-        if (in_array($status, ['Employed', 'Employed & Student'])) {
-            log_alumni_activity($conn, $user_id, 'document_uploaded', 'Uploaded Certificate of Employment (COE)');
-        }
-        if ($status === 'Self-Employed') {
-            log_alumni_activity($conn, $user_id, 'document_uploaded', 'Uploaded Business Certificate');
-        }
-        if (in_array($status, ['Student', 'Employed & Student'])) {
-            log_alumni_activity($conn, $user_id, 'document_uploaded', 'Uploaded Certificate of Registration (COR)');
-        }
 
+        // Log activity
         log_alumni_activity($conn, $user_id, 'employment_updated', 'Updated employment information');
 
-        // Set session flag to indicate successful submission
-        $_SESSION['employment_submitted'] = true;
-
         // Redirect after successful submission
-        header("Location: alumni_employment.php?success=Employment information updated successfully!");
+        header("Location: alumni_employment.php?success=Employment information submitted successfully! Documents are pending review.");
         exit;
 
     } catch (Exception $e) {
@@ -376,4 +382,3 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $conn->close();
 ob_end_flush();
-?>
