@@ -27,9 +27,9 @@ if (!function_exists('getEmploymentStatusColor')) {
     }
 }
 
-if (!function_exists('getDocumentStatusColor')) {
-    function getDocumentStatusColor($status) {
-        if (empty($status) || $status === 'Not Submitted') {
+if (!function_exists('getSubmissionStatusColor')) {
+    function getSubmissionStatusColor($status) {
+        if (empty($status) || $status === 'Not Started') {
             return 'bg-gray-100 text-gray-800 border-gray-200';
         }
         switch ($status) {
@@ -55,14 +55,14 @@ if (!function_exists('getEmploymentStatusIcon')) {
     }
 }
 
-if (!function_exists('getDocumentStatusIcon')) {
-    function getDocumentStatusIcon($status) {
-        if (empty($status)) return 'fas fa-file text-gray-600';
+if (!function_exists('getSubmissionStatusIcon')) {
+    function getSubmissionStatusIcon($status) {
+        if (empty($status)) return 'fas fa-user-clock text-gray-600';
         switch ($status) {
             case 'Approved': return 'fas fa-check-circle text-green-600';
             case 'Pending': return 'fas fa-clock text-yellow-600';
             case 'Rejected': return 'fas fa-times-circle text-red-600';
-            default: return 'fas fa-file text-gray-600';
+            default: return 'fas fa-user-clock text-gray-600';
         }
     }
 }
@@ -237,6 +237,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             <span>Alumni Records</span>
                         </a>
                     </li>
+                   
                 </ul>
 
                 <!-- Logout -->
@@ -248,38 +249,43 @@ document.addEventListener("DOMContentLoaded", () => {
                     </a>
                 </div>
             </div>
+            
+            <!-- Sidebar Footer -->
+            
         </nav>
 
-        <!-- Main Content -->
-        <div class="flex-1 flex flex-col min-w-0">
-            <!-- Top Bar -->
-            <header class="bg-white header-shadow z-10">
-                <div class="flex items-center justify-between p-4">
-                    <!-- Page Title and Breadcrumb -->
-                    <div>
-                        <h1 class="text-3xl font-bold text-gray-800">
-                            <?php echo htmlspecialchars($page_title ?? "Admin Dashboard", ENT_QUOTES, 'UTF-8'); ?>
-                        </h1>
-                        <nav class="flex text-base text-gray-500 mt-1">
-                            <?php
-                            $active_page = $active_page ?? 'dashboard';
-                            $welcome_text = "Welcome back! Here's what's happening today.";
-                            
-                            if ($active_page === 'alumni_management') {
-                                $welcome_text = "Manage and view all alumni records in the system.";
-                            } elseif ($active_page === 'activity_log') {
-                                $welcome_text = "Track updates, approvals, rejections, and other admin activities.";
-                            } elseif ($active_page === 'dashboard') {
-                                $welcome_text = "Welcome back! Here's what's happening today.";
-                            }
-                            ?>
-                            
-                            <span class="text-gray-500"><?php echo htmlspecialchars($welcome_text, ENT_QUOTES, 'UTF-8'); ?></span>
-                        </nav>
-                    </div>
+      <!-- Main Content -->
+<div class="flex-1 flex flex-col min-w-0">
+    <!-- Top Bar -->
+    <header class="bg-white header-shadow z-10">
+        <div class="flex items-center justify-between p-4">
+            <!-- Page Title and Breadcrumb -->
+            <div>
+                <h1 class="text-3xl font-bold text-gray-800">
+                    <?php echo htmlspecialchars($page_title ?? "Admin Dashboard", ENT_QUOTES, 'UTF-8'); ?>
+                </h1>
+                <nav class="flex text-base text-gray-500 mt-1">
+                    <?php
+                    $active_page = $active_page ?? 'dashboard';
+                    $welcome_text = "Welcome back! Here's what's happening today.";
                     
+                    if ($active_page === 'alumni_management') {
+                        $welcome_text = "Manage and view all alumni records in the system.";
+                    } elseif ($active_page === 'activity_log') {
+                        $welcome_text = "Track updates, approvals, rejections, and other admin activities.";
+                    } elseif ($active_page === 'dashboard') {
+                        $welcome_text = "Welcome back! Here's what's happening today.";
+                    }
+                    ?>
+                    
+                    <span class="text-gray-500"><?php echo htmlspecialchars($welcome_text, ENT_QUOTES, 'UTF-8'); ?></span>
+                
+                </nav>
+            </div>
                     <!-- Right Side Actions -->
                     <div class="flex items-center space-x-4">
+                       
+                        
                         <!-- Notifications -->
                         <div class="relative">
                             <button class="relative text-gray-600 hover:text-blue-600 transition p-2 rounded-full hover:bg-gray-100">
