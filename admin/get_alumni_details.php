@@ -13,6 +13,7 @@ if (!$user_id || !is_numeric($user_id)) {
     exit();
 }
 
+// CORRECTED QUERY - Fixed table joins and removed MAX() on document_status
 $query = "
     SELECT
         CONCAT(
@@ -35,26 +36,34 @@ $query = "
         ap.photo_path,
         ap.last_profile_update,
         ap.submitted_at,
-        ei.company_name,
-        ei.salary_range,
-        jt.title as job_title,
-        ei.business_type,
-        ei.company_address,
-        edu.school_name,
-        edu.degree_pursued,
-        edu.start_year,
-        edu.end_year,
-        aa.city,
-        aa.state_province,
-        aa.country,
-        aa.street,
-        (SELECT MAX(document_status) FROM alumni_documents WHERE user_id = u.user_id) as document_status
+        -- Get latest employment info (if exists)
+        (SELECT company_name FROM employment_info WHERE user_id = u.user_id ORDER BY employment_id DESC LIMIT 1) as company_name,
+        (SELECT salary_range FROM employment_info WHERE user_id = u.user_id ORDER BY employment_id DESC LIMIT 1) as salary_range,
+        (SELECT business_type FROM employment_info WHERE user_id = u.user_id ORDER BY employment_id DESC LIMIT 1) as business_type,
+        (SELECT company_address FROM employment_info WHERE user_id = u.user_id ORDER BY employment_id DESC LIMIT 1) as company_address,
+        -- Get job title through join
+        (SELECT jt.title FROM employment_info ei 
+         LEFT JOIN job_titles jt ON ei.job_title_id = jt.job_title_id 
+         WHERE ei.user_id = u.user_id ORDER BY ei.employment_id DESC LIMIT 1) as job_title,
+        -- Get latest education info (if exists)
+        (SELECT school_name FROM education_info WHERE user_id = u.user_id ORDER BY education_id DESC LIMIT 1) as school_name,
+        (SELECT degree_pursued FROM education_info WHERE user_id = u.user_id ORDER BY education_id DESC LIMIT 1) as degree_pursued,
+        (SELECT start_year FROM education_info WHERE user_id = u.user_id ORDER BY education_id DESC LIMIT 1) as start_year,
+        (SELECT end_year FROM education_info WHERE user_id = u.user_id ORDER BY education_id DESC LIMIT 1) as end_year,
+        -- Get address info
+        (SELECT city FROM alumni_address WHERE user_id = u.user_id LIMIT 1) as city,
+        (SELECT state_province FROM alumni_address WHERE user_id = u.user_id LIMIT 1) as state_province,
+        (SELECT country FROM alumni_address WHERE user_id = u.user_id LIMIT 1) as country,
+        (SELECT street FROM alumni_address WHERE user_id = u.user_id LIMIT 1) as street,
+        -- Get overall document status (check if any are pending)
+        CASE 
+            WHEN EXISTS (SELECT 1 FROM alumni_documents WHERE user_id = u.user_id AND document_status = 'Rejected') THEN 'Rejected'
+            WHEN EXISTS (SELECT 1 FROM alumni_documents WHERE user_id = u.user_id AND document_status = 'Pending') THEN 'Pending'
+            WHEN EXISTS (SELECT 1 FROM alumni_documents WHERE user_id = u.user_id AND document_status = 'Approved') THEN 'Approved'
+            ELSE 'No Documents'
+        END as document_status
     FROM users u
     LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id
-    LEFT JOIN alumni_address aa ON u.user_id = aa.user_id
-    LEFT JOIN employment_info ei ON ap.user_id = ei.user_id
-    LEFT JOIN job_titles jt ON ei.job_title_id = jt.job_title_id
-    LEFT JOIN education_info edu ON ap.user_id = edu.user_id
     WHERE u.user_id = ?
     LIMIT 1
 ";

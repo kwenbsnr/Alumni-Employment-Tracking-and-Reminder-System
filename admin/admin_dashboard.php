@@ -356,7 +356,8 @@ ob_start();
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #06b6d4;">
+            <!--    
+            <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #06b6d4;">
                     <div class="p-4">
                         <div class="flex items-center justify-between">
                             <div>
@@ -391,6 +392,7 @@ ob_start();
                         </div>
                     </div>
                 </div>
+                -->
             </div>
         </div>
 
