@@ -207,6 +207,12 @@ if (!function_exists('getSubmissionStatusIcon')) {
                         </a>
                     </li>
                    <li>
+                        <a href="report_generation.php" class="sidebar-item admin-sidebar-item <?php echo ($active_page ?? '') === 'report_generation' ? 'active' : ''; ?> flex items-center space-x-3 p-3 rounded-lg">
+                            <i class="fas fa-file-export w-6 text-lg" aria-hidden="true"></i>
+                            <span>Generate Report</span>
+                        </a>
+                    </li>
+                   <li>
                         <a href="activity_log.php" class="sidebar-item admin-sidebar-item <?php echo ($active_page ?? '') === 'activity_log' ? 'active' : ''; ?> flex items-center space-x-3 p-3 rounded-lg">
                             <i class="fas fa-history w-6 text-lg" aria-hidden="true"></i>
                             <span>Activity Log</span>
@@ -238,6 +244,8 @@ if (!function_exists('getSubmissionStatusIcon')) {
                             
                             if ($active_page === 'alumni_management') {
                                 $welcome_text = "Manage and view all alumni records in the system.";
+                            } elseif ($active_page === 'report_generation') {
+                                $welcome_text = "Generate comprehensive reports on alumni data.";
                             } elseif ($active_page === 'activity_log') {
                                 $welcome_text = "Track updates, approvals, rejections, and other admin activities.";
                             } elseif ($active_page === 'dashboard') {
