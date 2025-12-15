@@ -16,27 +16,6 @@ $active_page = "alumni_management";
 // Get search parameter
 $search = $_GET['search'] ?? '';
 
-// Report generation logic (originally here) has been MOVED to report_generation.php.
-// The block below is intentionally commented/removed.
-/*
-// Handle report generation
-if (isset($_POST['generate_report'])) {
-    $selected_batches = $_POST['selected_batches'] ?? [];
-    $report_type      = $_POST['report_type'] ?? 'summary';
-
-    if (!empty($selected_batches)) {
-        generateAlumniReport($selected_batches, $report_type, $conn);
-        // Exit after generating report to prevent further execution
-        exit();
-    } else {
-        $_SESSION['error_message'] = "Please select at least one batch to generate a report.";
-        // Redirect to clear POST data
-        header("Location: " . $_SERVER['PHP_SELF']);
-        exit();
-    }
-}
-*/
-
 // ====================== SUBMISSIONS CONTROL LOGIC (RETAINED) ======================
 $conn->query("CREATE TABLE IF NOT EXISTS submission_status (
     id INT AUTO_INCREMENT PRIMARY KEY,
