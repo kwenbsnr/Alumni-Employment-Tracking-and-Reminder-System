@@ -20,12 +20,12 @@ $search = $_GET['search'] ?? '';
 $employment_status = $_GET['employment_status'] ?? '';
 $submission_status = $_GET['submission_status'] ?? '';
 
-// Fetch batch statistics
+// Fetch batch statistics - updated to check document status
 $statsQuery = "SELECT
     COUNT(*) as total_alumni,
-    SUM(CASE WHEN ap.submission_status = 'Approved' THEN 1 ELSE 0 END) as approved_count,
-    SUM(CASE WHEN ap.submission_status = 'Pending' THEN 1 ELSE 0 END) as pending_count,
-    SUM(CASE WHEN ap.submission_status = 'Rejected' THEN 1 ELSE 0 END) as rejected_count,
+    SUM(CASE WHEN EXISTS (SELECT 1 FROM alumni_documents ad WHERE ad.user_id = u.user_id AND ad.document_status = 'Approved') THEN 1 ELSE 0 END) as approved_count,
+    SUM(CASE WHEN EXISTS (SELECT 1 FROM alumni_documents ad WHERE ad.user_id = u.user_id AND ad.document_status = 'Pending') THEN 1 ELSE 0 END) as pending_count,
+    SUM(CASE WHEN EXISTS (SELECT 1 FROM alumni_documents ad WHERE ad.user_id = u.user_id AND ad.document_status = 'Rejected') THEN 1 ELSE 0 END) as rejected_count,
     SUM(CASE WHEN ap.user_id IS NULL THEN 1 ELSE 0 END) as no_profile_count
     FROM users u
     LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id
@@ -38,10 +38,10 @@ $batchStats = $statsResult->fetch_assoc();
 
 // Calculate profile completion rate
 $total_alumni = $batchStats['total_alumni'] ?? 0;
-$with_profiles = ($batchStats['approved_count'] ?? 0) + ($batchStats['pending_count'] ?? 0) + ($batchStats['rejected_count'] ?? 0);
+$with_profiles = $total_alumni - ($batchStats['no_profile_count'] ?? 0);
 $completion_rate = $total_alumni > 0 ? round(($with_profiles / $total_alumni) * 100, 1) : 0;
 
-// Build query with filters - UPDATED to include ALL alumni
+// Build query with filters
 $whereConditions = ["u.role = 'alumni'", "u.batch_year = ?"];
 $params = [$batch_year];
 $types = 's';
@@ -61,7 +61,7 @@ if (!empty($submission_status)) {
     if ($submission_status === 'No Profile') {
         $whereConditions[] = "ap.user_id IS NULL";
     } else {
-        $whereConditions[] = "ap.submission_status = ?";
+        $whereConditions[] = "EXISTS (SELECT 1 FROM alumni_documents ad WHERE ad.user_id = u.user_id AND ad.document_status = ?)";
         $params[] = $submission_status;
         $types .= 's';
     }
@@ -82,8 +82,8 @@ $alumniQuery = "
         u.batch_year,
         u.email,
         ap.employment_status, 
-        ap.submission_status, 
-        ap.photo_path
+        ap.photo_path,
+        (SELECT MAX(document_status) FROM alumni_documents ad WHERE ad.user_id = u.user_id) as document_status
     FROM users u
     LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id
     WHERE $whereClause
@@ -167,7 +167,7 @@ ob_start();
                 </select>
             </div>
             <div class="w-full sm:w-48">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Submission Status</label>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Document Status</label>
                 <select name="submission_status" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                     <option value="">All Status</option>
                     <option value="Pending" <?= $submission_status === 'Pending' ? 'selected' : '' ?>>Pending</option>
@@ -196,7 +196,7 @@ ob_start();
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Alumni</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employment</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submission</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Document Status</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Documents</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
@@ -205,11 +205,12 @@ ob_start();
                     <?php while ($alumni = $alumniResult->fetch_assoc()): ?>
                         <?php
                         // Fetch documents
-                        $docStmt = $conn->prepare("SELECT document_type, file_path FROM alumni_documents WHERE user_id = ?");
+                        $docStmt = $conn->prepare("SELECT document_type, file_path, document_status FROM alumni_documents WHERE user_id = ?");
                         $docStmt->bind_param('i', $alumni['user_id']);
                         $docStmt->execute();
                         $docResult = $docStmt->get_result();
                         $documents = $docResult->fetch_all(MYSQLI_ASSOC);
+                        $document_status = $alumni['document_status'] ?? null;
                         ?>
                         <tr class="hover:bg-gray-50">
                             <td class="px-6 py-4 whitespace-nowrap">
@@ -238,9 +239,9 @@ ob_start();
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="px-3 py-1.5 inline-flex text-sm font-semibold rounded-full <?= getSubmissionStatusColor($alumni['submission_status']) ?> border <?= getSubmissionStatusBorder($alumni['submission_status']) ?> shadow-sm">
-                                    <i class="<?= getSubmissionStatusIcon($alumni['submission_status']) ?> mr-2"></i>
-                                    <?= ($alumni['submission_status'] === null || $alumni['submission_status'] === '') ? 'No Profile' : htmlspecialchars($alumni['submission_status']) ?>
+                                <span class="px-3 py-1.5 inline-flex text-sm font-semibold rounded-full <?= getSubmissionStatusColor($document_status) ?> border <?= getSubmissionStatusBorder($document_status) ?> shadow-sm">
+                                    <i class="<?= getSubmissionStatusIcon($document_status) ?> mr-2"></i>
+                                    <?= ($document_status === null || $document_status === '') ? 'No Documents' : htmlspecialchars($document_status) ?>
                                 </span>
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-500">
@@ -253,6 +254,7 @@ ob_start();
                                             ?>
                                             <div class="flex items-center hover:bg-gray-50 rounded px-2 py-1 transition-colors">
                                                 <span class="font-semibold text-gray-800 text-sm"><?= $name ?></span>
+                                                <span class="text-xs ml-2 px-1.5 py-0.5 rounded <?= getSubmissionStatusColor($doc['document_status']) ?>"><?= $doc['document_status'] ?></span>
                                                 <a href="../<?= htmlspecialchars($doc['file_path']) ?>" target="_blank" class="text-blue-600 hover:text-blue-800 flex items-center text-sm font-semibold ml-2">
                                                     <i class="fas fa-external-link-alt mr-1"></i> View
                                                 </a>
@@ -264,14 +266,14 @@ ob_start();
                                 <?php endif; ?>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <?php if (empty($alumni['submission_status']) || $alumni['submission_status'] === ''): ?>
+                                <?php if (empty($alumni['employment_status']) || $alumni['employment_status'] === ''): ?>
                                     <div class="flex justify-left">
                                         <span class="px-3 py-1.5 inline-flex text-sm font-semibold rounded-full bg-gray-100 text-gray-800 border border-gray-200 shadow-sm">
                                             <i class="fas fa-user-clock mr-2 text-gray-600"></i>
                                             No Profile
                                         </span>
                                     </div>
-                                <?php elseif ($alumni['submission_status'] === 'Pending'): ?>
+                                <?php elseif ($document_status === 'Pending'): ?>
                                     <div class="flex gap-2">
                                         <button onclick="showApproveModal(<?= $alumni['user_id'] ?>, '<?= htmlspecialchars($alumni['name'], ENT_QUOTES) ?>')"
                                                 class="text-green-600 hover:text-green-900 px-3 py-1 border border-green-600 rounded-lg hover:bg-green-50">

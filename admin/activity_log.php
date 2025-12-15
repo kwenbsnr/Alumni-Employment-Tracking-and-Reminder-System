@@ -89,7 +89,7 @@ $activityResult = $activityStmt->get_result();
 ob_start();
 ?>
 <div class="space-y-6">
-    <!-- HEADER & FILTERS (unchanged) -->
+    <!-- HEADER & FILTERS -->
     <div class="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div class="flex-1 md:flex md:justify-start">
             <div class="rounded-2xl bg-gradient-to-r from-purple-50 to-white p-4 shadow-lg border border-purple-100">
@@ -102,7 +102,7 @@ ob_start();
                                 <option value="update" <?= $filter_type === 'update' ? 'selected' : '' ?>>Update</option>
                                 <option value="approve" <?= $filter_type === 'approve' ? 'selected' : '' ?>>Approve</option>
                                 <option value="reject" <?= $filter_type === 'reject' ? 'selected' : '' ?>>Reject</option>
-                                <option value="undo" <?= $filter_type === 'undo' ? 'selected' : '' ?>>Undo</option>
+                                <!-- REMOVED: 'undo' option as it's not in ENUM -->
                             </select>
                         </div>
 
@@ -155,7 +155,6 @@ ob_start();
                     <th class="px-3 py-4">Details</th>
                     <th class="px-3 py-4">Admin</th>
                     <th class="px-3 py-4">Time</th>
-                    <!-- Undo column removed -->
                 </tr>
             </thead>
 
@@ -223,13 +222,11 @@ ob_start();
                                     </div>
                                 </div>
                             </td>
-
-                            <!-- Undo column completely removed -->
                         </tr>
                     <?php endwhile; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="4" class="px-6 py-12 text-center"> <!-- colspan changed from 5 → 4 -->
+                        <td colspan="4" class="px-6 py-12 text-center">
                             <div class="max-w-md mx-auto">
                                 <div class="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
                                     <i class="fas fa-inbox text-2xl text-gray-400"></i>
@@ -247,7 +244,7 @@ ob_start();
         </table>
     </div>
 
-    <!-- PAGINATION (unchanged) -->
+    <!-- PAGINATION -->
     <?php if ($totalPages > 1): ?>
         <div class="px-6 py-5 border-t border-gray-200 bg-gray-50/50 rounded-b-xl">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -288,14 +285,13 @@ ob_start();
 </div>
 
 <?php
-// Helper functions (unchanged)
+// Helper functions - UPDATED to match schema
 function getActivityIcon($update_type) {
     switch ($update_type) {
         case 'approve': return 'check-circle';
         case 'reject':  return 'times-circle';
         case 'update':  return 'edit';
-        case 'undo':    return 'undo';
-        default:        return 'sync';
+        default:        return 'sync'; // Default for any unexpected values
     }
 }
 
@@ -304,7 +300,6 @@ function getActivityColor($update_type) {
         case 'approve': return 'bg-green-100 text-green-600';
         case 'reject':  return 'bg-red-100 text-red-600';
         case 'update':  return 'bg-blue-100 text-blue-600';
-        case 'undo':    return 'bg-orange-100 text-orange-600';
         default:        return 'bg-purple-100 text-purple-600';
     }
 }
@@ -314,7 +309,6 @@ function getActivityBadgeColor($update_type) {
         case 'approve': return 'bg-green-100 text-green-800';
         case 'reject':  return 'bg-red-100 text-red-800';
         case 'update':  return 'bg-blue-100 text-blue-800';
-        case 'undo':    return 'bg-orange-100 text-orange-800';
         default:        return 'bg-gray-100 text-gray-800';
     }
 }
@@ -322,21 +316,29 @@ function getActivityBadgeColor($update_type) {
 function getActivityCategory($update_type) {
     switch ($update_type) {
         case 'approve':
-        case 'reject':  return 'Profile Review';
+        case 'reject':  return 'Document Review';
         case 'update':  return 'Profile Update';
-        case 'undo':    return 'Action Reversal';
         default:        return 'System Action';
     }
 }
 
 function getConciseActivityText($activity) {
     $name = !empty($activity['alumni_name']) ? htmlspecialchars($activity['alumni_name']) : "Alumni";
+    
+    // Check if update_details contains more specific information
+    $details = $activity['update_details'] ?? '';
+    
+    // If we have specific details in update_details, use them
+    if (!empty($details)) {
+        return htmlspecialchars($details, ENT_QUOTES, 'UTF-8');
+    }
+    
+    // Otherwise, use default messages
     switch ($activity['update_type']) {
-        case 'approve': return "Approved {$name}'s profile";
-        case 'reject':  return "Rejected {$name}'s profile";
-        case 'update':  return "Updated {$name}'s information";
-        case 'undo':    return "Undid previous action for {$name}";
-        default:        return "Modified {$name}'s profile";
+        case 'approve': return "Approved documents for {$name}";
+        case 'reject':  return "Rejected documents for {$name}";
+        case 'update':  return "Updated profile for {$name}";
+        default:        return "Modified record for {$name}";
     }
 }
 
@@ -370,4 +372,3 @@ function time_elapsed_string($datetime, $full = false) {
 
 $page_content = ob_get_clean();
 include("admin_format.php");
-?>

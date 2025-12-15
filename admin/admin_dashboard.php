@@ -810,17 +810,7 @@ new Chart(gradCtx, {
 document.addEventListener("DOMContentLoaded", () => {
     const chartContainers = document.querySelectorAll('.stats-card');
     
-    chartContainers.forEach(container => {
-        // Initial animation
-        container.style.opacity = '0';
-        container.style.transform = 'translateY(20px)';
-        
-        setTimeout(() => {
-            container.style.transition = 'all 0.6s ease-out';
-            container.style.opacity = '1';
-            container.style.transform = 'translateY(0)';
-        }, 100);
-        
+    chartContainers.forEach(container => {        
         // Enhanced hover effects
         container.addEventListener('mouseenter', function() {
             this.style.transform = 'translateY(-5px) scale(1.02)';
