@@ -324,9 +324,10 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
     <?php endif; ?>
 </div>
+
 <!-- Profile Update Modal - Personal Information Only -->
 <div id="profileUpdateModal" class="hidden fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50 transition-all duration-300 p-4">
-    <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+    <div class="bg-white rounded-xl shadow-0xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         <!-- Enhanced Header -->
         <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200 p-6">
             <div class="flex justify-between items-center">
@@ -344,70 +345,67 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="flex-1 overflow-y-auto p-6 bg-gray-50">
             <form id="alumniProfileForm" class="space-y-6" action="update_profile.php" method="post" enctype="multipart/form-data">
                 
-                <!-- Profile Picture Upload Section -->
-                <div class="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
-                    <h3 class="text-base font-semibold text-gray-800 mb-4 flex items-center">
-                        <div class="bg-purple-100 rounded-lg p-2 mr-3">
-                            <i class="fas fa-camera text-purple-600 text-sm"></i>
-                        </div>
-                        Profile Photo
-                        <?php if (!empty($profile['photo_path'])): ?>
-                            <span class="text-xs font-normal text-green-600 ml-2 bg-green-50 px-2 py-1 rounded flex items-center">
-                                <i class="fas fa-check-circle mr-1"></i>Current photo will be replaced
-                            </span>
-                        <?php endif; ?>
-                    </h3>
-                    
-                    <div class="flex flex-col md:flex-row items-center gap-6">
-                        <!-- Photo Preview -->
-                        <div class="flex-shrink-0">
-                            <div class="relative inline-block">
-                                <div class="w-32 h-32 rounded-full overflow-hidden mx-auto border-4 border-gray-300 bg-gray-100">
-                                    <img id="profilePreview" src="<?php 
-                                        echo !empty($profile['photo_path']) ? 
-                                        '../' . htmlspecialchars($profile['photo_path']) . '?v=' . time() : 
-                                        'https://placehold.co/128x128/eeeeee/333333?text=Upload+Photo'; 
-                                    ?>" alt="Profile Picture" class="w-full h-full object-cover">
-                                </div>
-                                <?php if (!empty($profile['photo_path'])): ?>
-                                <div class="absolute bottom-2 right-2 bg-green-500 rounded-full p-2 shadow-md">
-                                    <i class="fas fa-check text-white text-xs"></i>
-                                </div>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                        
-                        <!-- Upload Controls -->
-                        <div class="flex-1">
-                            <div class="space-y-3">
-                                <div>
-                                    <button type="button" id="uploadPictureBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-2.5 rounded-lg transition duration-200 shadow-sm hover:shadow flex items-center gap-2">
-                                        <i class="fas fa-upload"></i>
-                                        <span>Choose Photo</span>
-                                    </button>
-                                    <input type="file" id="profilePictureInput" name="profile_photo" accept="image/jpeg,image/png,image/jpg" class="hidden">
-                                </div>
-                                
-                                <div class="text-sm text-gray-600 space-y-1">
-                                    <p class="flex items-center">
-                                        <i class="fas fa-info-circle text-blue-500 mr-2"></i>
-                                        JPG or PNG format, maximum 2MB
-                                    </p>
-                                    <p class="flex items-center">
-                                        <i class="fas fa-user-circle text-purple-500 mr-2"></i>
-                                        Photo will appear in sidebar and profile
-                                    </p>
-                                    <?php if (empty($profile['photo_path'])): ?>
-                                    <p class="flex items-center text-amber-600">
-                                        <i class="fas fa-exclamation-triangle mr-2"></i>
-                                        No profile photo uploaded yet
-                                    </p>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+           <div class="bg-white p-6 md:p-8 rounded-xl border border-gray-100 shadow-10">
+    <h3 class="text-l font-bold text-gray-900 mb-6 flex items-center border-b pb-4">
+        <div class="bg-indigo-50 rounded-full p-3 mr-4 ring-2 ring-indigo-100">
+            <i class="fas fa-camera text-indigo-600 text-lg"></i>
+        </div>
+        Profile Photo Management
+        <?php if (!empty($profile['photo_path'])): ?>
+            <span class="text-xs font-semibold text-green-700 ml-4 bg-green-100 px-3 py-1.5 rounded-full flex items-center transition-all duration-300">
+                <i class="fas fa-sync-alt mr-1.5 animate-spin-slow"></i>Current Photo will be replaced
+            </span>
+        <?php endif; ?>
+    </h3>
+    
+    <div class="flex flex-col lg:flex-row items-center gap-8">
+        <div class="flex-shrink-0">
+            <div class="relative inline-block group">
+                <div class="w-36 h-36 md:w-40 md:h-40 rounded-full overflow-hidden mx-auto border-4 border-indigo-300 bg-gray-50 shadow-inner ring-4 ring-indigo-50 transition-all duration-300 group-hover:border-indigo-500">
+                    <img id="profilePreview" src="<?php 
+                        echo !empty($profile['photo_path']) ? 
+                        '../' . htmlspecialchars($profile['photo_path']) . '?v=' . time() : 
+                        'https://placehold.co/160x160/f0f4ff/4338ca?text=Upload+Photo'; 
+                    ?>" alt="Profile Picture" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
                 </div>
+                
+                <?php if (!empty($profile['photo_path'])): ?>
+                <div class="absolute bottom-1 right-1 bg-green-600 rounded-full p-2.5 shadow-xl border-2 border-white transform translate-x-1 translate-y-1 transition-all duration-300 group-hover:scale-110">
+                    <i class="fas fa-check text-white text-sm"></i>
+                </div>
+                <?php else: ?>
+                <div class="absolute bottom-1 right-1 bg-amber-500 rounded-full p-2.5 shadow-xl border-2 border-white transform translate-x-1 translate-y-1 transition-all duration-300 group-hover:scale-110">
+                    <i class="fas fa-exclamation-triangle text-white text-sm"></i>
+                </div>
+                <?php endif; ?>
+            </div>
+        </div>
+        
+        <div class="flex-1 w-full mt-4 lg:mt-0">
+            <div class="space-y-4">
+                
+                <div>
+                    <button type="button" id="uploadPictureBtn" class="w-full md:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-3 rounded-xl transition duration-300 shadow-md hover:shadow-lg transform hover:scale-[1.01] flex items-center justify-center gap-3 focus:outline-none focus:ring-4 focus:ring-indigo-300">
+                        <i class="fas fa-cloud-upload-alt text-lg"></i>
+                        <span>Select New Photo</span>
+                    </button>
+                    <input type="file" id="profilePictureInput" name="profile_photo" accept="image/jpeg,image/png,image/jpg" class="hidden">
+                </div>
+                
+                <div class="text-sm text-gray-700 space-y-2.5 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    
+                    <p class="flex items-start">
+                       
+                        <span class="font-medium">Format & Size:</span> JPG, PNG, or JPEG allowed. Maximum file size is <span class="font-semibold text-gray-900">2MB</span>.
+                    </p>
+                    
+                
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 
                 <!-- Read-Only Student Information -->
                 <div class="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
