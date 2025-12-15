@@ -473,11 +473,9 @@ ob_start();
                     <div class="p-5 border-b border-indigo-100 bg-gradient-to-r from-indigo-50 to-purple-50">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center space-x-3">
-                                <div class="w-10 h-10 bg-indigo-500 text-white flex items-center justify-center rounded-full shadow-md">
-                                    <i class="fas fa-history text-lg"></i>
-                                </div>
+                              
                                 <div>
-                                    <h3 class="text-lg font-extrabold text-indigo-800">Recent Activity ⚡</h3>
+                                    <h3 class="text-lg font-extrabold text-indigo-800">Recent Activity</h3>
                                     <span class="text-xs font-bold text-purple-700 bg-purple-100 px-2 py-1 rounded-full border border-purple-200 shadow-sm">Last 30 Days</span>
                                 </div>
                             </div>
@@ -548,9 +546,7 @@ ob_start();
                                     }
                                     ?>
                                     <div class="flex items-start space-x-3 p-3 rounded-lg <?= $bgColor ?> border border-gray-200 hover:bg-gradient-to-r hover:from-white hover:to-indigo-50 hover:border-indigo-300 transition-all duration-300">
-                                        <div class="w-8 h-8 <?= $color ?> flex items-center justify-center rounded-full flex-shrink-0 mt-0.5 border border-current bg-white shadow-sm">
-                                            <i class="fas <?= $icon ?> text-sm"></i>
-                                        </div>
+                                       
                                         <div class="flex-1 min-w-0">
                                             <p class="text-sm font-semibold text-gray-900 leading-snug">
                                                 <?= htmlspecialchars($act['description'] ?: ucwords(str_replace('_', ' ', $act['action_type']))) ?>
