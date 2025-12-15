@@ -24,11 +24,9 @@ $search = $_GET['search'] ?? '';
 $employment_status = $_GET['employment_status'] ?? '';
 $submission_status = $_GET['submission_status'] ?? '';
 
-// --- PAGINATION SETUP ---
-$per_page = 5; // Fixed number of alumni per page as requested
+$per_page = 20; 
 $current_page = max(1, (int)($_GET['page'] ?? 1));
 $offset = ($current_page - 1) * $per_page;
-// --- END PAGINATION SETUP ---
 
 // 3. Fetch Batch Statistics (Total Count for Stats and Pagination)
 $statsQuery = "SELECT
