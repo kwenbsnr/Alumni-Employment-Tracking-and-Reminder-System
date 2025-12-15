@@ -11,8 +11,13 @@ $stmt = $conn->prepare("
             IF(u.suffix IS NOT NULL AND u.suffix != '', CONCAT(' ', u.suffix), '')
         ) as official_name,
         u.email, u.role,
-        ap.photo_path, ap.contact_number, ap.employment_status, 
-        ap.submission_status, ap.submitted_at, ap.last_profile_update
+        u.contact_number,     
+        ap.photo_path, 
+        ap.employment_status, 
+        ap.last_profile_update,
+        ap.submitted_at,
+        u.citizenship,
+        u.civil_status
     FROM users u
     LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id
     WHERE u.user_id = ?
@@ -37,71 +42,111 @@ $photo_path = $profile['photo_path'] ?? null;
 $notif_count = 0;
 $notifications = [];
 
-// Check for profile submission status
-if ($profile) {
-    $submission_status = $profile['submission_status'] ?? 'Not Submitted';
-    $submitted_at = $profile['submitted_at'] ?? null;
+// Get document status counts for notifications
+$stmt_docs = $conn->prepare("
+    SELECT 
+        COUNT(*) as total,
+        SUM(CASE WHEN document_status = 'Pending' THEN 1 ELSE 0 END) as pending,
+        SUM(CASE WHEN document_status = 'Rejected' THEN 1 ELSE 0 END) as rejected,
+        SUM(CASE WHEN document_status = 'Approved' THEN 1 ELSE 0 END) as approved
+    FROM alumni_documents 
+    WHERE user_id = ?
+");
+$stmt_docs->bind_param("i", $user_id);
+$stmt_docs->execute();
+$doc_result = $stmt_docs->get_result();
+$doc_data = $doc_result->fetch_assoc() ?: [];
+$stmt_docs->close();
+
+$total_docs_count = $doc_data['total'] ?? 0;
+$pending_docs_count = $doc_data['pending'] ?? 0;
+$rejected_docs_count = $doc_data['rejected'] ?? 0;
+$approved_docs_count = $doc_data['approved'] ?? 0;
+
+// Document rejection notifications
+if ($rejected_docs_count > 0) {
+    // Get latest rejected document timestamp
+    $stmt_rejected = $conn->prepare("
+        SELECT MAX(rejected_at) as latest_rejected 
+        FROM alumni_documents 
+        WHERE user_id = ? AND document_status = 'Rejected'
+    ");
+    $stmt_rejected->bind_param("i", $user_id);
+    $stmt_rejected->execute();
+    $rejected_result = $stmt_rejected->get_result();
+    $rejected_data = $rejected_result->fetch_assoc();
+    $stmt_rejected->close();
     
-    switch ($submission_status) {
-        case 'Pending':
-            $notifications[] = [
-                'title' => 'Profile Under Review',
-                'message' => 'Your profile submission is currently being reviewed by administrators.',
-                'timestamp' => $submitted_at,
-                'type' => 'warning'
-            ];
-            $notif_count++;
-            break;
-            
-        case 'Approved':
-            $notifications[] = [
-                'title' => 'Profile Approved',
-                'message' => 'Your alumni profile has been approved and is now active.',
-                'timestamp' => $submitted_at,
-                'type' => 'success'
-            ];
-            break;
-            
-        case 'Rejected':
-            $notifications[] = [
-                'title' => 'Profile Requires Updates',
-                'message' => 'Your profile submission needs additional information. Please review and resubmit.',
-                'timestamp' => $submitted_at,
-                'type' => 'error'
-            ];
-            $notif_count++;
-            break;
-            
-        case 'Not Submitted':
-        default:
-            $notifications[] = [
-                'title' => 'Profile Setup Required',
-                'message' => 'Please complete your alumni profile to access all features.',
-                'timestamp' => null,
-                'type' => 'info'
-            ];
-            $notif_count++;
-            break;
-    }
+    $latest_rejected = $rejected_data['latest_rejected'] ?? null;
     
-    // Check if profile needs completion (based on your dashboard logic)
-    $has_basic_info = !empty($profile['contact_number']) && !empty($profile['employment_status']);
-    $needs_completion = !$has_basic_info || empty($profile['photo_path']);
-    
-    if ($needs_completion && $submission_status === 'Not Submitted') {
-        $notifications[] = [
-            'title' => 'Complete Your Profile',
-            'message' => 'Your profile is incomplete. Please fill in all required information.',
-            'timestamp' => null,
-            'type' => 'info'
-        ];
-        $notif_count++;
-    }
-} else {
-    // No profile data at all
+    $notifications[] = [
+        'title' => 'Documents Rejected',
+        'message' => $rejected_docs_count . ' document(s) were rejected. Please review and resubmit.',
+        'timestamp' => $latest_rejected,
+        'type' => 'error'
+    ];
+    $notif_count++;
+}
+
+// Pending documents notification
+if ($pending_docs_count > 0) {
+    $notifications[] = [
+        'title' => 'Documents Under Review',
+        'message' => 'Your uploaded documents are being reviewed by administrators.',
+        'timestamp' => null,
+        'type' => 'warning'
+    ];
+    $notif_count++;
+}
+
+// Approved documents notification (only if all documents are approved)
+if ($total_docs_count > 0 && $approved_docs_count === $total_docs_count) {
+    $notifications[] = [
+        'title' => 'Documents Approved',
+        'message' => 'All your documents have been approved!',
+        'timestamp' => null,
+        'type' => 'success'
+    ];
+}
+
+// Check if profile is incomplete
+if (empty($profile['contact_number']) || empty($profile['employment_status'])) {
     $notifications[] = [
         'title' => 'Complete Your Profile',
-        'message' => 'Welcome! Please set up your alumni profile to get started.',
+        'message' => 'Please fill in your contact number and employment status.',
+        'timestamp' => null,
+        'type' => 'info'
+    ];
+    $notif_count++;
+}
+
+// Check if address is incomplete
+$stmt_address = $conn->prepare("
+    SELECT COUNT(*) as has_address 
+    FROM alumni_address 
+    WHERE user_id = ? AND country IS NOT NULL AND state_province IS NOT NULL AND city IS NOT NULL
+");
+$stmt_address->bind_param("i", $user_id);
+$stmt_address->execute();
+$address_result = $stmt_address->get_result();
+$address_data = $address_result->fetch_assoc();
+$stmt_address->close();
+
+if (($address_data['has_address'] ?? 0) === 0) {
+    $notifications[] = [
+        'title' => 'Address Information',
+        'message' => 'Please complete your address information.',
+        'timestamp' => null,
+        'type' => 'info'
+    ];
+    $notif_count++;
+}
+
+// Check if profile photo is missing
+if (empty($photo_path)) {
+    $notifications[] = [
+        'title' => 'Profile Photo',
+        'message' => 'Please upload your profile photo.',
         'timestamp' => null,
         'type' => 'info'
     ];
@@ -293,6 +338,10 @@ $page_title = $page_title ?? "Alumni Page";
                     <a href="alumni_profile.php" class="sidebar-item <?php echo ($active_page ?? '') === 'profile' ? 'active' : ''; ?> flex items-center space-x-3 p-3 rounded-lg">
                         <i class="fas fa-user w-5" aria-hidden="true"></i>
                         <span>Profile Management</span>
+                    </a>
+                    <a href="alumni_employment.php" class="sidebar-item <?php echo ($active_page ?? '') === 'employment' ? 'active' : ''; ?> flex items-center space-x-3 p-3 rounded-lg">
+                        <i class="fas fa-briefcase w-5" aria-hidden="true"></i>
+                        <span>Employment Information</span>
                     </a>
                 </nav>
             </div>

@@ -1,5 +1,12 @@
 <?php
 
+// PREVENT EXECUTION WHEN INCLUDED FROM UPDATE_PROFILE.PHP
+if (strpos($_SERVER['PHP_SELF'], 'update_profile.php') !== false) {
+    // Just return without doing anything
+    error_log("Scheduled reminders: Skipped execution during profile update");
+    return;
+}
+
 // Debug: Log when this file is included
 error_log("SCHEDULED_REMINDERS.PHP included from: " . $_SERVER['PHP_SELF']);
 
@@ -33,22 +40,22 @@ function getAlumniForReminders($conn) {
     
     $query = "
         SELECT u.user_id, 
-               CONCAT(
-                   u.first_name,
-                   IF(u.middle_name IS NOT NULL AND u.middle_name != '', CONCAT(' ', u.middle_name), ''),
-                   ' ',
-                   u.last_name,
-                   IF(u.suffix IS NOT NULL AND u.suffix != '', CONCAT(' ', u.suffix), '')
-               ) as alumni_name,
-               u.email as alumni_email, 
-               u.batch_year as graduation_year, ap.employment_status,
-               ap.last_profile_update, ap.submission_status
+            CONCAT(
+                u.first_name,
+                IF(u.middle_name IS NOT NULL AND u.middle_name != '', CONCAT(' ', u.middle_name), ''),
+                ' ',
+                u.last_name,
+                IF(u.suffix IS NOT NULL AND u.suffix != '', CONCAT(' ', u.suffix), '')
+            ) as alumni_name,
+            u.email as alumni_email, 
+            u.batch_year as graduation_year, ap.employment_status,
+            ap.last_profile_update, ap.submission_status
         FROM users u 
         INNER JOIN alumni_profile ap ON u.user_id = ap.user_id 
         WHERE u.role = 'alumni' 
         AND ap.submission_status != 'Approved'
         AND (ap.last_profile_update IS NULL OR 
-             ap.last_profile_update < DATE_SUB(NOW(), INTERVAL 6 MONTH))
+            ap.last_profile_update < DATE_SUB(NOW(), INTERVAL 6 MONTH))
         ORDER BY u.batch_year DESC, alumni_name
     ";
     
@@ -76,14 +83,6 @@ function getSubmissionSchedule($conn) {
     $schedule = $conn->query($query);
     return $schedule->num_rows > 0 ? $schedule->fetch_assoc() : null;
 }
-
-/*
-// Check if submissions are open
-function isSubmissionsOpen($conn) {
-    require_once __DIR__ . '/../utils/schedule_checker.php';
-    return isSubmissionPeriodOpen($conn);
-}
-*/
 
 // Simple notification logger - FIXED WITH CONN PARAMETER
 function logNotification($conn, $email, $template_id, $status, $error_message = '') {
@@ -114,7 +113,13 @@ function runScheduledReminders($conn) {
     }
 
     $now = date('Y-m-d H:i:s');
-    $is_open = isSubmissionsOpen($conn);
+    
+    // Use the deadline.php function to check if submissions are open
+    if (!function_exists('isSubmissionPeriodOpen')) {
+        require_once dirname(__DIR__) . '/utils/deadline.php';
+    }
+    $is_open = isSubmissionPeriodOpen($conn);
+    
     $results = [];
 
     // 1. Check for 2-day closing reminder
@@ -195,12 +200,3 @@ function testScheduledReminders() {
 if (basename(__FILE__) == basename($_SERVER['PHP_SELF'])) {
     testScheduledReminders();
 }
-
-/* AUTORUN REMDRS
-// For cron job usage
-if (isset($conn) && $conn) {
-    $result = runScheduledReminders($conn);
-    error_log("Scheduled reminders: " . $result);
-//    echo $result;
-}
-*/

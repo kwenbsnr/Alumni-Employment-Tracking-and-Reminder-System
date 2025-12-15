@@ -2,10 +2,10 @@
 -- version 5.2.1
 -- https://www.phpmyadmin.net/
 --
--- Host: 127.0.0.1
--- Generation Time: Dec 07, 2025 at 10:50 AM
+-- Host: 127.0.0.1:3306
+-- Generation Time: Dec 13, 2025 at 05:27 AM
 -- Server version: 10.4.32-MariaDB
--- PHP Version: 8.1.25
+-- PHP Version: 8.2.12
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -171,7 +171,32 @@ INSERT INTO `alumni_activity_log` (`log_id`, `user_id`, `action_type`, `descript
 (135, 9, 'profile_submitted', 'Alumni submitted profile for review', '2025-12-05 16:53:24'),
 (136, 9, 'document_uploaded', 'Uploaded Certificate of Registration (COR)', '2025-12-05 16:53:30'),
 (137, 9, 'profile_photo_updated', 'Updated profile picture', '2025-12-05 16:53:30'),
-(138, 9, 'profile_updated', 'Updated personal information and worldwide address', '2025-12-05 16:53:30');
+(138, 9, 'profile_updated', 'Updated personal information and worldwide address', '2025-12-05 16:53:30'),
+(139, 47, 'profile_submitted', 'Alumni submitted profile for review', '2025-12-11 07:27:27'),
+(140, 47, 'document_uploaded', 'Uploaded Certificate of Employment (COE)', '2025-12-11 07:27:27'),
+(141, 47, 'profile_photo_updated', 'Updated profile picture', '2025-12-11 07:27:27'),
+(142, 47, 'profile_updated', 'Updated personal information and worldwide address', '2025-12-11 07:27:27'),
+(143, 47, 'profile_submitted', 'Alumni submitted profile for review', '2025-12-11 07:43:58'),
+(144, 47, 'document_uploaded', 'Uploaded Business Certificate', '2025-12-11 07:43:58'),
+(145, 47, 'profile_photo_updated', 'Updated profile picture', '2025-12-11 07:43:58'),
+(146, 47, 'profile_updated', 'Updated personal information and worldwide address', '2025-12-11 07:43:58'),
+(147, 47, 'profile_submitted', 'Alumni submitted profile for review', '2025-12-11 08:09:28'),
+(148, 47, 'profile_submitted', 'Alumni submitted profile for review', '2025-12-11 08:11:50'),
+(149, 47, 'document_uploaded', 'Uploaded Certificate of Employment (COE)', '2025-12-11 08:11:52'),
+(150, 47, 'profile_photo_updated', 'Updated profile picture', '2025-12-11 08:11:52'),
+(151, 47, 'profile_updated', 'Updated personal information and worldwide address', '2025-12-11 08:11:52'),
+(152, 20, 'profile_submitted', 'Alumni submitted profile for review', '2025-12-12 06:09:18'),
+(153, 20, 'document_uploaded', 'Uploaded Certificate of Registration (COR)', '2025-12-12 06:09:21'),
+(154, 20, 'profile_photo_updated', 'Updated profile picture', '2025-12-12 06:09:21'),
+(155, 20, 'profile_updated', 'Updated personal information and worldwide address', '2025-12-12 06:09:21'),
+(156, 9, 'profile_submitted', 'Alumni submitted profile for review', '2025-12-12 06:32:04'),
+(157, 9, 'document_uploaded', 'Uploaded Certificate of Registration (COR)', '2025-12-12 06:32:05'),
+(158, 9, 'profile_photo_updated', 'Updated profile picture', '2025-12-12 06:32:05'),
+(159, 9, 'profile_updated', 'Updated personal information and worldwide address', '2025-12-12 06:32:05'),
+(160, 47, 'profile_submitted', 'Alumni submitted profile for review', '2025-12-12 08:24:22'),
+(161, 47, 'document_uploaded', 'Uploaded Certificate of Employment (COE)', '2025-12-12 08:24:24'),
+(162, 47, 'profile_photo_updated', 'Updated profile picture', '2025-12-12 08:24:24'),
+(163, 47, 'profile_updated', 'Updated personal information and worldwide address', '2025-12-12 08:24:24');
 
 -- --------------------------------------------------------
 
@@ -193,7 +218,9 @@ CREATE TABLE `alumni_documents` (
 INSERT INTO `alumni_documents` (`doc_id`, `user_id`, `document_type`, `file_path`) VALUES
 (113, 2, 'COR', 'uploads/cor/Bisnar_COR.pdf'),
 (117, 25, 'B_CERT', 'uploads/business/Dablo_b_cert.pdf'),
-(118, 9, 'COR', 'uploads/cor/Omar_COR.pdf');
+(122, 20, 'COR', 'uploads/cor/Escoreal_COR.pdf'),
+(123, 9, 'COR', 'uploads/cor/Omar_COR.pdf'),
+(124, 47, 'COE', 'uploads/coe/Oliveros_COE.pdf');
 
 -- --------------------------------------------------------
 
@@ -219,9 +246,11 @@ CREATE TABLE `alumni_profile` (
 
 INSERT INTO `alumni_profile` (`user_id`, `contact_number`, `employment_status`, `photo_path`, `last_profile_update`, `submission_status`, `rejection_reason`, `rejected_at`, `submitted_at`) VALUES
 (2, '09367891027', 'Student', 'uploads/photos/Bisnar_profile.png', '2025-12-04 08:36:09', 'Rejected', 'Degree pursued information unclear', '2025-12-04 13:13:07', '2025-12-04 08:36:09'),
-(9, '09514715204', 'Student', 'uploads/photos/Omar_profile.png', '2025-12-05 16:53:24', 'Pending', NULL, NULL, '2025-12-05 16:53:24'),
+(9, '09367891027', 'Student', 'uploads/photos/Omar_profile.png', '2025-12-12 06:32:04', 'Rejected', 'flat 1 mi sir', '2025-12-12 06:34:16', '2025-12-12 06:32:04'),
 (17, '09514715204', 'Unemployed', 'uploads/photos/Tabaranza_profile.png', '2025-12-04 12:21:11', 'Approved', NULL, NULL, '2025-12-05 16:55:43'),
-(25, '09121112124', 'Self-Employed', 'uploads/photos/Dablo_profile.png', '2025-12-05 14:15:57', 'Pending', NULL, NULL, '2025-12-05 14:15:57');
+(20, '09212122121', 'Student', 'uploads/photos/Escoreal_profile.png', '2025-12-12 06:09:18', 'Rejected', 'dfghjkl', '2025-12-12 06:13:48', '2025-12-12 06:09:18'),
+(25, '09121112124', 'Self-Employed', 'uploads/photos/Dablo_profile.png', '2025-12-05 14:15:57', 'Pending', NULL, NULL, '2025-12-05 14:15:57'),
+(47, '09514715203', 'Employed', 'uploads/photos/Oliveros_profile.png', '2025-12-12 08:24:22', 'Pending', NULL, NULL, '2025-12-12 08:24:22');
 
 -- --------------------------------------------------------
 
@@ -244,7 +273,8 @@ CREATE TABLE `education_info` (
 
 INSERT INTO `education_info` (`education_id`, `user_id`, `school_name`, `degree_pursued`, `start_year`, `end_year`) VALUES
 (45, 2, 'University of Sto. Tomas', 'gfvdfv', '2025', '2027'),
-(47, 9, 'University of Sto. Tomas', 'PhD', '2023', '2028');
+(48, 20, 'jhcsc', 'maser:s', '2025', '2029'),
+(49, 9, 'Iddk Universiyt', 'Master\'s\'\'s;dls', '2021', '2025');
 
 -- --------------------------------------------------------
 
@@ -267,7 +297,8 @@ CREATE TABLE `employment_info` (
 --
 
 INSERT INTO `employment_info` (`employment_id`, `user_id`, `job_title_id`, `company_name`, `salary_range`, `business_type`, `company_address`) VALUES
-(86, 25, NULL, '', '₱30,000–₱40,000', 'Construction / Carpentry / Electrical', '');
+(86, 25, NULL, '', '₱30,000–₱40,000', 'Construction / Carpentry / Electrical', ''),
+(91, 47, 11, 'Meta', '₱40,000–₱50,000', '', 'Manila, Philippines');
 
 -- --------------------------------------------------------
 
@@ -302,8 +333,10 @@ INSERT INTO `job_titles` (`job_title_id`, `title`) VALUES
 (23, 'Marketing'),
 (12, 'Mobile App Developer'),
 (7, 'Network Administrator'),
+(28, 'other try'),
 (3, 'Software Engineer'),
 (8, 'Systems Analyst'),
+(27, 'test input'),
 (4, 'Web Developer');
 
 -- --------------------------------------------------------
@@ -423,7 +456,9 @@ INSERT INTO `update_log` (`log_id`, `updated_by`, `updated_id`, `update_type`, `
 (69, 3, 18, 'reject', 'Rejected alumni profile - Reason: hi mayeng hahah', '2025-12-04 14:56:42'),
 (70, 3, 22, 'approve', 'Approved alumni profile', '2025-12-04 14:56:55'),
 (71, 5, 48, 'reject', 'Rejected alumni profile - Reason: Missing Certificate of Employment document', '2025-12-05 16:55:32'),
-(72, 5, 17, 'approve', 'Approved alumni profile', '2025-12-05 16:55:43');
+(72, 5, 17, 'approve', 'Approved alumni profile', '2025-12-05 16:55:43'),
+(73, 3, 20, 'reject', 'Rejected alumni profile - Reason: dfghjkl', '2025-12-12 06:13:48'),
+(74, 3, 9, 'reject', 'Rejected alumni profile - Reason: flat 1 me', '2025-12-12 06:34:16');
 
 -- --------------------------------------------------------
 
@@ -456,8 +491,8 @@ INSERT INTO `users` (`user_id`, `email`, `password`, `role`, `first_name`, `midd
 (1, 'josieoliveros013@gmail.com', '$2y$10$ehX/E2zWveVcemhEh6PmLOGJM8HlV2g5jePA7LEfwgftW1DJZ8Uz.', 'alumni', 'Josie', 'Gumera', 'Oliveros', '', '2025-10-13 13:59:40', '2020-00123', '1997-01-11', 'Female', 'Bachelor of Science in Information Technology', '2020'),
 (2, 'quienbisnar@gmail.com', '$2y$10$iVt2fcpR/Z19c8jTMKyA5OgBFCYb5GK44KCQMXmagMMxDstzdparC', 'alumni', 'Quien', 'Bendula', 'Bisnar', '', '2025-10-13 11:48:34', '2020-00124', '2002-12-02', 'Female', 'Bachelor of Science in Information Technology', '2020'),
 (3, 'aseneroglaiza@gmail.com', '$2y$10$UHN1b.vJAkh26l4TdpkxT.Zfsvi3DgvgH5m41PRIGAnMefSpfufhO', 'admin', 'Glaiza', 'Ewayan', 'Aseñero', '', '2025-10-13 14:01:10', NULL, NULL, NULL, NULL, NULL),
-(4, 'glowentanamanmil08@gmail.com', '$2y$10$.X6JG2ZcAC.Oi3RLDciATehWeH1FxfvrB4NBhnT8Eqwy9dkcT1TL.', 'admin', 'Glowen', '', 'Tanaman', '', '2025-10-17 08:59:39', NULL, NULL, NULL, NULL, NULL),
-(5, 'repe.ronaldojr@gmail.com', '$2y$10$AV5HSa53xpJRPykHLCQhuei9q5Rtk7SMFfs.yS9riewWH/d0hylKC', 'admin', 'Ronaldo', 'Montemor', 'Repe', 'Jr.', '2025-10-17 08:59:39', NULL, NULL, NULL, NULL, NULL),
+(4, 'glowentanamanmil08@gmail.com', '$2y$10$.X6JG2ZcAC.Oi3RLDciATehWeH1FxfvrB4NBhnT8Eqwy9dkcT1TL.', 'alumni', 'Glowen', '', 'Tanaman', '', '2025-10-17 08:59:39', NULL, NULL, NULL, NULL, NULL),
+(5, 'repe.ronaldojr@gmail.com', '$2y$10$AV5HSa53xpJRPykHLCQhuei9q5Rtk7SMFfs.yS9riewWH/d0hylKC', 'alumni', 'Ronaldo', 'Montemor', 'Repe', 'Jr.', '2025-10-17 08:59:39', NULL, NULL, NULL, NULL, NULL),
 (6, 'davelabadan1@gmail.com', '$2y$10$h6Xx10eFsuv0vhUk9ApM/OmLJ1YHyYRGx.lAb.0iSmuHFZ8NpwjO2', 'alumni', 'China Dave', 'Jumuad', 'Labadan', '', '2025-10-17 08:59:39', '2020-00004', '2000-03-11', 'Male', 'Bachelor of Science in Information Technology', '2021'),
 (7, 'joangracep@gmail.com', '$2y$10$M1kkyVDtSJHEBwXmuEwNmO.IHkK/S5jmHU7Xtx9lTJthD3qOuPZmG', 'alumni', 'Joan Grace', 'Mancera', 'Patalinghug', '', '2025-10-17 08:59:39', '2020-00005', '1999-11-22', 'Female', 'Bachelor of Science in Information Technology', '2019'),
 (8, 'marchanmayang687@gmail.com', '$2y$10$PvYQQ4DZnVHa8Z5zqYxEEOGq7.5yI2TkUPbIoTVlPzcjCXzwX8OMG', 'alumni', 'Marian', 'Getigan', 'Marchan', '', '2025-10-17 08:59:39', '2020-00006', '2003-12-25', 'Female', 'Bachelor of Science in Information Technology', '2024'),
@@ -498,7 +533,8 @@ INSERT INTO `users` (`user_id`, `email`, `password`, `role`, `first_name`, `midd
 (44, 'ivannjadecmartel@gmail.com', '$2y$10$QiTGkhw4eZPgMOm/dfckQ.10QOwfE.cAFYBILTnXFw1rFyN/vGCc.', 'alumni', 'Ivann Jade', '', 'Martel', '', '2025-11-11 02:08:08', '2020-00041', '1997-05-23', 'Male', 'Bachelor of Science in Information Technology', '2018'),
 (45, 'ngllrosall@gmail.com', '$2y$10$k6yAD3V9isaZ/cO5cqtVzuMfs4pxCkxbmS0Iy4RUq0id.hSfOwZq2', 'alumni', 'Angel', 'Estallo', 'Rosal', '', '2025-11-11 02:08:08', '2020-00042', '1995-12-09', 'Female', 'Bachelor of Science in Information Technology', '2018'),
 (46, 'johnmira911@gmail.com', '$2y$10$fFq50O9MRFubzmzh8Ad2m.Z7kKCgxfOX2Fx24agrRtnTTjMbnh3Cy', 'alumni', 'John Kristoffer', 'Payapa', 'Mira', '', '2025-11-11 02:08:08', '2020-00043', '1996-09-03', 'Male', 'Bachelor of Science in Information Technology', '2018'),
-(47, 'alumtrak@gmail.com', '$2y$10$Q6RXYjOxE2GPu1OI.JHVnO.wPjxRTXvUfmsqMVPDM3xbzNdRAyWCe', 'admin', 'Alum', '', 'Trak', '', '2025-11-26 14:15:17', NULL, NULL, NULL, NULL, NULL);
+(47, 'alumtrak@gmail.com', '$2y$10$l7kVB6F/10PK5er5GZZEO.bV1L2RyqQ5HlW4NjrS.8es46OQKr97C', 'alumni', 'Mary Cris', 'Rabe', 'Oliveros', '', '2025-11-26 14:15:17', '2000-5612', '2000-01-10', 'Female', 'Bachelor of Science in Information Technology', '2017'),
+(49, 'betatest@test.com', '$2y$10$lhnfpbhXa8w55PqUHx6t8eC3iDRvMYalRp5OJonMm8CGcQRK9w0m6', 'alumni', 'Alumni Test', 'Salazar', 'Garcia', NULL, '2025-12-11 07:18:33', '2025-0000', '2001-12-18', 'Female', 'Bachelor of Science in Information Technology', '2023');
 
 -- --------------------------------------------------------
 
@@ -527,7 +563,9 @@ INSERT INTO `worldwide_address` (`address_id`, `user_id`, `city`, `state_provinc
 (2, 2, 'San Francisco', 'California', 'USA', 37.79327500, -122.39635900, 'San Francisco, California, USA', '2025-12-04 08:36:09', '2025-12-04 08:36:09'),
 (4, 17, 'Carterton District', 'Wellington', 'New Zealand', -40.81932600, 175.44291700, 'Carterton District, Wellington, New Zealand', '2025-12-04 12:21:11', '2025-12-04 12:21:11'),
 (6, 25, 'Mahakam Ulu', 'Kalimantan Timur', 'Indonesia', 0.69342900, 114.34398200, 'Mahakam Ulu, Kalimantan Timur, Indonesia', '2025-12-05 14:15:57', '2025-12-05 14:15:57'),
-(8, 9, 'Pastoral Unincorporated Area', 'South Australia', 'Australia', -30.78383700, 137.43248900, 'Pastoral Unincorporated Area, South Australia, Australia', '2025-12-05 16:53:24', '2025-12-05 16:53:24');
+(13, 20, 'Мамско-Чуйский район', 'Иркутская область', 'Россия', 56.85698500, 113.48478100, 'Мамско-Чуйский район, Иркутская область, Россия', '2025-12-12 06:09:18', '2025-12-12 06:09:18'),
+(14, 9, 'Santo Niño', 'Zamboanga del Sur', 'Philippines', 7.82827500, 123.42722600, 'Santo Niño, Zamboanga del Sur, Philippines', '2025-12-12 06:32:04', '2025-12-12 06:32:04'),
+(15, 47, 'Pagadian City', 'Zamboanga del Sur', 'Philippines', 7.82497200, 123.43658200, 'Pagadian City, Zamboanga del Sur, Philippines', '2025-12-12 08:24:22', '2025-12-12 08:24:22');
 
 --
 -- Indexes for dumped tables
@@ -538,9 +576,10 @@ INSERT INTO `worldwide_address` (`address_id`, `user_id`, `city`, `state_provinc
 --
 ALTER TABLE `alumni_activity_log`
   ADD PRIMARY KEY (`log_id`),
+  ADD KEY `idx_user_id` (`user_id`),
+  ADD KEY `idx_created_at` (`created_at`),
   ADD KEY `idx_action_type` (`action_type`),
-  ADD KEY `idx_activity_created_at` (`created_at`),
-  ADD KEY `fk_alumni_activity_log_user` (`user_id`);
+  ADD KEY `idx_user_created` (`user_id`,`created_at`);
 
 --
 -- Indexes for table `alumni_documents`
@@ -555,8 +594,7 @@ ALTER TABLE `alumni_documents`
 ALTER TABLE `alumni_profile`
   ADD PRIMARY KEY (`user_id`),
   ADD KEY `idx_submission_status` (`submission_status`),
-  ADD KEY `idx_employment_status` (`employment_status`),
-  ADD KEY `idx_profile_last_update` (`last_profile_update`);
+  ADD KEY `idx_employment_status` (`employment_status`);
 
 --
 -- Indexes for table `education_info`
@@ -571,14 +609,16 @@ ALTER TABLE `education_info`
 ALTER TABLE `employment_info`
   ADD PRIMARY KEY (`employment_id`),
   ADD KEY `fk_employment_alumni` (`user_id`),
-  ADD KEY `fk_employment_job` (`job_title_id`);
+  ADD KEY `fk_employment_job` (`job_title_id`),
+  ADD KEY `idx_employment_user` (`user_id`),
+  ADD KEY `idx_user_id` (`user_id`);
 
 --
 -- Indexes for table `job_titles`
 --
 ALTER TABLE `job_titles`
   ADD PRIMARY KEY (`job_title_id`),
-  ADD KEY `idx_title` (`title`);
+  ADD UNIQUE KEY `title` (`title`);
 
 --
 -- Indexes for table `submission_status`
@@ -602,6 +642,8 @@ ALTER TABLE `update_log`
 ALTER TABLE `users`
   ADD PRIMARY KEY (`user_id`),
   ADD UNIQUE KEY `email` (`email`),
+  ADD KEY `idx_users_email` (`email`),
+  ADD KEY `idx_users_role` (`role`),
   ADD KEY `idx_role_batch` (`role`,`batch_year`);
 
 --
@@ -609,7 +651,7 @@ ALTER TABLE `users`
 --
 ALTER TABLE `worldwide_address`
   ADD PRIMARY KEY (`address_id`),
-  ADD KEY `idx_user_id` (`user_id`);
+  ADD UNIQUE KEY `idx_unique_user_address` (`user_id`);
 
 --
 -- AUTO_INCREMENT for dumped tables
@@ -619,31 +661,31 @@ ALTER TABLE `worldwide_address`
 -- AUTO_INCREMENT for table `alumni_activity_log`
 --
 ALTER TABLE `alumni_activity_log`
-  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=139;
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=164;
 
 --
 -- AUTO_INCREMENT for table `alumni_documents`
 --
 ALTER TABLE `alumni_documents`
-  MODIFY `doc_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=119;
+  MODIFY `doc_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=125;
 
 --
 -- AUTO_INCREMENT for table `education_info`
 --
 ALTER TABLE `education_info`
-  MODIFY `education_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=49;
+  MODIFY `education_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=50;
 
 --
 -- AUTO_INCREMENT for table `employment_info`
 --
 ALTER TABLE `employment_info`
-  MODIFY `employment_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=87;
+  MODIFY `employment_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=92;
 
 --
 -- AUTO_INCREMENT for table `job_titles`
 --
 ALTER TABLE `job_titles`
-  MODIFY `job_title_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=29;
+  MODIFY `job_title_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=30;
 
 --
 -- AUTO_INCREMENT for table `submission_status`
@@ -655,19 +697,19 @@ ALTER TABLE `submission_status`
 -- AUTO_INCREMENT for table `update_log`
 --
 ALTER TABLE `update_log`
-  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=73;
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=75;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=51;
+  MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=50;
 
 --
 -- AUTO_INCREMENT for table `worldwide_address`
 --
 ALTER TABLE `worldwide_address`
-  MODIFY `address_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `address_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- Constraints for dumped tables
@@ -677,51 +719,52 @@ ALTER TABLE `worldwide_address`
 -- Constraints for table `alumni_activity_log`
 --
 ALTER TABLE `alumni_activity_log`
-  ADD CONSTRAINT `fk_alumni_activity_log_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+  ADD CONSTRAINT `fk_alumni_activity_log_user_id` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `alumni_documents`
 --
 ALTER TABLE `alumni_documents`
-  ADD CONSTRAINT `fk_doc_alumni` FOREIGN KEY (`user_id`) REFERENCES `alumni_profile` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+  ADD CONSTRAINT `fk_doc_alumni` FOREIGN KEY (`user_id`) REFERENCES `alumni_profile` (`user_id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `alumni_profile`
 --
 ALTER TABLE `alumni_profile`
-  ADD CONSTRAINT `fk_alumni_profile_users` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+  ADD CONSTRAINT `Pkfk_user_alumni` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `education_info`
 --
 ALTER TABLE `education_info`
-  ADD CONSTRAINT `fk_education_alumni` FOREIGN KEY (`user_id`) REFERENCES `alumni_profile` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+  ADD CONSTRAINT `FK_education_alumni` FOREIGN KEY (`user_id`) REFERENCES `alumni_profile` (`user_id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `employment_info`
 --
 ALTER TABLE `employment_info`
-  ADD CONSTRAINT `fk_employment_alumni` FOREIGN KEY (`user_id`) REFERENCES `alumni_profile` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  ADD CONSTRAINT `fk_employment_job` FOREIGN KEY (`job_title_id`) REFERENCES `job_titles` (`job_title_id`) ON UPDATE CASCADE;
+  ADD CONSTRAINT `employment_info_ibfk_1` FOREIGN KEY (`job_title_id`) REFERENCES `job_titles` (`job_title_id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `fk_employment_alumni` FOREIGN KEY (`user_id`) REFERENCES `alumni_profile` (`user_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_employment_job` FOREIGN KEY (`job_title_id`) REFERENCES `job_titles` (`job_title_id`);
 
 --
 -- Constraints for table `submission_status`
 --
 ALTER TABLE `submission_status`
-  ADD CONSTRAINT `fk_submission_created_by` FOREIGN KEY (`created_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL ON UPDATE CASCADE,
-  ADD CONSTRAINT `fk_submission_updated_by` FOREIGN KEY (`last_updated_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL ON UPDATE CASCADE;
+  ADD CONSTRAINT `submission_status_ibfk_1` FOREIGN KEY (`created_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `submission_status_ibfk_2` FOREIGN KEY (`last_updated_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL;
 
 --
 -- Constraints for table `update_log`
 --
 ALTER TABLE `update_log`
-  ADD CONSTRAINT `fk_update_log_user` FOREIGN KEY (`updated_by`) REFERENCES `users` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+  ADD CONSTRAINT `fk_log_user_updt` FOREIGN KEY (`updated_by`) REFERENCES `users` (`user_id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `worldwide_address`
 --
 ALTER TABLE `worldwide_address`
-  ADD CONSTRAINT `fk_worldwide_address_user` FOREIGN KEY (`user_id`) REFERENCES `alumni_profile` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+  ADD CONSTRAINT `fk_worldwide_address_user` FOREIGN KEY (`user_id`) REFERENCES `alumni_profile` (`user_id`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
