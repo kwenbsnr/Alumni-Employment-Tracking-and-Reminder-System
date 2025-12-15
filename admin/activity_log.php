@@ -89,7 +89,6 @@ $activityResult = $activityStmt->get_result();
 ob_start();
 ?>
 <div class="space-y-6">
-    <!-- HEADER & FILTERS (unchanged) -->
     <div class="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div class="flex-1 md:flex md:justify-start">
             <div class="rounded-2xl bg-gradient-to-r from-purple-50 to-white p-4 shadow-lg border border-purple-100">
@@ -99,10 +98,9 @@ ob_start();
                             <label class="block text-xs font-medium text-gray-700 mb-1">Filter Action</label>
                             <select name="type" class="w-full px-2 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-purple-500 transition text-sm">
                                 <option value="">All Actions</option>
-                                <option value="update" <?= $filter_type === 'update' ? 'selected' : '' ?>>Update</option>
                                 <option value="approve" <?= $filter_type === 'approve' ? 'selected' : '' ?>>Approve</option>
                                 <option value="reject" <?= $filter_type === 'reject' ? 'selected' : '' ?>>Reject</option>
-                                <option value="undo" <?= $filter_type === 'undo' ? 'selected' : '' ?>>Undo</option>
+                                <option value="update" <?= $filter_type === 'update' ? 'selected' : '' ?>>Undo/Revert</option>
                             </select>
                         </div>
 
@@ -130,7 +128,6 @@ ob_start();
         </a>
     </div>
 
-    <!-- Table Header -->
     <div class="px-6 py-4 border-b border-blue-200 bg-gradient-to-r from-blue-500 to-blue-300 text-white rounded-t-xl">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -146,7 +143,6 @@ ob_start();
         </div>
     </div>
 
-    <!-- Table Content -->
     <div class="overflow-x-auto bg-white rounded-b-xl shadow-lg">
         <table class="w-full">
             <thead class="bg-gray-50 sticky top-0 border-b border-gray-200">
@@ -155,7 +151,6 @@ ob_start();
                     <th class="px-3 py-4">Details</th>
                     <th class="px-3 py-4">Admin</th>
                     <th class="px-3 py-4">Time</th>
-                    <!-- Undo column removed -->
                 </tr>
             </thead>
 
@@ -163,13 +158,10 @@ ob_start();
                 <?php if ($activityResult->num_rows > 0): ?>
                     <?php while ($activity = $activityResult->fetch_assoc()): ?>
                         <tr class="group hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-white transition-all duration-200">
-                            <!-- Action -->
                             <td class="pl-6 pr-3 py-5 whitespace-nowrap">
                                 <div class="flex items-center gap-4">
-                                    <div class="relative">
-                                        <div class="p-3 rounded-2xl <?= getActivityColor($activity['update_type']) ?> shadow-sm group-hover:scale-110 transition-transform duration-200">
-                                            <i class="text-lg fas fa-<?= getActivityIcon($activity['update_type']) ?>"></i>
-                                        </div>
+                                  
+                                       
                                         <?php if ($activity['update_type'] === 'approve'): ?>
                                             <div class="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
                                         <?php endif; ?>
@@ -177,7 +169,7 @@ ob_start();
 
                                     <div class="min-w-0 flex-1">
                                         <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold <?= getActivityBadgeColor($activity['update_type']) ?>">
-                                            <?= ucfirst($activity['update_type']) ?>
+                                            <?= getActivityDisplayName($activity['update_type']) ?>
                                         </span>
                                         <p class="text-xs text-gray-500 mt-1.5 truncate">
                                             <?= getActivityCategory($activity['update_type']) ?>
@@ -186,7 +178,6 @@ ob_start();
                                 </div>
                             </td>
 
-                            <!-- Details -->
                             <td class="px-3 py-5">
                                 <div class="max-w-xs">
                                     <p class="font-medium text-gray-900 text-sm leading-6">
@@ -195,10 +186,18 @@ ob_start();
                                     <?php if (!empty($activity['batch_year'])): ?>
                                         <p class="text-xs text-gray-500 mt-1">Batch <?= htmlspecialchars($activity['batch_year']) ?></p>
                                     <?php endif; ?>
+                            
+                                    <?php 
+                                    // MODIFIED: Only display update_details (rejection reason) if the action is 'reject', without the "Reason:" prefix.
+                                    if ($activity['update_type'] === 'reject' && !empty($activity['update_details'])): 
+                                    ?>
+                                        <p class="text-xs text-gray-600 mt-1 italic">
+                                            <?= htmlspecialchars($activity['update_details']) ?>
+                                        </p>
+                                    <?php endif; ?>
                                 </div>
                             </td>
 
-                            <!-- Admin -->
                             <td class="px-3 py-5 whitespace-nowrap">
                                 <div class="flex flex-col leading-tight">
                                     <span class="font-semibold text-gray-900"><?= htmlspecialchars($activity['admin_name']) ?></span>
@@ -206,7 +205,6 @@ ob_start();
                                 </div>
                             </td>
 
-                            <!-- Time -->
                             <td class="px-3 py-5 whitespace-nowrap">
                                 <div class="text-left">
                                     <div class="flex flex-col items-start">
@@ -223,13 +221,11 @@ ob_start();
                                     </div>
                                 </div>
                             </td>
-
-                            <!-- Undo column completely removed -->
                         </tr>
                     <?php endwhile; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="4" class="px-6 py-12 text-center"> <!-- colspan changed from 5 → 4 -->
+                        <td colspan="4" class="px-6 py-12 text-center">
                             <div class="max-w-md mx-auto">
                                 <div class="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
                                     <i class="fas fa-inbox text-2xl text-gray-400"></i>
@@ -247,7 +243,6 @@ ob_start();
         </table>
     </div>
 
-    <!-- PAGINATION (unchanged) -->
     <?php if ($totalPages > 1): ?>
         <div class="px-6 py-5 border-t border-gray-200 bg-gray-50/50 rounded-b-xl">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -288,13 +283,12 @@ ob_start();
 </div>
 
 <?php
-// Helper functions (unchanged)
+// Helper functions
 function getActivityIcon($update_type) {
     switch ($update_type) {
         case 'approve': return 'check-circle';
         case 'reject':  return 'times-circle';
-        case 'update':  return 'edit';
-        case 'undo':    return 'undo';
+        case 'update':  return 'undo-alt'; // Changed from 'undo' to 'update'
         default:        return 'sync';
     }
 }
@@ -303,8 +297,7 @@ function getActivityColor($update_type) {
     switch ($update_type) {
         case 'approve': return 'bg-green-100 text-green-600';
         case 'reject':  return 'bg-red-100 text-red-600';
-        case 'update':  return 'bg-blue-100 text-blue-600';
-        case 'undo':    return 'bg-orange-100 text-orange-600';
+        case 'update':  return 'bg-orange-100 text-orange-600'; // Changed color for better visibility
         default:        return 'bg-purple-100 text-purple-600';
     }
 }
@@ -313,8 +306,7 @@ function getActivityBadgeColor($update_type) {
     switch ($update_type) {
         case 'approve': return 'bg-green-100 text-green-800';
         case 'reject':  return 'bg-red-100 text-red-800';
-        case 'update':  return 'bg-blue-100 text-blue-800';
-        case 'undo':    return 'bg-orange-100 text-orange-800';
+        case 'update':  return 'bg-orange-100 text-orange-800'; // Changed color for better visibility
         default:        return 'bg-gray-100 text-gray-800';
     }
 }
@@ -323,20 +315,38 @@ function getActivityCategory($update_type) {
     switch ($update_type) {
         case 'approve':
         case 'reject':  return 'Profile Review';
-        case 'update':  return 'Profile Update';
-        case 'undo':    return 'Action Reversal';
+        case 'update':  return 'Status Update'; // Updated category name
         default:        return 'System Action';
+    }
+}
+
+function getActivityDisplayName($update_type) {
+    switch ($update_type) {
+        case 'approve': return 'Approve';
+        case 'reject':  return 'Reject';
+        case 'update':  return 'Undo/Revert'; // Display name shows "Undo/Revert"
+        default:        return ucfirst($update_type);
     }
 }
 
 function getConciseActivityText($activity) {
     $name = !empty($activity['alumni_name']) ? htmlspecialchars($activity['alumni_name']) : "Alumni";
+    
     switch ($activity['update_type']) {
-        case 'approve': return "Approved {$name}'s profile";
-        case 'reject':  return "Rejected {$name}'s profile";
-        case 'update':  return "Updated {$name}'s information";
-        case 'undo':    return "Undid previous action for {$name}";
-        default:        return "Modified {$name}'s profile";
+        case 'approve': 
+            return "Approved {$name}'s profile";
+        case 'reject':  
+            return "Rejected {$name}'s profile";
+        case 'update':  
+            // Check if this is an undo action by looking at details or previous status
+            if (strpos(strtolower($activity['update_details'] ?? ''), 'undo') !== false || 
+                strpos(strtolower($activity['update_details'] ?? ''), 'revert') !== false) {
+                return "Reverted {$name}'s status to Pending";
+            } else {
+                return "Updated {$name}'s profile status";
+            }
+        default:        
+            return "Modified {$name}'s profile";
     }
 }
 

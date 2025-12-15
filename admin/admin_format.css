@@ -46,11 +46,6 @@
     background: linear-gradient(90deg, var(--card-color), transparent);
 }
 
-.stats-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-}
-
 /* Enhanced card icon styling for better visual balance */
 .card-icon {
     transition: transform 0.3s ease;
