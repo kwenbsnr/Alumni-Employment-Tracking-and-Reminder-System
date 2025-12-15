@@ -61,7 +61,7 @@ if (isset($_POST['update_submission_status'])) {
         $_SESSION['success_message'] = "Alumni submissions are now OPEN indefinitely.";
        
         // ==================== NOTIFICATION API INTEGRATION ====================
-        // Notify alumni who need to update (haven't updated in 6 months)
+        // Notify alumni who need to update (haven't updated in 6 months OR no profile)
         $alumni_to_notify = $conn->query("
             SELECT u.user_id, 
                 CONCAT(
@@ -72,14 +72,20 @@ if (isset($_POST['update_submission_status'])) {
                     IF(u.suffix IS NOT NULL AND u.suffix != '', CONCAT(' ', u.suffix), '')
                 ) as alumni_name,
                 u.email as alumni_email, 
-                u.batch_year as graduation_year, ap.employment_status,
-                ap.last_profile_update, ap.submission_status
+                u.batch_year as graduation_year, 
+                ap.employment_status,
+                ap.last_profile_update, 
+                ap.submission_status
             FROM users u 
-            INNER JOIN alumni_profile ap ON u.user_id = ap.user_id 
+            LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id 
             WHERE u.role = 'alumni' 
-            AND ap.submission_status != 'Approved'
-            AND (ap.last_profile_update IS NULL OR 
-                ap.last_profile_update < DATE_SUB(NOW(), INTERVAL 6 MONTH))
+            AND (
+                ap.user_id IS NULL 
+                OR ap.submission_status = 'Pending' 
+                OR ap.submission_status IS NULL
+                OR ap.last_profile_update IS NULL 
+                OR ap.last_profile_update < DATE_SUB(NOW(), INTERVAL 6 MONTH)
+            )
         ");
 
         $notification_count = 0;
@@ -96,7 +102,7 @@ if (isset($_POST['update_submission_status'])) {
         if ($notification_count > 0) {
             $_SESSION['success_message'] .= " Sent profile update reminders to {$notification_count} alumni.";
         }
-         } elseif ($action === 'schedule') {
+    } elseif ($action === 'schedule') {
         $open_date_input  = $_POST['open_date'] ?? null;
         $close_date_input = $_POST['close_date'] ?? null;
 
@@ -132,14 +138,20 @@ if (isset($_POST['update_submission_status'])) {
                         IF(u.suffix IS NOT NULL AND u.suffix != '', CONCAT(' ', u.suffix), '')
                     ) as alumni_name,
                     u.email as alumni_email, 
-                    u.batch_year as graduation_year, ap.employment_status,
-                    ap.last_profile_update, ap.submission_status
+                    u.batch_year as graduation_year, 
+                    ap.employment_status,
+                    ap.last_profile_update, 
+                    ap.submission_status
                 FROM users u 
-                INNER JOIN alumni_profile ap ON u.user_id = ap.user_id 
+                LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id 
                 WHERE u.role = 'alumni' 
-                AND ap.submission_status != 'Approved'
-                AND (ap.last_profile_update IS NULL OR 
-                    ap.last_profile_update < DATE_SUB(NOW(), INTERVAL 6 MONTH))
+                AND (
+                    ap.user_id IS NULL 
+                    OR ap.submission_status = 'Pending' 
+                    OR ap.submission_status IS NULL
+                    OR ap.last_profile_update IS NULL 
+                    OR ap.last_profile_update < DATE_SUB(NOW(), INTERVAL 6 MONTH)
+                )
             ");
                 
                 // Add notification count to success message
@@ -194,14 +206,20 @@ if (!$manual_override && $open_date && $close_date) {
                         IF(u.suffix IS NOT NULL AND u.suffix != '', CONCAT(' ', u.suffix), '')
                     ) as alumni_name,
                     u.email as alumni_email, 
-                    u.batch_year as graduation_year, ap.employment_status,
-                    ap.last_profile_update, ap.submission_status
+                    u.batch_year as graduation_year, 
+                    ap.employment_status,
+                    ap.last_profile_update, 
+                    ap.submission_status
                 FROM users u 
-                INNER JOIN alumni_profile ap ON u.user_id = ap.user_id 
+                LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id 
                 WHERE u.role = 'alumni' 
-                AND ap.submission_status != 'Approved'
-                AND (ap.last_profile_update IS NULL OR 
-                    ap.last_profile_update < DATE_SUB(NOW(), INTERVAL 6 MONTH))
+                AND (
+                    ap.user_id IS NULL 
+                    OR ap.submission_status = 'Pending' 
+                    OR ap.submission_status IS NULL
+                    OR ap.last_profile_update IS NULL 
+                    OR ap.last_profile_update < DATE_SUB(NOW(), INTERVAL 6 MONTH)
+                )
             ");
             
             // Log the automatic notifications
@@ -370,7 +388,13 @@ if (isset($_SESSION['error_message'])) {
                                             FROM users u
                                             WHERE u.role = 'alumni' 
                                             AND u.batch_year IS NOT NULL 
-                                            AND (CONCAT(u.first_name, ' ', u.last_name) LIKE ? OR u.email LIKE ?)");
+                                            AND (CONCAT(
+                                                u.first_name,
+                                                IF(u.middle_name IS NOT NULL AND u.middle_name != '', CONCAT(' ', u.middle_name), ''),
+                                                ' ',
+                                                u.last_name,
+                                                IF(u.suffix IS NOT NULL AND u.suffix != '', CONCAT(' ', u.suffix), '')
+                                            ) LIKE ? OR u.email LIKE ?)");
                     $term = "%$search%";
                     $stmt->bind_param('ss', $term, $term);
                     $stmt->execute();
@@ -454,7 +478,13 @@ if (isset($_SESSION['error_message'])) {
                                     FROM users u
                                     WHERE u.role = 'alumni' 
                                     AND u.batch_year IS NOT NULL 
-                                    AND (CONCAT(u.first_name, ' ', u.last_name) LIKE ? OR u.email LIKE ?)");
+                                    AND (CONCAT(
+                                        u.first_name,
+                                        IF(u.middle_name IS NOT NULL AND u.middle_name != '', CONCAT(' ', u.middle_name), ''),
+                                        ' ',
+                                        u.last_name,
+                                        IF(u.suffix IS NOT NULL AND u.suffix != '', CONCAT(' ', u.suffix), '')
+                                    ) LIKE ? OR u.email LIKE ?)");
                 $term = "%$search%";
                 $stmt->bind_param('ss', $term, $term);
                 $stmt->execute();
@@ -473,7 +503,13 @@ if (isset($_SESSION['error_message'])) {
                                                       FROM users u
                                                       WHERE u.role = 'alumni' 
                                                       AND u.batch_year = ?
-                                                      AND (CONCAT(u.first_name, ' ', u.last_name) LIKE ? OR u.email LIKE ?)");
+                                                      AND (CONCAT(
+                                                          u.first_name,
+                                                          IF(u.middle_name IS NOT NULL AND u.middle_name != '', CONCAT(' ', u.middle_name), ''),
+                                                          ' ',
+                                                          u.last_name,
+                                                          IF(u.suffix IS NOT NULL AND u.suffix != '', CONCAT(' ', u.suffix), '')
+                                                      ) LIKE ? OR u.email LIKE ?)");
                         $term = "%$search%";
                         $stmt_count->bind_param('iss', $year, $term, $term);
                         $stmt_count->execute();

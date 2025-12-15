@@ -24,18 +24,17 @@ $search = $_GET['search'] ?? '';
 $employment_status = $_GET['employment_status'] ?? '';
 $submission_status = $_GET['submission_status'] ?? '';
 
-// --- PAGINATION SETUP ---
-$per_page = 5; // Fixed number of alumni per page as requested
+$per_page = 20;
 $current_page = max(1, (int)($_GET['page'] ?? 1));
 $offset = ($current_page - 1) * $per_page;
-// --- END PAGINATION SETUP ---
 
 // 3. Fetch Batch Statistics (Total Count for Stats and Pagination)
+// Fixed: Remove ap.submission_status references since it doesn't exist in alumni_profile
 $statsQuery = "SELECT
     COUNT(*) as total_alumni,
-    SUM(CASE WHEN ap.submission_status = 'Approved' THEN 1 ELSE 0 END) as approved_count,
-    SUM(CASE WHEN ap.submission_status = 'Pending' THEN 1 ELSE 0 END) as pending_count,
-    SUM(CASE WHEN ap.submission_status = 'Rejected' THEN 1 ELSE 0 END) as rejected_count,
+    SUM(CASE WHEN EXISTS (SELECT 1 FROM alumni_documents ad WHERE ad.user_id = u.user_id AND ad.document_status = 'Approved') THEN 1 ELSE 0 END) as approved_count,
+    SUM(CASE WHEN EXISTS (SELECT 1 FROM alumni_documents ad WHERE ad.user_id = u.user_id AND ad.document_status = 'Pending') THEN 1 ELSE 0 END) as pending_count,
+    SUM(CASE WHEN EXISTS (SELECT 1 FROM alumni_documents ad WHERE ad.user_id = u.user_id AND ad.document_status = 'Rejected') THEN 1 ELSE 0 END) as rejected_count,
     SUM(CASE WHEN ap.user_id IS NULL THEN 1 ELSE 0 END) as no_profile_count
     FROM users u
     LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id
@@ -58,28 +57,25 @@ $params = [$batch_year];
 $types = 's';
 
 if (!empty($search)) {
-    // Search by concatenated full name
-    $whereConditions[] = "CONCAT(u.first_name, ' ', u.last_name) LIKE ?";
+    // Search by concatenated full name including middle name and suffix
+    $whereConditions[] = "(CONCAT(
+        u.first_name,
+        IF(u.middle_name IS NOT NULL AND u.middle_name != '', CONCAT(' ', u.middle_name), ''),
+        ' ',
+        u.last_name,
+        IF(u.suffix IS NOT NULL AND u.suffix != '', CONCAT(' ', u.suffix), '')
+    ) LIKE ? OR u.email LIKE ?)";
     $searchTerm = "%$search%";
     $params[] = $searchTerm;
-    $types .= 's';
+    $params[] = $searchTerm;
+    $types .= 'ss';
 }
 if (!empty($employment_status)) {
     $whereConditions[] = "ap.employment_status = ?";
     $params[] = $employment_status;
     $types .= 's';
 }
-if (!empty($submission_status)) {
-    if ($submission_status === 'No Profile') {
-        // Filter for users without an alumni_profile entry
-        $whereConditions[] = "ap.user_id IS NULL";
-    } else {
-        // Filter by specific submission status
-        $whereConditions[] = "ap.submission_status = ?";
-        $params[] = $submission_status;
-        $types .= 's';
-    }
-}
+// Note: submission_status filter removed since it doesn't exist in alumni_profile
 
 $whereClause = implode(" AND ", $whereConditions);
 
@@ -115,8 +111,21 @@ $alumniQuery = "
         u.batch_year,
         u.email,
         ap.employment_status, 
-        ap.submission_status, 
-        ap.photo_path
+        ap.photo_path,
+        (
+            SELECT ad.document_status 
+            FROM alumni_documents ad 
+            WHERE ad.user_id = u.user_id 
+            ORDER BY ad.doc_id DESC 
+            LIMIT 1
+        ) as latest_doc_status,
+        CASE 
+            WHEN ap.user_id IS NULL THEN 'No Profile'
+            WHEN EXISTS (SELECT 1 FROM alumni_documents ad WHERE ad.user_id = u.user_id AND ad.document_status = 'Rejected') THEN 'Rejected'
+            WHEN EXISTS (SELECT 1 FROM alumni_documents ad WHERE ad.user_id = u.user_id AND ad.document_status = 'Approved') THEN 'Approved'
+            WHEN EXISTS (SELECT 1 FROM alumni_documents ad WHERE ad.user_id = u.user_id AND ad.document_status = 'Pending') THEN 'Pending'
+            ELSE 'No Documents'
+        END as submission_status
     FROM users u
     LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id
     WHERE $whereClause
@@ -225,16 +234,7 @@ ob_start();
                 </select>
             </div>
             
-            <div class="w-full sm:w-48">
-                <label for="submission_status" class="block text-sm font-medium text-gray-700 mb-1">Submission Status</label>
-                <select id="submission_status" name="submission_status" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                    <option value="">All Status</option>
-                    <option value="Pending" <?= $submission_status === 'Pending' ? 'selected' : '' ?>>Pending</option>
-                    <option value="Approved" <?= $submission_status === 'Approved' ? 'selected' : '' ?>>Approved</option>
-                    <option value="Rejected" <?= $submission_status === 'Rejected' ? 'selected' : '' ?>>Rejected</option>
-                    <option value="No Profile" <?= $submission_status === 'No Profile' ? 'selected' : '' ?>>No Profile</option>
-                </select>
-            </div>
+            <!-- Removed submission_status filter since it's not in the alumni_profile table -->
             
             <div class="flex gap-2 w-full sm:w-auto">
                 <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors flex-shrink-0">
@@ -272,7 +272,7 @@ ob_start();
                     <?php while ($alumni = $alumniResult->fetch_assoc()): ?>
                         <?php
                         // Fetch documents for the current alumni
-                        $docStmt = $conn->prepare("SELECT document_type, file_path FROM alumni_documents WHERE user_id = ?");
+                        $docStmt = $conn->prepare("SELECT document_type, file_path, document_status FROM alumni_documents WHERE user_id = ?");
                         $docStmt->bind_param('i', $alumni['user_id']);
                         $docStmt->execute();
                         $docResult = $docStmt->get_result();
@@ -309,7 +309,7 @@ ob_start();
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <span class="px-3 py-1.5 inline-flex text-sm font-semibold rounded-full <?= getSubmissionStatusColor($alumni['submission_status']) ?> border <?= getSubmissionStatusBorder($alumni['submission_status']) ?> shadow-sm">
                                     <i class="<?= getSubmissionStatusIcon($alumni['submission_status']) ?> mr-2"></i>
-                                    <?= ($alumni['submission_status'] === null || $alumni['submission_status'] === '') ? 'No Profile' : htmlspecialchars($alumni['submission_status']) ?>
+                                    <?= htmlspecialchars($alumni['submission_status']) ?>
                                 </span>
                             </td>
                             
@@ -324,6 +324,9 @@ ob_start();
                                             ?>
                                             <div class="flex items-center hover:bg-gray-50 rounded px-2 py-1 transition-colors">
                                                 <span class="font-semibold text-gray-800 text-sm"><?= $name ?></span>
+                                                <span class="ml-2 text-xs px-2 py-1 rounded-full <?= getDocumentStatusColor($doc['document_status']) ?>">
+                                                    <?= htmlspecialchars($doc['document_status']) ?>
+                                                </span>
                                                 <a href="../<?= htmlspecialchars($doc['file_path']) ?>" target="_blank" class="text-blue-600 hover:text-blue-800 flex items-center text-sm font-semibold ml-2">
                                                     <i class="fas fa-external-link-alt mr-1"></i> View
                                                 </a>
@@ -336,7 +339,7 @@ ob_start();
                             </td>
                             
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <?php if (empty($alumni['submission_status']) || $alumni['submission_status'] === ''): ?>
+                                <?php if ($alumni['submission_status'] === 'No Profile'): ?>
                                     <div class="flex justify-left">
                                         <span class="px-3 py-1.5 inline-flex text-sm font-semibold rounded-full bg-gray-100 text-gray-800 border border-gray-200 shadow-sm">
                                             <i class="fas fa-user-clock mr-2 text-gray-600"></i>
@@ -354,11 +357,13 @@ ob_start();
                                             <i class="fas fa-times mr-1"></i> Reject
                                         </button>
                                     </div>
-                                <?php else: ?>
+                                <?php elseif ($alumni['submission_status'] === 'Approved' || $alumni['submission_status'] === 'Rejected'): ?>
                                     <button onclick="showRevertModal(<?= $alumni['user_id'] ?>, '<?= htmlspecialchars($alumni['name'], ENT_QUOTES) ?>')"
                                             class="text-orange-600 hover:text-orange-900 px-3 py-1 border border-orange-600 rounded-lg hover:bg-orange-50 transition-colors">
                                         <i class="fas fa-undo mr-1"></i> Undo
                                     </button>
+                                <?php else: ?>
+                                    <span class="text-gray-400 text-sm">No action available</span>
                                 <?php endif; ?>
                             </td>
                         </tr>
@@ -829,8 +834,39 @@ function getEmploymentStatusIcon($s) {
 }
 
 function getSubmissionStatusColor($s) { 
-    // Handle NULL or empty string as "No Profile"
-    if ($s === null || $s === '') return 'bg-gray-100 text-gray-800';
+    $colors = [
+        'Approved'=>'bg-green-100 text-green-800',
+        'Pending'=>'bg-yellow-100 text-yellow-800',
+        'Rejected'=>'bg-red-100 text-red-800',
+        'No Profile'=>'bg-gray-100 text-gray-800',
+        'No Documents'=>'bg-gray-100 text-gray-800'
+    ];
+    return $colors[$s] ?? 'bg-gray-100 text-gray-800'; 
+}
+
+function getSubmissionStatusBorder($s) { 
+    $borders = [
+        'Approved'=>'border-green-200',
+        'Pending'=>'border-yellow-200',
+        'Rejected'=>'border-red-200',
+        'No Profile'=>'border-gray-200',
+        'No Documents'=>'border-gray-200'
+    ];
+    return $borders[$s] ?? 'border-gray-200'; 
+}
+
+function getSubmissionStatusIcon($s) { 
+    $icons = [
+        'Approved'=>'fas fa-check-circle text-green-600',
+        'Pending'=>'fas fa-clock text-yellow-600',
+        'Rejected'=>'fas fa-times-circle text-red-600',
+        'No Profile'=>'fas fa-user-clock text-gray-600',
+        'No Documents'=>'fas fa-file-alt text-gray-600'
+    ];
+    return $icons[$s] ?? 'fas fa-user-clock text-gray-600'; 
+}
+
+function getDocumentStatusColor($s) { 
     $colors = [
         'Approved'=>'bg-green-100 text-green-800',
         'Pending'=>'bg-yellow-100 text-yellow-800',
@@ -839,30 +875,7 @@ function getSubmissionStatusColor($s) {
     return $colors[$s] ?? 'bg-gray-100 text-gray-800'; 
 }
 
-function getSubmissionStatusBorder($s) { 
-    if (empty($s)) return 'border-gray-200';
-    $borders = [
-        'Approved'=>'border-green-200',
-        'Pending'=>'border-yellow-200',
-        'Rejected'=>'border-red-200'
-    ];
-    return $borders[$s] ?? 'border-gray-200'; 
-}
-
-function getSubmissionStatusIcon($s) { 
-    // Handle NULL or empty string as "No Profile"
-    if ($s === null || $s === '') return 'fas fa-user-clock text-gray-600';
-    $icons = [
-        'Approved'=>'fas fa-check-circle text-green-600',
-        'Pending'=>'fas fa-clock text-yellow-600',
-        'Rejected'=>'fas fa-times-circle text-red-600'
-    ];
-    return $icons[$s] ?? 'fas fa-user-clock text-gray-600'; 
-}
-
 // Capture the buffered content and include the main format file
 $page_content = ob_get_clean();
-// NOTE: Assumes 'admin_format.php' includes the necessary boilerplate HTML, 
-// Tailwind CSS links, and places $page_content in the main body.
 include("admin_format.php"); 
 ?>

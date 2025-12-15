@@ -9,26 +9,6 @@ include("../connect.php");
 $page_title = "Dashboard";
 $active_page = "dashboard";
 
-// Fetch employment status distribution (ALL alumni with profiles)
-$careerQuery = "SELECT employment_status, COUNT(*) as total 
-                FROM alumni_profile 
-                WHERE employment_status IS NOT NULL AND employment_status != ''
-                GROUP BY employment_status";
-$result = $conn->query($careerQuery);
-
-$careerLabels = ['Employed', 'Self-Employed', 'Unemployed', 'Student', 'Employed & Student'];
-$careerData = [0, 0, 0, 0, 0];
-
-if ($result && $result->num_rows > 0) {
-    $statusCounts = array_fill_keys($careerLabels, 0);
-    while ($row = $result->fetch_assoc()) {
-        if (in_array($row['employment_status'], $careerLabels)) {
-            $statusCounts[$row['employment_status']] = $row['total'];
-        }
-    }
-    $careerData = array_values($statusCounts);
-}
-
 // Fetch ACCURATE dashboard statistics
 $statsQuery = "
     SELECT
@@ -94,11 +74,11 @@ if ($result && $result->num_rows > 0) {
 }
 
 // Calculate total alumni with profiles for employment chart
+$totalAlumni = $stats['total_alumni'] ?? 0;
 $totalWithProfiles = array_sum($careerData);
-$totalAlumni = $stats['total_alumni'];
 $withoutProfiles = $totalAlumni - $totalWithProfiles;
 
-// Fetch recent activity
+// Fetch recent activity with proper joins
 $recentActivityQuery = "
     SELECT ul.update_type, ul.updated_at, ul.update_details,
            CONCAT(
@@ -113,12 +93,12 @@ $recentActivityQuery = "
                 IF(u2.middle_name IS NOT NULL AND u2.middle_name != '', CONCAT(' ', u2.middle_name), ''),
                 ' ',
                 u2.last_name,
-                IF(u2.suffix IS NOT NULL AND u2.suffix != '', CONCAT(' ', u2.suffix), '')
+                IF(u2.suffix IS NOT NULL AND u2.suffix != '', CONCAT(' ', u.suffix), '')
            ) as alumni_name,
            u2.batch_year
     FROM update_log ul
-    LEFT JOIN users u ON ul.updated_by = u.user_id
-    LEFT JOIN users u2 ON ul.updated_id = u2.user_id
+    LEFT JOIN users u ON ul.updated_by = u.user_id AND u.role = 'admin'
+    LEFT JOIN users u2 ON ul.updated_id = u2.user_id AND u2.role = 'alumni'
     WHERE ul.update_type IN ('approve', 'reject', 'update')
     ORDER BY ul.updated_at DESC LIMIT 10
 ";
@@ -251,7 +231,7 @@ ob_start();
                         <div class="flex items-center justify-between">
                             <div>
                                 <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Total Alumni</p>
-                                <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['total_alumni']; ?></p>
+                                <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['total_alumni'] ?? 0; ?></p>
                                 <p class="text-xs text-gray-500 mt-1">All graduated alumni in system</p>
                             </div>
                             <div class="p-3 rounded-xl bg-blue-50">
@@ -270,7 +250,7 @@ ob_start();
                         <div class="flex items-center justify-between">
                             <div>
                                 <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Active Alumni</p>
-                                <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['approved_profiles']; ?></p>
+                                <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['approved_profiles'] ?? 0; ?></p>
                                 <p class="text-xs text-gray-500 mt-1">Completed tracking requirements</p>
                             </div>
                             <div class="p-3 rounded-xl bg-green-50">
@@ -281,7 +261,7 @@ ob_start();
                             <i class="fas fa-shield-check mr-1"></i>
                             <span>Fully verified & active</span>
                         </div>
-                        <?php if ($stats['total_alumni'] > 0): ?>
+                        <?php if (($stats['total_alumni'] ?? 0) > 0): ?>
                             <div class="mt-2">
                                 <div class="flex justify-between text-xs text-gray-600 mb-1">
                                     <span>Completion Rate</span>
@@ -302,8 +282,8 @@ ob_start();
                                 <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Employment Rate</p>
                                 <p class="text-2xl font-bold text-gray-900 mt-1">
                                     <?php 
-                                    $total_employed = $stats['employed_count'];
-                                    $active_alumni = $stats['approved_profiles'];
+                                    $total_employed = $stats['employed_count'] ?? 0;
+                                    $active_alumni = $stats['approved_profiles'] ?? 0;
                                     $employment_rate = $active_alumni > 0 ? round(($total_employed / $active_alumni) * 100, 1) : 0;
                                     echo $employment_rate; 
                                     ?>%
@@ -315,7 +295,6 @@ ob_start();
                             </div>
                         </div>
                         <div class="mt-2 flex items-center text-xs text-purple-600">
-                          
                             <span><?php echo $total_employed; ?> employed alumni</span>
                         </div>
                     </div>
@@ -328,7 +307,7 @@ ob_start();
                         <div class="flex items-center justify-between">
                             <div>
                                 <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Pending Reviews</p>
-                                <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['pending_profiles']; ?></p>
+                                <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['pending_profiles'] ?? 0; ?></p>
                                 <p class="text-xs text-gray-500 mt-1">Awaiting admin approval</p>
                             </div>
                             <div class="p-3 rounded-xl bg-yellow-50">
@@ -336,10 +315,9 @@ ob_start();
                             </div>
                         </div>
                         <div class="mt-2 flex items-center text-xs text-yellow-600">
-                           
                             <span>Requires review</span>
                         </div>
-                        <?php if ($stats['pending_profiles'] > 0): ?>
+                        <?php if (($stats['pending_profiles'] ?? 0) > 0): ?>
                             <div class="mt-2">
                                 <div class="flex items-center text-xs text-yellow-700 bg-yellow-50 px-2 py-1 rounded border border-yellow-200">
                                     <i class="fas fa-exclamation-circle mr-1"></i>
@@ -355,7 +333,7 @@ ob_start();
                         <div class="flex items-center justify-between">
                             <div>
                                 <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Rejected Profiles</p>
-                                <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['rejected_profiles']; ?></p>
+                                <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['rejected_profiles'] ?? 0; ?></p>
                                 <p class="text-xs text-gray-500 mt-1">Need corrections & resubmission</p>
                             </div>
                             <div class="p-3 rounded-xl bg-red-50">
@@ -363,10 +341,9 @@ ob_start();
                             </div>
                         </div>
                         <div class="mt-2 flex items-center text-xs text-red-600">
-                            
                             <span>Requires updates</span>
                         </div>
-                        <?php if ($stats['rejected_profiles'] > 0): ?>
+                        <?php if (($stats['rejected_profiles'] ?? 0) > 0): ?>
                             <div class="mt-2">
                                 <div class="flex items-center text-xs text-red-700 bg-red-50 px-2 py-1 rounded border border-red-200">
                                     <i class="fas fa-sync-alt mr-1"></i>
@@ -379,12 +356,13 @@ ob_start();
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #06b6d4;">
+            <!--    
+            <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #06b6d4;">
                     <div class="p-4">
                         <div class="flex items-center justify-between">
                             <div>
                                 <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Documents</p>
-                                <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['total_documents']; ?></p>
+                                <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['total_documents'] ?? 0; ?></p>
                                 <p class="text-xs text-gray-500 mt-1">Uploaded & verified</p>
                             </div>
                             <div class="p-3 rounded-xl bg-cyan-50">
@@ -392,7 +370,6 @@ ob_start();
                             </div>
                         </div>
                         <div class="mt-2 flex items-center text-xs text-cyan-600">
-                            
                             <span>Supporting documents</span>
                         </div>
                     </div>
@@ -403,7 +380,7 @@ ob_start();
                         <div class="flex items-center justify-between">
                             <div>
                                 <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Graduation Years</p>
-                                <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['unique_graduation_years']; ?></p>
+                                <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['unique_graduation_years'] ?? 0; ?></p>
                                 <p class="text-xs text-gray-500 mt-1">Different batches</p>
                             </div>
                             <div class="p-3 rounded-xl bg-orange-50">
@@ -411,11 +388,11 @@ ob_start();
                             </div>
                         </div>
                         <div class="mt-2 flex items-center text-xs text-orange-600">
-                           
                             <span>Batch diversity</span>
                         </div>
                     </div>
                 </div>
+                -->
             </div>
         </div>
 
@@ -522,54 +499,56 @@ ob_start();
             </div>
         </div>
     </div>
-<div class="recent-activity-sidebar">
-    <div class="p-5 border-b" style="background: linear-gradient(135deg, #e0f2fe 0%, #bfdbfe 50%, #93c5fd 100%); border-bottom: 1px solid #d1d5db;">
-        <div class="flex justify-between items-center">
-            <div>
-                <h3 class="text-lg font-semibold text-blue-900">Recent Activity</h3>
-                <p class="text-sm text-blue-700 mt-1">Latest 10 updates and changes</p>
-            </div>
-            <a href="activity_log.php" class="inline-flex items-center px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg font-medium text-xs border border-blue-200">
-                View All <i class="fas fa-arrow-right ml-1 text-xs"></i>
-            </a>
-        </div>
-    </div>
-    <div class="activity-list space-y-3">
-        <?php if ($recentActivityResult->num_rows > 0): ?>
-            <?php while ($activity = $recentActivityResult->fetch_assoc()): ?>
-                <div class="p-3 bg-white rounded-lg border border-gray-100">
-                    <div class="flex items-start space-x-3">
-                        <div class="flex-shrink-0">
-                            <div class="p-2 rounded-lg <?php echo getActivityColor($activity['update_type']); ?>">
-                                <i class="fas fa-<?php echo getActivityIcon($activity['update_type']); ?> text-sm"></i>
-                            </div>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-medium text-gray-900 truncate">
-                                <?php echo getEnhancedActivityText($activity); ?>
-                            </p>
-                            <div class="flex items-center mt-1 space-x-3 text-xs text-gray-500">
-                                <span class="flex items-center truncate">
-                                    <?php echo htmlspecialchars($activity['admin_name'] ?? 'Admin'); ?>
-                                </span>
-                                <span class="flex items-center">
-                                    <i class="far fa-clock mr-1"></i>
-                                    <?php echo time_elapsed_string($activity['updated_at']); ?>
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                    </div>
-            <?php endwhile; ?>
-        <?php else: ?>
-            <div class="text-center py-8 text-gray-500">
-                <div class="inline-flex items-center justify-center w-12 h-12 bg-gray-100 rounded-full mb-3">
-                    <i class="fas fa-inbox text-lg text-gray-400"></i>
+
+    <div class="recent-activity-sidebar">
+        <div class="p-5 border-b" style="background: linear-gradient(135deg, #e0f2fe 0%, #bfdbfe 50%, #93c5fd 100%); border-bottom: 1px solid #d1d5db;">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h3 class="text-lg font-semibold text-blue-900">Recent Activity</h3>
+                    <p class="text-sm text-blue-700 mt-1">Latest 10 updates and changes</p>
                 </div>
-                <p class="text-sm font-medium text-gray-400">No recent activity</p>
-                <p class="text-xs text-gray-400 mt-1">System updates will appear here</p>
+                <a href="activity_log.php" class="inline-flex items-center px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg font-medium text-xs border border-blue-200">
+                    View All <i class="fas fa-arrow-right ml-1 text-xs"></i>
+                </a>
             </div>
-        <?php endif; ?>
+        </div>
+        <div class="activity-list space-y-3">
+            <?php if ($recentActivityResult && $recentActivityResult->num_rows > 0): ?>
+                <?php while ($activity = $recentActivityResult->fetch_assoc()): ?>
+                    <div class="p-3 bg-white rounded-lg border border-gray-100">
+                        <div class="flex items-start space-x-3">
+                            <div class="flex-shrink-0">
+                                <div class="p-2 rounded-lg <?php echo getActivityColor($activity['update_type']); ?>">
+                                    <i class="fas fa-<?php echo getActivityIcon($activity['update_type']); ?> text-sm"></i>
+                                </div>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-gray-900 truncate">
+                                    <?php echo getEnhancedActivityText($activity); ?>
+                                </p>
+                                <div class="flex items-center mt-1 space-x-3 text-xs text-gray-500">
+                                    <span class="flex items-center truncate">
+                                        <?php echo htmlspecialchars($activity['admin_name'] ?? 'Admin'); ?>
+                                    </span>
+                                    <span class="flex items-center">
+                                        <i class="far fa-clock mr-1"></i>
+                                        <?php echo time_elapsed_string($activity['updated_at']); ?>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                <?php endwhile; ?>
+            <?php else: ?>
+                <div class="text-center py-8 text-gray-500">
+                    <div class="inline-flex items-center justify-center w-12 h-12 bg-gray-100 rounded-full mb-3">
+                        <i class="fas fa-inbox text-lg text-gray-400"></i>
+                    </div>
+                    <p class="text-sm font-medium text-gray-400">No recent activity</p>
+                    <p class="text-xs text-gray-400 mt-1">System updates will appear here</p>
+                </div>
+            <?php endif; ?>
+        </div>
     </div>
 </div>
 
@@ -854,24 +833,6 @@ function getActivityColor($update_type) {
         case 'reject':  return 'bg-red-100 text-red-600';
         case 'update':  return 'bg-orange-100 text-orange-600';
         default:        return 'bg-purple-100 text-purple-600';
-    }
-}
-
-function getActivityBadgeColor($update_type) {
-    switch ($update_type) {
-        case 'approve': return 'bg-green-100 text-green-800 border border-green-200';
-        case 'reject':  return 'bg-red-100 text-red-800 border border-red-200';
-        case 'update':  return 'bg-orange-100 text-orange-800 border border-orange-200';
-        default:        return 'bg-gray-100 text-gray-800 border border-gray-200';
-    }
-}
-
-function getActivityDisplayName($update_type) {
-    switch ($update_type) {
-        case 'approve': return 'Approve';
-        case 'reject':  return 'Reject';
-        case 'update':  return 'Undo/Revert';
-        default:        return ucfirst($update_type);
     }
 }
 

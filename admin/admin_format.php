@@ -179,34 +179,6 @@ if (!function_exists('getSubmissionStatusIcon')) {
     </style>
 </head>
 
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.has('success')) {
-        showToast(urlParams.get('success'));
-    } else if (urlParams.has('error')) {
-        showToast(urlParams.get('error'), 'error');
-    }
-    
-    // Toggle user dropdown
-    const userMenuButton = document.getElementById('userMenuButton');
-    const userDropdown = document.getElementById('userDropdown');
-    
-    if (userMenuButton && userDropdown) {
-        userMenuButton.addEventListener('click', () => {
-            userDropdown.classList.toggle('hidden');
-        });
-        
-        // Close dropdown when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!userMenuButton.contains(e.target) && !userDropdown.contains(e.target)) {
-                userDropdown.classList.add('hidden');
-            }
-        });
-    }
-});
-</script>
-
 <body class="bg-gray-50">
     <div class="flex min-h-screen">
         <nav class="w-72 admin-gradient-bg text-white flex-shrink-0 flex flex-col h-screen justify-between sticky top-0">
@@ -250,37 +222,33 @@ document.addEventListener("DOMContentLoaded", () => {
                     </a>
                 </div>
             </div>
-            
-            </nav>
+        </nav>
 
-      <div class="flex-1 flex flex-col min-w-0">
-    <header class="bg-white header-shadow z-10">
-        <div class="flex items-center justify-between p-4">
-            <div>
-                <h1 class="text-3xl font-bold text-gray-800">
-                    <?php echo htmlspecialchars($page_title ?? "Admin Dashboard", ENT_QUOTES, 'UTF-8'); ?>
-                </h1>
-                <nav class="flex text-base text-gray-500 mt-1">
-                    <?php
-                    $active_page = $active_page ?? 'dashboard';
-                    $welcome_text = "Welcome back! Here's what's happening today.";
-                    
-                    if ($active_page === 'alumni_management') {
-                        $welcome_text = "Manage and view all alumni records in the system.";
-                    } elseif ($active_page === 'activity_log') {
-                        $welcome_text = "Track updates, approvals, rejections, and other admin activities.";
-                    } elseif ($active_page === 'dashboard') {
-                        $welcome_text = "Welcome back! Here's what's happening today.";
-                    }
-                    ?>
-                    
-                    <span class="text-gray-500"><?php echo htmlspecialchars($welcome_text, ENT_QUOTES, 'UTF-8'); ?></span>
-                
-                </nav>
-            </div>
+        <div class="flex-1 flex flex-col min-w-0">
+            <header class="bg-white header-shadow z-10">
+                <div class="flex items-center justify-between p-4">
+                    <div>
+                        <h1 class="text-3xl font-bold text-gray-800">
+                            <?php echo htmlspecialchars($page_title ?? "Admin Dashboard", ENT_QUOTES, 'UTF-8'); ?>
+                        </h1>
+                        <nav class="flex text-base text-gray-500 mt-1">
+                            <?php
+                            $active_page = $active_page ?? 'dashboard';
+                            $welcome_text = "Welcome back! Here's what's happening today.";
+                            
+                            if ($active_page === 'alumni_management') {
+                                $welcome_text = "Manage and view all alumni records in the system.";
+                            } elseif ($active_page === 'activity_log') {
+                                $welcome_text = "Track updates, approvals, rejections, and other admin activities.";
+                            } elseif ($active_page === 'dashboard') {
+                                $welcome_text = "Welcome back! Here's what's happening today.";
+                            }
+                            ?>
+                            
+                            <span class="text-gray-500"><?php echo htmlspecialchars($welcome_text, ENT_QUOTES, 'UTF-8'); ?></span>
+                        </nav>
+                    </div>
                     <div class="flex items-center space-x-4">
-                       
-                        
                         <div class="relative">
                             <button class="relative text-gray-600 hover:text-blue-600 transition p-2 rounded-full hover:bg-gray-100">
                                 <i class="fas fa-bell text-xl"></i>
@@ -343,6 +311,32 @@ document.addEventListener("DOMContentLoaded", () => {
     </div>
 
     <script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('success')) {
+            showToast(urlParams.get('success'));
+        } else if (urlParams.has('error')) {
+            showToast(urlParams.get('error'), 'error');
+        }
+        
+        // Toggle user dropdown
+        const userMenuButton = document.getElementById('userMenuButton');
+        const userDropdown = document.getElementById('userDropdown');
+        
+        if (userMenuButton && userDropdown) {
+            userMenuButton.addEventListener('click', () => {
+                userDropdown.classList.toggle('hidden');
+            });
+            
+            // Close dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!userMenuButton.contains(e.target) && !userDropdown.contains(e.target)) {
+                    userDropdown.classList.add('hidden');
+                }
+            });
+        }
+    });
+    
     function showToast(message, type = 'success') {
         const toast = document.getElementById('customToast');
         const toastMessage = document.getElementById('toastMessage');
