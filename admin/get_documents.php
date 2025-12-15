@@ -35,12 +35,15 @@ $alumni = $alumniResult->fetch_assoc();
 $page_title = "Alumni Documents - " . ($alumni ? htmlspecialchars($alumni['name']) : 'Unknown');
 $active_page = "alumni_management";
 
-// Fetch documents - CORRECTED QUERY without document_status column
+// Fetch documents - CORRECTED QUERY: document_status column exists in schema
 $documentsQuery = "
     SELECT 
         doc_id,
         document_type,
-        file_path
+        file_path,
+        document_status, 
+        rejection_reason,
+        rejected_at
     FROM alumni_documents 
     WHERE user_id = ?
     ORDER BY 
@@ -83,10 +86,18 @@ ob_start();
                 $document_types = [
                     'COR' => ['name' => 'Certificate of Registration', 'icon' => 'fa-file-certificate', 'color' => 'blue'],
                     'COE' => ['name' => 'Certificate of Employment', 'icon' => 'fa-briefcase', 'color' => 'green'],
-                    'B_CERT' => ['name' => 'Birth Certificate', 'icon' => 'fa-certificate', 'color' => 'purple']
+                    'B_CERT' => ['name' => 'Business Certificate', 'icon' => 'fa-certificate', 'color' => 'purple']
                 ];
                 
                 $doc_type = $document_types[$document['document_type']] ?? ['name' => $document['document_type'], 'icon' => 'fa-file', 'color' => 'gray'];
+                
+                // Status badge color
+                $status_colors = [
+                    'Approved' => 'bg-green-100 text-green-800',
+                    'Pending'  => 'bg-yellow-100 text-yellow-800',
+                    'Rejected' => 'bg-red-100 text-red-800'
+                ];
+                $status_color = $status_colors[$document['document_status']] ?? 'bg-gray-100 text-gray-800';
                 ?>
                 <div class="bg-white rounded-xl shadow-lg border border-gray-200 hover:shadow-xl transition-shadow">
                     <div class="p-6">
@@ -98,21 +109,37 @@ ob_start();
                                 <div>
                                     <h3 class="font-semibold text-gray-800"><?php echo $doc_type['name']; ?></h3>
                                     <p class="text-sm text-gray-500"><?php echo strtoupper($document['document_type']); ?></p>
+                                    <span class="text-xs <?php echo $status_color; ?> px-2 py-0.5 rounded-full">
+                                        <?php echo htmlspecialchars($document['document_status']); ?>
+                                    </span>
                                 </div>
                             </div>
                         </div>
                         
-                        <div class="flex space-x-2">
-                            <a href="../<?php echo $document['file_path']; ?>" 
-                               target="_blank"
-                               class="flex-1 bg-blue-600 text-white text-center py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center">
-                                <i class="fas fa-eye mr-2"></i> View Document
-                            </a>
-                            <a href="../<?php echo $document['file_path']; ?>" 
-                               download
-                               class="bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600 transition-colors flex items-center justify-center">
-                                <i class="fas fa-download"></i>
-                            </a>
+                        <div class="space-y-3">
+                            <div class="flex space-x-2">
+                                <a href="../<?php echo $document['file_path']; ?>" 
+                                   target="_blank"
+                                   class="flex-1 bg-blue-600 text-white text-center py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center">
+                                    <i class="fas fa-eye mr-2"></i> View Document
+                                </a>
+                                <a href="../<?php echo $document['file_path']; ?>" 
+                                   download
+                                   class="bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600 transition-colors flex items-center justify-center">
+                                    <i class="fas fa-download"></i>
+                                </a>
+                            </div>
+                            
+                            <?php if ($document['document_status'] === 'Rejected' && !empty($document['rejection_reason'])): ?>
+                                <div class="bg-red-50 border border-red-200 rounded-lg p-3">
+                                    <p class="text-sm text-red-700">
+                                        <strong>Rejection Reason:</strong> <?php echo htmlspecialchars($document['rejection_reason']); ?>
+                                        <?php if (!empty($document['rejected_at'])): ?>
+                                            <br><small>Rejected on: <?php echo date('F j, Y', strtotime($document['rejected_at'])); ?></small>
+                                        <?php endif; ?>
+                                    </p>
+                                </div>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>

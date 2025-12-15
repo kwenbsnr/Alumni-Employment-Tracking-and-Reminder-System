@@ -179,40 +179,10 @@ if (!function_exists('getSubmissionStatusIcon')) {
     </style>
 </head>
 
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.has('success')) {
-        showToast(urlParams.get('success'));
-    } else if (urlParams.has('error')) {
-        showToast(urlParams.get('error'), 'error');
-    }
-    
-    // Toggle user dropdown
-    const userMenuButton = document.getElementById('userMenuButton');
-    const userDropdown = document.getElementById('userDropdown');
-    
-    if (userMenuButton && userDropdown) {
-        userMenuButton.addEventListener('click', () => {
-            userDropdown.classList.toggle('hidden');
-        });
-        
-        // Close dropdown when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!userMenuButton.contains(e.target) && !userDropdown.contains(e.target)) {
-                userDropdown.classList.add('hidden');
-            }
-        });
-    }
-});
-</script>
-
 <body class="bg-gray-50">
     <div class="flex min-h-screen">
-        <!-- Sidebar -->
         <nav class="w-72 admin-gradient-bg text-white flex-shrink-0 flex flex-col h-screen justify-between sticky top-0">
             <div class="p-6 flex-grow flex flex-col">
-                <!-- Logo/Brand -->
                 <div class="flex items-center space-x-3 mb-8">
                     <div class="w-12 h-12 rounded-full bg-white bg-opacity-20 flex items-center justify-center">
                         <i class="fas fa-user-shield text-xl" aria-hidden="true"></i>
@@ -223,7 +193,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     </div>
                 </div>
                 
-                <!-- Navigation -->
                 <ul class="space-y-2 flex-grow">
                     <li>
                         <a href="admin_dashboard.php" class="sidebar-item admin-sidebar-item <?php echo ($active_page ?? '') === 'dashboard' ? 'active' : ''; ?> flex items-center space-x-3 p-3 rounded-lg">
@@ -237,10 +206,14 @@ document.addEventListener("DOMContentLoaded", () => {
                             <span>Alumni Records</span>
                         </a>
                     </li>
-                   
+                   <li>
+                        <a href="activity_log.php" class="sidebar-item admin-sidebar-item <?php echo ($active_page ?? '') === 'activity_log' ? 'active' : ''; ?> flex items-center space-x-3 p-3 rounded-lg">
+                            <i class="fas fa-history w-6 text-lg" aria-hidden="true"></i>
+                            <span>Activity Log</span>
+                        </a>
+                    </li>
                 </ul>
 
-                <!-- Logout -->
                 <div class="pt-6">
                     <hr class="border-blue-400 my-4">
                     <a href="../login/logout.php" class="flex items-center space-x-3 text-blue-100 hover:text-white p-3 rounded-lg transition-colors">
@@ -249,44 +222,33 @@ document.addEventListener("DOMContentLoaded", () => {
                     </a>
                 </div>
             </div>
-            
-            <!-- Sidebar Footer -->
-            
         </nav>
 
-      <!-- Main Content -->
-<div class="flex-1 flex flex-col min-w-0">
-    <!-- Top Bar -->
-    <header class="bg-white header-shadow z-10">
-        <div class="flex items-center justify-between p-4">
-            <!-- Page Title and Breadcrumb -->
-            <div>
-                <h1 class="text-3xl font-bold text-gray-800">
-                    <?php echo htmlspecialchars($page_title ?? "Admin Dashboard", ENT_QUOTES, 'UTF-8'); ?>
-                </h1>
-                <nav class="flex text-base text-gray-500 mt-1">
-                    <?php
-                    $active_page = $active_page ?? 'dashboard';
-                    $welcome_text = "Welcome back! Here's what's happening today.";
-                    
-                    if ($active_page === 'alumni_management') {
-                        $welcome_text = "Manage and view all alumni records in the system.";
-                    } elseif ($active_page === 'activity_log') {
-                        $welcome_text = "Track updates, approvals, rejections, and other admin activities.";
-                    } elseif ($active_page === 'dashboard') {
-                        $welcome_text = "Welcome back! Here's what's happening today.";
-                    }
-                    ?>
-                    
-                    <span class="text-gray-500"><?php echo htmlspecialchars($welcome_text, ENT_QUOTES, 'UTF-8'); ?></span>
-                
-                </nav>
-            </div>
-                    <!-- Right Side Actions -->
+        <div class="flex-1 flex flex-col min-w-0">
+            <header class="bg-white header-shadow z-10">
+                <div class="flex items-center justify-between p-4">
+                    <div>
+                        <h1 class="text-3xl font-bold text-gray-800">
+                            <?php echo htmlspecialchars($page_title ?? "Admin Dashboard", ENT_QUOTES, 'UTF-8'); ?>
+                        </h1>
+                        <nav class="flex text-base text-gray-500 mt-1">
+                            <?php
+                            $active_page = $active_page ?? 'dashboard';
+                            $welcome_text = "Welcome back! Here's what's happening today.";
+                            
+                            if ($active_page === 'alumni_management') {
+                                $welcome_text = "Manage and view all alumni records in the system.";
+                            } elseif ($active_page === 'activity_log') {
+                                $welcome_text = "Track updates, approvals, rejections, and other admin activities.";
+                            } elseif ($active_page === 'dashboard') {
+                                $welcome_text = "Welcome back! Here's what's happening today.";
+                            }
+                            ?>
+                            
+                            <span class="text-gray-500"><?php echo htmlspecialchars($welcome_text, ENT_QUOTES, 'UTF-8'); ?></span>
+                        </nav>
+                    </div>
                     <div class="flex items-center space-x-4">
-                       
-                        
-                        <!-- Notifications -->
                         <div class="relative">
                             <button class="relative text-gray-600 hover:text-blue-600 transition p-2 rounded-full hover:bg-gray-100">
                                 <i class="fas fa-bell text-xl"></i>
@@ -294,7 +256,6 @@ document.addEventListener("DOMContentLoaded", () => {
                             </button>
                         </div>
                         
-                        <!-- User Menu -->
                         <div class="relative">
                             <button id="userMenuButton" class="flex items-center space-x-3 focus:outline-none">
                                 <?php 
@@ -338,20 +299,44 @@ document.addEventListener("DOMContentLoaded", () => {
                 </div>
             </header>
 
-            <!-- Dynamic Content -->
             <main class="flex-1 p-6 overflow-auto bg-gray-50">
                 <?php echo $page_content ?? ''; ?>
             </main>
         </div>
     </div>
 
-    <!-- Custom Toast -->
     <div id="customToast" class="fixed bottom-4 right-4 bg-green-500 text-white p-4 rounded-lg shadow-lg flex items-center space-x-2 z-50 hidden">
         <i class="fas fa-check-circle"></i>
         <span id="toastMessage"></span>
     </div>
 
     <script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('success')) {
+            showToast(urlParams.get('success'));
+        } else if (urlParams.has('error')) {
+            showToast(urlParams.get('error'), 'error');
+        }
+        
+        // Toggle user dropdown
+        const userMenuButton = document.getElementById('userMenuButton');
+        const userDropdown = document.getElementById('userDropdown');
+        
+        if (userMenuButton && userDropdown) {
+            userMenuButton.addEventListener('click', () => {
+                userDropdown.classList.toggle('hidden');
+            });
+            
+            // Close dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!userMenuButton.contains(e.target) && !userDropdown.contains(e.target)) {
+                    userDropdown.classList.add('hidden');
+                }
+            });
+        }
+    });
+    
     function showToast(message, type = 'success') {
         const toast = document.getElementById('customToast');
         const toastMessage = document.getElementById('toastMessage');
