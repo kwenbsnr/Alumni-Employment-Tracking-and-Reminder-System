@@ -335,29 +335,27 @@ ob_start();
                             </td>
                             
                             <td class="px-6 py-4 text-sm text-gray-500">
-                                <?php if (!empty($documents)): ?>
-                                    <div class="space-y-1">
-                                        <?php foreach ($documents as $doc): ?>
-                                            <?php
-                                            // Mapping for document type codes to full names
-                                            $doc_names = ['COR' => 'Certificate of Registration', 'COE' => 'Certificate of Employment', 'B_CERT' => 'Business Certificate'];
-                                            $name = $doc_names[$doc['document_type']] ?? $doc['document_type'];
-                                            ?>
-                                            <div class="flex items-center hover:bg-gray-50 rounded px-2 py-1 transition-colors">
-                                                <span class="font-semibold text-gray-800 text-sm"><?= $name ?></span>
-                                                <span class="ml-2 text-xs px-2 py-1 rounded-full <?= getDocumentStatusColor($doc['document_status']) ?>">
-                                                    <?= htmlspecialchars($doc['document_status']) ?>
-                                                </span>
-                                                <a href="../<?= htmlspecialchars($doc['file_path']) ?>" target="_blank" class="text-blue-600 hover:text-blue-800 flex items-center text-sm font-semibold ml-2">
-                                                    <i class="fas fa-external-link-alt mr-1"></i> View
-                                                </a>
-                                            </div>
-                                        <?php endforeach; ?>
-                                    </div>
-                                <?php else: ?>
-                                    <span class="text-gray-400 text-sm">No recent uploads</span>
-                                <?php endif; ?>
-                            </td>
+    <?php if (!empty($documents)): ?>
+        <div class="space-y-1">
+            <?php foreach ($documents as $doc): ?>
+                <?php
+                // Mapping for document type codes to full names
+                $doc_names = ['COR' => 'Certificate of Registration', 'COE' => 'Certificate of Employment', 'B_CERT' => 'Business Certificate'];
+                $name = $doc_names[$doc['document_type']] ?? $doc['document_type'];
+                ?>
+                <div class="flex items-center hover:bg-gray-50 rounded px-2 py-1 transition-colors">
+                    <span class="font-semibold text-gray-800 text-sm"><?= $name ?></span>
+                    
+                    <a href="../<?= htmlspecialchars($doc['file_path']) ?>" target="_blank" class="text-blue-600 hover:text-blue-800 flex items-center text-sm font-semibold ml-2">
+                        <i class="fas fa-external-link-alt mr-1"></i> View
+                    </a>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    <?php else: ?>
+        <span class="text-gray-400 text-sm">No recent uploads</span>
+    <?php endif; ?>
+</td>
                             
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                 <?php 
