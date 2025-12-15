@@ -5,25 +5,27 @@ if (!isset($_SESSION["user_id"]) || $_SESSION["role"] !== "admin") {
     exit();
 }
 include("../connect.php");
-
 // Load TCPDF library
-require_once '../tcpdf/tcpdf.php';
-require_once '../api/notification/notif_service.php';
-require_once __DIR__ . '/../api/utils/common_functions.php';
+date_default_timezone_set('Asia/Manila');   // Change to your actual timezone
+
+// REMOVED: require_once '../tcpdf/tcpdf.php'; // Moved to report generation only
+// REMOVED: require_once '../api/notification/notif_service.php';
+// REMOVED: require_once __DIR__ . '/../api/utils/common_functions.php';
 
 $page_title = "Alumni Records";
 $active_page = "alumni_management";
-
 // Get search parameter
 $search = $_GET['search'] ?? '';
-
 // Handle report generation
 if (isset($_POST['generate_report'])) {
+    // LOAD TCPDF ONLY WHEN NEEDED
+    require_once '../tcpdf/tcpdf.php';
+    
     $selected_batches = $_POST['selected_batches'] ?? [];
-    $report_type      = $_POST['report_type'] ?? 'summary';
-
+    $report_type = $_POST['report_type'] ?? 'summary';
+    $selected_statuses = $_POST['selected_statuses'] ?? [];
     if (!empty($selected_batches)) {
-        generateAlumniReport($selected_batches, $report_type, $conn);
+        generateAlumniReport($selected_batches, $report_type, $selected_statuses, $conn);
         // Exit after generating report to prevent further execution
         exit();
     } else {
@@ -33,7 +35,6 @@ if (isset($_POST['generate_report'])) {
         exit();
     }
 }
-
 // ====================== SUBMISSIONS CONTROL LOGIC ======================
 $conn->query("CREATE TABLE IF NOT EXISTS submission_status (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -43,140 +44,101 @@ $conn->query("CREATE TABLE IF NOT EXISTS submission_status (
     close_date DATETIME NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB");
-
 $statusCheck = $conn->query("SELECT * FROM submission_status LIMIT 1");
 if ($statusCheck->num_rows == 0) {
     $conn->query("INSERT INTO submission_status (is_open, manual_override) VALUES (1, 1)");
 }
-
 if (isset($_POST['update_submission_status'])) {
     $action = $_POST['submission_action'] ?? '';
-
+    
     if ($action === 'open_now') {
-        $conn->query("UPDATE submission_status SET 
-            is_open = 1, 
-            manual_override = 1, 
-            open_date = NULL, 
+        $conn->query("UPDATE submission_status SET
+            is_open = 1,
+            manual_override = 1,
+            open_date = NULL,
             close_date = NULL");
         $_SESSION['success_message'] = "Alumni submissions are now OPEN indefinitely.";
-       
-        // ==================== NOTIFICATION API INTEGRATION ====================
-        // Notify alumni who need to update (haven't updated in 6 months OR no profile)
-        $alumni_to_notify = $conn->query("
-            SELECT u.user_id, 
-                CONCAT(
-                    u.first_name,
-                    IF(u.middle_name IS NOT NULL AND u.middle_name != '', CONCAT(' ', u.middle_name), ''),
-                    ' ',
-                    u.last_name,
-                    IF(u.suffix IS NOT NULL AND u.suffix != '', CONCAT(' ', u.suffix), '')
-                ) as alumni_name,
-                u.email as alumni_email, 
-                u.batch_year as graduation_year, 
-                ap.employment_status,
-                ap.last_profile_update, 
-                ap.submission_status
-            FROM users u 
-            LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id 
-            WHERE u.role = 'alumni' 
-            AND (
-                ap.user_id IS NULL 
-                OR ap.submission_status = 'Pending' 
-                OR ap.submission_status IS NULL
-                OR ap.last_profile_update IS NULL 
-                OR ap.last_profile_update < DATE_SUB(NOW(), INTERVAL 6 MONTH)
-            )
-        ");
-
-        $notification_count = 0;
-        while ($alumni = $alumni_to_notify->fetch_assoc()) {
-            // Send profile update reminder using CORRECT function signature
-            $result = send_profile_update_reminder($conn, $alumni['user_id']);
-            
-            if ($result['success']) {
-                $notification_count++;
-            }
-        }
         
-        // Add notification count to success message
-        if ($notification_count > 0) {
-            $_SESSION['success_message'] .= " Sent profile update reminders to {$notification_count} alumni.";
-        }
-    } elseif ($action === 'schedule') {
-        $open_date_input  = $_POST['open_date'] ?? null;
-        $close_date_input = $_POST['close_date'] ?? null;
+        // REMOVED SLOW NOTIFICATION SENDING
+        // require_once __DIR__ . '/notifications_simple.php';
+        // $alumniResult = $conn->query("SELECT user_id FROM users WHERE role = 'alumni'");
+        // $notification_count = 0;
+        // while ($alumni = $alumniResult->fetch_assoc()) {
+        //     $result = sendSubmissionStatusNotification($conn, $alumni['user_id'], 'open');
+        //     if ($result) {
+        //         $notification_count++;
+        //     }
+        // }
+        // if ($notification_count > 0) {
+        //     $_SESSION['success_message'] .= " (Notification sent)";
+        // }
+        
+    } elseif ($action === 'close_now') {
+        $conn->query("UPDATE submission_status SET
+            is_open = 0,
+            manual_override = 1,
+            open_date = NULL,
+            close_date = NULL");
+        $_SESSION['success_message'] = "Alumni submissions are now CLOSED indefinitely.";
+        
+        // REMOVED SLOW NOTIFICATION SENDING
+        // require_once __DIR__ . '/notifications_simple.php';
+        // $alumniResult = $conn->query("SELECT user_id FROM users WHERE role = 'alumni'");
+        // $notification_count = 0;
+        // while ($alumni = $alumniResult->fetch_assoc()) {
+        //     $result = sendSubmissionStatusNotification($conn, $alumni['user_id'], 'closed');
+        //     if ($result) {
+        //         $notification_count++;
+        //     }
+        // }
+        // if ($notification_count > 0) {
+        //     $_SESSION['success_message'] .= " (Notification sent)";
+        // }
+        
+       } elseif ($action === 'schedule') {
+    $open_date_input = $_POST['open_date'] ?? null;
+    $close_date_input = $_POST['close_date'] ?? null;
 
-        if ($open_date_input && $close_date_input && strtotime($open_date_input) < strtotime($close_date_input)) {
-            $open_date  = date('Y-m-d H:i:s', strtotime($open_date_input));
-            $close_date = date('Y-m-d H:i:s', strtotime($close_date_input));
+    if ($open_date_input && $close_date_input && strtotime($open_date_input) < strtotime($close_date_input)) {
+        $open_date = date('Y-m-d H:i:s', strtotime($open_date_input));
+        $close_date = date('Y-m-d H:i:s', strtotime($close_date_input));
 
-            // Format for display in toast
-            $from = date('M j, Y \a\t g:i A', strtotime($open_date));
-            $to   = date('M j, Y \a\t g:i A', strtotime($close_date));
+        // Format for notification and toast
+        $open_formatted = date('F j, Y \a\t g:i A', strtotime($open_date));
+        $close_formatted = date('F j, Y \a\t g:i A', strtotime($close_date));
 
-            $conn->query("UPDATE submission_status SET 
-                open_date = '$open_date', 
-                close_date = '$close_date', 
-                manual_override = 0,
-                is_open = 0");  
+        $conn->query("UPDATE submission_status SET
+            open_date = '$open_date',
+            close_date = '$close_date',
+            manual_override = 0,
+            is_open = 0");
 
-            $_SESSION['success_message'] = "Submissions scheduled — Opens: $from | Closes: $to";
-            
-            // ==================== NOTIFICATION API INTEGRATION FOR SCHEDULED OPENING ====================
-            // Check if this is a new opening schedule (not just updating existing schedule)
-            $is_new_schedule = true; // You might want to add logic to detect if this is a new schedule
-            
-            if ($is_new_schedule) {
-                // Notify alumni who need to update when submissions open on schedule
-                $alumni_to_notify = $conn->query("
-                SELECT u.user_id, 
-                    CONCAT(
-                        u.first_name,
-                        IF(u.middle_name IS NOT NULL AND u.middle_name != '', CONCAT(' ', u.middle_name), ''),
-                        ' ',
-                        u.last_name,
-                        IF(u.suffix IS NOT NULL AND u.suffix != '', CONCAT(' ', u.suffix), '')
-                    ) as alumni_name,
-                    u.email as alumni_email, 
-                    u.batch_year as graduation_year, 
-                    ap.employment_status,
-                    ap.last_profile_update, 
-                    ap.submission_status
-                FROM users u 
-                LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id 
-                WHERE u.role = 'alumni' 
-                AND (
-                    ap.user_id IS NULL 
-                    OR ap.submission_status = 'Pending' 
-                    OR ap.submission_status IS NULL
-                    OR ap.last_profile_update IS NULL 
-                    OR ap.last_profile_update < DATE_SUB(NOW(), INTERVAL 6 MONTH)
-                )
-            ");
-                
-                // Add notification count to success message
-                $notification_count = 0;
-                while ($alumni = $alumni_to_notify->fetch_assoc()) {
-                    // Send profile update reminder using CORRECT function signature
-                    $result = send_profile_update_reminder($conn, $alumni['user_id']);
-                    
-                    if ($result['success']) {
-                        $notification_count++;
-                    }
-                }
+        $_SESSION['success_message'] = "Submissions scheduled — Opens: $open_formatted | Closes: $close_formatted";
 
-                // Add notification count to success message
-                if ($notification_count > 0) {
-                    $_SESSION['success_message'] .= " Sent scheduled update reminders to {$notification_count} alumni.";
-                }
-            }
-            
-        } else {
-            $_SESSION['error_message'] = "Invalid schedule: Closing date & time must be after opening date & time.";
-        }
+        // REMOVED SLOW NOTIFICATION SENDING
+        // require_once __DIR__ . '/notifications_simple.php';
+        // $alumniResult = $conn->query("SELECT user_id FROM users WHERE role = 'alumni'");
+        // $notification_count = 0;
+        // $title = "Profile Submission Schedule Updated";
+        // $message = "Alumni profile submissions will be open from <strong>$open_formatted</strong> until <strong>$close_formatted</strong>. Please update your profile during this period.";
+        // while ($alumni = $alumniResult->fetch_assoc()) {
+        //     $result = sendSubmissionStatusNotification($conn, $alumni['user_id'], 'scheduled', [
+        //         'open_date' => $open_formatted,
+        //         'close_date' => $close_formatted
+        //     ]);
+        //     if ($result) {
+        //         $notification_count++;
+        //     }
+        // }
+        // if ($notification_count > 0) {
+        //     $_SESSION['success_message'] .= " (Scheduled notification sent to $notification_count alumni)";
+        // }
+
+    } else {
+        $_SESSION['error_message'] = "Invalid schedule: Closing date & time must be after opening date & time.";
     }
+}
     
-    // ADD THIS REDIRECTION AFTER PROCESSING THE FORM
     header("Location: " . $_SERVER['PHP_SELF']);
     exit();
 }
@@ -186,81 +148,51 @@ $manual_override = (bool)$statusRow['manual_override'];
 $open_date = $statusRow['open_date'];
 $close_date = $statusRow['close_date'];
 
-if (!$manual_override && $open_date && $close_date) {
-    $now = date('Y-m-d H:i:s');
-    $new_status = ($now >= $open_date && $now <= $close_date) ? 1 : 0;
-    if ($new_status != $is_open) {
-        $conn->query("UPDATE submission_status SET is_open = $new_status");
-        $is_open = $new_status;
+// REMOVED AUTOMATIC STATUS CHECKING - DO THIS ON DEMAND OR WITH CRON
+// if (!$manual_override && $open_date && $close_date) {
+//     $now = new DateTime();
+//     $open_dt = new DateTime($open_date);
+//     $close_dt = new DateTime($close_date);
+//     $now->setTimezone(new DateTimeZone('Asia/Manila'));
+//     $open_dt->setTimezone(new DateTimeZone('Asia/Manila'));
+//     $close_dt->setTimezone(new DateTimeZone('Asia/Manila'));
+// 
+//     $new_status = ($now >= $open_dt && $now <= $close_dt) ? 1 : 0;
+// 
+//     if ($new_status != $is_open) {
+//         $conn->query("UPDATE submission_status SET is_open = " . (int)$new_status);
+// 
+//         // REMOVED SLOW NOTIFICATION SENDING
+//         // require_once __DIR__ . '/notifications_simple.php';
+//         // $action = $new_status ? 'open' : 'closed';
+//         // $alumniResult = $conn->query("SELECT user_id FROM users WHERE role = 'alumni'");
+//         // while ($alumni = $alumniResult->fetch_assoc()) {
+//         //     sendSubmissionStatusNotification($conn, $alumni['user_id'], $action);
+//         // }
+//     }
+//     $is_open = (bool)$new_status;
+// }
 
-        // ==================== AUTOMATIC NOTIFICATION WHEN SCHEDULE OPENS ====================
-        if ($new_status == 1) {
-            // Notify alumni when submissions automatically open per schedule
-            $alumni_to_notify = $conn->query("
-                SELECT u.user_id, 
-                    CONCAT(
-                        u.first_name,
-                        IF(u.middle_name IS NOT NULL AND u.middle_name != '', CONCAT(' ', u.middle_name), ''),
-                        ' ',
-                        u.last_name,
-                        IF(u.suffix IS NOT NULL AND u.suffix != '', CONCAT(' ', u.suffix), '')
-                    ) as alumni_name,
-                    u.email as alumni_email, 
-                    u.batch_year as graduation_year, 
-                    ap.employment_status,
-                    ap.last_profile_update, 
-                    ap.submission_status
-                FROM users u 
-                LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id 
-                WHERE u.role = 'alumni' 
-                AND (
-                    ap.user_id IS NULL 
-                    OR ap.submission_status = 'Pending' 
-                    OR ap.submission_status IS NULL
-                    OR ap.last_profile_update IS NULL 
-                    OR ap.last_profile_update < DATE_SUB(NOW(), INTERVAL 6 MONTH)
-                )
-            ");
-            
-            // Log the automatic notifications
-            $notification_count = 0;
-            while ($alumni = $alumni_to_notify->fetch_assoc()) {
-                // Send profile update reminder using CORRECT function signature
-                $result = send_profile_update_reminder($conn, $alumni['user_id']);
-                
-                if ($result['success']) {
-                    $notification_count++;
-                }
-            }
-
-            // Log the automatic notifications
-            if ($notification_count > 0) {
-                error_log("[" . date('Y-m-d H:i:s') . "] Automatically sent profile update reminders to {$notification_count} alumni when submissions opened on schedule.");
-            }
-        }
-    }
-}
 
 $status_text = $is_open ? "OPEN" : "CLOSED";
 $status_color = $is_open ? "emerald" : "red";
 $status_icon = $is_open ? "fa-unlock" : "fa-lock";
+$schedule_tooltip = "";
 
-$schedule_info = "";
 if (!$manual_override && $open_date && $close_date) {
     $from = date('M j, Y g:i A', strtotime($open_date));
     $to = date('M j, Y g:i A', strtotime($close_date));
-    $schedule_info = "<span class='text-xs block text-gray-600'>Scheduled: $from – $to</span>";
+    $schedule_tooltip = " title='Scheduled: $from – $to' ";
 }
-
 // Fetch batches - count all alumni users
-$batchQuery = "SELECT u.batch_year, COUNT(*) as total_count 
-               FROM users u 
-               WHERE u.role = 'alumni' 
-               AND u.batch_year IS NOT NULL 
-               GROUP BY u.batch_year 
-               ORDER BY u.batch_year DESC";
+$batchQuery = "SELECT u.batch_year, COUNT(*) as total_count
+               FROM users u
+               WHERE u.role = 'alumni'
+               AND u.batch_year IS NOT NULL
+               GROUP BY u.batch_year
+               ORDER BY u.batch_year DESC
+               LIMIT 50"; // ADDED LIMIT FOR SPEED
 $batchResult = $conn->query($batchQuery);
-
 $all_batches = [];
 if ($batchResult && $batchResult !== false) {
     while ($row = $batchResult->fetch_assoc()) {
@@ -275,17 +207,15 @@ if ($batchResult && $batchResult !== false) {
     error_log("Batch query failed: " . $conn->error);
     $batchResult = null; // Ensure it's not undefined
 }
-
 ob_start();
 ?>
-
-<div class="space-y-6">
-
-<?php 
+<!-- ADD THIS: Prevents layout shift when toast appears -->
+<div class="space-y-6 pb-32">
+    <div class="min-h-screen">
+<?php
 $show_toast = false;
 $toast_message = '';
 $toast_type = 'success'; // success = green, closed/error = red
-
 if (isset($_SESSION['success_message'])) {
     $msg = $_SESSION['success_message'];
     if (str_contains($msg, 'OPEN') || str_contains($msg, 'schedule')) {
@@ -299,7 +229,6 @@ if (isset($_SESSION['success_message'])) {
     }
     unset($_SESSION['success_message']);
 }
-
 if (isset($_SESSION['error_message'])) {
     $show_toast = true;
     $toast_message = $_SESSION['error_message'];
@@ -307,9 +236,8 @@ if (isset($_SESSION['error_message'])) {
     unset($_SESSION['error_message']);
 }
 ?>
-
 <?php if ($show_toast): ?>
-<div id="status-toast" 
+<div id="status-toast"
      class="fixed bottom-6 right-6 z-50 max-w-md w-full p-5 rounded-xl shadow-2xl text-white font-semibold flex items-center gap-4 animate-slide-up
      <?= $toast_type === 'success' ? 'bg-emerald-600' : 'bg-red-600' ?>">
     <i class="fas <?= $toast_type === 'success' ? 'fa-unlock' : 'fa-lock' ?> text-2xl"></i>
@@ -318,7 +246,6 @@ if (isset($_SESSION['error_message'])) {
         <div class="text-sm opacity-90"><?= htmlspecialchars($toast_message) ?></div>
     </div>
 </div>
-
 <script>
     setTimeout(() => {
         const toast = document.getElementById('status-toast');
@@ -331,13 +258,14 @@ if (isset($_SESSION['error_message'])) {
     }, 3000);
 </script>
 <?php endif; ?>
-
+<!-- Enhanced Search Bar with Action Buttons (Updated Layout) -->
 <div class="bg-gradient-to-br from-blue-50 to-white p-4 rounded-xl shadow-lg border-2 border-blue-200">
     <div class="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center">
-        
+       
+        <!-- Search Form (Left side - takes most space) -->
         <div class="flex-1 max-w-2xl">
             <form method="GET" action="" class="flex flex-col sm:flex-row gap-3">
-                <div class="flex-1 relative">
+                <div class="relative flex-1">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <i class="fas fa-search text-gray-400"></i>
                     </div>
@@ -357,10 +285,11 @@ if (isset($_SESSION['error_message'])) {
                 </div>
             </form>
         </div>
-
+        <!-- Right-side Action Buttons (Submissions + Generate Report) -->
         <div class="flex flex-col sm:flex-row gap-3 lg:ml-auto">
-            <button id="toggleSubmissionModal" 
-                    class="bg-<?= $status_color ?>-600 hover:bg-<?= $status_color ?>-700 text-white px-5 py-2 rounded-lg font-medium flex items-center gap-2 shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-105 whitespace-nowrap group relative">
+            <!-- Submissions Control Button -->
+            <button id="toggleSubmissionModal"
+                    class="bg-<?= $status_color ?>-600 hover:bg-<?= $status_color ?>-700 text-white px-5 py-2 rounded-lg font-medium flex items-center gap-2 shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-105 whitespace-nowrap group relative"<?= $schedule_tooltip ?>>
                 <i class="fas <?= $status_icon ?>"></i>
                 <span>Submissions</span>
                 <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-white text-<?= $status_color ?>-600 ml-2">
@@ -368,51 +297,57 @@ if (isset($_SESSION['error_message'])) {
                 </span>
                 <div class="absolute -top-2 -right-2 w-3 h-3 bg-<?= $status_color ?>-400 rounded-full animate-pulse"></div>
             </button>
-
-            <button id="toggleReportForm" 
+            <!-- Report Generator Button -->
+            <button id="toggleReportForm"
                     class="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-5 py-2 rounded-lg flex items-center gap-2 whitespace-nowrap transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 group">
                 <i class="fas fa-file-export group-hover:rotate-12 transition-transform duration-200"></i>
                 <span>Generate Report</span>
             </button>
         </div>
     </div>
+    <!-- Search results info (if any) -->
+<?php
+// Fix for the search count - line ~140 in your original code
+if (!empty($search)): ?>
+    <div class="mt-3 p-3 bg-blue-100 border border-blue-300 rounded-lg text-sm text-blue-800 flex items-center gap-2">
+        <i class="fas fa-info-circle"></i>
+        <span>Showing results for: <strong>"<?= htmlspecialchars($search) ?>"</strong></span>
+        <span class="ml-auto text-blue-600 font-medium">
+            <?php
+            // FIXED: Count all alumni users (not just those with profiles)
+            $searchStmt = $conn->prepare("
+                SELECT COUNT(*) as total
+                FROM users u
+                WHERE u.role = 'alumni'
+                AND (
+                    CONCAT(u.first_name, ' ', u.last_name) LIKE ? 
+                    OR u.email LIKE ? 
+                    OR u.batch_year LIKE ?
+                )
+                LIMIT 1
+            ");
+            $term = "%$search%";
+            $searchStmt->bind_param('sss', $term, $term, $term);
+            $searchStmt->execute();
+            $searchResult = $searchStmt->get_result();
+            $searchCount = $searchResult->fetch_assoc()['total'];
+            $searchStmt->close();
+            
+            echo $searchCount . " result(s) found";
+            ?>
+        </span>
+    </div>
+<?php endif; ?>
 
-    <?php if (!empty($search)): ?>
-        <div class="mt-3 p-3 bg-blue-100 border border-blue-300 rounded-lg text-sm text-blue-800 flex items-center gap-2">
-            <i class="fas fa-info-circle"></i>
-            <span>Showing results for: <strong>"<?= htmlspecialchars($search) ?>"</strong></span>
-            <span class="ml-auto text-blue-600 font-medium">
-                <?php
-                    // Calculate the number of batches that contain alumni matching the search term
-                    $stmt = $conn->prepare("SELECT COUNT(DISTINCT u.batch_year) AS batch_count
-                                            FROM users u
-                                            WHERE u.role = 'alumni' 
-                                            AND u.batch_year IS NOT NULL 
-                                            AND (CONCAT(
-                                                u.first_name,
-                                                IF(u.middle_name IS NOT NULL AND u.middle_name != '', CONCAT(' ', u.middle_name), ''),
-                                                ' ',
-                                                u.last_name,
-                                                IF(u.suffix IS NOT NULL AND u.suffix != '', CONCAT(' ', u.suffix), '')
-                                            ) LIKE ? OR u.email LIKE ?)");
-                    $term = "%$search%";
-                    $stmt->bind_param('ss', $term, $term);
-                    $stmt->execute();
-                    $result = $stmt->get_result();
-                    $batchCount = $result->fetch_assoc()['batch_count'] ?? 0;
-                    echo $batchCount . " batch folder(s) found";
-                ?>
-            </span>
-        </div>
-    <?php endif; ?>
-</div>
-
+<!-- Inline Report Form -->
 <div id="reportFormContainer" class="hidden bg-gradient-to-br from-green-50 to-white p-6 rounded-xl shadow-lg border-2 border-green-200">
     <h2 class="text-2xl font-bold text-gray-800 mb-5 flex items-center gap-3">
         <i class="fas fa-file-export text-green-600"></i> Customize Alumni Report
     </h2>
     <form method="POST" action="" class="space-y-6" id="reportForm" target="_blank">
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Your existing form content remains the same -->
+                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Batch selection section -->
             <div class="bg-white p-5 rounded-xl border-2 border-gray-200">
                 <h3 class="font-semibold text-lg mb-4 flex items-center gap-2">
                     <i class="fas fa-layer-group text-blue-600"></i> Select Batches
@@ -431,7 +366,8 @@ if (isset($_SESSION['error_message'])) {
                     <button type="button" id="deselectAll" class="text-xs bg-gray-100 text-gray-700 px-3 py-1 rounded hover:bg-gray-200">Deselect All</button>
                 </div>
             </div>
-            
+           
+            <!-- Report options section -->
             <div class="bg-white p-5 rounded-xl border-2 border-gray-200 space-y-5">
                 <div>
                     <label class="block font-medium mb-2">Report Type</label>
@@ -439,6 +375,33 @@ if (isset($_SESSION['error_message'])) {
                         <option value="summary">Summary Report</option>
                         <option value="detailed">Detailed Alumni List</option>
                     </select>
+                </div>
+                <!-- New: Employment Status Filter -->
+                <div>
+                    <label class="block font-medium mb-2">Filter by Employment Status (Optional)</label>
+                    <div class="space-y-2">
+                        <label class="flex items-center gap-2">
+                            <input type="checkbox" name="selected_statuses[]" value="employed" class="h-4 w-4 text-blue-600 rounded">
+                            <span>Employed</span>
+                        </label>
+                        <label class="flex items-center gap-2">
+                            <input type="checkbox" name="selected_statuses[]" value="self-employed" class="h-4 w-4 text-blue-600 rounded">
+                            <span>Self-Employed</span>
+                        </label>
+                        <label class="flex items-center gap-2">
+                            <input type="checkbox" name="selected_statuses[]" value="unemployed" class="h-4 w-4 text-blue-600 rounded">
+                            <span>Unemployed</span>
+                        </label>
+                        <label class="flex items-center gap-2">
+                            <input type="checkbox" name="selected_statuses[]" value="student" class="h-4 w-4 text-blue-600 rounded">
+                            <span>Student</span>
+                        </label>
+                        <label class="flex items-center gap-2">
+                            <input type="checkbox" name="selected_statuses[]" value="employed & student" class="h-4 w-4 text-blue-600 rounded">
+                            <span>Employed & Student</span>
+                        </label>
+                    </div>
+                    <p class="text-sm text-gray-600 mt-1">Leave unchecked to include all statuses.</p>
                 </div>
                 <div>
                     <label class="block font-medium mb-2">Export Format</label>
@@ -460,76 +423,69 @@ if (isset($_SESSION['error_message'])) {
         </div>
     </form>
 </div>
+    <!-- Batch Cards Grid (updated to hide "All Alumni" during search) -->
     <div class="space-y-4">
-        <div class="flex items-center gap-3 px-2">
+        <div class="flex items-center gap-3 px-2 mt-6">
             <i class="fas fa-folder-open text-2xl text-amber-600"></i>
             <h2 class="text-xl font-bold text-gray-800">Alumni Records </h2>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <?php
-            // The 'All Alumni' card has been removed as requested.
+            // Only show "All Alumni" card when NOT searching
+            if (empty($search)):
+                $totalQuery = "SELECT COUNT(*) as total FROM users WHERE role = 'alumni'";
+                $totalAll = $conn->query($totalQuery)->fetch_assoc()['total'];
             ?>
-
-            <?php
-            $displayResult = $batchResult;
-            if (!empty($search)) {
-                // Filter the batches shown only to those containing matches
-                $stmt = $conn->prepare("SELECT DISTINCT u.batch_year 
-                                    FROM users u
-                                    WHERE u.role = 'alumni' 
-                                    AND u.batch_year IS NOT NULL 
-                                    AND (CONCAT(
-                                        u.first_name,
-                                        IF(u.middle_name IS NOT NULL AND u.middle_name != '', CONCAT(' ', u.middle_name), ''),
-                                        ' ',
-                                        u.last_name,
-                                        IF(u.suffix IS NOT NULL AND u.suffix != '', CONCAT(' ', u.suffix), '')
-                                    ) LIKE ? OR u.email LIKE ?)");
-                $term = "%$search%";
-                $stmt->bind_param('ss', $term, $term);
-                $stmt->execute();
-                $displayResult = $stmt->get_result();
-            }
-
-            if ($displayResult && $displayResult->num_rows > 0):
-                while ($batch = $displayResult->fetch_assoc()):
-                    $year = $batch['batch_year'];
-
-                    // --- FIX APPLIED HERE: Calculate count based on search status ---
-                    $count = 0;
-                    if (!empty($search)) {
-                        // Calculate the filtered count for this specific batch and search term
-                        $stmt_count = $conn->prepare("SELECT COUNT(*) AS count
-                                                      FROM users u
-                                                      WHERE u.role = 'alumni' 
-                                                      AND u.batch_year = ?
-                                                      AND (CONCAT(
-                                                          u.first_name,
-                                                          IF(u.middle_name IS NOT NULL AND u.middle_name != '', CONCAT(' ', u.middle_name), ''),
-                                                          ' ',
-                                                          u.last_name,
-                                                          IF(u.suffix IS NOT NULL AND u.suffix != '', CONCAT(' ', u.suffix), '')
-                                                      ) LIKE ? OR u.email LIKE ?)");
-                        $term = "%$search%";
-                        $stmt_count->bind_param('iss', $year, $term, $term);
-                        $stmt_count->execute();
-                        $result_count = $stmt_count->get_result();
-                        $count = $result_count->fetch_assoc()['count'] ?? 0;
-                        $stmt_count->close();
-                    } else {
-                        // Use the full count if no search is active
-                        $batch_index = array_search($year, array_column($all_batches, 'batch_year'));
-                        $count = ($batch_index !== false) ? $all_batches[$batch_index]['total_count'] : 0;
-                    }
-                    // -----------------------------------------------------------------
-            ?>
+                <a href="all_alumni.php" class="bg-gradient-to-br from-purple-50 to-white p-6 rounded-xl shadow-lg border-2 border-purple-300 hover:shadow-xl hover:border-purple-500 transform hover:scale-105 transition-all duration-300 group text-center">
+                    <i class="fas fa-users text-4xl text-purple-600 mb-4"></i>
+                    <p class="text-xs uppercase tracking-wider text-gray-500">All Batches Combined</p>
+                    <p class="text-2xl font-bold text-gray-800">All Alumni</p>
+                    <div class="mt-4 bg-white rounded-xl p-4 border border-purple-100">
+                        <p class="text-3xl font-bold text-purple-600"><?= $totalAll ?></p>
+                        <p class="text-xs uppercase text-gray-600">Total Records</p>
+                    </div>
+                    <div class="mt-4 bg-purple-700 text-white py-2 px-4 rounded-lg text-sm font-medium group-hover:bg-purple-600 transition">View All Records</div>
+                </a>
+            <?php endif; ?>
+          <?php
+    $displayResult = $batchResult;
+    if (!empty($search)) {
+        // FIXED: Find batches that have alumni users (regardless of profile data)
+        $stmt = $conn->prepare("SELECT DISTINCT u.batch_year
+                                FROM users u
+                                WHERE u.role = 'alumni'
+                                AND u.batch_year IS NOT NULL
+                                AND (CONCAT(u.first_name, ' ', u.last_name) LIKE ? 
+                                     OR u.email LIKE ? 
+                                     OR u.batch_year LIKE ?)
+                                LIMIT 50"); // ADDED LIMIT
+        $term = "%$search%";
+        $stmt->bind_param('sss', $term, $term, $term);
+        $stmt->execute();
+        $displayResult = $stmt->get_result();
+    }
+    if ($displayResult && $displayResult->num_rows > 0):
+        while ($batch = $displayResult->fetch_assoc()):
+            $year = $batch['batch_year'];
+            // FIXED: Count all alumni users in this batch (not just those with profiles)
+            $countStmt = $conn->prepare("SELECT COUNT(*) as total_count 
+                                         FROM users 
+                                         WHERE role = 'alumni' 
+                                         AND batch_year = ?");
+            $countStmt->bind_param('i', $year);
+            $countStmt->execute();
+            $countResult = $countStmt->get_result();
+            $countRow = $countResult->fetch_assoc();
+            $count = $countRow['total_count'];
+            $countStmt->close();
+?>
                     <a href="batch_alumni.php?batch=<?= $year ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>" class="bg-gradient-to-br from-amber-50 to-white p-6 rounded-xl shadow-lg border-2 border-amber-200 hover:shadow-xl hover:border-amber-400 transform hover:scale-105 transition-all duration-300 group text-center">
                         <i class="fas fa-folder-open text-4xl text-amber-600 mb-4"></i>
                         <p class="text-xs uppercase tracking-wider text-gray-500">Graduation Batch</p>
                         <p class="text-2xl font-bold text-gray-800"><?= $year ?></p>
                         <div class="mt-4 bg-white rounded-xl p-4 border border-amber-100">
                             <p class="text-3xl font-bold text-amber-600"><?= $count ?></p>
-                            <p class="text-xs uppercase text-gray-600"><?= !empty($search) ? 'Matching Records' : 'Alumni Records' ?></p>
+                            <p class="text-xs uppercase text-gray-600">Alumni Records</p>
                         </div>
                         <div class="mt-4 bg-gray-800 text-white py-2 px-4 rounded-lg text-sm font-medium group-hover:bg-amber-600 transition">View Records</div>
                     </a>
@@ -544,7 +500,7 @@ if (isset($_SESSION['error_message'])) {
             <?php endif; ?>
         </div>
     </div>
-
+<!-- Submission Modal -->
 <div id="submissionModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-8 relative">
         <button id="closeModal" class="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-2xl">
@@ -553,23 +509,23 @@ if (isset($_SESSION['error_message'])) {
         <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3">
             <i class="fas fa-cog text-<?= $status_color ?>-600"></i> Manage Submission Period
         </h2>
-
         <form method="POST" class="space-y-6" onsubmit="return validateSubmissionDates()">
             <div class="space-y-4">
+                <!-- Open Now -->
                 <div class="bg-gray-50 p-4 rounded-lg border">
                     <label class="flex items-center gap-3 cursor-pointer">
                         <input type="radio" name="submission_action" value="open_now" class="text-emerald-600" <?= $is_open && $manual_override ? 'checked' : '' ?>>
                         <span class="font-medium">Open Submissions Now</span>
                     </label>
                 </div>
-
+                <!-- Close Now -->
                 <div class="bg-gray-50 p-4 rounded-lg border">
                     <label class="flex items-center gap-3 cursor-pointer">
                         <input type="radio" name="submission_action" value="close_now" class="text-red-600" <?= !$is_open && $manual_override ? 'checked' : '' ?>>
                         <span class="font-medium">Close Submissions Now</span>
                     </label>
                 </div>
-
+                <!-- Schedule -->
                 <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
                     <label class="flex items-center gap-3 cursor-pointer">
                         <input type="radio" name="submission_action" value="schedule" class="text-blue-600" id="scheduleRadio" <?= !$manual_override ? 'checked' : '' ?>>
@@ -587,11 +543,11 @@ if (isset($_SESSION['error_message'])) {
                     </div>
                 </div>
             </div>
-
+            <!-- Inline Error Message (Inside Modal) -->
             <div id="submissionError" class="hidden bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4" role="alert">
                 <span id="submissionErrorText"></span>
             </div>
-
+            <!-- Buttons -->
             <div class="flex justify-end gap-3 pt-4 border-t">
                 <button type="button" id="cancelModal" class="px-5 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600">
                     Cancel
@@ -603,44 +559,37 @@ if (isset($_SESSION['error_message'])) {
         </form>
     </div>
 </div>
-
+<!-- Validation Script -->
 <script>
 function validateSubmissionDates() {
     const errorBox = document.getElementById('submissionError');
     const errorText = document.getElementById('submissionErrorText');
     errorBox.classList.add('hidden');
     errorText.textContent = '';
-
     const scheduleRadio = document.getElementById('scheduleRadio');
     if (!scheduleRadio.checked) return true;
-
     const openDateInput = document.getElementById('open_date');
     const closeDateInput = document.getElementById('close_date');
     const openDate = new Date(openDateInput.value);
     const closeDate = new Date(closeDateInput.value);
     const now = new Date();
     now.setSeconds(0, 0);
-
     if (!openDateInput.value || !closeDateInput.value) {
         showError('Both opening and closing dates are required.');
         return false;
     }
-
     if (closeDate <= openDate) {
         showError('Closing date & time must come after the opening date & time.');
         return false;
     }
-
     // Improved message – no longer says "cannot be in the past" unless truly invalid
     if (openDate < now) {
         const formatted = openDate.toLocaleString();
         showError(`Opening date is in the past (${formatted}). Submissions would open immediately if you save this schedule.`);
         // We still allow saving – just inform the admin
     }
-
     return true;
 }
-
 function showError(message) {
     const errorBox = document.getElementById('submissionError');
     const errorText = document.getElementById('submissionErrorText');
@@ -649,7 +598,6 @@ function showError(message) {
     errorBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 </script>
-
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const toggleReport = document.getElementById('toggleReportForm');
@@ -657,261 +605,339 @@ document.addEventListener('DOMContentLoaded', function () {
     const cancelReport = document.getElementById('cancelReport');
     const selectAll = document.getElementById('selectAll');
     const deselectAll = document.getElementById('deselectAll');
-
     const modal = document.getElementById('submissionModal');
     const openModal = document.getElementById('toggleSubmissionModal');
     const closeModal = document.getElementById('closeModal');
     const cancelModal = document.getElementById('cancelModal');
-
     toggleReport.addEventListener('click', () => reportContainer.classList.toggle('hidden'));
     cancelReport.addEventListener('click', () => reportContainer.classList.add('hidden'));
     selectAll.addEventListener('click', () => document.querySelectorAll('input[name="selected_batches[]"]').forEach(cb => cb.checked = true));
     deselectAll.addEventListener('click', () => document.querySelectorAll('input[name="selected_batches[]"]').forEach(cb => cb.checked = false));
-
     openModal.addEventListener('click', () => modal.classList.remove('hidden'));
     closeModal.addEventListener('click', () => modal.classList.add('hidden'));
     cancelModal.addEventListener('click', () => modal.classList.add('hidden'));
     modal.addEventListener('click', e => { if (e.target === modal) modal.classList.add('hidden'); });
 });
 </script>
-
 <?php
 $page_content = ob_get_clean();
 include("admin_format.php");
 ?>
-
 <?php
-function generateAlumniReport($selected_batches, $report_type, $conn) {
+function generateAlumniReport($selected_batches, $report_type, $selected_statuses, $conn) {
     if (ob_get_length()) ob_clean();
 
-    // make sure batches are integers (prevent SQL injection and type issues)
     $selected_batches = array_map('intval', $selected_batches);
     $count_batches = count($selected_batches);
+
     if ($count_batches === 0) {
         $_SESSION['error_message'] = "Please select at least one batch.";
         header("Location: " . $_SERVER['PHP_SELF']);
         exit();
     }
 
-    // Build placeholders and types for bind_param
+    // Normalize selected statuses
+    $selected_statuses = array_map('strtolower', array_map('trim', $selected_statuses));
+
+    $status_placeholders = '';
+    $status_types = '';
+    $status_params = [];
+
+    if (!empty($selected_statuses)) {
+        $normalized_statuses = [];
+        foreach ($selected_statuses as $status) {
+            switch ($status) {
+                case 'employed':
+                case 'self-employed':
+                case 'unemployed':
+                case 'student':
+                    $normalized_statuses[] = $status;
+                    break;
+                case 'employed & student':
+                case 'employed and student':
+                    $normalized_statuses[] = 'employed & student';
+                    break;
+            }
+        }
+
+        if (!empty($normalized_statuses)) {
+            $status_placeholders = ' AND (ap.employment_status IS NOT NULL AND LOWER(TRIM(ap.employment_status)) IN (' .
+                implode(',', array_fill(0, count($normalized_statuses), '?')) . '))';
+            $status_types = str_repeat('s', count($normalized_statuses));
+            $status_params = $status_params = $normalized_statuses;
+        }
+    }
+
     $placeholders = implode(',', array_fill(0, $count_batches, '?'));
-    $types = str_repeat('i', $count_batches); // batches are integers
+    $types = str_repeat('i', $count_batches) . $status_types;
 
-    // Debug
-    error_log("Selected batches for report: " . implode(', ', $selected_batches));
-
-    // Use normalized employment_status (lower + trimmed) to avoid mismatches
     $queries = [
-        'summary' => "SELECT 
+        'summary' => "SELECT
             u.batch_year AS batch_year,
             SUM(CASE WHEN LOWER(TRIM(ap.employment_status)) = 'employed' THEN 1 ELSE 0 END) AS employed,
             SUM(CASE WHEN LOWER(TRIM(ap.employment_status)) = 'self-employed' THEN 1 ELSE 0 END) AS self_employed,
             SUM(CASE WHEN LOWER(TRIM(ap.employment_status)) = 'unemployed' THEN 1 ELSE 0 END) AS unemployed,
             SUM(CASE WHEN LOWER(TRIM(ap.employment_status)) = 'student' THEN 1 ELSE 0 END) AS student,
-            SUM(CASE WHEN LOWER(TRIM(ap.employment_status)) IN ('employed & student','employed & student','employed & student') THEN 1 ELSE 0 END) AS employed_student,
-            COUNT(*) AS total_alumni,
-            CASE WHEN COUNT(*) > 0 THEN ROUND(100.0 * (
-                SUM(CASE WHEN LOWER(TRIM(ap.employment_status)) IN ('employed','self-employed','employed & student') THEN 1 ELSE 0 END)
-            ) / COUNT(*), 2) ELSE 0 END AS employment_rate
-        FROM alumni_profile ap
-        INNER JOIN users u ON ap.user_id = u.user_id
-        WHERE u.batch_year IN ($placeholders)
+            SUM(CASE WHEN LOWER(TRIM(ap.employment_status)) IN ('employed & student','employed and student') THEN 1 ELSE 0 END) AS employed_student,
+            SUM(CASE WHEN ap.employment_status IS NULL OR ap.employment_status = '' OR LOWER(TRIM(ap.employment_status)) NOT IN ('employed','self-employed','unemployed','student','employed & student','employed and student') THEN 1 ELSE 0 END) AS not_updated,
+            COUNT(DISTINCT u.user_id) AS total_alumni,
+            CASE WHEN SUM(CASE WHEN LOWER(TRIM(ap.employment_status)) IN ('employed','self-employed','unemployed','student','employed & student','employed and student') THEN 1 ELSE 0 END) > 0
+                THEN ROUND(100.0 * (
+                    SUM(CASE WHEN LOWER(TRIM(ap.employment_status)) IN ('employed','self-employed','employed & student','employed and student') THEN 1 ELSE 0 END)
+                ) / SUM(CASE WHEN LOWER(TRIM(ap.employment_status)) IN ('employed','self-employed','unemployed','student','employed & student','employed and student') THEN 1 ELSE 0 END), 2)
+                ELSE 0
+            END AS employment_rate
+        FROM users u
+        LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id
+        WHERE u.role = 'alumni'
+        AND u.batch_year IN ($placeholders)$status_placeholders
         GROUP BY u.batch_year
         ORDER BY u.batch_year DESC",
 
-        'detailed' => "SELECT 
+        'detailed' => "SELECT
             CONCAT(
                 u.first_name,
                 IF(u.middle_name IS NOT NULL AND u.middle_name != '', CONCAT(' ', u.middle_name), ''),
                 ' ',
                 u.last_name,
                 IF(u.suffix IS NOT NULL AND u.suffix != '', CONCAT(' ', u.suffix), '')
-            ) as name, 
-            u.email, 
-            u.batch_year, 
-            COALESCE(ap.employment_status, 'Not Updated') as employment_status,
-            CASE 
+            ) as name,
+            u.email,
+            u.batch_year,
+            CASE
+                WHEN ap.employment_status IS NULL OR ap.employment_status = '' THEN 'Not Updated'
+                ELSE ap.employment_status
+            END as employment_status,
+            CASE
                 WHEN LOWER(TRIM(ap.employment_status)) = 'self-employed' THEN 'Self-Employed'
                 WHEN jt.title IS NOT NULL THEN jt.title
                 ELSE '-'
             END as current_job,
-            CASE 
+            CASE
                 WHEN LOWER(TRIM(ap.employment_status)) = 'self-employed' THEN COALESCE(ei.business_type, '-')
                 WHEN ei.company_name IS NOT NULL THEN ei.company_name
                 ELSE '-'
             END as current_employer
-    FROM alumni_profile ap
-    INNER JOIN users u ON ap.user_id = u.user_id
-    LEFT JOIN employment_info ei ON ap.user_id = ei.user_id
-    LEFT JOIN job_titles jt ON ei.job_title_id = jt.job_title_id
-    WHERE u.batch_year IN ($placeholders)
-    ORDER BY u.batch_year DESC, name"
+        FROM users u
+        LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id
+        LEFT JOIN employment_info ei ON ap.user_id = ei.user_id
+        LEFT JOIN job_titles jt ON ei.job_title_id = jt.job_title_id
+        WHERE u.role = 'alumni'
+        AND u.batch_year IN ($placeholders)$status_placeholders
+        ORDER BY u.batch_year DESC, name"
     ];
 
-    if (!isset($queries[$report_type])) {
-        $_SESSION['error_message'] = "Invalid report type selected.";
-        header("Location: " . $_SERVER['PHP_SELF']);
-        exit();
-    }
-
-    // Prepare statement dynamically and bind params
     $stmt = $conn->prepare($queries[$report_type]);
     if ($stmt === false) {
         error_log("Prepare failed: " . $conn->error);
-        $_SESSION['error_message'] = "Failed to prepare report query.";
+        $_SESSION['error_message'] = "Database error while preparing report.";
         header("Location: " . $_SERVER['PHP_SELF']);
         exit();
     }
 
-    // Bind the batch params
-    $bind_names = [];
-    $bind_names[] = $types;
-    for ($i = 0; $i < $count_batches; $i++) {
-        // Must pass by reference
-        $bind_names[] = &$selected_batches[$i];
-    }
-    call_user_func_array([$stmt, 'bind_param'], $bind_names);
+    $all_params = array_merge($selected_batches, $status_params);
 
-    // Execute with error handling
-    if (!$stmt->execute()) {
-        error_log("Report generation failed: " . $stmt->error);
-        $_SESSION['error_message'] = "Failed to generate report: " . $stmt->error;
-        header("Location: " . $_SERVER['PHP_SELF']);
-        exit();
+    if (!empty($all_params)) {
+        $bind_names = [$types];
+        foreach ($all_params as &$param) {
+            $bind_names[] = &$param;
+        }
+        call_user_func_array([$stmt, 'bind_param'], $bind_names);
     }
 
+    $stmt->execute();
     $result = $stmt->get_result();
     $data = $result->fetch_all(MYSQLI_ASSOC);
 
+    // ALWAYS generate PDF — even if no data
+    $has_real_data = !empty($data);
+
+    if (!$has_real_data) {
+        if ($report_type === 'summary') {
+            $data = [[
+                'batch_year'       => '—',
+                'employed'         => 0,
+                'self_employed'    => 0,
+                'unemployed'       => 0,
+                'student'          => 0,
+                'employed_student' => 0,
+                'not_updated'      => 0,
+                'total_alumni'     => 0,
+                'employment_rate'  => '0%'
+            ]];
+        } else {
+            $data = [[
+                'batch_year'        => '—',
+                'name'              => 'No alumni found matching the selected filters',
+                'email'             => '',
+                'employment_status' => '',
+                'current_job'       => '',
+                'current_employer'  => ''
+            ]];
+        }
+    }
+
     // ==================================================================
-    // PDF GENERATION USING TCPDF (COMPLETE CODE)
+    // PDF GENERATION
     // ==================================================================
     $pdf = new TCPDF('L', 'mm', 'A4', true, 'UTF-8', false);
     $pdf->SetCreator('Alumni Tracking System');
     $pdf->SetAuthor('Administrator');
     $pdf->SetTitle('Alumni Report - ' . ucfirst($report_type));
     $pdf->SetSubject('Alumni Records Report');
-    $pdf->SetHeaderData('', 0, 'ALUMNI MANAGEMENT SYSTEM', 'Alumni Report - ' . date('F j, Y'));
-    $pdf->setHeaderFont(Array('helvetica', '', 10));
-    $pdf->setFooterFont(Array('helvetica', '', 8));
+
+    $status_filter_text = !empty($selected_statuses)
+        ? ' (Filtered by: ' . implode(', ', array_map('ucfirst', $selected_statuses)) . ')'
+        : '';
+    $pdf->SetHeaderData('', 0, 'ALUMNI MANAGEMENT SYSTEM', 'Alumni Report - ' . date('F j, Y') . $status_filter_text);
+
+    $pdf->setHeaderFont(['helvetica', '', 10]);
+    $pdf->setFooterFont(['helvetica', '', 8]);
     $pdf->SetMargins(15, 20, 15);
     $pdf->SetHeaderMargin(5);
     $pdf->SetFooterMargin(10);
-    $pdf->SetAutoPageBreak(TRUE, 15);
+    $pdf->SetAutoPageBreak(TRUE, 25);
     $pdf->AddPage();
 
     $pdf->SetFont('helvetica', 'B', 16);
-    $pdf->Cell(0, 10, strtoupper($report_type) . ' ALUMNI REPORT', 0, 1, 'C');
+    $pdf->Cell(0, 10, strtoupper($report_type) . ' ALUMNI REPORT' . $status_filter_text, 0, 1, 'C');
     $pdf->Ln(5);
 
     $pdf->SetFont('helvetica', '', 10);
     $pdf->Cell(0, 6, 'Selected Batches: ' . implode(', ', $selected_batches), 0, 1);
-    $pdf->Cell(0, 6, 'Total Records: ' . number_format(count($data)), 0, 1);
+    $pdf->Cell(0, 6, 'Total Records Found: ' . ($has_real_data ? number_format(count($data)) : '0'), 0, 1);
     $pdf->Cell(0, 6, 'Generated on: ' . date('F j, Y \a\t g:i A'), 0, 1);
-    $pdf->Ln(10);
+    $pdf->Ln(8);
 
-    // Table configurations
     $table_config = [
         'summary' => [
-            'headers' => ['Batch Year', 'Employed', 'Self-Employed', 'Unemployed', 'Student', 'Employed/Student', 'Total', 'Employment Rate'],
-            'widths' => [30, 30, 35, 30, 30, 40, 20, 30], // Total width approx 245mm for landscape A4
-            'data_keys' => ['batch_year', 'employed', 'self_employed', 'unemployed', 'student', 'employed_student', 'total_alumni', 'employment_rate'],
-            'align' => ['C', 'C', 'C', 'C', 'C', 'C', 'C', 'C'],
-            'total_label' => 'Total Alumni:',
+            'headers' => ['Batch', 'Employed', 'Self-Employed', 'Unemployed', 'Student', 'Employed & Student', 'Not Updated', 'Total', 'Employment Rate'],
+            'widths'  => [25, 25, 30, 25, 25, 35, 30, 20, 35],
+            'data_keys' => ['batch_year', 'employed', 'self_employed', 'unemployed', 'student', 'employed_student', 'not_updated', 'total_alumni', 'employment_rate'],
+            'align'   => ['C', 'C', 'C', 'C', 'C', 'C', 'C', 'C', 'C'],
         ],
         'detailed' => [
-            'headers' => ['Batch Year', 'Name', 'Email', 'Employment Status', 'Current Job', 'Current Employer'],
-            'widths' => [25, 50, 60, 40, 40, 60], // Total width approx 275mm for landscape A4
+            'headers' => ['Batch', 'Name', 'Email', 'Status', 'Job', 'Employer'],
+            'widths'  => [20, 50, 60, 35, 45, 60],
             'data_keys' => ['batch_year', 'name', 'email', 'employment_status', 'current_job', 'current_employer'],
-            'align' => ['C', 'L', 'L', 'L', 'L', 'L'],
-            'total_label' => 'Total Records:',
+            'align'   => ['C', 'L', 'L', 'L', 'L', 'L'],
         ]
     ];
 
     $config = $table_config[$report_type];
 
-    // --- Draw Table Header ---
-    $pdf->SetFillColor(230, 240, 255); // Light Blue for Header
+    // Header
+    $pdf->SetFillColor(230, 240, 255);
     $pdf->SetTextColor(0);
     $pdf->SetDrawColor(150, 150, 150);
     $pdf->SetLineWidth(0.3);
-    $pdf->SetFont('helvetica', 'B', 9);
+    $pdf->SetFont('helvetica', 'B', 8);
 
-    for ($i = 0; $i < count($config['headers']); $i++) {
-        $pdf->Cell($config['widths'][$i], 7, $config['headers'][$i], 1, 0, $config['align'][$i], 1);
+    foreach ($config['headers'] as $i => $header) {
+        $pdf->Cell($config['widths'][$i], 6, $header, 1, 0, $config['align'][$i], 1);
     }
     $pdf->Ln();
 
-    // --- Draw Table Body and Calculate Totals ---
-    $pdf->SetFillColor(255);
-    $pdf->SetFont('helvetica', '', 9);
-    $totals = array_fill_keys($config['data_keys'], 0);
+    // Body
+    $pdf->SetFont('helvetica', '', 8);
     $is_summary = $report_type === 'summary';
+    $totals = array_fill_keys($config['data_keys'], 0);
 
     foreach ($data as $row) {
-        $pdf->SetFillColor(255);
-        $pdf->SetTextColor(0);
+        if ($pdf->GetY() > 190) {
+            $pdf->AddPage();
+            // Redraw header
+            $pdf->SetFillColor(230, 240, 255);
+            $pdf->SetFont('helvetica', 'B', 8);
+            foreach ($config['headers'] as $i => $header) {
+                $pdf->Cell($config['widths'][$i], 6, $header, 1, 0, $config['align'][$i], 1);
+            }
+            $pdf->Ln();
+            $pdf->SetFont('helvetica', '', 8);
+        }
 
-        for ($i = 0; $i < count($config['data_keys']); $i++) {
-            $key = $config['data_keys'][$i];
-            $value = $row[$key];
-            $align = $config['align'][$i];
-            $width = $config['widths'][$i];
+        foreach ($config['data_keys'] as $i => $key) {
+            $value = $row[$key] ?? '';
 
-            // Special formatting for summary report data and totals calculation
             if ($is_summary) {
-                // Total calculation for numeric columns
-                if (in_array($key, ['employed', 'self_employed', 'unemployed', 'student', 'employed_student', 'total_alumni'])) {
+                if (in_array($key, ['employed','self_employed','unemployed','student','employed_student','not_updated','total_alumni'])) {
                     $totals[$key] += (int)$value;
                 }
-                // Format employment rate with percentage sign
                 if ($key === 'employment_rate') {
-                    $value .= '%';
+                    $value = is_numeric($value) ? $value . '%' : '0%';
                 }
             }
-            
-            // Output the cell
-            $pdf->Cell($width, 6, $value, 1, 0, $align, 1, '', 0, false, 'T', 'M');
+
+            if ($value === null || $value === '') $value = '-';
+
+            // Red text for "Not Updated"
+            if (($is_summary && $key === 'not_updated' && $value > 0) ||
+                (!$is_summary && $value === 'Not Updated')) {
+                $pdf->SetTextColor(200, 0, 0);
+            } else {
+                $pdf->SetTextColor(0);
+            }
+
+            $pdf->Cell($config['widths'][$i], 5, $value, 1, 0, $config['align'][$i], 1);
         }
         $pdf->Ln();
+        $pdf->SetTextColor(0);
     }
-    
-    // --- Draw Totals Row (Summary Report Only) ---
-    if ($is_summary && !empty($data)) {
-        $pdf->SetFillColor(200, 215, 230); // Darker Blue for Footer
-        $pdf->SetFont('helvetica', 'B', 9);
-        $total_rate = 0;
 
-        if ($totals['total_alumni'] > 0) {
-            $total_employed = $totals['employed'] + $totals['self_employed'] + $totals['employed_student'];
-            $total_rate = round(100.0 * $total_employed / $totals['total_alumni'], 2);
-        }
+    // Show clear message if no real data
+    if (!$has_real_data) {
+        $pdf->Ln(10);
+        $pdf->SetFont('helvetica', 'B', 14);
+        $pdf->SetTextColor(200, 0, 0);
+        $pdf->Cell(0, 10, 'NO RECORDS FOUND FOR THE SELECTED BATCHES AND FILTERS', 0, 1, 'C');
+        $pdf->SetTextColor(0);
+        $pdf->SetFont('helvetica', 'I', 10);
+        $pdf->Cell(0, 8, 'Try adjusting the batch selection or employment status filters.', 0, 1, 'C');
+    }
+
+    // Grand Total Row (only for summary with real data)
+    if ($is_summary && $has_real_data && $totals['total_alumni'] > 0) {
+        $pdf->SetFillColor(200, 215, 230);
+        $pdf->SetFont('helvetica', 'B', 8);
+
+        $total_with_data = $totals['employed'] + $totals['self_employed'] + $totals['unemployed'] +
+                           $totals['student'] + $totals['employed_student'];
+        $total_employed = $totals['employed'] + $totals['self_employed'] + $totals['employed_student'];
+        $total_rate = $total_with_data > 0 ? round(100.0 * $total_employed / $total_with_data, 2) : 0;
 
         $summary_totals = [
-            'batch_year' => 'GRAND TOTAL',
-            'employed' => $totals['employed'],
-            'self_employed' => $totals['self_employed'],
-            'unemployed' => $totals['unemployed'],
-            'student' => $totals['student'],
+            'batch_year'       => 'GRAND TOTAL',
+            'employed'         => $totals['employed'],
+            'self_employed'    => $totals['self_employed'],
+            'unemployed'       => $totals['unemployed'],
+            'student'          => $totals['student'],
             'employed_student' => $totals['employed_student'],
-            'total_alumni' => $totals['total_alumni'],
-            'employment_rate' => $total_rate . '%',
+            'not_updated'      => $totals['not_updated'],
+            'total_alumni'     => $totals['total_alumni'],
+            'employment_rate'  => $total_rate . '%',
         ];
 
-        // Output totals cells
-        for ($i = 0; $i < count($config['data_keys']); $i++) {
-            $key = $config['data_keys'][$i];
+        foreach ($config['data_keys'] as $i => $key) {
             $value = $summary_totals[$key];
-            $align = $config['align'][$i];
-            $width = $config['widths'][$i];
-
-            $pdf->Cell($width, 7, $value, 1, 0, $align, 1);
+            if ($key === 'not_updated' && $value > 0) {
+                $pdf->SetTextColor(200, 0, 0);
+            } else {
+                $pdf->SetTextColor(0);
+            }
+            $pdf->Cell($config['widths'][$i], 5, $value, 1, 0, $config['align'][$i], 1);
         }
         $pdf->Ln();
+        $pdf->SetTextColor(0);
     }
 
-    // Output the PDF
-    $pdf_filename = strtoupper($report_type) . '_Alumni_Report_' . date('Ymd_His') . '.pdf';
+    // Footer note
+    $pdf->SetFont('helvetica', 'I', 8);
+    $pdf->Ln(5);
+    $pdf->Cell(0, 6, 'Report generated with filters: ' .
+        (!empty($selected_statuses) ? 'Status: ' . implode(', ', array_map('ucfirst', $selected_statuses)) . ' | ' : '') .
+        'Batches: ' . implode(', ', $selected_batches), 0, 1);
+
+    $pdf_filename = strtoupper($report_type) . '_ALUMNI_REPORT_' . date('Ymd_His') . '.pdf';
     $pdf->Output($pdf_filename, 'I');
     exit;
 }
