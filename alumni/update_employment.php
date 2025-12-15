@@ -70,21 +70,7 @@ function upload_employment_document($field, $user_id, $type) {
         throw new Exception("Invalid file type. Only PDF files are allowed for documents.");
     }
     
-    // Get user's surname for filename
-    $user_stmt = $conn->prepare("SELECT last_name FROM users WHERE user_id = ?");
-    $user_stmt->bind_param("i", $user_id);
-    $user_stmt->execute();
-    $user_result = $user_stmt->get_result();
-    $user_data = $user_result->fetch_assoc();
-    $user_stmt->close();
-
-    $surname = 'Unknown';
-    if ($user_data && !empty($user_data['last_name'])) {
-        $surname = preg_replace("/[^a-zA-Z0-9]/", "", $user_data['last_name']);
-        $surname = ucfirst($surname);
-    }
-
-    // Document type mapping
+    // Use user_id for filename instead of surname to avoid accessing personal info
     $doc_type_map = [
         'coe' => 'COE',
         'business' => 'B_CERT', 
@@ -101,9 +87,9 @@ function upload_employment_document($field, $user_id, $type) {
         }
     }
 
-    // Generate unique filename
+    // Generate unique filename using user_id and timestamp
     $timestamp = time();
-    $filename = $surname . '_' . $doc_type . '_' . $timestamp . '.pdf';
+    $filename = 'USER' . $user_id . '_' . $doc_type . '_' . $timestamp . '.pdf';
     $target_path = $upload_dir . $filename;
 
     if (!move_uploaded_file($file['tmp_name'], $target_path)) {
@@ -274,26 +260,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->close();
         }
 
-        // ---- 5. Update alumni_profile --------------------------------------
-        $stmt = $conn->prepare("SELECT user_id FROM alumni_profile WHERE user_id = ?");
-        $stmt->bind_param("i", $user_id);
-        $stmt->execute();
-        $profile_exists = $stmt->get_result()->num_rows > 0;
-        $stmt->close();
-        
-        if ($profile_exists) {
-            $stmt = $conn->prepare("UPDATE alumni_profile SET 
-                employment_status = ?, 
-                last_profile_update = NOW(),
-                submitted_at = NOW()
-                WHERE user_id = ?");
-            $stmt->bind_param("si", $employment_status, $user_id);
-        } else {
-            $stmt = $conn->prepare("INSERT INTO alumni_profile 
-                (user_id, employment_status, last_profile_update, submitted_at)
-                VALUES (?, ?, NOW(), NOW())");
-            $stmt->bind_param("is", $user_id, $employment_status);
-        }
+        // ---- 5. Update users table for employment_status -------------------
+        $stmt = $conn->prepare("UPDATE users SET employment_status = ?, updated_at = NOW() WHERE user_id = ?");
+        $stmt->bind_param("si", $employment_status, $user_id);
         
         if (!$stmt->execute()) {
             throw new Exception("Failed to update employment status.");
