@@ -410,63 +410,8 @@ ob_start();
                         </div>
                     </div>
                 </div>
-                <div class="bg-white rounded-xl shadow-lg border-2 border-indigo-200 overflow-hidden">
-                    <div class="bg-gradient-to-r from-indigo-50 to-purple-50 px-6 py-3 border-b border-indigo-200">
-                        <h3 class="text-lg font-extrabold text-indigo-800"> Quick Actions</h3>
-                        <p class="text-purple-700 text-xs mt-1 font-medium">Manage your profile and documents efficiently</p>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-0 divide-y md:divide-y-0 md:divide-x divide-indigo-100">
-                        <a href="alumni_profile.php"
-                            class="group flex items-center justify-between px-4 py-4 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-300">
-                            <div class="flex items-center space-x-3">
-                                <div class="relative">
-                                    <div class="w-10 h-10 bg-blue-500 text-white flex items-center justify-center rounded-full shadow-md group-hover:bg-blue-600 transition-colors duration-300">
-                                        <i class="fas fa-id-card text-md"></i>
-                                    </div>
-                                </div>
-                                <div>
-                                    <p class="font-bold text-gray-800 text-sm">View Profile</p>
-                                    <p class="text-xs text-gray-500 mt-0.5">See complete information</p>
-                                </div>
-                            </div>
-                            <i class="fas fa-arrow-right text-blue-500 text-md group-hover:translate-x-1 transition-transform duration-300"></i>
-                        </a>
-
-                        <a href="alumni_profile.php?edit=1"
-                            class="group flex items-center justify-between px-4 py-4 hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 transition-all duration-300">
-                            <div class="flex items-center space-x-3">
-                                <div class="relative">
-                                    <div class="w-10 h-10 bg-purple-500 text-white flex items-center justify-center rounded-full shadow-md group-hover:bg-purple-600 transition-colors duration-300">
-                                        <i class="fas fa-user-pen text-md"></i>
-                                    </div>
-                                </div>
-                                <div>
-                                    <p class="font-bold text-gray-800 text-sm">Validate Profile</p>
-                                    <p class="text-xs text-gray-500 mt-0.5">Validate personal & work information</p>
-                                </div>
-                            </div>
-                            <i class="fas fa-arrow-right text-purple-500 text-md group-hover:translate-x-1 transition-transform duration-300"></i>
-                        </a>
-
-                        <a href="alumni_profile.php#documents"
-                            class="group flex items-center justify-between px-4 py-4 hover:bg-gradient-to-r hover:from-emerald-50 hover:to-teal-50 transition-all duration-300">
-                            <div class="flex items-center space-x-3">
-                                <div class="relative">
-                                    <div class="w-10 h-10 bg-emerald-500 text-white flex items-center justify-center rounded-full shadow-md group-hover:bg-emerald-600 transition-colors duration-300">
-                                        <i class="fas fa-cloud-upload-alt text-md"></i>
-                                    </div>
-                                </div>
-                                <div>
-                                    <p class="font-bold text-gray-800 text-sm">Upload Files</p>
-                                    <p class="text-xs text-gray-500 mt-0.5">Add required documents</p>
-                                </div>
-                            </div>
-                            <i class="fas fa-arrow-right text-emerald-500 text-md group-hover:translate-x-1 transition-transform duration-300"></i>
-                        </a>
-                    </div>
+                
                 </div>
-            </div>
 
             <div class="xl:col-span-1">
                 <div class="bg-white -xl shadow-lg border-t-4 border-b-4 border-indigo-300 overflow-hidden h-full flex flex-col transition-shadow duration-500 hover:shadow-xl">
