@@ -1,4 +1,3 @@
-
 <?php
 session_start();
 // 1. Access Control: Redirects non-admin users or unauthenticated users.
@@ -113,7 +112,7 @@ $alumniQuery = "
         u.email,
         ap.employment_status, 
         ap.photo_path,
-        ap.submitted_at, -- ADDED: Get the submission timestamp
+        ap.submitted_at, 
         (
             SELECT ad.document_status 
             FROM alumni_documents ad 
@@ -126,7 +125,7 @@ $alumniQuery = "
             WHEN EXISTS (SELECT 1 FROM alumni_documents ad WHERE ad.user_id = u.user_id AND ad.document_status = 'Rejected') THEN 'Rejected'
             WHEN EXISTS (SELECT 1 FROM alumni_documents ad WHERE ad.user_id = u.user_id AND ad.document_status = 'Approved') THEN 'Approved'
             WHEN EXISTS (SELECT 1 FROM alumni_documents ad WHERE ad.user_id = u.user_id AND ad.document_status = 'Pending') THEN 'Pending'
-            ELSE 'No Documents'
+            ELSE 'No Recent Uploads'
         END as submission_status
     FROM users u
     LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id
@@ -236,8 +235,6 @@ ob_start();
                 </select>
             </div>
             
-            <!-- Removed submission_status filter since it's not in the alumni_profile table -->
-            
             <div class="flex gap-2 w-full sm:w-auto">
                 <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors flex-shrink-0">
                     <i class="fas fa-filter mr-1"></i> Apply
@@ -266,7 +263,7 @@ ob_start();
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Alumni</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employment</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submission</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Submitted</th> <!-- ADDED COLUMN -->
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Submitted</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Documents</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
@@ -315,7 +312,7 @@ ob_start();
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <span class="px-3 py-1.5 inline-flex text-sm font-semibold rounded-full <?= getEmploymentStatusColor($alumni['employment_status']) ?> border <?= getEmploymentStatusBorder($alumni['employment_status']) ?> shadow-sm">
                                     <i class="<?= getEmploymentStatusIcon($alumni['employment_status']) ?> mr-2"></i>
-                                    <?= empty($alumni['employment_status']) ? 'No Profile' : htmlspecialchars($alumni['employment_status']) ?>
+                                    <?= empty($alumni['employment_status']) ? 'No recent update' : htmlspecialchars($alumni['employment_status']) // MODIFIED: Changed from 'No Profile' ?>
                                 </span>
                             </td>
                             
@@ -326,7 +323,6 @@ ob_start();
                                 </span>
                             </td>
                             
-                            <!-- ADDED: Date Submitted Column -->
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <?php if ($submitted_at): ?>
                                     <div class="text-sm text-gray-900">
@@ -359,19 +355,14 @@ ob_start();
                                         <?php endforeach; ?>
                                     </div>
                                 <?php else: ?>
-                                    <span class="text-gray-400 text-sm">No documents</span>
+                                    <span class="text-gray-400 text-sm">No recent uploads</span>
                                 <?php endif; ?>
                             </td>
                             
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <?php if ($alumni['submission_status'] === 'No Profile'): ?>
-                                    <div class="flex justify-left">
-                                        <span class="px-3 py-1.5 inline-flex text-sm font-semibold rounded-full bg-gray-100 text-gray-800 border border-gray-200 shadow-sm">
-                                            <i class="fas fa-user-clock mr-2 text-gray-600"></i>
-                                            No Profile
-                                        </span>
-                                    </div>
-                                <?php elseif ($alumni['submission_status'] === 'Pending'): ?>
+                                <?php 
+                                $status = $alumni['submission_status'];
+                                if ($status === 'Pending'): ?>
                                     <div class="flex gap-2">
                                         <button onclick="showApproveModal(<?= $alumni['user_id'] ?>, '<?= htmlspecialchars($alumni['name'], ENT_QUOTES) ?>')"
                                                 class="text-green-600 hover:text-green-900 px-3 py-1 border border-green-600 rounded-lg hover:bg-green-50 transition-colors">
@@ -382,7 +373,7 @@ ob_start();
                                             <i class="fas fa-times mr-1"></i> Reject
                                         </button>
                                     </div>
-                                <?php elseif ($alumni['submission_status'] === 'Approved' || $alumni['submission_status'] === 'Rejected'): ?>
+                                <?php elseif ($status === 'Approved' || $status === 'Rejected'): ?>
                                     <button onclick="showRevertModal(<?= $alumni['user_id'] ?>, '<?= htmlspecialchars($alumni['name'], ENT_QUOTES) ?>')"
                                             class="text-orange-600 hover:text-orange-900 px-3 py-1 border border-orange-600 rounded-lg hover:bg-orange-50 transition-colors">
                                         <i class="fas fa-undo mr-1"></i> Undo
@@ -847,6 +838,7 @@ function getEmploymentStatusBorder($s) {
 }
 
 function getEmploymentStatusIcon($s) { 
+    // MODIFIED: 'No Profile' icon logic changed to use 'No recent update' text
     if (empty($s)) return 'fas fa-user-clock text-gray-600';
     $icons = [
         'Unemployed'=>'fas fa-user-slash text-red-600',
@@ -864,7 +856,7 @@ function getSubmissionStatusColor($s) {
         'Pending'=>'bg-yellow-100 text-yellow-800',
         'Rejected'=>'bg-red-100 text-red-800',
         'No Profile'=>'bg-gray-100 text-gray-800',
-        'No Documents'=>'bg-gray-100 text-gray-800'
+        'No Recent Uploads'=>'bg-gray-100 text-gray-800' 
     ];
     return $colors[$s] ?? 'bg-gray-100 text-gray-800'; 
 }
@@ -875,7 +867,7 @@ function getSubmissionStatusBorder($s) {
         'Pending'=>'border-yellow-200',
         'Rejected'=>'border-red-200',
         'No Profile'=>'border-gray-200',
-        'No Documents'=>'border-gray-200'
+        'No Recent Uploads'=>'border-gray-200'
     ];
     return $borders[$s] ?? 'border-gray-200'; 
 }
@@ -886,7 +878,7 @@ function getSubmissionStatusIcon($s) {
         'Pending'=>'fas fa-clock text-yellow-600',
         'Rejected'=>'fas fa-times-circle text-red-600',
         'No Profile'=>'fas fa-user-clock text-gray-600',
-        'No Documents'=>'fas fa-file-alt text-gray-600'
+        'No Recent Uploads'=>'fas fa-file-alt text-gray-600'
     ];
     return $icons[$s] ?? 'fas fa-user-clock text-gray-600'; 
 }
