@@ -260,11 +260,11 @@ ob_start();
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Alumni</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employment</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submission</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Alumni Lists</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employment Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submission Status</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Submitted</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Documents</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Documents Uploaded</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
                 </thead>
@@ -312,7 +312,7 @@ ob_start();
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <span class="px-3 py-1.5 inline-flex text-sm font-semibold rounded-full <?= getEmploymentStatusColor($alumni['employment_status']) ?> border <?= getEmploymentStatusBorder($alumni['employment_status']) ?> shadow-sm">
                                   
-                                    <?= empty($alumni['employment_status']) ? 'No recent update' : htmlspecialchars($alumni['employment_status']) ?>
+                                    <?= empty($alumni['employment_status']) ? 'No Recent Update' : htmlspecialchars($alumni['employment_status']) ?>
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
@@ -350,9 +350,7 @@ ob_start();
                         <i class="fas fa-eye mr-1"></i> View
                     </a>
                     
-                    <span class="ml-2 px-2 py-0.5 inline-flex text-xs font-semibold rounded-full <?= getDocumentStatusColor($doc['document_status']) ?>">
-                        <?= htmlspecialchars($doc['document_status']) ?>
-                    </span>
+                   
                 </div>
             <?php endforeach; ?>
         </div>
