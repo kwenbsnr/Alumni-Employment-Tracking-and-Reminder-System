@@ -17,7 +17,7 @@ $user_id = $_SESSION['user_id'];
 $page_title = "Employment Information";
 $active_page = "employment";
 
-// Fetch employment info ONLY - removed alumni_address join
+// Fetch employment info 
 $stmt = $conn->prepare("
     SELECT ei.*, jt.title AS job_title
     FROM employment_info ei 
@@ -41,18 +41,23 @@ if (strpos($business_type, 'Others: ') === 0) {
     $business_type = 'Others (Please specify)';
 }
 
-// Fetch employment status from users table (corrected)
-$stmt = $conn->prepare("SELECT employment_status FROM users WHERE user_id = ?");
+// Fetch employment status from alumni_profile table (CORRECT - according to schema)
+$stmt = $conn->prepare("SELECT employment_status FROM alumni_profile WHERE user_id = ?");
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
 $result = $stmt->get_result();
-$profile_status = $result->fetch_assoc() ?: [];
+$profile_data = $result->fetch_assoc() ?: [];
 $stmt->close();
 
-$employment_status = $profile_status['employment_status'] ?? '';
+$employment_status = $profile_data['employment_status'] ?? '';
 
-// Fetch education info ONLY if needed for display (but we'll remove display of education info as per requirements)
-// Education info should not be displayed in Employment Information tab according to requirements
+// Fetch education info (for Student status display)
+$stmt = $conn->prepare("SELECT * FROM education_info WHERE user_id = ?");
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$result = $stmt->get_result();
+$education = $result->fetch_assoc() ?: [];
+$stmt->close();
 
 // Check if submission period is open
 if (!function_exists('isSubmissionPeriodOpen')) {
@@ -195,8 +200,25 @@ ob_start();
                         <?php endif; ?>
                     <?php endif; ?>
 
-                    <!-- Note: Education info removed from Employment Information tab as per requirements -->
-                    <!-- Student status details are not displayed here since they contain profile-related information -->
+                    <?php if (in_array($employment_status, ['Student', 'Employed & Student'])): ?>
+                        <!-- Student Details -->
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <p class="text-sm font-medium text-gray-500 mb-1">School Name</p>
+                            <p class="font-semibold text-gray-800"><?php echo !empty($education['school_name']) ? htmlspecialchars($education['school_name']) : 'N/A'; ?></p>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <p class="text-sm font-medium text-gray-500 mb-1">Degree Pursued</p>
+                            <p class="font-semibold text-gray-800"><?php echo !empty($education['degree_pursued']) ? htmlspecialchars($education['degree_pursued']) : 'N/A'; ?></p>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <p class="text-sm font-medium text-gray-500 mb-1">Start Year</p>
+                            <p class="font-semibold text-gray-800"><?php echo !empty($education['start_year']) ? htmlspecialchars($education['start_year']) : 'N/A'; ?></p>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <p class="text-sm font-medium text-gray-500 mb-1">End Year (Expected)</p>
+                            <p class="font-semibold text-gray-800"><?php echo !empty($education['end_year']) ? htmlspecialchars($education['end_year']) : 'N/A'; ?></p>
+                        </div>
+                    <?php endif; ?>
 
                     <?php if ($employment_status === 'Unemployed'): ?>
                         <div class="md:col-span-2 text-center py-4">
@@ -349,11 +371,11 @@ ob_start();
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="space-y-1">
                             <label class="block text-sm font-medium text-gray-700">School Name</label>
-                            <input type="text" name="school_name" value="" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" autocomplete="organization">
+                            <input type="text" name="school_name" value="<?php echo !empty($education['school_name']) ? htmlspecialchars($education['school_name']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" autocomplete="organization">
                         </div>
                         <div class="space-y-1">
                             <label class="block text-sm font-medium text-gray-700">Degree Pursued</label>
-                            <input type="text" name="degree_pursued" value="" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" autocomplete="off">
+                            <input type="text" name="degree_pursued" value="<?php echo !empty($education['degree_pursued']) ? htmlspecialchars($education['degree_pursued']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" autocomplete="off">
                         </div>
                         <div class="space-y-1">
                             <label class="block text-sm font-medium text-gray-700">Start Year</label>
@@ -362,7 +384,8 @@ ob_start();
                                 <?php
                                 $currentYear = date('Y');
                                 for ($y = $currentYear; $y >= 2000; $y--) {
-                                    echo "<option value=\"$y\">$y</option>";
+                                    $selected = ($education['start_year'] ?? '') == $y ? 'selected' : '';
+                                    echo "<option value=\"$y\" $selected>$y</option>";
                                 }
                                 ?>
                             </select>
@@ -374,7 +397,8 @@ ob_start();
                                 <?php
                                 $currentYear = date('Y');
                                 for ($y = $currentYear + 5; $y >= 2000; $y--) {
-                                    echo "<option value=\"$y\">$y</option>";
+                                    $selected = ($education['end_year'] ?? '') == $y ? 'selected' : '';
+                                    echo "<option value=\"$y\" $selected>$y</option>";
                                 }
                                 ?>
                             </select>

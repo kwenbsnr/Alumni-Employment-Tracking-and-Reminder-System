@@ -163,9 +163,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 <i class="fas fa-edit text-lg"></i>
                 <span class="tracking-tight">Update Personal Information</span>
             </button>
+            <!--
             <p class="text-center text-xs text-gray-500 mt-3 font-medium">
                 Keep your profile photo, contact and address details up to date
             </p>
+            -->
         </div>
     </div>
 
@@ -182,7 +184,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
                 
                 <div class="flex flex-col lg:flex-row gap-6">
-                    <!-- Personal Information Section (Left) -->
+                    <!-- Personal Information Section -->
                     <div class="lg:w-1/2 space-y-4">
                         <h4 class="text-lg font-semibold text-gray-700 mb-3 flex items-center">
                             <i class="fas fa-user-circle text-blue-500 mr-2"></i>
@@ -246,7 +248,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="h-full w-px bg-gray-300 opacity-70"></div>
                     </div>
                     
-                    <!-- Address Information Section (Right) -->
+                    <!-- Address Information Section -->
                     <div class="lg:w-1/2 space-y-4">
                         <h4 class="text-lg font-semibold text-gray-700 mb-3 flex items-center">
                             <i class="fas fa-map-marker-alt text-green-500 mr-2"></i>
@@ -546,7 +548,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                         <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-8 rounded-lg transition duration-200 shadow-sm hover:shadow flex items-center space-x-2 text-sm">
                             <i class="fas fa-paper-plane"></i>
-                            <span>Save Personal Information</span>
+                            <span>Validate Personal Information</span>
                         </button>
                     </div>
                 </div>

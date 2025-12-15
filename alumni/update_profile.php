@@ -295,19 +295,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         $stmt->close();
         
-        // Commit transaction
+         // Commit transaction
         $conn->commit();
         
-        // Log activity
+        // ---- 7. Fetch existing profile data for comparison BEFORE logging ----
+        $stmt = $conn->prepare("
+            SELECT u.first_name, u.last_name, u.middle_name, u.suffix, 
+                   u.civil_status, u.contact_number, aa.street
+            FROM users u
+            LEFT JOIN alumni_address aa ON u.user_id = aa.user_id
+            WHERE u.user_id = ?
+        ");
+        $stmt->bind_param("i", $user_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $existing_profile = $result->fetch_assoc() ?: [];
+        $stmt->close();
+        
+        // ---- 8. Log activity with comparison to existing data ----------------
         $activity_desc = 'Updated personal information';
         $changes = [];
-        if ($first_name !== $profile['first_name'] ?? '') $changes[] = 'first name';
-        if ($last_name !== $profile['last_name'] ?? '') $changes[] = 'last name';
-        if ($middle_name !== $profile['middle_name'] ?? '') $changes[] = 'middle name';
-        if ($suffix !== $profile['suffix'] ?? '') $changes[] = 'suffix';
-        if ($civil_status !== $profile['civil_status'] ?? '') $changes[] = 'civil status';
-        if ($contact_number !== $profile['contact_number'] ?? '') $changes[] = 'contact number';
-        if ($street !== $profile['street'] ?? '') $changes[] = 'address';
+        
+        // Compare with existing data
+        if ($first_name !== ($existing_profile['first_name'] ?? '')) $changes[] = 'first name';
+        if ($last_name !== ($existing_profile['last_name'] ?? '')) $changes[] = 'last name';
+        if ($middle_name !== ($existing_profile['middle_name'] ?? '')) $changes[] = 'middle name';
+        if ($suffix !== ($existing_profile['suffix'] ?? '')) $changes[] = 'suffix';
+        if ($civil_status !== ($existing_profile['civil_status'] ?? '')) $changes[] = 'civil status';
+        if ($contact_number !== ($existing_profile['contact_number'] ?? '')) $changes[] = 'contact number';
+        if ($street !== ($existing_profile['street'] ?? '')) $changes[] = 'address';
         
         if (!empty($changes)) {
             $activity_desc .= ': ' . implode(', ', $changes);

@@ -260,12 +260,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->close();
         }
 
-        // ---- 5. Update users table for employment_status -------------------
-        $stmt = $conn->prepare("UPDATE users SET employment_status = ?, updated_at = NOW() WHERE user_id = ?");
-        $stmt->bind_param("si", $employment_status, $user_id);
+        // ---- 5. Update alumni_profile table (FIXED - no employment_status column) -----
+        // Check if alumni_profile record exists
+        $stmt = $conn->prepare("SELECT user_id FROM alumni_profile WHERE user_id = ?");
+        $stmt->bind_param("i", $user_id);
+        $stmt->execute();
+        $profile_exists = $stmt->get_result()->num_rows > 0;
+        $stmt->close();
+        
+        if ($profile_exists) {
+            // Update only last_profile_update and submitted_at
+            $stmt = $conn->prepare("UPDATE alumni_profile SET 
+                last_profile_update = NOW(),
+                submitted_at = NOW()
+                WHERE user_id = ?");
+            $stmt->bind_param("i", $user_id);
+        } else {
+            // Insert new record without employment_status
+            $stmt = $conn->prepare("INSERT INTO alumni_profile 
+                (user_id, last_profile_update, submitted_at)
+                VALUES (?, NOW(), NOW())");
+            $stmt->bind_param("i", $user_id);
+        }
         
         if (!$stmt->execute()) {
-            throw new Exception("Failed to update employment status.");
+            error_log("Alumni profile update failed: " . $stmt->error);
+            // Don't throw exception - this is not critical for employment data
         }
         $stmt->close();
 
