@@ -36,12 +36,17 @@ if (isset($_POST['generate_report'])) {
 
 // ====================== SUBMISSIONS CONTROL LOGIC ======================
 $conn->query("CREATE TABLE IF NOT EXISTS submission_status (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    submission_id INT AUTO_INCREMENT PRIMARY KEY,
     is_open TINYINT(1) DEFAULT 0,
     manual_override TINYINT(1) DEFAULT 0,
-    open_date DATETIME NULL,
-    close_date DATETIME NULL,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    open_date DATETIME,
+    close_date DATETIME,
+    created_by INT(11) DEFAULT NULL,
+    last_updated_by INT(11) DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE SET NULL,
+    FOREIGN KEY (last_updated_by) REFERENCES users(user_id) ON DELETE SET NULL
 ) ENGINE=InnoDB");
 
 $statusCheck = $conn->query("SELECT * FROM submission_status LIMIT 1");
@@ -72,12 +77,12 @@ if (isset($_POST['update_submission_status'])) {
                     IF(u.suffix IS NOT NULL AND u.suffix != '', CONCAT(' ', u.suffix), '')
                 ) as alumni_name,
                 u.email as alumni_email, 
-                u.batch_year as graduation_year, ap.employment_status,
-                ap.last_profile_update, ap.submission_status
+                u.batch_year as graduation_year, 
+                ap.employment_status,
+                ap.last_profile_update
             FROM users u 
             INNER JOIN alumni_profile ap ON u.user_id = ap.user_id 
             WHERE u.role = 'alumni' 
-            AND ap.submission_status != 'Approved'
             AND (ap.last_profile_update IS NULL OR 
                 ap.last_profile_update < DATE_SUB(NOW(), INTERVAL 6 MONTH))
         ");
@@ -132,12 +137,12 @@ if (isset($_POST['update_submission_status'])) {
                         IF(u.suffix IS NOT NULL AND u.suffix != '', CONCAT(' ', u.suffix), '')
                     ) as alumni_name,
                     u.email as alumni_email, 
-                    u.batch_year as graduation_year, ap.employment_status,
-                    ap.last_profile_update, ap.submission_status
+                    u.batch_year as graduation_year, 
+                    ap.employment_status,
+                    ap.last_profile_update
                 FROM users u 
                 INNER JOIN alumni_profile ap ON u.user_id = ap.user_id 
                 WHERE u.role = 'alumni' 
-                AND ap.submission_status != 'Approved'
                 AND (ap.last_profile_update IS NULL OR 
                     ap.last_profile_update < DATE_SUB(NOW(), INTERVAL 6 MONTH))
             ");
@@ -194,12 +199,12 @@ if (!$manual_override && $open_date && $close_date) {
                         IF(u.suffix IS NOT NULL AND u.suffix != '', CONCAT(' ', u.suffix), '')
                     ) as alumni_name,
                     u.email as alumni_email, 
-                    u.batch_year as graduation_year, ap.employment_status,
-                    ap.last_profile_update, ap.submission_status
+                    u.batch_year as graduation_year, 
+                    ap.employment_status,
+                    ap.last_profile_update
                 FROM users u 
                 INNER JOIN alumni_profile ap ON u.user_id = ap.user_id 
                 WHERE u.role = 'alumni' 
-                AND ap.submission_status != 'Approved'
                 AND (ap.last_profile_update IS NULL OR 
                     ap.last_profile_update < DATE_SUB(NOW(), INTERVAL 6 MONTH))
             ");
@@ -382,6 +387,12 @@ if (isset($_SESSION['error_message'])) {
                     $stmt->bind_param('ss', $term, $term);
                     $stmt->execute();
                     $displayResult = $stmt->get_result();
+                    
+                    // Count search results
+                    $searchCount = $conn->query("SELECT COUNT(*) as count FROM users u 
+                        WHERE u.role = 'alumni' 
+                        AND (CONCAT(u.first_name, ' ', u.last_name) LIKE '%$search%' 
+                        OR u.email LIKE '%$search%')")->fetch_assoc()['count'];
                 echo $searchCount . " result(s) found";
                 ?>
             </span>
@@ -475,9 +486,9 @@ if (isset($_SESSION['error_message'])) {
             $displayResult = $batchResult;
             if (!empty($search)) {
                 $stmt = $conn->prepare("SELECT DISTINCT u.batch_year 
-                                    FROM alumni_profile ap
-                                    INNER JOIN users u ON ap.user_id = u.user_id 
-                                    WHERE u.batch_year IS NOT NULL 
+                                    FROM users u 
+                                    WHERE u.role = 'alumni' 
+                                    AND u.batch_year IS NOT NULL 
                                     AND (CONCAT(u.first_name, ' ', u.last_name) LIKE ? OR u.email LIKE ?)");
                 $term = "%$search%";
                 $stmt->bind_param('ss', $term, $term);
@@ -890,16 +901,4 @@ function generateAlumniReport($selected_batches, $report_type, $conn) {
     $pdf->Output($pdf_filename, 'I');
     exit;
 }
-
-/* 
-// Function to check if submissions are open
-    function isSubmissionsOpen($conn) {
-        $statusCheck = $conn->query("SELECT is_open FROM submission_status LIMIT 1");
-        if ($statusCheck->num_rows > 0) {
-            $status = $statusCheck->fetch_assoc();
-            return (bool)$status['is_open'];
-        }
-        return false; // Default to closed if no status found
-    }
- */
 ?>

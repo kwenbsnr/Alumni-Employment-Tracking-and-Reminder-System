@@ -28,11 +28,13 @@ $query = "
         u.date_of_birth,
         u.gender,
         u.program,
-        ap.contact_number,
+        u.contact_number,
+        u.citizenship,
+        u.civil_status,
         ap.employment_status,
         ap.photo_path,
-        ap.submission_status,
         ap.last_profile_update,
+        ap.submitted_at,
         ei.company_name,
         ei.salary_range,
         jt.title as job_title,
@@ -42,22 +44,17 @@ $query = "
         edu.degree_pursued,
         edu.start_year,
         edu.end_year,
-        wa.city,
-        wa.state_province,
-        wa.country,
-        wa.formatted_address,
-        ad1.file_path as cor_path,
-        ad2.file_path as coe_path,
-        ad3.file_path as b_cert_path
+        aa.city,
+        aa.state_province,
+        aa.country,
+        aa.street,
+        (SELECT MAX(document_status) FROM alumni_documents WHERE user_id = u.user_id) as document_status
     FROM users u
     LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id
-    LEFT JOIN worldwide_address wa ON u.user_id = wa.user_id
+    LEFT JOIN alumni_address aa ON u.user_id = aa.user_id
     LEFT JOIN employment_info ei ON ap.user_id = ei.user_id
     LEFT JOIN job_titles jt ON ei.job_title_id = jt.job_title_id
     LEFT JOIN education_info edu ON ap.user_id = edu.user_id
-    LEFT JOIN alumni_documents ad1 ON ap.user_id = ad1.user_id AND ad1.document_type = 'COR'
-    LEFT JOIN alumni_documents ad2 ON ap.user_id = ad2.user_id AND ad2.document_type = 'COE'
-    LEFT JOIN alumni_documents ad3 ON ap.user_id = ad3.user_id AND ad3.document_type = 'B_CERT'
     WHERE u.user_id = ?
     LIMIT 1
 ";
@@ -74,6 +71,14 @@ if (!$alumni) {
     exit();
 }
 
+// Get documents separately
+$docQuery = "SELECT document_type, file_path, document_status FROM alumni_documents WHERE user_id = ?";
+$docStmt = $conn->prepare($docQuery);
+$docStmt->bind_param('i', $user_id);
+$docStmt->execute();
+$docResult = $docStmt->get_result();
+$documents = $docResult->fetch_all(MYSQLI_ASSOC);
+
 // Set safe defaults to prevent any "undefined array key" warnings
 $alumni = array_merge([
     'official_name'      => '',
@@ -84,12 +89,14 @@ $alumni = array_merge([
     'program'            => '—',
     'batch_year'         => '—',
     'contact_number'     => '',
+    'citizenship'        => '—',
+    'civil_status'       => '—',
     'city'               => '',
     'state_province'     => '',
     'country'            => '',
-    'formatted_address'  => '',
+    'street'             => '',
     'employment_status'  => 'Unemployed',
-    'submission_status'  => 'Pending',
+    'document_status'    => 'Pending',
     'photo_path'         => '',
     'job_title'          => '',
     'company_name'       => '',
@@ -100,10 +107,8 @@ $alumni = array_merge([
     'degree_pursued'     => '',
     'start_year'         => '',
     'end_year'           => '',
-    'cor_path'           => '',
-    'coe_path'           => '',
-    'b_cert_path'        => '',
-    'last_profile_update'=> null
+    'last_profile_update'=> null,
+    'submitted_at'       => null
 ], $alumni);
 
 // Format date of birth if exists
@@ -111,29 +116,13 @@ if ($alumni['date_of_birth'] && $alumni['date_of_birth'] !== '—') {
     $alumni['date_of_birth'] = date('F j, Y', strtotime($alumni['date_of_birth']));
 }
 
-// Build submitted documents list
-$submitted_docs = [];
-$employment_status = $alumni['employment_status'] ?? 'Unemployed';
-
-// COR → Student / Employed & Student
-if (!empty($alumni['cor_path']) && in_array($employment_status, ['Student', 'Employed & Student'])) {
-    $submitted_docs[] = ['type' => 'Certificate of Registration (COR)', 'path' => $alumni['cor_path']];
-}
-
-// COE → Employed / Employed & Student
-if (!empty($alumni['coe_path']) && in_array($employment_status, ['Employed', 'Employed & Student'])) {
-    $submitted_docs[] = ['type' => 'Certificate of Employment (COE)', 'path' => $alumni['coe_path']];
-}
-
-// Business Certificate → Self-Employed
-if (!empty($alumni['b_cert_path']) && $employment_status === 'Self-Employed') {
-    $submitted_docs[] = ['type' => 'Business Certificate', 'path' => $alumni['b_cert_path']];
-}
-
-// Birth Certificate → Unemployed (optional)
-if (!empty($alumni['b_cert_path']) && $employment_status === 'Unemployed') {
-    $submitted_docs[] = ['type' => 'Birth Certificate', 'path' => $alumni['b_cert_path']];
-}
+// Build formatted address
+$address_parts = [];
+if (!empty($alumni['street'])) $address_parts[] = $alumni['street'];
+if (!empty($alumni['city'])) $address_parts[] = $alumni['city'];
+if (!empty($alumni['state_province'])) $address_parts[] = $alumni['state_province'];
+if (!empty($alumni['country'])) $address_parts[] = $alumni['country'];
+$formatted_address = implode(', ', $address_parts);
 ?>
 
 <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-2xl overflow-hidden">
@@ -174,8 +163,8 @@ if (!empty($alumni['b_cert_path']) && $employment_status === 'Unemployed') {
                 <div class="text-3xl font-bold text-white/90 mb-2">
                     Batch <?php echo htmlspecialchars($alumni['batch_year']); ?>
                 </div>
-                <div class="px-3 py-1 text-sm font-semibold rounded-full <?php echo getSubmissionStatusColor($alumni['submission_status']); ?>">
-                    <?php echo htmlspecialchars($alumni['submission_status']); ?>
+                <div class="px-3 py-1 text-sm font-semibold rounded-full <?php echo getSubmissionStatusColor($alumni['document_status']); ?>">
+                    <?php echo htmlspecialchars($alumni['document_status']); ?>
                 </div>
             </div>
         </div>
@@ -205,7 +194,7 @@ if (!empty($alumni['b_cert_path']) && $employment_status === 'Unemployed') {
                         </div>
                     </div>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-600 mb-1">Date of Birth</label>
                         <div class="bg-white px-3 py-2 rounded-lg border border-gray-200 text-gray-800">
@@ -218,8 +207,14 @@ if (!empty($alumni['b_cert_path']) && $employment_status === 'Unemployed') {
                             <?php echo htmlspecialchars($alumni['gender']); ?>
                         </div>
                     </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Civil Status</label>
+                        <div class="bg-white px-3 py-2 rounded-lg border border-gray-200 text-gray-800">
+                            <?php echo htmlspecialchars($alumni['civil_status']); ?>
+                        </div>
+                    </div>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-600 mb-1">Program</label>
                         <div class="bg-white px-3 py-2 rounded-lg border border-gray-200 text-gray-800">
@@ -232,14 +227,18 @@ if (!empty($alumni['b_cert_path']) && $employment_status === 'Unemployed') {
                             <?php echo htmlspecialchars($alumni['batch_year']); ?>
                         </div>
                     </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Citizenship</label>
+                        <div class="bg-white px-3 py-2 rounded-lg border border-gray-200 text-gray-800">
+                            <?php echo htmlspecialchars($alumni['citizenship']); ?>
+                        </div>
+                    </div>
                 </div>
                 <?php if (!empty($alumni['contact_number'])): ?>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-600 mb-1">Contact Number</label>
-                        <div class="bg-white px-3 py-2 rounded-lg border border-gray-200 text-gray-800">
-                            <?php echo htmlspecialchars($alumni['contact_number']); ?>
-                        </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Contact Number</label>
+                    <div class="bg-white px-3 py-2 rounded-lg border border-gray-200 text-gray-800">
+                        <?php echo htmlspecialchars($alumni['contact_number']); ?>
                     </div>
                 </div>
                 <?php endif; ?>
@@ -247,23 +246,30 @@ if (!empty($alumni['b_cert_path']) && $employment_status === 'Unemployed') {
         </div>
         
         <!-- Address Information -->
-        <?php if (!empty($alumni['formatted_address']) || !empty($alumni['city']) || !empty($alumni['state_province']) || !empty($alumni['country'])): ?>
+        <?php if (!empty($formatted_address)): ?>
         <div class="bg-gradient-to-br from-green-50 to-teal-50 rounded-xl p-6 border border-green-200 shadow-sm">
             <div class="flex items-center space-x-2 mb-4">
                 <i class="fas fa-address-card text-green-600"></i>
                 <h3 class="text-lg font-semibold text-gray-800">Address Information</h3>
             </div>
             
-            <?php if (!empty($alumni['formatted_address'])): ?>
             <div class="mb-4">
                 <label class="block text-sm font-medium text-gray-600 mb-1">Complete Address</label>
                 <div class="bg-white px-3 py-2 rounded-lg border border-gray-200 text-gray-800">
-                    <?php echo htmlspecialchars($alumni['formatted_address']); ?>
+                    <?php echo htmlspecialchars($formatted_address); ?>
                 </div>
             </div>
-            <?php endif; ?>
             
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <?php if (!empty($alumni['street'])): ?>
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Street</label>
+                    <div class="bg-white px-3 py-2 rounded-lg border border-gray-200 text-gray-800">
+                        <?php echo htmlspecialchars($alumni['street']); ?>
+                    </div>
+                </div>
+                <?php endif; ?>
+                
                 <?php if (!empty($alumni['city'])): ?>
                 <div>
                     <label class="block text-sm font-medium text-gray-600 mb-1">City</label>
@@ -409,21 +415,31 @@ if (!empty($alumni['b_cert_path']) && $employment_status === 'Unemployed') {
         <?php endif; ?>
 
         <!-- Submitted Documents -->
-        <?php if (!empty($submitted_docs)): ?>
+        <?php if (!empty($documents)): ?>
         <div class="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl p-6 border border-yellow-200 shadow-sm">
             <div class="flex items-center space-x-2 mb-4">
                 <i class="fas fa-file-alt text-yellow-600"></i>
                 <h3 class="text-lg font-semibold text-gray-800">Submitted Documents</h3>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <?php foreach ($submitted_docs as $doc): ?>
+                <?php foreach ($documents as $doc): ?>
                 <div class="bg-white rounded-lg p-4 border border-yellow-200 hover:border-yellow-300 transition-all duration-200 hover:shadow-md">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center space-x-3">
                             <i class="fas fa-file-pdf text-red-500"></i>
-                            <span class="font-medium text-gray-700 text-sm"><?php echo htmlspecialchars($doc['type']); ?></span>
+                            <div>
+                                <span class="font-medium text-gray-700 text-sm">
+                                    <?php 
+                                    $doc_names = ['COR' => 'Certificate of Registration', 'COE' => 'Certificate of Employment', 'B_CERT' => 'Business Certificate'];
+                                    echo htmlspecialchars($doc_names[$doc['document_type']] ?? $doc['document_type']);
+                                    ?>
+                                </span>
+                                <div class="text-xs <?= getSubmissionStatusColor($doc['document_status']) ?> px-2 py-0.5 rounded-full inline-block mt-1">
+                                    <?php echo htmlspecialchars($doc['document_status']); ?>
+                                </div>
+                            </div>
                         </div>
-                        <a href="../<?php echo htmlspecialchars($doc['path']); ?>" target="_blank"
+                        <a href="../<?php echo htmlspecialchars($doc['file_path']); ?>" target="_blank"
                            class="text-blue-600 hover:text-blue-800 flex items-center text-sm bg-blue-50 px-3 py-1 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors">
                             <i class="fas fa-eye mr-2"></i> View
                         </a>
@@ -442,6 +458,10 @@ if (!empty($alumni['b_cert_path']) && $employment_status === 'Unemployed') {
         <p class="text-xs text-gray-500 text-center">
             <i class="fas fa-clock mr-1"></i>
             Last updated: <?php echo date('F j, Y g:i A', strtotime($alumni['last_profile_update'])); ?>
+            <?php if (!empty($alumni['submitted_at'])): ?>
+                <br><i class="fas fa-paper-plane mr-1"></i>
+                Submitted: <?php echo date('F j, Y g:i A', strtotime($alumni['submitted_at'])); ?>
+            <?php endif; ?>
         </p>
     </div>
     <?php endif; ?>
