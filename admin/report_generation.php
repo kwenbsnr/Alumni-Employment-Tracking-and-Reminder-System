@@ -153,9 +153,7 @@ if (isset($_SESSION['error_message'])) {
             </div>
         </div>
         <div class="flex justify-end gap-4 pt-6 border-t border-gray-200">
-            <a href="alumni_management.php" class="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition font-medium">
-                <i class="fas fa-arrow-left"></i> Back to Alumni Records
-            </a>
+           
             <button type="submit" name="generate_report" id="submitReportBtn" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 transition font-medium">
                 <i class="fas fa-file-pdf"></i> Generate PDF Report
             </button>
