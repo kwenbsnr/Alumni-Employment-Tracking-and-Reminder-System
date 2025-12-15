@@ -136,7 +136,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
-
 <div class="space-y-6 mt-3 mb-5">
     <!-- Profile Management Card - Always Editable -->
     <div id="updateProfileBtn" class="bg-gradient-to-br from-green-50 to-emerald-50 border-green-300 hover:border-green-400 shadow-sm hover:shadow-lg cursor-pointer rounded-2xl p-5 transition-all duration-300 border-2 border-t-[6px] border-t-green-500">
@@ -148,24 +147,25 @@ document.addEventListener('DOMContentLoaded', function() {
                     Manage Personal Information
                 </h3>
             </div>
-
+            <i class="fas fa-arrow-right text-lg text-green-600 opacity-80"></i>
         </div>
 
-        <!-- Status-Specific Message -->
-       <div class="max-w-xs mx-auto">
-    <div class="flex items-center p-3 bg-blue-50 border border-blue-200 rounded-lg">
-        <svg class="w-5 h-5 text-blue-500 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>
-        <div>
-            <p class="text-sm font-semibold text-blue-900">Update Profile Details</p>
-            <p class="text-xs text-blue-600 mt-0.5">Photo, contact, and address</p>
+        <!-- Status-Specific Message - Moved below the title -->
+        <div class="flex items-center p-3 bg-blue-50 border border-blue-200 rounded-lg mb-4">
+            <svg class="w-5 h-5 text-blue-500 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>
+            <div>
+                <p class="text-sm font-semibold text-blue-900">Update Profile Details</p>
+                <p class="text-xs text-blue-600 mt-0.5">Photo, contact, and address</p>
+            </div>
         </div>
-    </div>
 
-    <div class="mt-4">
-        <button type="button" class="w-full bg-emerald-500 hover:bg-emerald-600 focus:ring-emerald-300 text-white font-medium text-sm py-2 px-4 rounded-lg transition-all duration-200 shadow-md flex items-center justify-center gap-2 transform hover:scale-[1.01] active:scale-100">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-            <span class="tracking-tight">Update Personal Info</span>
-        </button>
+        <!-- Button with extended width -->
+        <div class="mt-4">
+            <button type="button" class="w-full bg-emerald-500 hover:bg-emerald-600 focus:ring-emerald-300 text-white font-medium text-sm py-2 px-4 rounded-lg transition-all duration-200 shadow-md flex items-center justify-center gap-2 transform hover:scale-[1.01] active:scale-100">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                <span class="tracking-tight">Update Personal Info</span>
+            </button>
+        </div>
     </div>
 </div>
 
