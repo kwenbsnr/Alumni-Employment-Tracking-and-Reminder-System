@@ -161,6 +161,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         error_log("POST Data: " . print_r($_POST, true));
         error_log("FILES Data: " . print_r($_FILES, true));
         error_log("User ID: " . $user_id);
+        
+        // Verify database structure
+        error_log("=== DATABASE VERIFICATION ===");
+        $tables_check = $conn->query("SHOW TABLES LIKE 'users'");
+        if ($tables_check->num_rows > 0) {
+            error_log("✓ 'users' table exists");
+            
+            // Check columns in users table
+            $columns_check = $conn->query("SHOW COLUMNS FROM users");
+            $columns = [];
+            while ($col = $columns_check->fetch_assoc()) {
+                $columns[] = $col['Field'];
+            }
+            error_log("Columns in users table: " . implode(', ', $columns));
+            
+            // Check if user exists
+            $user_check = $conn->prepare("SELECT user_id, first_name, last_name FROM users WHERE user_id = ?");
+            $user_check->bind_param("i", $user_id);
+            $user_check->execute();
+            $user_result = $user_check->get_result();
+            if ($user_result->num_rows > 0) {
+                $user = $user_result->fetch_assoc();
+                error_log("✓ User found: ID=" . $user['user_id'] . ", Name=" . $user['first_name'] . " " . $user['last_name']);
+            } else {
+                error_log("✗ User NOT found with ID: " . $user_id);
+            }
+            $user_check->close();
+        } else {
+            error_log("✗ 'users' table does NOT exist");
+        }
     }
     
     $conn->begin_transaction();
