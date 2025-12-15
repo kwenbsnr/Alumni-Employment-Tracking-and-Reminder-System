@@ -272,7 +272,8 @@ ob_start();
                     <?php while ($alumni = $alumniResult->fetch_assoc()): ?>
                         <?php
                         // Fetch documents for the current alumni
-                        $docStmt = $conn->prepare("SELECT document_type, file_path, document_status FROM alumni_documents WHERE user_id = ?");
+                        // IMPORTANT: For the new modal, we need doc_id, not just other fields
+                        $docStmt = $conn->prepare("SELECT doc_id, document_type, file_path, document_status FROM alumni_documents WHERE user_id = ?");
                         $docStmt->bind_param('i', $alumni['user_id']);
                         $docStmt->execute();
                         $docResult = $docStmt->get_result();
@@ -308,21 +309,18 @@ ob_start();
                                     </div>
                                 </div>
                             </td>
-                            
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <span class="px-3 py-1.5 inline-flex text-sm font-semibold rounded-full <?= getEmploymentStatusColor($alumni['employment_status']) ?> border <?= getEmploymentStatusBorder($alumni['employment_status']) ?> shadow-sm">
                                   
                                     <?= empty($alumni['employment_status']) ? 'No recent update' : htmlspecialchars($alumni['employment_status']) // MODIFIED: Changed from 'No Profile' ?>
                                 </span>
                             </td>
-                            
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <span class="px-3 py-1.5 inline-flex text-sm font-semibold rounded-full <?= getSubmissionStatusColor($alumni['submission_status']) ?> border <?= getSubmissionStatusBorder($alumni['submission_status']) ?> shadow-sm">
                                    
                                     <?= htmlspecialchars($alumni['submission_status']) ?>
                                 </span>
                             </td>
-                            
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <?php if ($submitted_at): ?>
                                     <div class="text-sm text-gray-900">
@@ -346,9 +344,15 @@ ob_start();
                 <div class="flex items-center hover:bg-gray-50 rounded px-2 py-1 transition-colors">
                     <span class="font-semibold text-gray-800 text-sm"><?= $name ?></span>
                     
-                    <a href="../<?= htmlspecialchars($doc['file_path']) ?>" target="_blank" class="text-blue-600 hover:text-blue-800 flex items-center text-sm font-semibold ml-2">
-                        <i class="fas fa-external-link-alt mr-1"></i> View
+                    <a href="javascript:void(0)" 
+                       onclick="openDocumentModal(<?= $doc['doc_id'] ?>, '<?= htmlspecialchars($doc['file_path']) ?>', '<?= htmlspecialchars($name, ENT_QUOTES) ?>', '<?= htmlspecialchars($alumni['name'], ENT_QUOTES) ?>', '<?= $alumni['user_id'] ?>', '<?= $doc['document_type'] ?>', '<?= $doc['document_status'] ?>')"
+                       class="text-blue-600 hover:text-blue-800 flex items-center text-sm font-semibold ml-2">
+                        <i class="fas fa-eye mr-1"></i> View
                     </a>
+                    
+                    <span class="ml-2 px-2 py-0.5 inline-flex text-xs font-semibold rounded-full <?= getDocumentStatusColor($doc['document_status']) ?>">
+                        <?= htmlspecialchars($doc['document_status']) ?>
+                    </span>
                 </div>
             <?php endforeach; ?>
         </div>
@@ -366,7 +370,7 @@ ob_start();
                                                 class="text-green-600 hover:text-green-900 px-3 py-1 border border-green-600 rounded-lg hover:bg-green-50 transition-colors">
                                             <i class="fas fa-check mr-1"></i> Approve
                                         </button>
-                                        <button onclick="showRejectModal(<?= $alumni['user_id'] ?>, '<?= htmlspecialchars($alumni['name'], ENT_QUOTES) ?>', '<?= $alumni['employment_status'] ?>')"
+                                        <button onclick="showRejectModal(<?= $alumni['user_id'] ?>, '<?= htmlspecialchars($alumni['name'], ENT_QUOTES) ?>', '<?= $alumni['employment_status'] ?>', 'profile')"
                                                 class="text-red-600 hover:text-red-900 px-3 py-1 border border-red-600 rounded-lg hover:bg-red-50 transition-colors">
                                             <i class="fas fa-times mr-1"></i> Reject
                                         </button>
@@ -478,13 +482,13 @@ ob_start();
         <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <i class="fas fa-times text-red-600 text-xl"></i>
         </div>
-        <h3 class="text-lg font-bold text-center mb-2">Reject Profile</h3>
+        <h3 class="text-lg font-bold text-center mb-2" id="rejectModalTitle">Reject Profile</h3>
         <p class="text-gray-600 text-center mb-4">
             Reason for rejecting <span id="rejectAlumniName" class="font-semibold"></span>:
         </p>
         <form id="rejectForm">
             <input type="hidden" id="rejectUserId" name="user_id">
-            <div class="mb-4">
+            <input type="hidden" id="rejectDocId" name="doc_id"> <input type="hidden" id="rejectType" name="reject_type"> <div class="mb-4">
                 <label id="commonReasonsLabel" class="block text-sm font-medium text-gray-700 mb-2">Common Reasons:</label>
                 <div id="commonReasons" class="space-y-2">
                     </div>
@@ -535,12 +539,37 @@ ob_start();
     </div>
 </div>
 
+<div id="documentModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center hidden z-[60]">
+    <div class="bg-white rounded-xl shadow-2xl max-w-6xl w-full mx-4 h-[90vh] flex flex-col">
+        <div class="flex items-center justify-between p-4 border-b">
+            <h3 class="text-xl font-bold text-gray-900" id="docModalTitle">Document View</h3>
+            <div class="flex items-center space-x-3">
+                <span id="docCurrentStatus" class="px-3 py-1.5 inline-flex text-sm font-semibold rounded-full"></span>
+                <button onclick="closeDocumentModal()" class="text-gray-500 hover:text-gray-800 transition-colors">
+                    <i class="fas fa-times text-2xl"></i>
+                </button>
+            </div>
+        </div>
+        
+        <div class="flex-1 overflow-hidden p-2">
+            <iframe id="documentViewer" src="" frameborder="0" class="w-full h-full rounded-lg bg-gray-100"></iframe>
+        </div>
+        
+        <div id="docModalFooter" class="p-4 border-t flex justify-center space-x-4">
+            </div>
+    </div>
+</div>
+
+
 <script>
 let currentUserId = null;
+let currentDocId = null; // New variable for Document ID
+let currentDocType = null; // New variable for Document Type
+let currentAlumniName = null; // New variable for Alumni Name (used in modals)
 let hoverTimeout = null;
 let isModalHovered = false;
 
-// Employment status specific rejection reasons
+// Employment status specific rejection reasons (Unchanged)
 const rejectionReasons = {
     'Unemployed': [
     ],
@@ -565,9 +594,14 @@ const rejectionReasons = {
     ]
 };
 
-/** Approve Modal Logic **/
+// Document type specific rejection reasons (New)
+const documentRejectionReasons = <?= json_encode(getDocumentRejectionReasons()) ?>;
+
+/** Approve Modal Logic (Profile) **/
 function showApproveModal(id, name) { 
     currentUserId = id; 
+    currentDocId = null; // Important: Clear doc ID
+    currentAlumniName = name;
     document.getElementById('approveAlumniName').textContent = name; 
     document.getElementById('approveModal').classList.remove('hidden'); 
 }
@@ -575,20 +609,32 @@ function showApproveModal(id, name) {
 function closeApproveModal() { 
     document.getElementById('approveModal').classList.add('hidden'); 
     currentUserId = null; 
+    currentAlumniName = null;
 }
 
-// Redirects to update_status.php to process approval
+// Redirects to update_status.php to process profile approval
 function processApproval() { 
-    if (currentUserId) window.location.href = `update_status.php?user_id=${currentUserId}&status=Approved&<?= htmlspecialchars($queryString) ?>&page=<?= $current_page ?>`; 
+    if (currentUserId) {
+        window.location.href = `update_status.php?user_id=${currentUserId}&status=Approved&type=profile&<?= htmlspecialchars($queryString) ?>&page=<?= $current_page ?>`; 
+    }
 }
 
-/** Reject Modal Logic **/
-function showRejectModal(id, name, empStatus) {
+/** Reject Modal Logic (Modified for Dual Use: Profile/Document) **/
+function showRejectModal(id, name, typeValue, statusOrDocType, docId = null) {
     currentUserId = id;
+    currentDocId = docId;
+    currentAlumniName = name;
     
-    // Set the alumni name and user ID
-    document.getElementById('rejectAlumniName').textContent = name;
+    // Set form hidden fields
     document.getElementById('rejectUserId').value = id;
+    document.getElementById('rejectDocId').value = docId || '';
+    document.getElementById('rejectType').value = typeValue; // 'profile' or 'document'
+    
+    const isProfile = typeValue === 'profile';
+    const reasonSource = isProfile ? rejectionReasons : documentRejectionReasons;
+    const key = isProfile ? statusOrDocType : statusOrDocType; // statusOrDocType is employment_status for profile, doc_type for document
+    
+    document.getElementById('rejectModalTitle').textContent = isProfile ? 'Reject Profile' : 'Reject Document';
     
     const container = document.getElementById('commonReasons');
     const containerLabel = document.getElementById('commonReasonsLabel');
@@ -596,14 +642,16 @@ function showRejectModal(id, name, empStatus) {
     
     container.innerHTML = '';
     
-    // Special handling for Unemployed status - show only textarea
-    if (empStatus === 'Unemployed' || !rejectionReasons[empStatus] || rejectionReasons[empStatus].length === 0) {
+    // Check if there are common reasons for the current context
+    const hasCommonReasons = reasonSource[key] && reasonSource[key].length > 0;
+
+    if (!hasCommonReasons) {
         container.style.display = 'none';
         containerLabel.style.display = 'none';
         
-        // Update the custom reason label/placeholder for single input
+        // Unemployed/No-Reason-Defined mode: require custom reason
         const customLabel = document.querySelector('label[for="customReason"]');
-        if (customLabel) customLabel.textContent = 'Reason for rejection:';
+        if (customLabel) customLabel.textContent = isProfile ? 'Reason for profile rejection:' : 'Reason for document rejection:';
         customReason.placeholder = 'Please specify the reason for rejection (required)...';
         customReason.required = true;
     } else {
@@ -617,12 +665,14 @@ function showRejectModal(id, name, empStatus) {
         customReason.required = false;
         
         // Populate common reasons
-        const reasons = rejectionReasons[empStatus];
+        const reasons = reasonSource[key];
         reasons.forEach((r, i) => {
+            // Ensure unique IDs across document/profile rejections
+            const radioId = isProfile ? `pr${i}` : `dr${i}`; 
             container.innerHTML += `
                 <div class="flex items-start">
-                    <input type="radio" name="rejection_reason" value="${r}" id="r${i}" class="mt-1 mr-2 text-red-600 focus:ring-red-500 border-gray-300">
-                    <label for="r${i}" class="text-sm cursor-pointer">${r}</label>
+                    <input type="radio" name="rejection_reason" value="${r}" id="${radioId}" class="mt-1 mr-2 text-red-600 focus:ring-red-500 border-gray-300">
+                    <label for="${radioId}" class="text-sm cursor-pointer">${r}</label>
                 </div>
             `;
         });
@@ -637,6 +687,8 @@ function showRejectModal(id, name, empStatus) {
     }
     
     document.getElementById('rejectModal').classList.remove('hidden');
+    // Ensure the document modal is closed if it's open (e.g., rejecting from doc modal)
+    closeDocumentModal(false); 
 }
 
 function closeRejectModal() { 
@@ -657,6 +709,8 @@ function closeRejectModal() {
     customReason.required = false;
     
     currentUserId = null; 
+    currentDocId = null;
+    currentAlumniName = null;
 }
 
 // Event listener for the rejection form submission
@@ -682,20 +736,20 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const selected = document.querySelector('input[name="rejection_reason"]:checked');
             const customValue = document.getElementById('customReason').value.trim();
+            const rejectType = document.getElementById('rejectType').value;
+            
             const isUnemployedMode = document.getElementById('commonReasons').style.display === 'none';
             let finalReason = '';
             
             if (isUnemployedMode) {
-                // Unemployed/No-Reason-Defined mode
                 if (!customValue) {
                     alert('Please provide a reason for rejection.');
                     return;
                 }
                 finalReason = customValue;
             } else {
-                // Standard mode with common reasons
                 if (!selected) {
-                    alert('Please select a rejection reason.');
+                    alert('Please select a rejection reason or specify in the notes.');
                     return;
                 }
                 
@@ -706,7 +760,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     finalReason = customValue;
                 } else {
-                    // Combine selected reason with optional custom note
                     finalReason = selected.value;
                     if (customValue) {
                         finalReason += ` | Note: ${customValue}`;
@@ -714,15 +767,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
             
+            const userId = document.getElementById('rejectUserId').value;
+            const docId = document.getElementById('rejectDocId').value;
+            
+            let redirectUrl = `update_status.php?user_id=${userId}&status=Rejected&type=${rejectType}&reason=${encodeURIComponent(finalReason)}&<?= htmlspecialchars($queryString) ?>&page=<?= $current_page ?>`;
+            
+            if (rejectType === 'document' && docId) {
+                redirectUrl += `&doc_id=${docId}`;
+            }
+
             // Redirect to update_status.php to process rejection
-            window.location.href = `update_status.php?user_id=${currentUserId}&status=Rejected&reason=${encodeURIComponent(finalReason)}&<?= htmlspecialchars($queryString) ?>&page=<?= $current_page ?>`;
+            window.location.href = redirectUrl;
         });
     }
 });
 
-/** Revert Modal Logic **/
+/** Revert Modal Logic (Unchanged) **/
 function showRevertModal(id, name) { 
     currentUserId = id; 
+    currentAlumniName = name;
     document.getElementById('revertAlumniName').textContent = name; 
     document.getElementById('revertModal').classList.remove('hidden'); 
 }
@@ -730,14 +793,105 @@ function showRevertModal(id, name) {
 function closeRevertModal() { 
     document.getElementById('revertModal').classList.add('hidden'); 
     currentUserId = null; 
+    currentAlumniName = null;
 }
 
-// Redirects to update_status.php to process revert (set status to Pending)
+// Redirects to update_status.php to process revert (set profile status to Pending)
 function processRevert() { 
-    if (currentUserId) window.location.href = `update_status.php?user_id=${currentUserId}&status=Pending&<?= htmlspecialchars($queryString) ?>&page=<?= $current_page ?>`; 
+    if (currentUserId) window.location.href = `update_status.php?user_id=${currentUserId}&status=Pending&type=profile&<?= htmlspecialchars($queryString) ?>&page=<?= $current_page ?>`; 
 }
 
-/** Hover Details Modal Logic **/
+/** Document Modal Logic (New) **/
+function openDocumentModal(docId, filePath, docName, alumniName, userId, docType, currentStatus) {
+    const modal = document.getElementById('documentModal');
+    const viewer = document.getElementById('documentViewer');
+    const title = document.getElementById('docModalTitle');
+    const statusEl = document.getElementById('docCurrentStatus');
+    const footer = document.getElementById('docModalFooter');
+
+    currentDocId = docId;
+    currentUserId = userId;
+    currentDocType = docType;
+    currentAlumniName = alumniName;
+    
+    // 1. Set Modal Title and Status
+    title.innerHTML = `${docName} for <span class="text-indigo-600">${alumniName}</span>`;
+    
+    let statusClass = getStatusColorClass(currentStatus);
+    statusEl.className = `px-3 py-1.5 inline-flex text-sm font-semibold rounded-full ${statusClass}`;
+    statusEl.textContent = currentStatus;
+
+    // 2. Load Document
+    // NOTE: For security and cross-origin issues, we should ideally use an AJAX/PHP endpoint
+    // to load the document content, especially for PDFs/other files.
+    // However, for this example, we'll use an iframe pointing to the file path.
+    viewer.src = `../${filePath}`;
+    
+    // 3. Set Action Buttons
+    footer.innerHTML = '';
+    
+    if (currentStatus === 'Pending') {
+        footer.innerHTML = `
+            <button onclick="processDocumentApproval()" 
+                    class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors flex-shrink-0">
+                <i class="fas fa-check mr-1"></i> Approve Document
+            </button>
+            <button onclick="showRejectModal(${userId}, '${alumniName.replace(/'/g, '\\\'')}', 'document', '${docType}', ${docId})" 
+                    class="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors flex-shrink-0">
+                <i class="fas fa-times mr-1"></i> Reject Document
+            </button>
+        `;
+    } else {
+        // Option to revert status if approved/rejected
+         footer.innerHTML = `
+            <span class="text-sm font-medium text-gray-700">Document status is: <b>${currentStatus}</b>.</span>
+            <button onclick="processDocumentRevert()" 
+                    class="bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-700 transition-colors flex-shrink-0">
+                <i class="fas fa-undo mr-1"></i> Revert to Pending
+            </button>
+        `;
+    }
+
+    // 4. Show Modal
+    modal.classList.remove('hidden');
+}
+
+function closeDocumentModal(resetState = true) {
+    document.getElementById('documentModal').classList.add('hidden');
+    document.getElementById('documentViewer').src = ''; // Clear iframe content
+    
+    if (resetState) {
+        currentDocId = null;
+        currentUserId = null;
+        currentDocType = null;
+        currentAlumniName = null;
+    }
+}
+
+function processDocumentApproval() {
+    if (currentDocId && currentUserId) {
+        window.location.href = `update_status.php?user_id=${currentUserId}&doc_id=${currentDocId}&status=Approved&type=document&<?= htmlspecialchars($queryString) ?>&page=<?= $current_page ?>`;
+    }
+}
+
+function processDocumentRevert() {
+    if (currentDocId && currentUserId) {
+        window.location.href = `update_status.php?user_id=${currentUserId}&doc_id=${currentDocId}&status=Pending&type=document&<?= htmlspecialchars($queryString) ?>&page=<?= $current_page ?>`;
+    }
+}
+
+// Helper function to get the status color class for the badge
+function getStatusColorClass(status) {
+    switch (status) {
+        case 'Approved': return 'bg-green-100 text-green-800 border border-green-200';
+        case 'Pending': return 'bg-yellow-100 text-yellow-800 border border-yellow-200';
+        case 'Rejected': return 'bg-red-100 text-red-800 border border-red-200';
+        default: return 'bg-gray-100 text-gray-800 border border-gray-200';
+    }
+}
+
+
+/** Hover Details Modal Logic (Unchanged) **/
 document.addEventListener('DOMContentLoaded', () => {
     // Add event listeners to all alumni names for hover effect
     document.querySelectorAll('.alumni-name-hover').forEach(el => {
@@ -794,6 +948,7 @@ document.addEventListener('click', e => {
         closeApproveModal(); 
         closeRejectModal(); 
         closeRevertModal(); 
+        closeDocumentModal();
     } 
 });
 
@@ -804,6 +959,7 @@ document.addEventListener('keydown', e => {
         closeRejectModal(); 
         closeRevertModal(); 
         closeAlumniModal();
+        closeDocumentModal();
     } 
 });
 </script>
@@ -883,12 +1039,33 @@ function getSubmissionStatusIcon($s) {
 
 function getDocumentStatusColor($s) { 
     $colors = [
-        'Approved'=>'bg-green-100 text-green-800',
-        'Pending'=>'bg-yellow-100 text-yellow-800',
-        'Rejected'=>'bg-red-100 text-red-800'
+        'Approved'=>'bg-green-100 text-green-800 border border-green-200',
+        'Pending'=>'bg-yellow-100 text-yellow-800 border border-yellow-200',
+        'Rejected'=>'bg-red-100 text-red-800 border border-red-200'
     ];
-    return $colors[$s] ?? 'bg-gray-100 text-gray-800'; 
+    return $colors[$s] ?? 'bg-gray-100 text-gray-800 border border-gray-200'; 
 }
+
+function getDocumentRejectionReasons() {
+    return [
+        'COR' => [
+            'Document is blurry or illegible.',
+            'Required document is missing a signature or stamp.',
+            'Information on document does not match profile details.'
+        ],
+        'COE' => [
+            'Document is expired or not current.',
+            'Employment dates are not clearly visible.',
+            'Missing company letterhead or contact information.'
+        ],
+        'B_CERT' => [
+            'Business certificate is expired.',
+            'Business name on document does not match profile information.',
+            'Document type is incorrect for the business status.'
+        ]
+    ];
+}
+
 
 // Capture the buffered content and include the main format file
 $page_content = ob_get_clean();
