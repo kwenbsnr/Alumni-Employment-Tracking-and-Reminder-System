@@ -38,27 +38,27 @@ if (isset($_GET['user_id']) && isset($_GET['status'])) {
         $conn->begin_transaction();
         
         try {
-            // Get current status before update for undo context
-            $currentStatusQuery = $conn->prepare("SELECT submission_status FROM alumni_profile WHERE user_id = ?");
+            // Get current document status before update for undo context
+            $currentStatusQuery = $conn->prepare("SELECT document_status FROM alumni_documents WHERE user_id = ? LIMIT 1");
             $currentStatusQuery->bind_param("i", $user_id);
             $currentStatusQuery->execute();
             $currentStatusResult = $currentStatusQuery->get_result();
             $currentStatusRow = $currentStatusResult->fetch_assoc();
-            $currentStatus = $currentStatusRow['submission_status'] ?? '';
+            $currentStatus = $currentStatusRow['document_status'] ?? '';
             $currentStatusQuery->close();
 
-            // Update the alumni profile status with rejection reason and timestamp
+            // Update the document status with rejection reason and timestamp
             if ($status === 'Rejected') {
-                $stmt = $conn->prepare("UPDATE alumni_profile SET submission_status = ?, rejection_reason = ?, rejected_at = NOW() WHERE user_id = ?");
+                $stmt = $conn->prepare("UPDATE alumni_documents SET document_status = ?, rejection_reason = ?, rejected_at = NOW() WHERE user_id = ?");
                 $stmt->bind_param("ssi", $status, $reason, $user_id);
             } else {
                 // For approved or pending, clear rejection data
-                $stmt = $conn->prepare("UPDATE alumni_profile SET submission_status = ?, rejection_reason = NULL, rejected_at = NULL WHERE user_id = ?");
+                $stmt = $conn->prepare("UPDATE alumni_documents SET document_status = ?, rejection_reason = NULL, rejected_at = NULL WHERE user_id = ?");
                 $stmt->bind_param("si", $status, $user_id);
             }
 
             if ($stmt->execute()) {
-                // Update submitted_at timestamp when status changes to Approved
+                // Update alumni_profile submitted_at timestamp when documents are approved
                 if ($status === 'Approved') {
                     $updateTimestampStmt = $conn->prepare("UPDATE alumni_profile SET submitted_at = NOW() WHERE user_id = ?");
                     $updateTimestampStmt->bind_param("i", $user_id);
@@ -72,10 +72,10 @@ if (isset($_GET['user_id']) && isset($_GET['status'])) {
                 
                 if ($status === 'Approved') {
                     $update_type = 'approve';
-                    $details = "Approved alumni profile";
+                    $details = "Approved alumni documents";
                 } elseif ($status === 'Rejected') {
                     $update_type = 'reject';
-                    $details = "Rejected alumni profile";
+                    $details = "Rejected alumni documents";
                     if (!empty($reason)) {
                         // Escape for log (not for HTML display)
                         $details .= " - Reason: " . htmlspecialchars($reason, ENT_QUOTES, 'UTF-8');
@@ -84,11 +84,11 @@ if (isset($_GET['user_id']) && isset($_GET['status'])) {
                     $update_type = 'update';
                     // Provide context for undo action
                     if ($currentStatus === 'Approved') {
-                        $details = "Undo approval - Reverted to pending status";
+                        $details = "Undo approval - Reverted documents to pending status";
                     } elseif ($currentStatus === 'Rejected') {
-                        $details = "Undo rejection - Reverted to pending status";
+                        $details = "Undo rejection - Reverted documents to pending status";
                     } else {
-                        $details = "Changed status to pending";
+                        $details = "Changed document status to pending";
                     }
                 }
                 
@@ -102,11 +102,11 @@ if (isset($_GET['user_id']) && isset($_GET['status'])) {
                 $conn->commit();
                 
                 if ($status === 'Pending') {
-                    $_SESSION['message'] = "Profile reverted to pending successfully";
+                    $_SESSION['message'] = "Documents reverted to pending successfully";
                 } elseif ($status === 'Approved') {
-                    $_SESSION['message'] = "Profile approved successfully";
+                    $_SESSION['message'] = "Documents approved successfully";
                 } else {
-                    $_SESSION['message'] = "Profile rejected successfully" . ($reason ? " - Reason: " . htmlspecialchars($reason, ENT_QUOTES, 'UTF-8') : "");
+                    $_SESSION['message'] = "Documents rejected successfully" . ($reason ? " - Reason: " . htmlspecialchars($reason, ENT_QUOTES, 'UTF-8') : "");
                 }
                 $_SESSION['message_type'] = "success";
             } else {

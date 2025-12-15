@@ -40,7 +40,10 @@ $documentsQuery = "
     SELECT 
         doc_id,
         document_type,
-        file_path
+        file_path,
+        document_status, 
+        rejection_reason,
+        rejected_at
     FROM alumni_documents 
     WHERE user_id = ?
     ORDER BY 

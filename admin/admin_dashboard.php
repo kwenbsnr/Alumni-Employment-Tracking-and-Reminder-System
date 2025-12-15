@@ -33,19 +33,38 @@ if ($result && $result->num_rows > 0) {
 $statsQuery = "
     SELECT
         (SELECT COUNT(*) FROM users WHERE role = 'alumni') AS total_alumni,
+        
+        -- Submitted Profiles: Alumni who have submitted their profiles
         (SELECT COUNT(DISTINCT ap.user_id) FROM alumni_profile ap 
-         WHERE ap.submitted_at IS NOT NULL) AS approved_profiles,
+         WHERE ap.submitted_at IS NOT NULL) AS submitted_profiles,
+        
+        -- Alumni with Approved Documents
         (SELECT COUNT(DISTINCT ad.user_id) FROM alumni_documents ad 
-         WHERE ad.document_status = 'Pending') AS pending_documents,
-        (SELECT COUNT(DISTINCT ad.user_id) FROM alumni_documents ad 
-         WHERE ad.document_status = 'Rejected') AS rejected_documents,
+         WHERE ad.document_status = 'Approved') AS alumni_with_approved_docs,
+        
+        -- Pending Documents Count
+        (SELECT COUNT(*) FROM alumni_documents 
+         WHERE document_status = 'Pending') AS pending_documents_count,
+        
+        -- Rejected Documents Count
+        (SELECT COUNT(*) FROM alumni_documents 
+         WHERE document_status = 'Rejected') AS rejected_documents_count,
+        
+        -- Employed Alumni (from profiles with submitted_at not null)
         (SELECT COUNT(DISTINCT ap.user_id) FROM alumni_profile ap 
-         WHERE ap.employment_status IN ('Employed', 'Self-Employed', 'Employed & Student')) AS employed_count,
+         WHERE ap.employment_status IN ('Employed', 'Self-Employed', 'Employed & Student')
+         AND ap.submitted_at IS NOT NULL) AS employed_count,
+        
+        -- Unique graduation years
         (SELECT COUNT(DISTINCT u.batch_year) 
          FROM users u 
          WHERE u.role = 'alumni' 
          AND u.batch_year IS NOT NULL AND u.batch_year != '' AND u.batch_year != '0000') AS unique_graduation_years,
+        
+        -- Total documents
         (SELECT COUNT(*) FROM alumni_documents) AS total_documents,
+        
+        -- Alumni with profiles submitted
         (SELECT COUNT(DISTINCT ap.user_id) FROM alumni_profile ap WHERE ap.submitted_at IS NOT NULL) AS alumni_with_profiles
 ";
 $statsResult = $conn->query($statsQuery);
@@ -171,7 +190,7 @@ ob_start();
     <div class="main-content">
         <!-- Enhanced Stats Cards -->
         <div class="space-y-4">
-            <!-- Total Alumni, Active Alumni & Employment Rate -->
+            <!-- Total Alumni, Submitted Profiles & Verified Alumni -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <!-- Total Alumni Card (All Graduates) -->
                 <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #3b82f6;">
@@ -193,75 +212,68 @@ ob_start();
                     </div>
                 </div>
 
-                <!-- Active Alumni Card (Completed Requirements) -->
+                <!-- Submitted Profiles Card -->
                 <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #10b981;">
                     <div class="p-4">
                         <div class="flex items-center justify-between">
                             <div>
-                                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Active Alumni</p>
-                                <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['approved_profiles'] ?? 0; ?></p>
-                                <p class="text-xs text-gray-500 mt-1">Submitted their profiles</p>
+                                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Submitted Profiles</p>
+                                <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['submitted_profiles'] ?? 0; ?></p>
+                                <p class="text-xs text-gray-500 mt-1">Profiles submitted for review</p>
                             </div>
                             <div class="p-3 rounded-xl bg-green-50 card-icon">
                                 <i class="fas fa-user-check text-xl text-green-500"></i>
                             </div>
                         </div>
                         <div class="mt-2 flex items-center text-xs text-green-600">
-                            <i class="fas fa-shield-check mr-1"></i>
-                            <span>Profile submitted</span>
+                            <i class="fas fa-file-upload mr-1"></i>
+                            <span>Awaiting document review</span>
                         </div>
                         <?php if (($stats['total_alumni'] ?? 0) > 0): ?>
                             <div class="mt-2">
                                 <div class="flex justify-between text-xs text-gray-600 mb-1">
                                     <span>Submission Rate</span>
-                                    <span><?php echo round((($stats['approved_profiles'] ?? 0) / ($stats['total_alumni'] ?? 1)) * 100, 1); ?>%</span>
+                                    <span><?php echo round((($stats['submitted_profiles'] ?? 0) / ($stats['total_alumni'] ?? 1)) * 100, 1); ?>%</span>
                                 </div>
                                 <div class="w-full bg-gray-200 rounded-full h-1.5">
-                                    <div class="bg-green-500 h-1.5 rounded-full" style="width: <?php echo min(100, (($stats['approved_profiles'] ?? 0) / ($stats['total_alumni'] ?? 1)) * 100); ?>%"></div>
+                                    <div class="bg-green-500 h-1.5 rounded-full" style="width: <?php echo min(100, (($stats['submitted_profiles'] ?? 0) / ($stats['total_alumni'] ?? 1)) * 100); ?>%"></div>
                                 </div>
                             </div>
                         <?php endif; ?>
                     </div>
                 </div>
 
-                <!-- Employment Rate Card -->
+                <!-- Verified Alumni Card -->
                 <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #8b5cf6;">
                     <div class="p-4">
                         <div class="flex items-center justify-between">
                             <div>
-                                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Employment Rate</p>
-                                <p class="text-2xl font-bold text-gray-900 mt-1">
-                                    <?php 
-                                    $total_employed = $stats['employed_count'] ?? 0;
-                                    $active_alumni = $stats['approved_profiles'] ?? 0;
-                                    $employment_rate = $active_alumni > 0 ? round(($total_employed / $active_alumni) * 100, 1) : 0;
-                                    echo $employment_rate; 
-                                    ?>%
-                                </p>
-                                <p class="text-xs text-gray-500 mt-1">Of alumni with profiles</p>
+                                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Verified Alumni</p>
+                                <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['alumni_with_approved_docs'] ?? 0; ?></p>
+                                <p class="text-xs text-gray-500 mt-1">With approved documents</p>
                             </div>
                             <div class="p-3 rounded-xl bg-purple-50 card-icon">
-                                <i class="fas fa-briefcase text-xl text-purple-500"></i>
+                                <i class="fas fa-shield-check text-xl text-purple-500"></i>
                             </div>
                         </div>
                         <div class="mt-2 flex items-center text-xs text-purple-600">
-                            <i class="fas fa-chart-line mr-1"></i>
-                            <span><?php echo $total_employed; ?> employed alumni</span>
+                            <i class="fas fa-check-circle mr-1"></i>
+                            <span>Documents approved</span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Pending Documents & Rejected Documents -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <!-- Pending & Rejected Documents, Employment Rate -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <!-- Pending Documents Card -->
                 <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #f59e0b;">
                     <div class="p-4">
                         <div class="flex items-center justify-between">
                             <div>
                                 <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Pending Documents</p>
-                                <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['pending_documents'] ?? 0; ?></p>
-                                <p class="text-xs text-gray-500 mt-1">Documents awaiting approval</p>
+                                <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['pending_documents_count'] ?? 0; ?></p>
+                                <p class="text-xs text-gray-500 mt-1">Awaiting approval</p>
                             </div>
                             <div class="p-3 rounded-xl bg-yellow-50 card-icon">
                                 <i class="fas fa-clock text-xl text-yellow-500"></i>
@@ -271,14 +283,6 @@ ob_start();
                             <i class="fas fa-hourglass-half mr-1"></i>
                             <span>Requires review</span>
                         </div>
-                        <?php if (($stats['pending_documents'] ?? 0) > 0): ?>
-                            <div class="mt-2">
-                                <div class="flex items-center text-xs text-yellow-700 bg-yellow-50 px-2 py-1 rounded border border-yellow-200">
-                                    <i class="fas fa-exclamation-circle mr-1"></i>
-                                    <span>Needs attention</span>
-                                </div>
-                            </div>
-                        <?php endif; ?>
                     </div>
                 </div>
 
@@ -288,8 +292,8 @@ ob_start();
                         <div class="flex items-center justify-between">
                             <div>
                                 <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Rejected Documents</p>
-                                <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['rejected_documents'] ?? 0; ?></p>
-                                <p class="text-xs text-gray-500 mt-1">Documents requiring corrections</p>
+                                <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['rejected_documents_count'] ?? 0; ?></p>
+                                <p class="text-xs text-gray-500 mt-1">Need corrections</p>
                             </div>
                             <div class="p-3 rounded-xl bg-red-50 card-icon">
                                 <i class="fas fa-times-circle text-xl text-red-500"></i>
@@ -297,16 +301,35 @@ ob_start();
                         </div>
                         <div class="mt-2 flex items-center text-xs text-red-600">
                             <i class="fas fa-exclamation-triangle mr-1"></i>
-                            <span>Requires updates</span>
+                            <span>Requires resubmission</span>
                         </div>
-                        <?php if (($stats['rejected_documents'] ?? 0) > 0): ?>
-                            <div class="mt-2">
-                                <div class="flex items-center text-xs text-red-700 bg-red-50 px-2 py-1 rounded border border-red-200">
-                                    <i class="fas fa-sync-alt mr-1"></i>
-                                    <span>Awaiting resubmission</span>
-                                </div>
+                    </div>
+                </div>
+
+                <!-- Employment Rate Card -->
+                <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #3b82f6;">
+                    <div class="p-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Employment Rate</p>
+                                <p class="text-2xl font-bold text-gray-900 mt-1">
+                                    <?php 
+                                    $total_employed = $stats['employed_count'] ?? 0;
+                                    $submitted_profiles = $stats['submitted_profiles'] ?? 0;
+                                    $employment_rate = $submitted_profiles > 0 ? round(($total_employed / $submitted_profiles) * 100, 1) : 0;
+                                    echo $employment_rate; 
+                                    ?>%
+                                </p>
+                                <p class="text-xs text-gray-500 mt-1">Of alumni with profiles</p>
                             </div>
-                        <?php endif; ?>
+                            <div class="p-3 rounded-xl bg-blue-50 card-icon">
+                                <i class="fas fa-briefcase text-xl text-blue-500"></i>
+                            </div>
+                        </div>
+                        <div class="mt-2 flex items-center text-xs text-blue-600">
+                            <i class="fas fa-chart-line mr-1"></i>
+                            <span><?php echo $total_employed; ?> employed alumni</span>
+                        </div>
                     </div>
                 </div>
             </div>
