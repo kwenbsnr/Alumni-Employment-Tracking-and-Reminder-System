@@ -513,7 +513,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="bg-green-100 rounded-lg p-2 mr-3">
                             <i class="fas fa-home text-green-600 text-sm"></i>
                         </div>
-                        Address Information (General → Specific)
+                        Address Information
                     </h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="space-y-1">
