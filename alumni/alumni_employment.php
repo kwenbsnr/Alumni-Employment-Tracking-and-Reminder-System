@@ -59,6 +59,16 @@ $result = $stmt->get_result();
 $education = $result->fetch_assoc() ?: [];
 $stmt->close();
 
+// Get user's batch year for student year validation
+$stmt = $conn->prepare("SELECT batch_year FROM users WHERE user_id = ?");
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$result = $stmt->get_result();
+$user_data = $result->fetch_assoc();
+$stmt->close();
+
+$batch_year = $user_data['batch_year'] ?? date('Y'); // Default to current year if not set
+
 // Fetch uploaded documents
 $stmt = $conn->prepare("SELECT document_type, file_path FROM alumni_documents WHERE user_id = ? ORDER BY document_type");
 $stmt->bind_param("i", $user_id);
@@ -467,22 +477,25 @@ ob_start();
                                 <option value="">Select Start Year</option>
                                 <?php
                                 $currentYear = date('Y');
-                                for ($y = $currentYear; $y >= 2000; $y--) {
+                                // Start from the later of batch_year or 2000, up to current year
+                                $startYearRange = max((int)$batch_year, 2000);
+                                for ($y = $currentYear; $y >= $startYearRange; $y--) {
                                     $selected = ($education['start_year'] ?? '') == $y ? 'selected' : '';
                                     echo "<option value=\"$y\" $selected>$y</option>";
                                 }
                                 ?>
                             </select>
-                        </div>
+                        </div>      
                         <div class="space-y-1">
                             <label class="block text-sm font-medium text-gray-700">End Year (Expected)</label>
                             <select name="end_year" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200">
                                 <option value="">Select End Year</option>
                                 <?php
                                 $currentYear = date('Y');
-                                for ($y = $currentYear + 5; $y >= 2000; $y--) {
-                                    $selected = ($education['end_year'] ?? '') == $y ? 'selected' : '';
-                                    echo "<option value=\"$y\" $selected>$y</option>";
+                                // Initially show empty options, will be populated by JavaScript
+                                if (!empty($education['end_year'])) {
+                                    $selected_year = $education['end_year'];
+                                    echo "<option value=\"$selected_year\" selected>$selected_year</option>";
                                 }
                                 ?>
                             </select>
@@ -607,6 +620,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateEmploymentModal.classList.add('hidden');
                 updateEmploymentModal.classList.remove('show', 'flex');
             }
+        });
+    }
+
+    // Save selected start year when changed
+    const startYearSelect = document.querySelector('[name="start_year"]');
+    if (startYearSelect) {
+        startYearSelect.addEventListener('change', function() {
+            // Save the selected value to restore later
+            this.setAttribute('data-previous-value', this.value);
+            updateEndYearOptions();
         });
     }
 
@@ -829,6 +852,11 @@ function initializeStudentYearOptions() {
     const employmentStatusSelect = document.getElementById('employmentStatusSelect');
     const startYearSelect = document.querySelector('[name="start_year"]');
     
+    // Save initial start year value if exists
+    if (startYearSelect && startYearSelect.value) {
+        startYearSelect.setAttribute('data-previous-value', startYearSelect.value);
+    }
+    
     if (employmentStatusSelect) {
         employmentStatusSelect.addEventListener('change', updateStudentYearOptions);
     }
@@ -838,24 +866,22 @@ function initializeStudentYearOptions() {
     }
 }
 
-function updateStudentYearOptions() {
+function updateEndYearOptions() {
     const startYearSelect = document.querySelector('[name="start_year"]');
     const endYearSelect = document.querySelector('[name="end_year"]');
-    const status = document.getElementById('employmentStatusSelect')?.value || '';
     
-    if (startYearSelect && endYearSelect && ['Student', 'Employed & Student'].includes(status)) {
+    if (startYearSelect && endYearSelect && startYearSelect.value) {
+        const startYear = parseInt(startYearSelect.value);
         const currentYear = new Date().getFullYear();
         
-        // Update Start Year dropdown
-        startYearSelect.innerHTML = '<option value="">Select Start Year</option>';
-        for (let y = currentYear; y >= 2000; y--) {
+        endYearSelect.innerHTML = '<option value="">Select End Year</option>';
+        // Only show years from startYear+1 to currentYear (not currentYear+5)
+        for (let y = startYear + 1; y <= currentYear; y++) {
             const option = document.createElement('option');
             option.value = y;
             option.textContent = y;
-            startYearSelect.appendChild(option);
+            endYearSelect.appendChild(option);
         }
-        
-        updateEndYearOptions();
     }
 }
 
