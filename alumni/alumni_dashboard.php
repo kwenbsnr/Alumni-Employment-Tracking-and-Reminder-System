@@ -292,7 +292,7 @@ ob_start();
                                 
                                 <div class="p-4 bg-gray-50 rounded-xl border border-gray-200 shadow-sm transition duration-300 hover:shadow-md">
                                     <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1 flex items-center gap-1">
-                                        <i class="fas fa-briefcase text-indigo-500"></i> Employment Status
+                                        Employment Status
                                     </p>
                                     <span class="text-lg font-extrabold text-indigo-900">
                                         <?php echo $profile_info['employment_status'] ?? 'Not Set'; ?>
@@ -311,7 +311,7 @@ ob_start();
 
                                 <div class="p-4 bg-gray-50 rounded-xl border border-gray-200 shadow-sm transition duration-300 hover:shadow-md">
                                     <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1 flex items-center gap-1">
-                                        <i class="fas fa-file-alt text-purple-500"></i> Document Review
+                                       Document Review
                                     </p>
                                     <span class="text-lg font-extrabold 
                                         <?php 
@@ -328,7 +328,7 @@ ob_start();
 
                                 <div class="p-4 bg-gray-50 rounded-xl border border-gray-200 shadow-sm transition duration-300 hover:shadow-md">
                                     <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1 flex items-center gap-1">
-                                        <i class="fas fa-calendar-check text-blue-500"></i> Last Updated
+                                      Last Updated
                                     </p>
                                     <span class="text-lg font-extrabold <?php echo $needs_semiannual_update ? 'text-red-600' : 'text-green-800'; ?>">
                                         <?php 
@@ -377,13 +377,13 @@ ob_start();
                             <div class="border-t border-gray-200 pt-5 mt-5">
                                 <div class="bg-indigo-50 rounded-xl p-4 border border-indigo-200">
                                     <p class="text-sm font-bold text-indigo-800 mb-3 flex items-center gap-2">
-                                        <i class="fas fa-list-check text-indigo-500"></i> Completion Checklist
+                                       Completion Checklist
                                     </p>
                                     <p class="text-xs text-gray-700 mb-3">
                                         <?php
-                                        echo $profile_status === 'Complete' ? '✅ Great job! Your profile is fully verified.'
-                                                    : ($profile_status === 'Pending Approval' ? '⏳ We are currently reviewing your information.'
-                                                    : ($profile_status === 'Rejected' ? '⚠️ Action required! Please review the feedback provided and update the necessary sections.'
+                                        echo $profile_status === 'Complete' ? 'Great job! Your profile is fully verified.'
+                                                    : ($profile_status === 'Pending Approval' ? 'We are currently reviewing your information.'
+                                                    : ($profile_status === 'Rejected' ? 'Action required! Please review the feedback provided and update the necessary sections.'
                                                     : ' Complete the following steps for verification.'));
                                         ?>
                                     </p>
@@ -412,7 +412,7 @@ ob_start();
                 </div>
                 <div class="bg-white rounded-xl shadow-lg border-2 border-indigo-200 overflow-hidden">
                     <div class="bg-gradient-to-r from-indigo-50 to-purple-50 px-6 py-3 border-b border-indigo-200">
-                        <h3 class="text-lg font-extrabold text-indigo-800">🚀 Quick Actions</h3>
+                        <h3 class="text-lg font-extrabold text-indigo-800"> Quick Actions</h3>
                         <p class="text-purple-700 text-xs mt-1 font-medium">Manage your profile and documents efficiently</p>
                     </div>
 
@@ -591,7 +591,7 @@ ob_start();
                 </div>
             </div>
 
-<div id="helpModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden backdrop-blur-sm">
+<div id="helpModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
     <div class="bg-white border border-gray-200 max-w-md w-full mx-4 transform transition-all duration-300 scale-95 opacity-0 rounded-xl shadow-xl overflow-hidden">
         <div class="bg-gradient-to-r from-emerald-500 to-green-600 p-5 text-white">
             <div class="flex items-center justify-between">
@@ -639,13 +639,7 @@ ob_start();
                 </div>
             </div>
 
-            <div class="bg-gray-50 px-5 py-3 flex justify-end space-x-2 -mx-5 -mb-5 mt-5 border-t border-gray-200">
-                <button id="cancelHelp" class="px-4 py-2 text-gray-600 hover:text-gray-800 font-semibold transition-colors duration-200 rounded-md hover:bg-gray-100 text-sm">
-                    Close
-                </button>
-                <a href="mailto:alumtrak@jhcsc.edu.ph" class="px-4 py-2 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-semibold transition-all duration-300 rounded-md shadow-md hover:shadow-lg transform hover:-translate-y-0.5 text-sm">
-                    Contact Now
-                </a>
+            
             </div>
         </div>
     </div>
