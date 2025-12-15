@@ -2,7 +2,7 @@
 // Strict error reporting
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
-// REMOVE DUPLICATE ob_start() - LINE 4
+
 session_start();
 if (!isset($_SESSION['user_id'])) {
     header("Location: ../login/login.php");
@@ -41,7 +41,7 @@ if (strpos($business_type, 'Others: ') === 0) {
     $business_type = 'Others (Please specify)';
 }
 
-// Fetch employment status from alumni_profile table (CORRECT - according to schema)
+// Fetch employment status from alumni_profile table (according to schema)
 $stmt = $conn->prepare("SELECT employment_status FROM alumni_profile WHERE user_id = ?");
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
@@ -57,6 +57,17 @@ $stmt->bind_param("i", $user_id);
 $stmt->execute();
 $result = $stmt->get_result();
 $education = $result->fetch_assoc() ?: [];
+$stmt->close();
+
+// Fetch uploaded documents
+$stmt = $conn->prepare("SELECT document_type, file_path FROM alumni_documents WHERE user_id = ? ORDER BY document_type");
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$result = $stmt->get_result();
+$documents = [];
+while ($row = $result->fetch_assoc()) {
+    $documents[] = $row;
+}
 $stmt->close();
 
 // Check if submission period is open
@@ -142,7 +153,7 @@ ob_start();
         <?php endif; ?>
     </div>
 
-    <!-- Employment Information Card -->
+    <!-- Employment Information Card - Single Parent Div -->
     <div class="bg-white rounded-xl shadow-lg border-l-4 border-purple-500">
         <div class="p-6">
             <div class="flex items-center space-x-3 mb-4 pb-2 border-b border-gray-100">
@@ -153,81 +164,154 @@ ob_start();
             </div>
             
             <?php if (!empty($employment_status)): ?>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Employment Status -->
-                    <div class="bg-gray-50 p-4 rounded-lg">
-                        <p class="text-sm font-medium text-gray-500 mb-1">Employment Status</p>
-                        <p class="font-semibold text-gray-800 text-lg"><?php echo htmlspecialchars($employment_status); ?></p>
+                <!-- Single container with side-by-side layout -->
+                <div class="flex flex-col lg:flex-row gap-6">
+                    <!-- Left Section: Employment Information -->
+                    <div class="flex-1">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Employment Status -->
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <p class="text-sm font-medium text-gray-500 mb-1">Employment Status</p>
+                                <p class="font-semibold text-gray-800 text-lg"><?php echo htmlspecialchars($employment_status); ?></p>
+                            </div>
+
+                            <?php if (in_array($employment_status, ['Employed', 'Self-Employed', 'Employed & Student'])): ?>
+                                <?php if ($employment_status !== 'Self-Employed'): ?>
+                                    <!-- Employed Details -->
+                                    <div class="bg-gray-50 p-4 rounded-lg">
+                                        <p class="text-sm font-medium text-gray-500 mb-1">Job Title</p>
+                                        <p class="font-semibold text-gray-800"><?php echo !empty($employment['job_title']) ? htmlspecialchars($employment['job_title']) : 'N/A'; ?></p>
+                                    </div>
+                                    <div class="bg-gray-50 p-4 rounded-lg">
+                                        <p class="text-sm font-medium text-gray-500 mb-1">Company Name</p>
+                                        <p class="font-semibold text-gray-800"><?php echo !empty($employment['company_name']) ? htmlspecialchars($employment['company_name']) : 'N/A'; ?></p>
+                                    </div>
+                                    <div class="bg-gray-50 p-4 rounded-lg">
+                                        <p class="text-sm font-medium text-gray-500 mb-1">Company Address</p>
+                                        <p class="font-semibold text-gray-800"><?php echo !empty($company_address) ? htmlspecialchars($company_address) : 'N/A'; ?></p>
+                                    </div>
+                                    <div class="bg-gray-50 p-4 rounded-lg">
+                                        <p class="text-sm font-medium text-gray-500 mb-1">Salary Range</p>
+                                        <p class="font-semibold text-gray-800"><?php echo htmlspecialchars($employment['salary_range'] ?? 'N/A'); ?></p>
+                                    </div>
+                                <?php else: ?>
+                                    <!-- Self-Employed Details -->
+                                    <div class="bg-gray-50 p-4 rounded-lg">
+                                        <p class="text-sm font-medium text-gray-500 mb-1">Business Type</p>
+                                        <p class="font-semibold text-gray-800">
+                                            <?php
+                                            $display_business_type = $employment['business_type'] ?? 'N/A';
+                                            if (strpos($display_business_type, 'Others: ') === 0) {
+                                                $display_business_type = 'Others: ' . substr($display_business_type, 8);
+                                            }
+                                            echo htmlspecialchars($display_business_type);
+                                            ?>
+                                        </p>
+                                    </div>
+                                    <div class="bg-gray-50 p-4 rounded-lg">
+                                        <p class="text-sm font-medium text-gray-500 mb-1">Monthly Income Range</p>
+                                        <p class="font-semibold text-gray-800"><?php echo htmlspecialchars($employment['salary_range'] ?? 'N/A'); ?></p>
+                                    </div>
+                                <?php endif; ?>
+                            <?php endif; ?>
+
+                            <?php if (in_array($employment_status, ['Student', 'Employed & Student'])): ?>
+                                <!-- Student Details -->
+                                <div class="bg-gray-50 p-4 rounded-lg">
+                                    <p class="text-sm font-medium text-gray-500 mb-1">School Name</p>
+                                    <p class="font-semibold text-gray-800"><?php echo !empty($education['school_name']) ? htmlspecialchars($education['school_name']) : 'N/A'; ?></p>
+                                </div>
+                                <div class="bg-gray-50 p-4 rounded-lg">
+                                    <p class="text-sm font-medium text-gray-500 mb-1">Degree Pursued</p>
+                                    <p class="font-semibold text-gray-800"><?php echo !empty($education['degree_pursued']) ? htmlspecialchars($education['degree_pursued']) : 'N/A'; ?></p>
+                                </div>
+                                <div class="bg-gray-50 p-4 rounded-lg">
+                                    <p class="text-sm font-medium text-gray-500 mb-1">Start Year</p>
+                                    <p class="font-semibold text-gray-800"><?php echo !empty($education['start_year']) ? htmlspecialchars($education['start_year']) : 'N/A'; ?></p>
+                                </div>
+                                <div class="bg-gray-50 p-4 rounded-lg">
+                                    <p class="text-sm font-medium text-gray-500 mb-1">End Year (Expected)</p>
+                                    <p class="font-semibold text-gray-800"><?php echo !empty($education['end_year']) ? htmlspecialchars($education['end_year']) : 'N/A'; ?></p>
+                                </div>
+                            <?php endif; ?>
+
+                            <?php if ($employment_status === 'Unemployed'): ?>
+                                <div class="md:col-span-2 text-center py-4">
+                                    <div class="bg-gray-100 rounded-lg p-4">
+                                        <i class="fas fa-user-clock text-gray-400 text-2xl mb-2"></i>
+                                        <p class="text-gray-600 font-medium">Currently seeking employment</p>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
+                        </div>
                     </div>
 
-                    <?php if (in_array($employment_status, ['Employed', 'Self-Employed', 'Employed & Student'])): ?>
-                        <?php if ($employment_status !== 'Self-Employed'): ?>
-                            <!-- Employed Details -->
-                            <div class="bg-gray-50 p-4 rounded-lg">
-                                <p class="text-sm font-medium text-gray-500 mb-1">Job Title</p>
-                                <p class="font-semibold text-gray-800"><?php echo !empty($employment['job_title']) ? htmlspecialchars($employment['job_title']) : 'N/A'; ?></p>
-                            </div>
-                            <div class="bg-gray-50 p-4 rounded-lg">
-                                <p class="text-sm font-medium text-gray-500 mb-1">Company Name</p>
-                                <p class="font-semibold text-gray-800"><?php echo !empty($employment['company_name']) ? htmlspecialchars($employment['company_name']) : 'N/A'; ?></p>
-                            </div>
-                            <div class="bg-gray-50 p-4 rounded-lg">
-                                <p class="text-sm font-medium text-gray-500 mb-1">Company Address</p>
-                                <p class="font-semibold text-gray-800"><?php echo !empty($company_address) ? htmlspecialchars($company_address) : 'N/A'; ?></p>
-                            </div>
-                            <div class="bg-gray-50 p-4 rounded-lg">
-                                <p class="text-sm font-medium text-gray-500 mb-1">Salary Range</p>
-                                <p class="font-semibold text-gray-800"><?php echo htmlspecialchars($employment['salary_range'] ?? 'N/A'); ?></p>
-                            </div>
-                        <?php else: ?>
-                            <!-- Self-Employed Details -->
-                            <div class="bg-gray-50 p-4 rounded-lg">
-                                <p class="text-sm font-medium text-gray-500 mb-1">Business Type</p>
-                                <p class="font-semibold text-gray-800">
-                                    <?php
-                                    $display_business_type = $employment['business_type'] ?? 'N/A';
-                                    if (strpos($display_business_type, 'Others: ') === 0) {
-                                        $display_business_type = 'Others: ' . substr($display_business_type, 8);
-                                    }
-                                    echo htmlspecialchars($display_business_type);
+                    <!-- Vertical Separator Line -->
+                    <div class="hidden lg:block border-l border-gray-200"></div>
+
+                    <!-- Right Section: Document Section -->
+                    <div class="lg:w-1/3">
+                        <div class="bg-gray-50 rounded-lg p-4 h-full">
+                            <h4 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                                <i class="fas fa-file-alt text-purple-600 mr-2"></i>
+                                Documents
+                            </h4>
+                            
+                            <?php if (!empty($documents)): ?>
+                                <div class="space-y-3">
+                                    <?php foreach ($documents as $doc): 
+                                        $doc_type = $doc['document_type'];
+                                        $doc_name = '';
+                                        $icon = '';
+                                        $color = '';
+                                        
+                                        switch($doc_type) {
+                                            case 'COE':
+                                                $doc_name = 'Certificate of Employment';
+                                                $icon = 'file-pdf';
+                                                $color = 'text-red-500';
+                                                break;
+                                            case 'B_CERT':
+                                                $doc_name = 'Business Certificate';
+                                                $icon = 'file-certificate';
+                                                $color = 'text-green-500';
+                                                break;
+                                            case 'COR':
+                                                $doc_name = 'Certificate of Registration';
+                                                $icon = 'file-contract';
+                                                $color = 'text-blue-500';
+                                                break;
+                                            default:
+                                                $doc_name = $doc_type;
+                                                $icon = 'file-alt';
+                                                $color = 'text-gray-500';
+                                        }
                                     ?>
-                                </p>
-                            </div>
-                            <div class="bg-gray-50 p-4 rounded-lg">
-                                <p class="text-sm font-medium text-gray-500 mb-1">Monthly Income Range</p>
-                                <p class="font-semibold text-gray-800"><?php echo htmlspecialchars($employment['salary_range'] ?? 'N/A'); ?></p>
-                            </div>
-                        <?php endif; ?>
-                    <?php endif; ?>
-
-                    <?php if (in_array($employment_status, ['Student', 'Employed & Student'])): ?>
-                        <!-- Student Details -->
-                        <div class="bg-gray-50 p-4 rounded-lg">
-                            <p class="text-sm font-medium text-gray-500 mb-1">School Name</p>
-                            <p class="font-semibold text-gray-800"><?php echo !empty($education['school_name']) ? htmlspecialchars($education['school_name']) : 'N/A'; ?></p>
+                                        <div class="flex items-center justify-between bg-white p-3 rounded-lg border border-gray-200 hover:border-gray-300 transition duration-200">
+                                            <div class="flex items-center">
+                                                <i class="fas <?php echo $icon; ?> <?php echo $color; ?> mr-3"></i>
+                                                <div>
+                                                    <p class="font-medium text-gray-800 text-sm"><?php echo htmlspecialchars($doc_name); ?></p>
+                                                    <p class="text-xs text-gray-500">PDF Document</p>
+                                                </div>
+                                            </div>
+                                            <a href="../<?php echo htmlspecialchars($doc['file_path']); ?>" target="_blank" class="text-purple-600 hover:text-purple-800 font-medium text-sm px-3 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 transition duration-200">
+                                                View
+                                            </a>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php else: ?>
+                                <div class="text-center py-6">
+                                    <div class="bg-gray-100 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-3">
+                                        <i class="fas fa-file-alt text-gray-400 text-xl"></i>
+                                    </div>
+                                    <p class="text-gray-500 font-medium">No documents uploaded</p>
+                                    <p class="text-gray-400 text-xs mt-1">Upload supporting documents when updating employment</p>
+                                </div>
+                            <?php endif; ?>
                         </div>
-                        <div class="bg-gray-50 p-4 rounded-lg">
-                            <p class="text-sm font-medium text-gray-500 mb-1">Degree Pursued</p>
-                            <p class="font-semibold text-gray-800"><?php echo !empty($education['degree_pursued']) ? htmlspecialchars($education['degree_pursued']) : 'N/A'; ?></p>
-                        </div>
-                        <div class="bg-gray-50 p-4 rounded-lg">
-                            <p class="text-sm font-medium text-gray-500 mb-1">Start Year</p>
-                            <p class="font-semibold text-gray-800"><?php echo !empty($education['start_year']) ? htmlspecialchars($education['start_year']) : 'N/A'; ?></p>
-                        </div>
-                        <div class="bg-gray-50 p-4 rounded-lg">
-                            <p class="text-sm font-medium text-gray-500 mb-1">End Year (Expected)</p>
-                            <p class="font-semibold text-gray-800"><?php echo !empty($education['end_year']) ? htmlspecialchars($education['end_year']) : 'N/A'; ?></p>
-                        </div>
-                    <?php endif; ?>
-
-                    <?php if ($employment_status === 'Unemployed'): ?>
-                        <div class="md:col-span-2 text-center py-4">
-                            <div class="bg-gray-100 rounded-lg p-4">
-                                <i class="fas fa-user-clock text-gray-400 text-2xl mb-2"></i>
-                                <p class="text-gray-600 font-medium">Currently seeking employment</p>
-                            </div>
-                        </div>
-                    <?php endif; ?>
+                    </div>
                 </div>
             <?php else: ?>
                 <div class="text-center py-8">

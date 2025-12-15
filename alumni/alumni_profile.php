@@ -513,28 +513,28 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="bg-green-100 rounded-lg p-2 mr-3">
                             <i class="fas fa-home text-green-600 text-sm"></i>
                         </div>
-                        Address Information
+                        Address Information (General → Specific)
                     </h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="space-y-1">
+                            <label class="block text-sm font-medium text-gray-700">Country</label>
+                            <input type="text" name="country" value="<?php echo !empty($profile['country']) ? htmlspecialchars($profile['country']) : 'Philippines'; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" autocomplete="country-name">
+                            <p class="text-xs text-gray-500 mt-1">Leave blank to keep current (default: Philippines)</p>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="block text-sm font-medium text-gray-700">State/Province</label>
+                            <input type="text" name="state_province" value="<?php echo !empty($profile['state_province']) ? htmlspecialchars($profile['state_province']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" autocomplete="address-level1" placeholder="State or Province">
+                            <p class="text-xs text-gray-500 mt-1">Leave blank to keep current</p>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="block text-sm font-medium text-gray-700">City</label>
+                            <input type="text" name="city" value="<?php echo !empty($profile['city']) ? htmlspecialchars($profile['city']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" autocomplete="address-level2" placeholder="City or Municipality">
+                            <p class="text-xs text-gray-500 mt-1">Leave blank to keep current</p>
+                        </div>
                         <div class="space-y-1 md:col-span-2">
-                            <label class="block text-sm font-medium text-gray-700">Street Address <span class="text-red-500">*</span></label>
-                            <input type="text" name="street" value="<?php echo !empty($profile['street']) ? htmlspecialchars($profile['street']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" required autocomplete="street-address" placeholder="House No., Street, Barangay">
-                            <p class="text-xs text-gray-500 mt-1">Complete street address</p>
-                        </div>
-                        <div class="space-y-1">
-                            <label class="block text-sm font-medium text-gray-700">City <span class="text-red-500">*</span></label>
-                            <input type="text" name="city" value="<?php echo !empty($profile['city']) ? htmlspecialchars($profile['city']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" required autocomplete="address-level2" placeholder="City or Municipality">
-                            <p class="text-xs text-gray-500 mt-1">City or municipality</p>
-                        </div>
-                        <div class="space-y-1">
-                            <label class="block text-sm font-medium text-gray-700">State/Province <span class="text-red-500">*</span></label>
-                            <input type="text" name="state_province" value="<?php echo !empty($profile['state_province']) ? htmlspecialchars($profile['state_province']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" required autocomplete="address-level1" placeholder="State or Province">
-                            <p class="text-xs text-gray-500 mt-1">State or province</p>
-                        </div>
-                        <div class="space-y-1">
-                            <label class="block text-sm font-medium text-gray-700">Country <span class="text-red-500">*</span></label>
-                            <input type="text" name="country" value="<?php echo !empty($profile['country']) ? htmlspecialchars($profile['country']) : 'Philippines'; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" required autocomplete="country-name">
-                            <p class="text-xs text-gray-500 mt-1">Country of residence</p>
+                            <label class="block text-sm font-medium text-gray-700">Street Address</label>
+                            <input type="text" name="street" value="<?php echo !empty($profile['street']) ? htmlspecialchars($profile['street']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" autocomplete="street-address" placeholder="House No., Street, Barangay">
+                            <p class="text-xs text-gray-500 mt-1">Leave blank to keep current address</p>
                         </div>
                     </div>
                 </div>

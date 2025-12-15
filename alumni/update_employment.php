@@ -70,11 +70,33 @@ function upload_employment_document($field, $user_id, $type) {
         throw new Exception("Invalid file type. Only PDF files are allowed for documents.");
     }
     
-    // Use user_id for filename instead of surname to avoid accessing personal info
+    // Get user's lastname from database
+    $stmt = $conn->prepare("SELECT last_name FROM users WHERE user_id = ?");
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($result->num_rows === 0) {
+        throw new Exception("User not found.");
+    }
+    
+    $user_data = $result->fetch_assoc();
+    $lastname = $user_data['last_name'];
+    $stmt->close();
+    
+    // Clean the lastname: remove spaces, convert to lowercase, keep only letters/numbers
+    $lastname = strtolower(preg_replace('/[^A-Za-z0-9]/', '', $lastname));
+    
+    // If lastname is empty after cleaning, use a default
+    if (empty($lastname)) {
+        $lastname = 'user';
+    }
+    
+    // Map document types to abbreviations (lowercase as per requirement)
     $doc_type_map = [
-        'coe' => 'COE',
-        'business' => 'B_CERT', 
-        'cor' => 'COR'
+        'coe' => 'coe',
+        'business' => 'bcert', 
+        'cor' => 'cor'
     ];
     
     $doc_type = $doc_type_map[$type] ?? $type;
@@ -87,9 +109,8 @@ function upload_employment_document($field, $user_id, $type) {
         }
     }
 
-    // Generate unique filename using user_id and timestamp
-    $timestamp = time();
-    $filename = 'USER' . $user_id . '_' . $doc_type . '_' . $timestamp . '.pdf';
+    // Generate unique filename with 5 random chars
+    $filename = generate_unique_filename($upload_dir, $lastname, $doc_type);
     $target_path = $upload_dir . $filename;
 
     if (!move_uploaded_file($file['tmp_name'], $target_path)) {
@@ -98,6 +119,39 @@ function upload_employment_document($field, $user_id, $type) {
     
     // Return relative path
     return 'uploads/documents/' . $filename;
+}
+
+// Helper function to generate unique filename with 5 random chars
+function generate_unique_filename($upload_dir, $lastname, $doc_type) {
+    $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    $max_attempts = 10; // Safety limit
+    
+    for ($attempt = 0; $attempt < $max_attempts; $attempt++) {
+        // Generate 5 random characters
+        $random_chars = '';
+        for ($i = 0; $i < 5; $i++) {
+            $random_chars .= $characters[random_int(0, strlen($characters) - 1)];
+        }
+        
+        // Create filename: lastname_doctype_5randomcharsasuniqid.pdf
+        $filename = $lastname . '_' . $doc_type . '_' . $random_chars . '.pdf';
+        $target_path = $upload_dir . $filename;
+        
+        // Check if file doesn't exist (unique)
+        if (!file_exists($target_path)) {
+            return $filename;
+        }
+        
+        // If we're on the last attempt, add timestamp to ensure uniqueness
+        if ($attempt === $max_attempts - 1) {
+            $filename = $lastname . '_' . $doc_type . '_' . $random_chars . '_' . time() . '.pdf';
+            return $filename;
+        }
+    }
+    
+    // Fallback with timestamp
+    $random_chars = substr(str_shuffle($characters), 0, 5);
+    return $lastname . '_' . $doc_type . '_' . $random_chars . '_' . time() . '.pdf';
 }
 
 // ---- POST handling --------------------------------------------------------
@@ -189,6 +243,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($business_type === 'Others (Please specify)' && empty($business_type_other)) {
                     throw new Exception("Please specify business type if 'Others' is selected.");
                 }
+                if (empty($salary_range)) {
+                    throw new Exception("Salary range is required for self-employed status.");
+                }
                 break;
                 
             case 'Student':
@@ -260,32 +317,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->close();
         }
 
-        // ---- 5. Update alumni_profile table (FIXED - no employment_status column) -----
+        // ---- 5. Update alumni_profile table with employment_status -----
         // Check if alumni_profile record exists
         $stmt = $conn->prepare("SELECT user_id FROM alumni_profile WHERE user_id = ?");
         $stmt->bind_param("i", $user_id);
         $stmt->execute();
-        $profile_exists = $stmt->get_result()->num_rows > 0;
+        $result = $stmt->get_result();
+        $profile_exists = $result->num_rows > 0;
         $stmt->close();
         
         if ($profile_exists) {
-            // Update only last_profile_update and submitted_at
+            // Update with employment_status (according to schema)
             $stmt = $conn->prepare("UPDATE alumni_profile SET 
+                employment_status = ?,
                 last_profile_update = NOW(),
                 submitted_at = NOW()
                 WHERE user_id = ?");
-            $stmt->bind_param("i", $user_id);
+            $stmt->bind_param("si", $employment_status, $user_id);
         } else {
-            // Insert new record without employment_status
+            // Insert new record with employment_status (according to schema)
             $stmt = $conn->prepare("INSERT INTO alumni_profile 
-                (user_id, last_profile_update, submitted_at)
-                VALUES (?, NOW(), NOW())");
-            $stmt->bind_param("i", $user_id);
+                (user_id, employment_status, last_profile_update, submitted_at)
+                VALUES (?, ?, NOW(), NOW())");
+            $stmt->bind_param("is", $user_id, $employment_status);
         }
         
         if (!$stmt->execute()) {
             error_log("Alumni profile update failed: " . $stmt->error);
-            // Don't throw exception - this is not critical for employment data
+            throw new Exception("Failed to update employment status in profile.");
         }
         $stmt->close();
 

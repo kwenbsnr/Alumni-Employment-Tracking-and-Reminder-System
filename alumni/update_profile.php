@@ -156,7 +156,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new Exception("Invalid file type. Only JPG and PNG files are allowed.");
             }
             
-            // Get user's surname for filename (using original last name from database)
+            // Get user's last name for filename
             $user_stmt = $conn->prepare("SELECT last_name FROM users WHERE user_id = ?");
             $user_stmt->bind_param("i", $user_id);
             $user_stmt->execute();
@@ -164,16 +164,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $user_data = $user_result->fetch_assoc();
             $user_stmt->close();
 
-            $surname = 'Unknown';
+            $surname = 'unknown';
             if ($user_data && !empty($user_data['last_name'])) {
+                // Clean and format last name - lowercase, remove special characters
                 $surname = preg_replace("/[^a-zA-Z0-9]/", "", $user_data['last_name']);
-                $surname = ucfirst($surname);
+                $surname = strtolower($surname);
             }
             
-            // Generate unique filename
-            $timestamp = time();
+            // Generate simple filename: lastname_profile_last5charssauniqid.extension
             $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
-            $filename = $surname . '_' . $user_id . '_' . $timestamp . '.' . $extension;
+            $filename = $surname . '_profile_' . substr(uniqid(), -5) . '.' . $extension;
             
             // Upload directory
             $upload_dir = '../uploads/profile_photos/';
@@ -245,50 +245,64 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         $stmt->close();
         
-        // ---- 6. Update alumni_address table -----------------------------------
-        // Check if address exists
+        // ---- 6. Update alumni_address table (UPDATE ONLY, no INSERT) ---------
+        // First, verify that an address record exists (it should always exist)
         $stmt = $conn->prepare("SELECT address_id FROM alumni_address WHERE user_id = ?");
         $stmt->bind_param("i", $user_id);
         $stmt->execute();
         $result = $stmt->get_result();
-        $address_exists = $result->num_rows > 0;
-        $stmt->close();
         
-        if ($address_exists) {
-            // Update existing address
-            $stmt = $conn->prepare("
-                UPDATE alumni_address SET 
-                    street = ?,
-                    city = ?,
-                    state_province = ?,
-                    country = ?,
-                    updated_at = NOW()
-                WHERE user_id = ?
-            ");
-            $stmt->bind_param(
-                "ssssi",
-                $street,
-                $city,
-                $state_province,
-                $country,
-                $user_id
-            );
-        } else {
-            // Insert new address
+        if ($result->num_rows === 0) {
+            // This should never happen, but create a default if missing
             $stmt = $conn->prepare("
                 INSERT INTO alumni_address 
-                (user_id, street, city, state_province, country, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, NOW(), NOW())
+                (user_id, country, state_province, city, street, created_at, updated_at)
+                VALUES (?, 'Philippines', '', '', '', NOW(), NOW())
             ");
-            $stmt->bind_param(
-                "issss",
-                $user_id,
-                $street,
-                $city,
-                $state_province,
-                $country
-            );
+            $stmt->bind_param("i", $user_id);
+            $stmt->execute();
+            $stmt->close();
+            
+            // Re-fetch to get the new address_id
+            $stmt = $conn->prepare("SELECT address_id FROM alumni_address WHERE user_id = ?");
+            $stmt->bind_param("i", $user_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
         }
+        $stmt->close();
+        
+        // Get existing address to preserve unchanged fields
+        $stmt = $conn->prepare("SELECT country, state_province, city, street FROM alumni_address WHERE user_id = ?");
+        $stmt->bind_param("i", $user_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $existing_address = $result->fetch_assoc();
+        $stmt->close();
+        
+        // Use new values if provided, otherwise keep existing
+        $update_country = !empty($country) ? $country : ($existing_address['country'] ?? 'Philippines');
+        $update_state = !empty($state_province) ? $state_province : ($existing_address['state_province'] ?? '');
+        $update_city = !empty($city) ? $city : ($existing_address['city'] ?? '');
+        $update_street = !empty($street) ? $street : ($existing_address['street'] ?? '');
+        
+        // Always update (even if all fields are blank, they keep existing values)
+        $stmt = $conn->prepare("
+            UPDATE alumni_address SET 
+                country = ?,
+                state_province = ?,
+                city = ?,
+                street = ?,
+                updated_at = NOW()
+            WHERE user_id = ?
+        ");
+        $stmt->bind_param(
+            "ssssi",
+            $update_country,
+            $update_state,
+            $update_city,
+            $update_street,
+            $user_id
+        );
         
         if (!$stmt->execute()) {
             throw new Exception("Failed to update address information.");
