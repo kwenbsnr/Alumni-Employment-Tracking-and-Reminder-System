@@ -29,23 +29,24 @@ if ($result && $result->num_rows > 0) {
     $careerData = array_values($statusCounts);
 }
 
-// Fetch ACCURATE dashboard statistics - FIXED LOGIC
+// Fetch ACCURATE dashboard statistics - CORRECTED FOR SCHEMA
 $statsQuery = "
     SELECT
         (SELECT COUNT(*) FROM users WHERE role = 'alumni') AS total_alumni,
-        (SELECT COUNT(*) FROM alumni_profile WHERE submission_status = 'Approved') AS approved_profiles,
-        (SELECT COUNT(*) FROM alumni_profile WHERE submission_status = 'Pending') AS pending_profiles,
-        (SELECT COUNT(*) FROM alumni_profile WHERE submission_status = 'Rejected') AS rejected_profiles,
-        (SELECT COUNT(*) FROM alumni_profile 
-         WHERE submission_status = 'Approved' 
-         AND employment_status IN ('Employed', 'Self-Employed', 'Employed & Student')) AS employed_count,
+        (SELECT COUNT(DISTINCT ap.user_id) FROM alumni_profile ap 
+         WHERE ap.submitted_at IS NOT NULL) AS approved_profiles,
+        (SELECT COUNT(DISTINCT ad.user_id) FROM alumni_documents ad 
+         WHERE ad.document_status = 'Pending') AS pending_documents,
+        (SELECT COUNT(DISTINCT ad.user_id) FROM alumni_documents ad 
+         WHERE ad.document_status = 'Rejected') AS rejected_documents,
+        (SELECT COUNT(DISTINCT ap.user_id) FROM alumni_profile ap 
+         WHERE ap.employment_status IN ('Employed', 'Self-Employed', 'Employed & Student')) AS employed_count,
         (SELECT COUNT(DISTINCT u.batch_year) 
          FROM users u 
          WHERE u.role = 'alumni' 
          AND u.batch_year IS NOT NULL AND u.batch_year != '' AND u.batch_year != '0000') AS unique_graduation_years,
-        (SELECT COUNT(*) FROM alumni_documents 
-         WHERE user_id IN (SELECT user_id FROM alumni_profile WHERE submission_status = 'Approved')) AS total_documents,
-        (SELECT COUNT(DISTINCT ap.user_id) FROM alumni_profile ap WHERE ap.submission_status IS NOT NULL) AS alumni_with_profiles
+        (SELECT COUNT(*) FROM alumni_documents) AS total_documents,
+        (SELECT COUNT(DISTINCT ap.user_id) FROM alumni_profile ap WHERE ap.submitted_at IS NOT NULL) AS alumni_with_profiles
 ";
 $statsResult = $conn->query($statsQuery);
 $stats = $statsResult->fetch_assoc() ?? [];
@@ -71,7 +72,7 @@ if ($graduatesResult && $graduatesResult->num_rows > 0) {
     }
 }
 
-// Calculate total alumni with profiles for employment chart - FIXED
+// Calculate total alumni with profiles for employment chart
 $totalWithProfiles = $stats['alumni_with_profiles'] ?? 0;
 $totalAlumni = $stats['total_alumni'] ?? 0;
 $withoutProfiles = $totalAlumni - $totalWithProfiles;
@@ -199,7 +200,7 @@ ob_start();
                             <div>
                                 <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Active Alumni</p>
                                 <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['approved_profiles'] ?? 0; ?></p>
-                                <p class="text-xs text-gray-500 mt-1">Completed tracking requirements</p>
+                                <p class="text-xs text-gray-500 mt-1">Submitted their profiles</p>
                             </div>
                             <div class="p-3 rounded-xl bg-green-50 card-icon">
                                 <i class="fas fa-user-check text-xl text-green-500"></i>
@@ -207,12 +208,12 @@ ob_start();
                         </div>
                         <div class="mt-2 flex items-center text-xs text-green-600">
                             <i class="fas fa-shield-check mr-1"></i>
-                            <span>Fully verified & active</span>
+                            <span>Profile submitted</span>
                         </div>
                         <?php if (($stats['total_alumni'] ?? 0) > 0): ?>
                             <div class="mt-2">
                                 <div class="flex justify-between text-xs text-gray-600 mb-1">
-                                    <span>Completion Rate</span>
+                                    <span>Submission Rate</span>
                                     <span><?php echo round((($stats['approved_profiles'] ?? 0) / ($stats['total_alumni'] ?? 1)) * 100, 1); ?>%</span>
                                 </div>
                                 <div class="w-full bg-gray-200 rounded-full h-1.5">
@@ -237,7 +238,7 @@ ob_start();
                                     echo $employment_rate; 
                                     ?>%
                                 </p>
-                                <p class="text-xs text-gray-500 mt-1">Of active alumni</p>
+                                <p class="text-xs text-gray-500 mt-1">Of alumni with profiles</p>
                             </div>
                             <div class="p-3 rounded-xl bg-purple-50 card-icon">
                                 <i class="fas fa-briefcase text-xl text-purple-500"></i>
@@ -251,7 +252,7 @@ ob_start();
                 </div>
             </div>
 
-            <!-- Pending Reviews & Rejected Profiles -->
+            <!-- Pending Documents & Rejected Documents -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <!-- Pending Documents Card -->
                 <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #f59e0b;">
