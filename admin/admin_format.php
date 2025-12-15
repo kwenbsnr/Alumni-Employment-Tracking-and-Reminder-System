@@ -212,6 +212,12 @@ if (!function_exists('getSubmissionStatusIcon')) {
                             <span>Generate Report</span>
                         </a>
                     </li>
+                    <li>
+                        <a href="submission_schedule.php" class="sidebar-item admin-sidebar-item <?php echo ($active_page ?? '') === 'submission_schedule' ? 'active' : ''; ?> flex items-center space-x-3 p-3 rounded-lg">
+                            <i class="fas fa-calendar-alt w-6 text-lg" aria-hidden="true"></i>
+                            <span>Submission Schedule</span>
+                        </a>
+                    </li>
                    <li>
                         <a href="activity_log.php" class="sidebar-item admin-sidebar-item <?php echo ($active_page ?? '') === 'activity_log' ? 'active' : ''; ?> flex items-center space-x-3 p-3 rounded-lg">
                             <i class="fas fa-history w-6 text-lg" aria-hidden="true"></i>
@@ -246,6 +252,8 @@ if (!function_exists('getSubmissionStatusIcon')) {
                                 $welcome_text = "Manage and view all alumni records in the system.";
                             } elseif ($active_page === 'report_generation') {
                                 $welcome_text = "Generate comprehensive reports on alumni data.";
+                            } elseif ($active_page === 'submission_schedule') { // NEW WELCOME TEXT
+                                $welcome_text = "Set and manage the alumni profile submission period.";
                             } elseif ($active_page === 'activity_log') {
                                 $welcome_text = "Track updates, approvals, rejections, and other admin activities.";
                             } elseif ($active_page === 'dashboard') {
