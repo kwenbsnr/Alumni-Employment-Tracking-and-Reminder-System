@@ -120,12 +120,26 @@ $alumni = array_merge([
     'submitted_at'       => null
 ], $alumni);
 
-// Format date of birth if exists
-if ($alumni['date_of_birth'] && $alumni['date_of_birth'] !== '—') {
-    $alumni['date_of_birth'] = date('F j, Y', strtotime($alumni['date_of_birth']));
-}
+// --- Age Calculation and Date Formatting ---
 
-// Build formatted address
+$age = '—';
+$formatted_dob = '—';
+
+if ($alumni['date_of_birth'] && $alumni['date_of_birth'] !== '—') {
+    $dob_date = new DateTime($alumni['date_of_birth']);
+    $today = new DateTime('today');
+
+    // Calculate Age
+    $age_interval = $dob_date->diff($today);
+    $age = $age_interval->y;
+
+    // Format Date of Birth
+    $formatted_dob = $dob_date->format('F j, Y');
+}
+$alumni['age'] = $age;
+$alumni['date_of_birth'] = $formatted_dob; // Update for display
+
+// --- Address Formatting ---
 $address_parts = [];
 if (!empty($alumni['street'])) $address_parts[] = $alumni['street'];
 if (!empty($alumni['city'])) $address_parts[] = $alumni['city'];
@@ -178,11 +192,17 @@ $formatted_address = implode(', ', $address_parts);
 
         <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200 shadow-sm">
             <div class="flex items-center space-x-2 mb-4">
-                <i class="fas fa-graduation-cap text-blue-600"></i>
-                <h3 class="text-lg font-semibold text-gray-800">Personal Information</h3>
+                <i class="fas fa-user-circle text-blue-600"></i>
+                <h3 class="text-lg font-semibold text-gray-800">Personal & Contact Information</h3>
             </div>
             <div class="space-y-4">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Full Name</label>
+                        <div class="bg-white px-3 py-2 rounded-lg border border-gray-200 text-gray-800 font-semibold">
+                            <?php echo !empty($alumni['official_name']) ? htmlspecialchars($alumni['official_name']) : '—'; ?>
+                        </div>
+                    </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-600 mb-1">Student ID</label>
                         <div class="bg-white px-3 py-2 rounded-lg border border-gray-200 text-gray-800 font-mono">
@@ -190,17 +210,23 @@ $formatted_address = implode(', ', $address_parts);
                         </div>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-600 mb-1">Full Name</label>
-                        <div class="bg-white px-3 py-2 rounded-lg border border-gray-200 text-gray-800 font-semibold">
-                            <?php echo !empty($alumni['official_name']) ? htmlspecialchars($alumni['official_name']) : '—'; ?>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Citizenship</label>
+                        <div class="bg-white px-3 py-2 rounded-lg border border-gray-200 text-gray-800">
+                            <?php echo htmlspecialchars($alumni['citizenship']); ?>
                         </div>
                     </div>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-600 mb-1">Date of Birth</label>
                         <div class="bg-white px-3 py-2 rounded-lg border border-gray-200 text-gray-800">
                             <?php echo htmlspecialchars($alumni['date_of_birth']); ?>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">Age</label>
+                        <div class="bg-white px-3 py-2 rounded-lg border border-gray-200 text-gray-800 font-semibold">
+                            <?php echo htmlspecialchars($alumni['age']); ?>
                         </div>
                     </div>
                     <div>
@@ -216,26 +242,6 @@ $formatted_address = implode(', ', $address_parts);
                         </div>
                     </div>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-600 mb-1">Program</label>
-                        <div class="bg-white px-3 py-2 rounded-lg border border-gray-200 text-gray-800">
-                            <?php echo htmlspecialchars($alumni['program']); ?>
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-600 mb-1">Year Graduated</label>
-                        <div class="bg-white px-3 py-2 rounded-lg border border-gray-200 text-gray-800 font-semibold">
-                            <?php echo htmlspecialchars($alumni['batch_year']); ?>
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-600 mb-1">Citizenship</label>
-                        <div class="bg-white px-3 py-2 rounded-lg border border-gray-200 text-gray-800">
-                            <?php echo htmlspecialchars($alumni['citizenship']); ?>
-                        </div>
-                    </div>
-                </div>
                 <?php if (!empty($alumni['contact_number'])): ?>
                 <div>
                     <label class="block text-sm font-medium text-gray-600 mb-1">Contact Number</label>
@@ -246,9 +252,30 @@ $formatted_address = implode(', ', $address_parts);
                 <?php endif; ?>
             </div>
         </div>
+
+        <div class="bg-gradient-to-br from-teal-50 to-cyan-50 rounded-xl p-6 border border-teal-200 shadow-sm">
+            <div class="flex items-center space-x-2 mb-4">
+                <i class="fas fa-graduation-cap text-teal-600"></i>
+                <h3 class="text-lg font-semibold text-gray-800">Alumni Academic Record</h3>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Program Graduated</label>
+                    <div class="bg-white px-3 py-2 rounded-lg border border-gray-200 text-gray-800 font-semibold">
+                        <?php echo htmlspecialchars($alumni['program']); ?>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">Year Graduated</label>
+                    <div class="bg-white px-3 py-2 rounded-lg border border-gray-200 text-gray-800 font-semibold">
+                        <?php echo htmlspecialchars($alumni['batch_year']); ?>
+                    </div>
+                </div>
+            </div>
+        </div>
         
         <?php if (!empty($formatted_address)): ?>
-        <div class="bg-gradient-to-br from-green-50 to-teal-50 rounded-xl p-6 border border-green-200 shadow-sm">
+        <div class="bg-gradient-to-br from-green-50 to-lime-50 rounded-xl p-6 border border-green-200 shadow-sm">
             <div class="flex items-center space-x-2 mb-4">
                 <i class="fas fa-address-card text-green-600"></i>
                 <h3 class="text-lg font-semibold text-gray-800">Address Information</h3>
@@ -380,7 +407,7 @@ $formatted_address = implode(', ', $address_parts);
         <div class="bg-gradient-to-br from-orange-50 to-red-50 rounded-xl p-6 border border-orange-200 shadow-sm">
             <div class="flex items-center space-x-2 mb-4">
                 <i class="fas fa-university text-orange-600"></i>
-                <h3 class="text-lg font-semibold text-gray-800">Education Information</h3>
+                <h3 class="text-lg font-semibold text-gray-800">Latest Education Information</h3>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
