@@ -284,6 +284,21 @@ $page_title = $page_title ?? "Alumni Page";
         .notification-info {
             border-left: 4px solid #3B82F6;
         }
+        #notifPopup.open {
+    display: block !important;
+    animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+    from { 
+        opacity: 0; 
+        transform: translateY(-10px); 
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0); 
+    }
+}
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen flex">
@@ -386,7 +401,7 @@ $page_title = $page_title ?? "Alumni Page";
                             </span>
                         <?php endif; ?>
                     </button>
-                    <div id="notifPopup" class="absolute right-0 mt-2 w-96 bg-white rounded-xl shadow-xl border border-gray-200 hidden z-50 transform transition-all duration-200 ease-in-out">
+<div id="notifPopup" class="absolute right-0 mt-2 w-96 bg-white rounded-xl shadow-xl border border-gray-200 hidden z-50">
                         <div class="p-4 border-b border-gray-200 font-semibold text-gray-800 flex justify-between items-center text-sm bg-gray-50 rounded-t-xl">
                             <span>Notifications</span>
                             <?php if ($notif_count > 0): ?>
@@ -454,108 +469,141 @@ $page_title = $page_title ?? "Alumni Page";
             <?php echo $page_content ?? ''; ?>
         </main>
     </div>
-
-<script>
+  <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Notification functionality
         const notifButton = document.getElementById('notificationBtn');
         const notifPopup = document.getElementById('notifPopup');
         const notifBadge = document.getElementById('notificationBadge');
         
-        console.log('Notification button:', notifButton);
-        console.log('Notification popup:', notifPopup);
+        let isPopupOpen = false;
         
-        // Function to close popup
-        function closePopup() {
-            if (notifPopup && notifPopup.classList.contains('open')) {
-                notifPopup.classList.remove('open');
+        console.log('Notification system initialized');
+        
+        // Function to show popup
+        function showPopup() {
+            console.log('showPopup called');
+            if (notifPopup) {
+                notifPopup.classList.remove('hidden');
+                notifPopup.style.display = 'block';
+                // Force reflow for animation
+                notifPopup.offsetHeight;
+                notifPopup.classList.add('open');
+                isPopupOpen = true;
+                console.log('Popup shown, isPopupOpen:', isPopupOpen);
             }
         }
-
-        // Notification button click handler
-        if (notifButton && notifPopup) {
+        
+        // Function to hide popup
+        function hidePopup() {
+            console.log('hidePopup called');
+            if (notifPopup) {
+                notifPopup.classList.remove('open');
+                setTimeout(() => {
+                    notifPopup.classList.add('hidden');
+                    notifPopup.style.display = 'none';
+                    isPopupOpen = false;
+                    console.log('Popup hidden, isPopupOpen:', isPopupOpen);
+                }, 200); // Match CSS transition duration
+            }
+        }
+        
+        // Function to toggle popup
+        function togglePopup() {
+            console.log('togglePopup called, isPopupOpen:', isPopupOpen);
+            if (isPopupOpen) {
+                hidePopup();
+            } else {
+                showPopup();
+            }
+        }
+        
+        // Notification button click handler - FIXED
+        if (notifButton) {
+            console.log('Adding click listener to notification button');
             notifButton.addEventListener('click', function(e) {
+                console.log('Notification button CLICKED');
+                e.stopPropagation(); // Prevent event from bubbling up
+                e.preventDefault();
+                togglePopup();
+            });
+        }
+        
+        // Close popup when clicking outside - FIXED with delayed check
+        document.addEventListener('click', function(e) {
+            // Small delay to ensure click event on button has been processed
+            setTimeout(() => {
+                if (isPopupOpen && notifPopup) {
+                    // Check if click was NOT on popup or button
+                    const clickedOnPopup = notifPopup.contains(e.target);
+                    const clickedOnButton = notifButton.contains(e.target);
+                    
+                    if (!clickedOnPopup && !clickedOnButton) {
+                        console.log('Click outside detected, closing popup');
+                        hidePopup();
+                    }
+                }
+            }, 10);
+        });
+        
+        // Close on escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && isPopupOpen) {
+                console.log('Escape key pressed, closing popup');
+                hidePopup();
+            }
+        });
+        
+        // Mark all as read functionality
+        const markReadBtn = document.getElementById('markReadBtn');
+        if (markReadBtn) {
+            markReadBtn.addEventListener('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('Notification button clicked');
+                console.log('Mark all as read clicked');
                 
-                // Toggle the 'open' class
-                if (notifPopup.classList.contains('open')) {
-                    notifPopup.classList.remove('open');
-                } else {
-                    notifPopup.classList.add('open');
+                // Hide notification badge
+                if (notifBadge) {
+                    notifBadge.style.display = 'none';
                 }
-            });
-
-            // Close popup when clicking outside
-            document.addEventListener('click', function(e) {
-                if (!notifButton.contains(e.target) && !notifPopup.contains(e.target)) {
-                    closePopup();
-                }
-            });
-
-            // Close on escape key
-            document.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape') {
-                    closePopup();
-                }
-            });
-
-            // Mark all as read functionality
-            const markReadBtn = document.getElementById('markReadBtn');
-            if (markReadBtn) {
-                markReadBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('Mark all as read clicked');
-                    
-                    // Hide notification badge
-                    if (notifBadge) {
-                        notifBadge.style.display = 'none';
-                    }
-                    
-                    // Hide mark all as read button
-                    markReadBtn.style.display = 'none';
-                    
-                    // Add visual feedback for read notifications
-                    const notificationItems = document.querySelectorAll('.notification-item');
-                    notificationItems.forEach(item => {
-                        item.style.opacity = '0.6';
-                        item.style.backgroundColor = '#f9fafb';
-                    });
-                    
-                    // Show confirmation
-                    const notificationHeader = notifPopup.querySelector('.p-4.border-b');
-                    if (notificationHeader) {
-                        const originalContent = notificationHeader.innerHTML;
-                        notificationHeader.innerHTML = '<span class="text-green-600"><i class="fas fa-check mr-2"></i>All notifications marked as read</span>';
-                        
-                        setTimeout(() => {
-                            notificationHeader.innerHTML = originalContent;
-                            closePopup();
-                        }, 1500);
-                    } else {
-                        setTimeout(() => {
-                            closePopup();
-                        }, 1000);
-                    }
+                
+                // Hide mark all as read button
+                markReadBtn.style.display = 'none';
+                
+                // Add visual feedback for read notifications
+                const notificationItems = document.querySelectorAll('.notification-item');
+                notificationItems.forEach(item => {
+                    item.style.opacity = '0.6';
+                    item.style.backgroundColor = '#f9fafb';
                 });
-            }
-        } else {
-            console.error('Notification elements not found:', {
-                button: notifButton,
-                popup: notifPopup
+                
+                // Show confirmation
+                const notificationHeader = notifPopup.querySelector('.p-4.border-b');
+                if (notificationHeader) {
+                    const originalContent = notificationHeader.innerHTML;
+                    notificationHeader.innerHTML = '<span class="text-green-600"><i class="fas fa-check mr-2"></i>All notifications marked as read</span>';
+                    
+                    setTimeout(() => {
+                        notificationHeader.innerHTML = originalContent;
+                        // Don't auto-close after marking as read
+                        // hidePopup();
+                    }, 1500);
+                }
             });
         }
-
+        
         // Prevent popup close when clicking inside popup
         if (notifPopup) {
             notifPopup.addEventListener('click', function(e) {
                 e.stopPropagation();
+                console.log('Clicked inside popup, preventing close');
             });
         }
+        
+        // Debug: Log current state
+        console.log('Initial state - isPopupOpen:', isPopupOpen);
+        console.log('Popup visibility:', notifPopup?.classList.contains('hidden') ? 'hidden' : 'visible');
     });
 </script>
-
 </body>
 </html>
