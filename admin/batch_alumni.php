@@ -185,28 +185,28 @@ ob_start();
             
             <div class="flex flex-wrap items-center space-x-3">
                 <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold bg-blue-50 text-blue-700 shadow-sm border border-blue-200 transition duration-150 ease-in-out hover:bg-blue-100">
-                    <i class="fas fa-users mr-2 text-base"></i> 
+                   
                     Total: <span class="ml-1 font-bold"><?= $total_alumni ?></span>
                 </span>
                 
                 <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-200 transition duration-150 ease-in-out hover:bg-emerald-100">
-                    <i class="fas fa-check-circle mr-2 text-base"></i> 
+                    
                     Approved: <span class="ml-1 font-bold"><?= $batchStats['approved_count'] ?? 0 ?></span>
                 </span>
                 
                 <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold bg-amber-50 text-amber-700 shadow-sm border border-amber-200 transition duration-150 ease-in-out hover:bg-amber-100">
-                    <i class="fas fa-user-clock mr-2 text-base"></i> 
+                   
                     Pending: <span class="ml-1 font-bold"><?= $batchStats['pending_count'] ?? 0 ?></span>
                 </span>
                 
                 <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold bg-rose-50 text-rose-700 shadow-sm border border-rose-200 transition duration-150 ease-in-out hover:bg-rose-100">
-                    <i class="fas fa-times-circle mr-2 text-base"></i> 
+                  
                     Rejected: <span class="ml-1 font-bold"><?= $batchStats['rejected_count'] ?? 0 ?></span>
                 </span>
                 
                 <?php if (($batchStats['no_profile_count'] ?? 0) > 0): ?>
                 <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold bg-gray-50 text-gray-700 shadow-sm border border-gray-200 transition duration-150 ease-in-out hover:bg-gray-100">
-                    <i class="fas fa-user-times mr-2 text-base"></i> 
+                   
                     No Profile: <span class="ml-1 font-bold"><?= $batchStats['no_profile_count'] ?? 0 ?></span>
                 </span>
                 <?php endif; ?>
@@ -311,14 +311,14 @@ ob_start();
                             
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <span class="px-3 py-1.5 inline-flex text-sm font-semibold rounded-full <?= getEmploymentStatusColor($alumni['employment_status']) ?> border <?= getEmploymentStatusBorder($alumni['employment_status']) ?> shadow-sm">
-                                    <i class="<?= getEmploymentStatusIcon($alumni['employment_status']) ?> mr-2"></i>
+                                  
                                     <?= empty($alumni['employment_status']) ? 'No recent update' : htmlspecialchars($alumni['employment_status']) // MODIFIED: Changed from 'No Profile' ?>
                                 </span>
                             </td>
                             
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <span class="px-3 py-1.5 inline-flex text-sm font-semibold rounded-full <?= getSubmissionStatusColor($alumni['submission_status']) ?> border <?= getSubmissionStatusBorder($alumni['submission_status']) ?> shadow-sm">
-                                    <i class="<?= getSubmissionStatusIcon($alumni['submission_status']) ?> mr-2"></i>
+                                   
                                     <?= htmlspecialchars($alumni['submission_status']) ?>
                                 </span>
                             </td>
