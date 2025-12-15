@@ -253,14 +253,14 @@ ob_start();
 
             <!-- Pending Reviews & Rejected Profiles -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <!-- Pending Reviews Card -->
+                <!-- Pending Documents Card -->
                 <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #f59e0b;">
                     <div class="p-4">
                         <div class="flex items-center justify-between">
                             <div>
-                                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Pending Reviews</p>
-                                <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['pending_profiles'] ?? 0; ?></p>
-                                <p class="text-xs text-gray-500 mt-1">Awaiting admin approval</p>
+                                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Pending Documents</p>
+                                <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['pending_documents'] ?? 0; ?></p>
+                                <p class="text-xs text-gray-500 mt-1">Documents awaiting approval</p>
                             </div>
                             <div class="p-3 rounded-xl bg-yellow-50 card-icon">
                                 <i class="fas fa-clock text-xl text-yellow-500"></i>
@@ -270,7 +270,7 @@ ob_start();
                             <i class="fas fa-hourglass-half mr-1"></i>
                             <span>Requires review</span>
                         </div>
-                        <?php if (($stats['pending_profiles'] ?? 0) > 0): ?>
+                        <?php if (($stats['pending_documents'] ?? 0) > 0): ?>
                             <div class="mt-2">
                                 <div class="flex items-center text-xs text-yellow-700 bg-yellow-50 px-2 py-1 rounded border border-yellow-200">
                                     <i class="fas fa-exclamation-circle mr-1"></i>
@@ -281,14 +281,14 @@ ob_start();
                     </div>
                 </div>
 
-                <!-- Rejected Profiles Card -->
+                <!-- Rejected Documents Card -->
                 <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #ef4444;">
                     <div class="p-4">
                         <div class="flex items-center justify-between">
                             <div>
-                                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Rejected Profiles</p>
-                                <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['rejected_profiles'] ?? 0; ?></p>
-                                <p class="text-xs text-gray-500 mt-1">Need corrections & resubmission</p>
+                                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Rejected Documents</p>
+                                <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['rejected_documents'] ?? 0; ?></p>
+                                <p class="text-xs text-gray-500 mt-1">Documents requiring corrections</p>
                             </div>
                             <div class="p-3 rounded-xl bg-red-50 card-icon">
                                 <i class="fas fa-times-circle text-xl text-red-500"></i>
@@ -298,7 +298,7 @@ ob_start();
                             <i class="fas fa-exclamation-triangle mr-1"></i>
                             <span>Requires updates</span>
                         </div>
-                        <?php if (($stats['rejected_profiles'] ?? 0) > 0): ?>
+                        <?php if (($stats['rejected_documents'] ?? 0) > 0): ?>
                             <div class="mt-2">
                                 <div class="flex items-center text-xs text-red-700 bg-red-50 px-2 py-1 rounded border border-red-200">
                                     <i class="fas fa-sync-alt mr-1"></i>
