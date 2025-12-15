@@ -1,3 +1,4 @@
+
 <?php
 session_start();
 // 1. Access Control: Redirects non-admin users or unauthenticated users.
@@ -112,6 +113,7 @@ $alumniQuery = "
         u.email,
         ap.employment_status, 
         ap.photo_path,
+        ap.submitted_at, -- ADDED: Get the submission timestamp
         (
             SELECT ad.document_status 
             FROM alumni_documents ad 
@@ -264,6 +266,7 @@ ob_start();
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Alumni</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employment</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submission</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Submitted</th> <!-- ADDED COLUMN -->
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Documents</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
@@ -277,6 +280,16 @@ ob_start();
                         $docStmt->execute();
                         $docResult = $docStmt->get_result();
                         $documents = $docResult->fetch_all(MYSQLI_ASSOC);
+                        
+                        // Format submitted_at timestamp
+                        $submitted_at = $alumni['submitted_at'] ?? null;
+                        $submitted_date = '—';
+                        $submitted_time = '';
+                        if ($submitted_at) {
+                            $date = new DateTime($submitted_at);
+                            $submitted_date = $date->format('M j, Y'); // e.g., "Mar 15, 2024"
+                            $submitted_time = $date->format('g:i A'); // e.g., "2:30 PM"
+                        }
                         ?>
                         <tr class="hover:bg-gray-50">
                             <td class="px-6 py-4 whitespace-nowrap">
@@ -311,6 +324,18 @@ ob_start();
                                     <i class="<?= getSubmissionStatusIcon($alumni['submission_status']) ?> mr-2"></i>
                                     <?= htmlspecialchars($alumni['submission_status']) ?>
                                 </span>
+                            </td>
+                            
+                            <!-- ADDED: Date Submitted Column -->
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <?php if ($submitted_at): ?>
+                                    <div class="text-sm text-gray-900">
+                                        <div class="font-medium"><?= $submitted_date ?></div>
+                                        <div class="text-xs text-gray-500"><?= $submitted_time ?></div>
+                                    </div>
+                                <?php else: ?>
+                                    <span class="text-gray-400 text-sm">—</span>
+                                <?php endif; ?>
                             </td>
                             
                             <td class="px-6 py-4 text-sm text-gray-500">
