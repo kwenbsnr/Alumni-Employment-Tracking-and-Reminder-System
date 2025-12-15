@@ -48,6 +48,7 @@ $batchStats = $statsResult->fetch_assoc();
 // Calculate profile completion rate
 $total_alumni = $batchStats['total_alumni'] ?? 0;
 // Total alumni who have submitted a profile (regardless of status)
+// NOTE: completion rate is calculated based on 'alumni_documents' presence, not just 'alumni_profile'
 $with_profiles = ($batchStats['approved_count'] ?? 0) + ($batchStats['pending_count'] ?? 0) + ($batchStats['rejected_count'] ?? 0);
 $completion_rate = $total_alumni > 0 ? round(($with_profiles / $total_alumni) * 100, 1) : 0;
 
@@ -121,11 +122,11 @@ $alumniQuery = "
             LIMIT 1
         ) as latest_doc_status,
         CASE 
-            WHEN ap.user_id IS NULL THEN 'No Profile'
+            WHEN ap.user_id IS NULL THEN 'No Recent Update'
             WHEN EXISTS (SELECT 1 FROM alumni_documents ad WHERE ad.user_id = u.user_id AND ad.document_status = 'Rejected') THEN 'Rejected'
             WHEN EXISTS (SELECT 1 FROM alumni_documents ad WHERE ad.user_id = u.user_id AND ad.document_status = 'Approved') THEN 'Approved'
             WHEN EXISTS (SELECT 1 FROM alumni_documents ad WHERE ad.user_id = u.user_id AND ad.document_status = 'Pending') THEN 'Pending'
-            ELSE 'No Recent Uploads'
+            ELSE 'No Recent Update' -- Alumni profile exists but no recent document uploads/status
         END as submission_status
     FROM users u
     LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id
@@ -204,10 +205,15 @@ ob_start();
                     Rejected: <span class="ml-1 font-bold"><?= $batchStats['rejected_count'] ?? 0 ?></span>
                 </span>
                 
-                <?php if (($batchStats['no_profile_count'] ?? 0) > 0): ?>
+                <?php 
+                // Display 'No Recent Update' count, which is effectively the no_profile_count
+                $no_update_count = $batchStats['no_profile_count'] ?? 0;
+                // Add the count for users who have a profile but no uploads (this is not easy to get with the current single stats query)
+                // For simplicity, we stick to 'no_profile_count' for the stats badge.
+                if ($no_update_count > 0): ?>
                 <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold bg-gray-50 text-gray-700 shadow-sm border border-gray-200 transition duration-150 ease-in-out hover:bg-gray-100">
                    
-                    No Profile: <span class="ml-1 font-bold"><?= $batchStats['no_profile_count'] ?? 0 ?></span>
+                    No Recent Update: <span class="ml-1 font-bold"><?= $no_update_count ?></span>
                 </span>
                 <?php endif; ?>
             </div>
@@ -288,6 +294,9 @@ ob_start();
                             $submitted_date = $date->format('M j, Y'); // e.g., "Mar 15, 2024"
                             $submitted_time = $date->format('g:i A'); // e.g., "2:30 PM"
                         }
+                        
+                        // Check for 'No Recent Update' status
+                        $is_no_update = $alumni['submission_status'] === 'No Recent Update';
                         ?>
                         <tr class="hover:bg-gray-50">
                             <td class="px-6 py-4 whitespace-nowrap">
@@ -310,15 +319,23 @@ ob_start();
                                 </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="px-3 py-1.5 inline-flex text-sm font-semibold rounded-full <?= getEmploymentStatusColor($alumni['employment_status']) ?> border <?= getEmploymentStatusBorder($alumni['employment_status']) ?> shadow-sm">
-                                  
-                                    <?= empty($alumni['employment_status']) ? 'No Recent Update' : htmlspecialchars($alumni['employment_status']) ?>
+                                <?php 
+                                    $emp_status_text = empty($alumni['employment_status']) ? 'No Recent Update' : htmlspecialchars($alumni['employment_status']);
+                                    // Keep all employment status text black/default (text-gray-900), except 'No Recent Update' which is gray (text-gray-400)
+                                    $emp_class = $emp_status_text === 'No Recent Update' ? 'text-gray-400' : 'text-gray-900 font-medium';
+                                ?>
+                                <span class="text-sm <?= $emp_class ?>">
+                                    <?= $emp_status_text ?>
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="px-3 py-1.5 inline-flex text-sm font-semibold rounded-full <?= getSubmissionStatusColor($alumni['submission_status']) ?> border <?= getSubmissionStatusBorder($alumni['submission_status']) ?> shadow-sm">
-                                   
-                                    <?= htmlspecialchars($alumni['submission_status']) ?>
+                                <?php 
+                                    $status = $alumni['submission_status'];
+                                    // getSubmissionStatusColor now returns the correct text-color class (green/yellow/red/gray)
+                                    $color_class = getSubmissionStatusColor($status);
+                                ?>
+                                <span class="text-sm font-semibold <?= $color_class ?>">
+                                    <?= htmlspecialchars($status) ?>
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
@@ -331,7 +348,6 @@ ob_start();
                                     <span class="text-gray-400 text-sm">—</span>
                                 <?php endif; ?>
                             </td>
-                            
                             <td class="px-6 py-4 text-sm text-gray-500">
     <?php if (!empty($documents)): ?>
         <div class="space-y-1">
@@ -347,7 +363,7 @@ ob_start();
                     <a href="javascript:void(0)" 
                        onclick="openDocumentModal(<?= $doc['doc_id'] ?>, '<?= htmlspecialchars($doc['file_path']) ?>', '<?= htmlspecialchars($name, ENT_QUOTES) ?>', '<?= htmlspecialchars($alumni['name'], ENT_QUOTES) ?>', '<?= $alumni['user_id'] ?>', '<?= $doc['document_type'] ?>', '<?= $doc['document_status'] ?>', '<?= htmlspecialchars($doc['rejection_reason'] ?? '', ENT_QUOTES) ?>')"
                        class="text-blue-600 hover:text-blue-800 flex items-center text-sm font-semibold ml-2">
-                        <i class="fas fa-eye mr-1"></i> View
+                        <i class="fas fa-external-link-alt"></i> 
                     </a>
                     
                    
@@ -378,7 +394,7 @@ ob_start();
                                             class="text-orange-600 hover:text-orange-900 px-3 py-1 border border-orange-600 rounded-lg hover:bg-orange-50 transition-colors">
                                         <i class="fas fa-undo mr-1"></i> Undo
                                     </button>
-                                <?php else: ?>
+                                <?php else: // 'No Recent Update' ?>
                                     <span class="text-gray-400 text-sm">No action available</span>
                                 <?php endif; ?>
                             </td>
@@ -1008,33 +1024,20 @@ document.addEventListener('keydown', e => {
 <?php
 
 // 5. Helper Functions for Status Badges (Color, Border, Icon)
+
+// MODIFIED: Functions are simplified/removed to eliminate badge styling.
+
+// Employment Status: Always returns empty string, making the text default/black.
 function getEmploymentStatusColor($s) { 
-    if (empty($s)) return 'bg-gray-100 text-gray-800';
-    $colors = [
-        'Unemployed'=>'bg-red-100 text-red-800',
-        'Self-Employed'=>'bg-blue-100 text-blue-800',
-        'Employed'=>'bg-green-100 text-green-800',
-        'Student'=>'bg-purple-100 text-purple-800',
-        'Employed & Student'=>'bg-yellow-100 text-yellow-800'
-    ];
-    return $colors[$s] ?? 'bg-gray-100 text-gray-800'; 
+    return '';
 }
 
 function getEmploymentStatusBorder($s) { 
-    if (empty($s)) return 'border-gray-200';
-    $borders = [
-        'Unemployed'=>'border-red-200',
-        'Self-Employed'=>'border-blue-200',
-        'Employed'=>'border-green-200',
-        'Student'=>'border-purple-200',
-        'Employed & Student'=>'border-yellow-200'
-    ];
-    return $borders[$s] ?? 'border-gray-200'; 
+    return '';
 }
 
 function getEmploymentStatusIcon($s) { 
-    // MODIFIED: 'No Profile' icon logic changed to use 'No recent update' text
-    if (empty($s)) return 'fas fa-user-clock text-gray-600';
+    if ($s === 'No Recent Update' || empty($s)) return 'fas fa-user-clock text-gray-400';
     $icons = [
         'Unemployed'=>'fas fa-user-slash text-red-600',
         'Self-Employed'=>'fas fa-briefcase text-blue-600',
@@ -1045,36 +1048,30 @@ function getEmploymentStatusIcon($s) {
     return $icons[$s] ?? 'fas fa-user-clock text-gray-600'; 
 }
 
+// Submission Status: Now returns only the text color class.
 function getSubmissionStatusColor($s) { 
+    if ($s === 'No Recent Update') return 'text-gray-400';
     $colors = [
-        'Approved'=>'bg-green-100 text-green-800',
-        'Pending'=>'bg-yellow-100 text-yellow-800',
-        'Rejected'=>'bg-red-100 text-red-800',
-        'No Profile'=>'bg-gray-100 text-gray-800',
-        'No Recent Uploads'=>'bg-gray-100 text-gray-800' 
+        'Approved'=>'text-green-600',
+        'Pending'=>'text-yellow-600',
+        'Rejected'=>'text-red-600'
     ];
-    return $colors[$s] ?? 'bg-gray-100 text-gray-800'; 
+    return $colors[$s] ?? 'text-gray-600'; 
 }
 
+// Submission Status: Now returns an empty string to remove the border/bg.
 function getSubmissionStatusBorder($s) { 
-    $borders = [
-        'Approved'=>'border-green-200',
-        'Pending'=>'border-yellow-200',
-        'Rejected'=>'border-red-200',
-        'No Profile'=>'border-gray-200',
-        'No Recent Uploads'=>'border-gray-200'
-    ];
-    return $borders[$s] ?? 'border-gray-200'; 
+    return '';
 }
 
 function getSubmissionStatusIcon($s) { 
+    if ($s === 'No Recent Update') return 'fas fa-user-clock text-gray-400';
     $icons = [
         'Approved'=>'fas fa-check-circle text-green-600',
         'Pending'=>'fas fa-clock text-yellow-600',
-        'Rejected'=>'fas fa-times-circle text-red-600',
-        'No Profile'=>'fas fa-user-clock text-gray-600',
-        'No Recent Uploads'=>'fas fa-file-alt text-gray-600'
+        'Rejected'=>'fas fa-times-circle text-red-600'
     ];
+    // Fallback included, but the DB query is designed to prevent these: 'No Profile', 'No Recent Uploads'
     return $icons[$s] ?? 'fas fa-user-clock text-gray-600'; 
 }
 
