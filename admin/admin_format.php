@@ -209,10 +209,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
 <body class="bg-gray-50">
     <div class="flex min-h-screen">
-        <!-- Sidebar -->
         <nav class="w-72 admin-gradient-bg text-white flex-shrink-0 flex flex-col h-screen justify-between sticky top-0">
             <div class="p-6 flex-grow flex flex-col">
-                <!-- Logo/Brand -->
                 <div class="flex items-center space-x-3 mb-8">
                     <div class="w-12 h-12 rounded-full bg-white bg-opacity-20 flex items-center justify-center">
                         <i class="fas fa-user-shield text-xl" aria-hidden="true"></i>
@@ -223,7 +221,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     </div>
                 </div>
                 
-                <!-- Navigation -->
                 <ul class="space-y-2 flex-grow">
                     <li>
                         <a href="admin_dashboard.php" class="sidebar-item admin-sidebar-item <?php echo ($active_page ?? '') === 'dashboard' ? 'active' : ''; ?> flex items-center space-x-3 p-3 rounded-lg">
@@ -237,10 +234,14 @@ document.addEventListener("DOMContentLoaded", () => {
                             <span>Alumni Records</span>
                         </a>
                     </li>
-                   
+                   <li>
+                        <a href="activity_log.php" class="sidebar-item admin-sidebar-item <?php echo ($active_page ?? '') === 'activity_log' ? 'active' : ''; ?> flex items-center space-x-3 p-3 rounded-lg">
+                            <i class="fas fa-history w-6 text-lg" aria-hidden="true"></i>
+                            <span>Activity Log</span>
+                        </a>
+                    </li>
                 </ul>
 
-                <!-- Logout -->
                 <div class="pt-6">
                     <hr class="border-blue-400 my-4">
                     <a href="../login/logout.php" class="flex items-center space-x-3 text-blue-100 hover:text-white p-3 rounded-lg transition-colors">
@@ -250,16 +251,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 </div>
             </div>
             
-            <!-- Sidebar Footer -->
-            
-        </nav>
+            </nav>
 
-      <!-- Main Content -->
-<div class="flex-1 flex flex-col min-w-0">
-    <!-- Top Bar -->
+      <div class="flex-1 flex flex-col min-w-0">
     <header class="bg-white header-shadow z-10">
         <div class="flex items-center justify-between p-4">
-            <!-- Page Title and Breadcrumb -->
             <div>
                 <h1 class="text-3xl font-bold text-gray-800">
                     <?php echo htmlspecialchars($page_title ?? "Admin Dashboard", ENT_QUOTES, 'UTF-8'); ?>
@@ -282,11 +278,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 
                 </nav>
             </div>
-                    <!-- Right Side Actions -->
                     <div class="flex items-center space-x-4">
                        
                         
-                        <!-- Notifications -->
                         <div class="relative">
                             <button class="relative text-gray-600 hover:text-blue-600 transition p-2 rounded-full hover:bg-gray-100">
                                 <i class="fas fa-bell text-xl"></i>
@@ -294,7 +288,6 @@ document.addEventListener("DOMContentLoaded", () => {
                             </button>
                         </div>
                         
-                        <!-- User Menu -->
                         <div class="relative">
                             <button id="userMenuButton" class="flex items-center space-x-3 focus:outline-none">
                                 <?php 
@@ -338,14 +331,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 </div>
             </header>
 
-            <!-- Dynamic Content -->
             <main class="flex-1 p-6 overflow-auto bg-gray-50">
                 <?php echo $page_content ?? ''; ?>
             </main>
         </div>
     </div>
 
-    <!-- Custom Toast -->
     <div id="customToast" class="fixed bottom-4 right-4 bg-green-500 text-white p-4 rounded-lg shadow-lg flex items-center space-x-2 z-50 hidden">
         <i class="fas fa-check-circle"></i>
         <span id="toastMessage"></span>
