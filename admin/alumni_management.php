@@ -314,11 +314,9 @@ if (isset($_SESSION['error_message'])) {
 </script>
 <?php endif; ?>
 
-<!-- Enhanced Search Bar with Action Buttons (Updated Layout) -->
 <div class="bg-gradient-to-br from-blue-50 to-white p-4 rounded-xl shadow-lg border-2 border-blue-200">
     <div class="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center">
         
-        <!-- Search Form (Left side - takes most space) -->
         <div class="flex-1 max-w-2xl">
             <form method="GET" action="" class="flex flex-col sm:flex-row gap-3">
                 <div class="flex-1 relative">
@@ -342,9 +340,7 @@ if (isset($_SESSION['error_message'])) {
             </form>
         </div>
 
-        <!-- Right-side Action Buttons (Submissions + Generate Report) -->
         <div class="flex flex-col sm:flex-row gap-3 lg:ml-auto">
-            <!-- Submissions Control Button -->
             <button id="toggleSubmissionModal" 
                     class="bg-<?= $status_color ?>-600 hover:bg-<?= $status_color ?>-700 text-white px-5 py-2 rounded-lg font-medium flex items-center gap-2 shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-105 whitespace-nowrap group relative">
                 <i class="fas <?= $status_icon ?>"></i>
@@ -355,7 +351,6 @@ if (isset($_SESSION['error_message'])) {
                 <div class="absolute -top-2 -right-2 w-3 h-3 bg-<?= $status_color ?>-400 rounded-full animate-pulse"></div>
             </button>
 
-            <!-- Report Generator Button -->
             <button id="toggleReportForm" 
                     class="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-5 py-2 rounded-lg flex items-center gap-2 whitespace-nowrap transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 group">
                 <i class="fas fa-file-export group-hover:rotate-12 transition-transform duration-200"></i>
@@ -364,40 +359,36 @@ if (isset($_SESSION['error_message'])) {
         </div>
     </div>
 
-    <!-- Search results info (if any) -->
     <?php if (!empty($search)): ?>
         <div class="mt-3 p-3 bg-blue-100 border border-blue-300 rounded-lg text-sm text-blue-800 flex items-center gap-2">
             <i class="fas fa-info-circle"></i>
             <span>Showing results for: <strong>"<?= htmlspecialchars($search) ?>"</strong></span>
             <span class="ml-auto text-blue-600 font-medium">
                 <?php
-                    // Use prepared statements
-                   $safe_search = $search; // Make sure this is defined earlier
-                   $stmt = $conn->prepare("SELECT DISTINCT u.batch_year 
-                        FROM users u
-                        WHERE u.role = 'alumni' 
-                        AND u.batch_year IS NOT NULL 
-                        AND (CONCAT(u.first_name, ' ', u.last_name) LIKE ? OR u.email LIKE ?)");
+                    // Calculate the number of batches that contain alumni matching the search term
+                    $stmt = $conn->prepare("SELECT COUNT(DISTINCT u.batch_year) AS batch_count
+                                            FROM users u
+                                            WHERE u.role = 'alumni' 
+                                            AND u.batch_year IS NOT NULL 
+                                            AND (CONCAT(u.first_name, ' ', u.last_name) LIKE ? OR u.email LIKE ?)");
                     $term = "%$search%";
                     $stmt->bind_param('ss', $term, $term);
                     $stmt->execute();
-                    $displayResult = $stmt->get_result();
-                echo $searchCount . " result(s) found";
+                    $result = $stmt->get_result();
+                    $batchCount = $result->fetch_assoc()['batch_count'] ?? 0;
+                    echo $batchCount . " batch folder(s) found";
                 ?>
             </span>
         </div>
     <?php endif; ?>
 </div>
 
-<!-- Inline Report Form -->
 <div id="reportFormContainer" class="hidden bg-gradient-to-br from-green-50 to-white p-6 rounded-xl shadow-lg border-2 border-green-200">
     <h2 class="text-2xl font-bold text-gray-800 mb-5 flex items-center gap-3">
         <i class="fas fa-file-export text-green-600"></i> Customize Alumni Report
     </h2>
     <form method="POST" action="" class="space-y-6" id="reportForm" target="_blank">
-        <!-- Your existing form content remains the same -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <!-- Batch selection section -->
             <div class="bg-white p-5 rounded-xl border-2 border-gray-200">
                 <h3 class="font-semibold text-lg mb-4 flex items-center gap-2">
                     <i class="fas fa-layer-group text-blue-600"></i> Select Batches
@@ -417,7 +408,6 @@ if (isset($_SESSION['error_message'])) {
                 </div>
             </div>
             
-            <!-- Report options section -->
             <div class="bg-white p-5 rounded-xl border-2 border-gray-200 space-y-5">
                 <div>
                     <label class="block font-medium mb-2">Report Type</label>
@@ -446,7 +436,6 @@ if (isset($_SESSION['error_message'])) {
         </div>
     </form>
 </div>
-    <!-- Batch Cards Grid (updated to hide "All Alumni" during search) -->
     <div class="space-y-4">
         <div class="flex items-center gap-3 px-2">
             <i class="fas fa-folder-open text-2xl text-amber-600"></i>
@@ -454,30 +443,17 @@ if (isset($_SESSION['error_message'])) {
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <?php
-            // Only show "All Alumni" card when NOT searching
-            if (empty($search)):
-                $totalQuery = "SELECT COUNT(*) as total FROM users WHERE role = 'alumni'";
-                $totalAll = $conn->query($totalQuery)->fetch_assoc()['total'];
+            // The 'All Alumni' card has been removed as requested.
             ?>
-                <a href="all_alumni.php" class="bg-gradient-to-br from-purple-50 to-white p-6 rounded-xl shadow-lg border-2 border-purple-300 hover:shadow-xl hover:border-purple-500 transform hover:scale-105 transition-all duration-300 group text-center">
-                    <i class="fas fa-users text-4xl text-purple-600 mb-4"></i>
-                    <p class="text-xs uppercase tracking-wider text-gray-500">All Batches Combined</p>
-                    <p class="text-2xl font-bold text-gray-800">All Alumni</p>
-                    <div class="mt-4 bg-white rounded-xl p-4 border border-purple-100">
-                        <p class="text-3xl font-bold text-purple-600"><?= $totalAll ?></p>
-                        <p class="text-xs uppercase text-gray-600">Total Records</p>
-                    </div>
-                    <div class="mt-4 bg-purple-700 text-white py-2 px-4 rounded-lg text-sm font-medium group-hover:bg-purple-600 transition">View All Records</div>
-                </a>
-            <?php endif; ?>
 
             <?php
             $displayResult = $batchResult;
             if (!empty($search)) {
+                // Filter the batches shown only to those containing matches
                 $stmt = $conn->prepare("SELECT DISTINCT u.batch_year 
-                                    FROM alumni_profile ap
-                                    INNER JOIN users u ON ap.user_id = u.user_id 
-                                    WHERE u.batch_year IS NOT NULL 
+                                    FROM users u
+                                    WHERE u.role = 'alumni' 
+                                    AND u.batch_year IS NOT NULL 
                                     AND (CONCAT(u.first_name, ' ', u.last_name) LIKE ? OR u.email LIKE ?)");
                 $term = "%$search%";
                 $stmt->bind_param('ss', $term, $term);
@@ -488,8 +464,28 @@ if (isset($_SESSION['error_message'])) {
             if ($displayResult && $displayResult->num_rows > 0):
                 while ($batch = $displayResult->fetch_assoc()):
                     $year = $batch['batch_year'];
-                    $batch_index = array_search($year, array_column($all_batches, 'batch_year'));
-                    $count = ($batch_index !== false) ? $all_batches[$batch_index]['total_count'] : 0;
+
+                    // --- FIX APPLIED HERE: Calculate count based on search status ---
+                    $count = 0;
+                    if (!empty($search)) {
+                        // Calculate the filtered count for this specific batch and search term
+                        $stmt_count = $conn->prepare("SELECT COUNT(*) AS count
+                                                      FROM users u
+                                                      WHERE u.role = 'alumni' 
+                                                      AND u.batch_year = ?
+                                                      AND (CONCAT(u.first_name, ' ', u.last_name) LIKE ? OR u.email LIKE ?)");
+                        $term = "%$search%";
+                        $stmt_count->bind_param('iss', $year, $term, $term);
+                        $stmt_count->execute();
+                        $result_count = $stmt_count->get_result();
+                        $count = $result_count->fetch_assoc()['count'] ?? 0;
+                        $stmt_count->close();
+                    } else {
+                        // Use the full count if no search is active
+                        $batch_index = array_search($year, array_column($all_batches, 'batch_year'));
+                        $count = ($batch_index !== false) ? $all_batches[$batch_index]['total_count'] : 0;
+                    }
+                    // -----------------------------------------------------------------
             ?>
                     <a href="batch_alumni.php?batch=<?= $year ?><?= !empty($search) ? '&search=' . urlencode($search) : '' ?>" class="bg-gradient-to-br from-amber-50 to-white p-6 rounded-xl shadow-lg border-2 border-amber-200 hover:shadow-xl hover:border-amber-400 transform hover:scale-105 transition-all duration-300 group text-center">
                         <i class="fas fa-folder-open text-4xl text-amber-600 mb-4"></i>
@@ -497,7 +493,7 @@ if (isset($_SESSION['error_message'])) {
                         <p class="text-2xl font-bold text-gray-800"><?= $year ?></p>
                         <div class="mt-4 bg-white rounded-xl p-4 border border-amber-100">
                             <p class="text-3xl font-bold text-amber-600"><?= $count ?></p>
-                            <p class="text-xs uppercase text-gray-600">Alumni Records</p>
+                            <p class="text-xs uppercase text-gray-600"><?= !empty($search) ? 'Matching Records' : 'Alumni Records' ?></p>
                         </div>
                         <div class="mt-4 bg-gray-800 text-white py-2 px-4 rounded-lg text-sm font-medium group-hover:bg-amber-600 transition">View Records</div>
                     </a>
@@ -513,7 +509,6 @@ if (isset($_SESSION['error_message'])) {
         </div>
     </div>
 
-<!-- Submission Modal -->
 <div id="submissionModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-8 relative">
         <button id="closeModal" class="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-2xl">
@@ -525,7 +520,6 @@ if (isset($_SESSION['error_message'])) {
 
         <form method="POST" class="space-y-6" onsubmit="return validateSubmissionDates()">
             <div class="space-y-4">
-                <!-- Open Now -->
                 <div class="bg-gray-50 p-4 rounded-lg border">
                     <label class="flex items-center gap-3 cursor-pointer">
                         <input type="radio" name="submission_action" value="open_now" class="text-emerald-600" <?= $is_open && $manual_override ? 'checked' : '' ?>>
@@ -533,7 +527,6 @@ if (isset($_SESSION['error_message'])) {
                     </label>
                 </div>
 
-                <!-- Close Now -->
                 <div class="bg-gray-50 p-4 rounded-lg border">
                     <label class="flex items-center gap-3 cursor-pointer">
                         <input type="radio" name="submission_action" value="close_now" class="text-red-600" <?= !$is_open && $manual_override ? 'checked' : '' ?>>
@@ -541,7 +534,6 @@ if (isset($_SESSION['error_message'])) {
                     </label>
                 </div>
 
-                <!-- Schedule -->
                 <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
                     <label class="flex items-center gap-3 cursor-pointer">
                         <input type="radio" name="submission_action" value="schedule" class="text-blue-600" id="scheduleRadio" <?= !$manual_override ? 'checked' : '' ?>>
@@ -560,12 +552,10 @@ if (isset($_SESSION['error_message'])) {
                 </div>
             </div>
 
-            <!-- Inline Error Message (Inside Modal) -->
             <div id="submissionError" class="hidden bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4" role="alert">
                 <span id="submissionErrorText"></span>
             </div>
 
-            <!-- Buttons -->
             <div class="flex justify-end gap-3 pt-4 border-t">
                 <button type="button" id="cancelModal" class="px-5 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600">
                     Cancel
@@ -578,7 +568,6 @@ if (isset($_SESSION['error_message'])) {
     </div>
 </div>
 
-<!-- Validation Script -->
 <script>
 function validateSubmissionDates() {
     const errorBox = document.getElementById('submissionError');
@@ -890,16 +879,4 @@ function generateAlumniReport($selected_batches, $report_type, $conn) {
     $pdf->Output($pdf_filename, 'I');
     exit;
 }
-
-/* 
-// Function to check if submissions are open
-    function isSubmissionsOpen($conn) {
-        $statusCheck = $conn->query("SELECT is_open FROM submission_status LIMIT 1");
-        if ($statusCheck->num_rows > 0) {
-            $status = $statusCheck->fetch_assoc();
-            return (bool)$status['is_open'];
-        }
-        return false; // Default to closed if no status found
-    }
- */
 ?>
