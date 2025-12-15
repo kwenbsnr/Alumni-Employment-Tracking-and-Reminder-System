@@ -135,12 +135,9 @@ $formatted_address = implode(', ', $address_parts);
 ?>
 
 <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-2xl overflow-hidden">
-    <!-- Header Section -->
-    <div class="bg-gradient-to-r from-blue-600 to-purple-700 p-6 text-white">
+    <div class="bg-gray-700 p-6 text-white">
         <div class="flex justify-between items-start">
-            <!-- Left Side: Profile and Basic Info -->
             <div class="flex items-center space-x-6">
-                <!-- Profile Photo -->
                 <div class="flex-shrink-0">
                     <?php if (!empty($alumni['photo_path'])): ?>
                         <img class="h-20 w-20 rounded-full object-cover border-4 border-white/30 shadow-lg"
@@ -153,7 +150,6 @@ $formatted_address = implode(', ', $address_parts);
                     <?php endif; ?>
                 </div>
 
-                <!-- Name and Basic Info -->
                 <div class="flex-1">
                     <h1 class="text-2xl font-bold mb-1">
                         <?php echo !empty($alumni['official_name']) ? htmlspecialchars($alumni['official_name']) : 'Name Not Provided'; ?>
@@ -167,7 +163,6 @@ $formatted_address = implode(', ', $address_parts);
                 </div>
             </div>
 
-            <!-- Right Side: Batch Year and Status -->
             <div class="flex flex-col items-end text-right">
                 <div class="text-3xl font-bold text-white/90 mb-2">
                     Batch <?php echo htmlspecialchars($alumni['batch_year']); ?>
@@ -179,10 +174,8 @@ $formatted_address = implode(', ', $address_parts);
         </div>
     </div>
 
-    <!-- Main Content - Stacked Sections -->
     <div class="space-y-6 p-6">
 
-        <!-- Personal Information -->
         <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200 shadow-sm">
             <div class="flex items-center space-x-2 mb-4">
                 <i class="fas fa-graduation-cap text-blue-600"></i>
@@ -254,7 +247,6 @@ $formatted_address = implode(', ', $address_parts);
             </div>
         </div>
         
-        <!-- Address Information -->
         <?php if (!empty($formatted_address)): ?>
         <div class="bg-gradient-to-br from-green-50 to-teal-50 rounded-xl p-6 border border-green-200 shadow-sm">
             <div class="flex items-center space-x-2 mb-4">
@@ -309,14 +301,12 @@ $formatted_address = implode(', ', $address_parts);
         </div>
         <?php endif; ?>
 
-        <!-- Employment Information -->
         <div class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-200 shadow-sm">
             <div class="flex items-center space-x-2 mb-4">
                 <i class="fas fa-briefcase text-purple-600"></i>
                 <h3 class="text-lg font-semibold text-gray-800">Employment Information</h3>
             </div>
             <div class="space-y-4">
-                <!-- Employment Status -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-600 mb-1">Employment Status</label>
@@ -326,10 +316,8 @@ $formatted_address = implode(', ', $address_parts);
                     </div>
                 </div>
 
-                <!-- Employment Details -->
                 <?php if (in_array($alumni['employment_status'], ['Employed', 'Self-Employed', 'Employed & Student'])): ?>
                     <div class="space-y-4">
-                        <!-- First Row: Job Title, Company/Business, Salary -->
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             <?php if (in_array($alumni['employment_status'], ['Employed', 'Employed & Student']) && !empty($alumni['job_title'])): ?>
                             <div>
@@ -368,7 +356,6 @@ $formatted_address = implode(', ', $address_parts);
                             <?php endif; ?>
                         </div>
 
-                        <!-- Address Section (Full Width) -->
                         <?php if (!empty($alumni['company_address'])): ?>
                         <div>
                             <label class="block text-sm font-medium text-gray-600 mb-1">
@@ -389,7 +376,6 @@ $formatted_address = implode(', ', $address_parts);
             </div>
         </div>
 
-        <!-- Education Information -->
         <?php if (in_array($alumni['employment_status'], ['Student', 'Employed & Student']) && !empty($alumni['school_name'])): ?>
         <div class="bg-gradient-to-br from-orange-50 to-red-50 rounded-xl p-6 border border-orange-200 shadow-sm">
             <div class="flex items-center space-x-2 mb-4">
@@ -423,21 +409,20 @@ $formatted_address = implode(', ', $address_parts);
         </div>
         <?php endif; ?>
 
-        <!-- Submitted Documents -->
         <?php if (!empty($documents)): ?>
         <div class="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl p-6 border border-yellow-200 shadow-sm">
             <div class="flex items-center space-x-2 mb-4">
                 <i class="fas fa-file-alt text-yellow-600"></i>
                 <h3 class="text-lg font-semibold text-gray-800">Submitted Documents</h3>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div class="space-y-3">
                 <?php foreach ($documents as $doc): ?>
                 <div class="bg-white rounded-lg p-4 border border-yellow-200 hover:border-yellow-300 transition-all duration-200 hover:shadow-md">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center space-x-3">
-                            <i class="fas fa-file-pdf text-red-500"></i>
+                            <i class="fas fa-file-pdf text-red-500 text-xl"></i>
                             <div>
-                                <span class="font-medium text-gray-700 text-sm">
+                                <span class="font-medium text-gray-700 text-base">
                                     <?php 
                                     $doc_names = ['COR' => 'Certificate of Registration', 'COE' => 'Certificate of Employment', 'B_CERT' => 'Business Certificate'];
                                     echo htmlspecialchars($doc_names[$doc['document_type']] ?? $doc['document_type']);
@@ -461,7 +446,6 @@ $formatted_address = implode(', ', $address_parts);
 
     </div>
 
-    <!-- Last Update -->
     <?php if (!empty($alumni['last_profile_update'])): ?>
     <div class="px-6 py-4 border-t border-gray-200 bg-gray-50">
         <p class="text-xs text-gray-500 text-center">
