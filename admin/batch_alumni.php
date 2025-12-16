@@ -463,7 +463,6 @@ ob_start();
     <?php endif; ?>
 </div>
 
-<!-- Unified Document Modal -->
 <div id="unifiedDocumentModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center hidden z-[60]">
     <div class="bg-white rounded-xl shadow-2xl max-w-6xl w-full mx-4 h-[90vh] flex flex-col">
         <div class="flex items-center justify-between p-4 border-b">
@@ -474,12 +473,10 @@ ob_start();
         </div>
         
         <div class="flex-1 overflow-hidden flex">
-            <!-- Left Panel: Document Viewing -->
             <div class="flex-1 flex flex-col p-4 border-r border-gray-200">
                 <div class="mb-4">
                     <div id="unifiedDocTabs" class="flex border-b overflow-x-auto">
-                        <!-- Tabs will be generated here -->
-                    </div>
+                        </div>
                 </div>
                 
                 <div id="unifiedViewerContent">
@@ -494,7 +491,6 @@ ob_start();
                 </div>
             </div>
             
-            <!-- Right Panel: Document Management -->
             <div class="w-96 flex flex-col border-l border-gray-200">
                 <div class="p-4 border-b bg-gray-50">
                     <h4 class="text-lg font-bold text-gray-900">
@@ -504,16 +500,12 @@ ob_start();
                 </div>
                 
                 <div class="flex-1 overflow-y-auto p-4">
-                    <!-- Document List with Status -->
                     <div id="unifiedDocumentList" class="space-y-3 mb-6">
-                        <!-- Documents will be listed here -->
-                    </div>
+                        </div>
                     
-                    <!-- Bulk Actions Section -->
-                    <div class="border-t pt-4">
+                    <div id="bulkActionsSection" class="border-t pt-4">
                         <h5 class="text-md font-bold text-gray-800 mb-3">Bulk Actions</h5>
                         
-                        <!-- Approve All Button -->
                         <div class="mb-4">
                             <button onclick="processBulkApproval()" id="bulkApproveBtn" 
                                     class="w-full bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed">
@@ -522,7 +514,6 @@ ob_start();
                             <p class="text-xs text-gray-500 mt-1 text-center">All documents will be marked as Approved</p>
                         </div>
                         
-                        <!-- Reject Selected Button -->
                         <div class="mb-4">
                             <button onclick="openBulkRejectionPanel()" id="bulkRejectBtn"
                                     class="w-full bg-red-600 text-white px-4 py-3 rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed">
@@ -531,7 +522,6 @@ ob_start();
                             <p class="text-xs text-gray-500 mt-1 text-center">Selected documents will be rejected with individual reasons</p>
                         </div>
                         
-                        <!-- Revert All to Pending -->
                         <div>
                             <button onclick="processBulkRevert()" id="bulkRevertBtn"
                                     class="w-full bg-orange-600 text-white px-4 py-3 rounded-lg hover:bg-orange-700 transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed">
@@ -540,52 +530,48 @@ ob_start();
                             <p class="text-xs text-gray-500 mt-1 text-center">All document statuses will be set back to Pending</p>
                         </div>
                     </div>
+
+                    <div id="bulkRejectionPanel" class="border-t pt-4 hidden">
+                        <div class="w-full bg-red-50 border-l-4 border-red-500 p-4 rounded-lg mb-4">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-exclamation-triangle text-red-700"></i>
+                                </div>
+                                <div class="ml-3">
+                                    <h3 class="text-md font-bold text-red-800">Reject Selected Documents</h3>
+                                    <p class="text-sm text-red-700">Provide reasons for <span id="rejectCount" class="font-semibold">0</span> selected document(s).</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <form id="bulkRejectForm">
+                            <input type="hidden" id="bulkRejectUserId" name="user_id">
+                            
+                            <div id="bulkRejectionDocuments" class="space-y-4 mb-6 max-h-96 overflow-y-auto pr-2">
+                                </div>
+                            
+                            <div class="flex gap-3 border-t pt-4">
+                                <button type="button" onclick="closeBulkRejectionPanel()" 
+                                        class="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400 transition-colors">
+                                    Cancel
+                                </button>
+                                <button type="submit" 
+                                        class="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors">
+                                    Confirm Rejection
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Bulk Rejection Modal -->
-<div id="bulkRejectionModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center hidden z-[70]">
-    <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-        <div class="p-6">
-            <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <i class="fas fa-times text-red-600 text-xl"></i>
-            </div>
-            <h3 class="text-xl font-bold text-center mb-2">Reject Selected Documents</h3>
-            <p class="text-gray-600 text-center mb-6">
-                Please provide rejection reasons for each selected document:
-            </p>
-            
-            <form id="bulkRejectForm">
-                <input type="hidden" id="bulkRejectUserId" name="user_id">
-                
-                <div id="bulkRejectionDocuments" class="space-y-4 mb-6">
-                    <!-- Documents with rejection reason inputs will be added here -->
-                </div>
-                
-                <div class="flex gap-3">
-                    <button type="button" onclick="closeBulkRejectionModal()" 
-                            class="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400 transition-colors">
-                        Cancel
-                    </button>
-                    <button type="submit" 
-                            class="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors">
-                        Confirm Rejection
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Individual Document Actions Modal (Fallback) -->
 <div id="individualActionModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center hidden z-[70]">
     <div class="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 p-6">
         <div id="individualActionContent">
-            <!-- Content will be loaded dynamically -->
-        </div>
+            </div>
     </div>
 </div>
 
@@ -696,8 +682,9 @@ function openUnifiedDocumentModal(alumniName, userId, employmentStatus, document
     // 3. Load the first document
     switchUnifiedDocumentTab(allDocuments[0].doc_id);
     
-    // 4. Update bulk action buttons state
+    // 4. Update bulk action buttons state and ensure default panel is shown
     updateBulkActionButtons();
+    closeBulkRejectionPanel(false); // Ensure rejection panel is hidden on open
     
     // 5. Show Modal
     modal.classList.remove('hidden');
@@ -758,7 +745,7 @@ function updateDocumentList() {
         const statusClass = getStatusColorClass(doc.document_status);
         
         container.innerHTML += `
-            <div class="flex items-start justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
+            <div class="document-list-item flex items-start justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
                 <div class="flex items-start space-x-3 flex-1">
                     <div class="mt-1">
                         <input type="checkbox" 
@@ -791,27 +778,33 @@ function updateDocumentList() {
 // Update document list selection
 function updateDocumentListSelection(docId) {
     // Remove active class from all
-    document.querySelectorAll('#unifiedDocumentList > div').forEach(div => {
+    document.querySelectorAll('.document-list-item').forEach(div => {
         div.classList.remove('border-indigo-300', 'bg-indigo-50');
     });
     
     // Add active class to selected
-    const selectedDiv = document.querySelector(`#unifiedDocumentList > div input[value="${docId}"]`).closest('div.border');
-    if (selectedDiv) {
+    const checkbox = document.querySelector(`.document-list-item input[value="${docId}"]`);
+    if (checkbox) {
+        const selectedDiv = checkbox.closest('.document-list-item');
         selectedDiv.classList.add('border-indigo-300', 'bg-indigo-50');
     }
 }
 
 // Handle document checkbox selection
 function handleDocumentSelection(docId) {
-    // For now, just update visual state
     const checkbox = document.getElementById(`doc-check-${docId}`);
-    const parentDiv = checkbox.closest('div.border');
+    const parentDiv = checkbox.closest('.document-list-item');
     
     if (checkbox.checked) {
         parentDiv.classList.add('border-red-300', 'bg-red-50');
     } else {
         parentDiv.classList.remove('border-red-300', 'bg-red-50');
+    }
+    
+    // If the rejection panel is open, update the count immediately
+    const rejectCountEl = document.getElementById('rejectCount');
+    if (rejectCountEl) {
+        rejectCountEl.textContent = getSelectedDocumentIds().length;
     }
 }
 
@@ -851,7 +844,7 @@ function processBulkRevert() {
     window.location.href = `update_status.php?user_id=${currentUserId}&doc_ids=${docIds}&status=Pending&type=document_bulk&<?= htmlspecialchars($queryString) ?>&page=<?= $current_page ?>`;
 }
 
-// Open bulk rejection panel
+// Open bulk rejection panel (INLINE)
 function openBulkRejectionPanel() {
     const selectedIds = getSelectedDocumentIds();
     
@@ -860,11 +853,14 @@ function openBulkRejectionPanel() {
         return;
     }
     
-    const modal = document.getElementById('bulkRejectionModal');
+    document.getElementById('bulkActionsSection').classList.add('hidden');
+    document.getElementById('bulkRejectionPanel').classList.remove('hidden');
+    
     const container = document.getElementById('bulkRejectionDocuments');
     
     // Set user ID
     document.getElementById('bulkRejectUserId').value = currentUserId;
+    document.getElementById('rejectCount').textContent = selectedIds.length;
     
     // Clear previous content
     container.innerHTML = '';
@@ -878,13 +874,13 @@ function openBulkRejectionPanel() {
         const reasons = documentRejectionReasons[doc.document_type] || [];
         
         container.innerHTML += `
-            <div class="p-4 border border-gray-200 rounded-lg" data-doc-id="${docId}">
-                <h5 class="font-medium text-gray-800 mb-2">${docName}</h5>
+            <div class="p-4 border border-gray-200 rounded-lg bg-white" data-doc-id="${docId}">
+                <h5 class="font-bold text-red-700 mb-2">${docName}</h5>
                 
                 ${reasons.length > 0 ? `
                     <div class="mb-3">
                         <label class="block text-sm font-medium text-gray-700 mb-2">Common Reasons:</label>
-                        <div class="space-y-2">
+                        <div class="space-y-2 text-sm">
                             ${reasons.map((reason, index) => `
                                 <div class="flex items-start">
                                     <input type="radio" 
@@ -893,7 +889,7 @@ function openBulkRejectionPanel() {
                                            id="reason_${docId}_${index}"
                                            class="mt-1 mr-2 text-red-600 focus:ring-red-500 border-gray-300"
                                            onchange="handleReasonSelection(${docId}, '${reason.replace(/'/g, "\\'")}')">
-                                    <label for="reason_${docId}_${index}" class="text-sm cursor-pointer">${reason}</label>
+                                    <label for="reason_${docId}_${index}" class="cursor-pointer">${reason}</label>
                                 </div>
                             `).join('')}
                             <div class="flex items-start">
@@ -903,7 +899,7 @@ function openBulkRejectionPanel() {
                                        id="reason_${docId}_custom"
                                        class="mt-1 mr-2 text-red-600 focus:ring-red-500 border-gray-300"
                                        onchange="handleReasonSelection(${docId}, 'custom')">
-                                <label for="reason_${docId}_custom" class="text-sm cursor-pointer">Other (specify below)</label>
+                                <label for="reason_${docId}_custom" class="cursor-pointer">Other (specify below)</label>
                             </div>
                         </div>
                     </div>
@@ -921,7 +917,7 @@ function openBulkRejectionPanel() {
                         id="custom_reason_${docId}" 
                         name="custom_reason_${docId}"
                         rows="2"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                        class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
                         placeholder="${reasons.length > 0 ? 'Specify your reason here...' : 'Please provide a reason for rejection...'}"
                         oninput="handleCustomReasonInput(${docId})"></textarea>
                     <div id="error_${docId}" class="text-red-600 text-sm mt-1 hidden">Please provide a rejection reason.</div>
@@ -929,8 +925,6 @@ function openBulkRejectionPanel() {
             </div>
         `;
     });
-    
-    modal.classList.remove('hidden');
 }
 
 // Handle reason selection in bulk rejection
@@ -956,10 +950,21 @@ function handleCustomReasonInput(docId) {
     }
 }
 
-// Close bulk rejection modal
-function closeBulkRejectionModal() {
-    document.getElementById('bulkRejectionModal').classList.add('hidden');
+// Close bulk rejection panel
+function closeBulkRejectionPanel(resetCheckboxes = true) {
+    document.getElementById('bulkRejectionPanel').classList.add('hidden');
+    document.getElementById('bulkActionsSection').classList.remove('hidden');
     document.getElementById('bulkRejectForm').reset();
+
+    if (resetCheckboxes) {
+        // Clear all rejection panel related visual selections
+        document.querySelectorAll('#unifiedDocumentList input[type="checkbox"]').forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        document.querySelectorAll('.document-list-item').forEach(div => {
+            div.classList.remove('border-red-300', 'bg-red-50');
+        });
+    }
 }
 
 // Submit bulk rejection
@@ -983,53 +988,51 @@ document.getElementById('bulkRejectForm').addEventListener('submit', function(e)
         const customReason = document.getElementById(`custom_reason_${docId}`).value.trim();
         const errorElement = document.getElementById(`error_${docId}`);
         
+        // Assume failure until proven otherwise
+        let docValid = false; 
+
         if (!hasCommonReasons) {
             // No common reasons - custom reason is required
-            if (!customReason) {
-                errorElement.textContent = 'Please provide a reason for rejection.';
-                errorElement.classList.remove('hidden');
-                allValid = false;
-                return;
+            if (customReason) {
+                finalReason = customReason;
+                docValid = true;
             }
-            finalReason = customReason;
         } else {
             // Has common reasons
-            if (!selectedReason && !customReason) {
-                errorElement.textContent = 'Please select a rejection reason or specify in the notes.';
-                errorElement.classList.remove('hidden');
-                allValid = false;
-                return;
-            }
-            
             if (selectedReason) {
                 if (selectedReason.value === 'custom') {
-                    if (!customReason) {
-                        errorElement.textContent = 'Please provide a reason in the notes when selecting "Other".';
-                        errorElement.classList.remove('hidden');
-                        allValid = false;
-                        return;
+                    if (customReason) {
+                        finalReason = customReason;
+                        docValid = true;
                     }
-                    finalReason = customReason;
                 } else {
                     finalReason = selectedReason.value;
                     if (customReason) {
                         finalReason += ` | Note: ${customReason}`;
                     }
+                    docValid = true;
                 }
-            } else {
-                // Only custom reason provided
+            } else if (customReason) {
+                // Only custom reason provided, without selecting 'Other' radio button
                 finalReason = customReason;
+                docValid = true;
             }
         }
         
-        // Clear error if valid
-        errorElement.classList.add('hidden');
-        
-        // Add to rejection data
-        rejectionData.push({
-            doc_id: docId,
-            reason: finalReason
-        });
+        if (!docValid) {
+            errorElement.textContent = 'A rejection reason is required for this document.';
+            errorElement.classList.remove('hidden');
+            allValid = false;
+        } else {
+            // Clear error if valid
+            errorElement.classList.add('hidden');
+            
+            // Add to rejection data
+            rejectionData.push({
+                doc_id: docId,
+                reason: finalReason
+            });
+        }
     });
     
     if (!allValid) return;
@@ -1052,6 +1055,7 @@ function closeUnifiedDocumentModal() {
     currentEmploymentStatus = null;
     allDocuments = [];
     currentActiveDoc = null;
+    closeBulkRejectionPanel(true);
 }
 
 // Individual document actions (fallback if needed)
@@ -1144,49 +1148,49 @@ function submitIndividualRejection(docId) {
     const selectedReason = document.querySelector('input[name="rejection_reason"]:checked');
     const customReason = document.getElementById('individual_custom_reason').value.trim();
     const errorElement = document.getElementById('individual_error');
+
+    let docValid = false; 
     
     if (!hasCommonReasons) {
-        if (!customReason) {
-            errorElement.textContent = 'Please provide a reason for rejection.';
-            errorElement.classList.remove('hidden');
-            return false;
+        if (customReason) {
+            finalReason = customReason;
+            docValid = true;
         }
-        finalReason = customReason;
     } else {
-        if (!selectedReason && !customReason) {
-            errorElement.textContent = 'Please select a rejection reason or specify in the notes.';
-            errorElement.classList.remove('hidden');
-            return false;
-        }
-        
         if (selectedReason) {
             if (selectedReason.value === 'custom') {
-                if (!customReason) {
-                    errorElement.textContent = 'Please provide a reason in the notes when selecting "Other".';
-                    errorElement.classList.remove('hidden');
-                    return false;
+                if (customReason) {
+                    finalReason = customReason;
+                    docValid = true;
                 }
-                finalReason = customReason;
             } else {
                 finalReason = selectedReason.value;
                 if (customReason) {
                     finalReason += ` | Note: ${customReason}`;
                 }
+                docValid = true;
             }
-        } else {
+        } else if (customReason) {
             finalReason = customReason;
+            docValid = true;
         }
     }
     
+    if (!docValid) {
+        errorElement.textContent = 'A rejection reason is required.';
+        errorElement.classList.remove('hidden');
+        return false;
+    }
+
     window.location.href = `update_status.php?user_id=${currentUserId}&doc_id=${docId}&status=Rejected&type=document&reason=${encodeURIComponent(finalReason)}&<?= htmlspecialchars($queryString) ?>&page=<?= $current_page ?>`;
     return false;
 }
 
 // Event listeners for closing modals
 document.addEventListener('click', e => {
-    if (e.target.id === 'unifiedDocumentModal' || e.target.id === 'bulkRejectionModal' || e.target.id === 'individualActionModal') {
+    // Only check for closing the unified modal
+    if (e.target.id === 'unifiedDocumentModal' || e.target.id === 'individualActionModal') {
         if (e.target.id === 'unifiedDocumentModal') closeUnifiedDocumentModal();
-        if (e.target.id === 'bulkRejectionModal') closeBulkRejectionModal();
         if (e.target.id === 'individualActionModal') closeIndividualActionModal();
     }
 });
@@ -1194,9 +1198,12 @@ document.addEventListener('click', e => {
 document.addEventListener('keydown', e => {
     if (e.key === 'Escape') {
         if (!document.getElementById('unifiedDocumentModal').classList.contains('hidden')) {
-            closeUnifiedDocumentModal();
-        } else if (!document.getElementById('bulkRejectionModal').classList.contains('hidden')) {
-            closeBulkRejectionModal();
+            // If rejection panel is open, close it first
+            if (!document.getElementById('bulkRejectionPanel').classList.contains('hidden')) {
+                closeBulkRejectionPanel(false); // Close panel, but keep checkboxes checked
+            } else {
+                closeUnifiedDocumentModal();
+            }
         } else if (!document.getElementById('individualActionModal').classList.contains('hidden')) {
             closeIndividualActionModal();
         }
