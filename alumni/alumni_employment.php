@@ -10,6 +10,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 include("../connect.php");
+require_once dirname(__DIR__) . '/api/utils/deadline.php';
 
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
@@ -85,6 +86,16 @@ if (!function_exists('isEmploymentSubmissionOpen')) {
     require_once dirname(__DIR__) . '/api/utils/deadline.php';
 }
 $submission_open = isEmploymentSubmissionOpen($conn);
+if (function_exists('getAllDeadlineInfo')) {
+    $deadline_info = getAllDeadlineInfo($conn);
+} else {
+    // Fallback if function doesn't exist
+    $deadline_info = [
+        'has_manual_override' => false,
+        'close_date' => null,
+        'open_date' => null
+    ];
+}
 
 ob_start();
 ?>
@@ -123,62 +134,79 @@ ob_start();
     </div>
 <?php endif; ?>
 
-<div class="space-y-6 mt-3 mb-5">
-    <!-- Status Card for Employment Information -->
-    <div id="updateEmploymentBtn" class="
+<div class="space-y-6 mt-3 mb-5"><!-- Status Card for Employment Information -->
+<div id="updateEmploymentBtn" class="
+    <?php if ($submission_open): ?>
+        bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-300 hover:border-blue-400 shadow-sm hover:shadow-lg cursor-pointer border-t-blue-500
+    <?php else: ?>
+        bg-gray-50 border-gray-300 cursor-not-allowed opacity-80 border-t-gray-400
+    <?php endif; ?>
+    rounded-2xl p-5 transition-all duration-300 border-2 border-t-[6px]
+">
+    <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-3">
+            <i class="fas fa-briefcase text-2xl <?php echo $submission_open ? 'text-blue-600' : 'text-gray-500'; ?>"></i>
+            <h3 class="text-lg font-bold tracking-tight <?php echo $submission_open ? 'text-blue-900' : 'text-gray-700'; ?>">
+                <?php echo $submission_open ? 'Update Employment Information' : 'Employment Update Locked'; ?>
+            </h3>
+        </div>
         <?php if ($submission_open): ?>
-            bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-300 hover:border-blue-400 shadow-sm hover:shadow-lg cursor-pointer border-t-blue-500
+            <i class="fas fa-arrow-right text-lg text-blue-600 opacity-80"></i>
         <?php else: ?>
-            bg-gray-50 border-gray-300 cursor-not-allowed opacity-80 border-t-gray-400
+            <i class="fas fa-lock text-lg text-gray-500"></i>
         <?php endif; ?>
-        rounded-2xl p-5 transition-all duration-300 border-2 border-t-[6px]
-    ">
-        <div class="flex items-center justify-between mb-3">
-            <div class="flex items-center gap-3">
-                <i class="fas fa-briefcase text-2xl <?php echo $submission_open ? 'text-blue-600' : 'text-gray-500'; ?>"></i>
-                <h3 class="text-lg font-bold tracking-tight <?php echo $submission_open ? 'text-blue-900' : 'text-gray-700'; ?>">
-                    <?php echo $submission_open ? 'Update Employment Information' : 'Employment Update Locked'; ?>
-                </h3>
-            </div>
-            <?php if ($submission_open): ?>
-                <i class="fas fa-arrow-right text-lg text-blue-600 opacity-80"></i>
-            <?php else: ?>
-                <i class="fas fa-lock text-lg text-gray-500"></i>
+    </div>
+
+    <?php if ($submission_open): ?>
+        <div class="bg-blue-50 rounded-xl px-4 py-3 border border-blue-200">
+            <p class="text-sm font-medium text-blue-900">Keep your employment information current</p>
+            <p class="text-xs text-blue-700 mt-1">Update your job details, employment status, and educational pursuits</p>
+            <?php if (!$deadline_info['has_manual_override'] && $deadline_info['close_date']): ?>
+                <p class="text-xs text-blue-600 mt-2 font-medium">
+                    <i class="fas fa-clock mr-1"></i> 
+                    Submission closes: <?php echo date('M j, Y \a\t g:i A', strtotime($deadline_info['close_date'])); ?>
+                </p>
             <?php endif; ?>
         </div>
-
-                <?php if ($submission_open): ?>
-            <div class="bg-blue-50 rounded-xl px-4 py-3 border border-blue-200">
-                <p class="text-sm font-medium text-blue-900">Keep your employment information current</p>
-                <p class="text-xs text-blue-700 mt-1">Update your job details, employment status, and educational pursuits</p>
+        <div class="mt-5">
+            <button type="button" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-base py-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center gap-3 transform hover:scale-[1.02] active:scale-100">
+                <i class="fas fa-edit text-lg"></i>
+                <span class="tracking-tight">Update Employment Information</span>
+            </button>
+        </div>
+    <?php else: ?>
+        <!-- Employment lock message -->
+        <div class="bg-red-50 rounded-xl px-4 py-3 border border-red-200 mb-4">
+            <div class="flex items-center gap-2 mb-2">
+                <i class="fas fa-lock text-red-500"></i>
+                <p class="text-sm font-medium text-red-800">Employment submission is currently locked by the administrator.</p>
             </div>
-            <div class="mt-5">
-                <button type="button" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-base py-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center gap-3 transform hover:scale-[1.02] active:scale-100">
-                    <i class="fas fa-edit text-lg"></i>
-                    <span class="tracking-tight">Update Employment Information</span>
-                </button>
-            </div>
-        <?php else: ?>
-            <!-- Employment lock message -->
-            <div class="bg-red-50 rounded-xl px-4 py-3 border border-red-200 mb-4">
-                <div class="flex items-center gap-2 mb-2">
-                    <i class="fas fa-lock text-red-500"></i>
-                    <p class="text-sm font-medium text-red-800">Employment submission is currently locked by the administrator.</p>
-                </div>
-                <p class="text-xs text-red-700">
-                    You cannot submit or update employment-related information at this time.<br>
-                    Profile and personal information updates remain available.
-                </p>
-            </div>
-            <div class="mt-5">
-                <button type="button" disabled class="w-full bg-gray-400 text-white font-semibold text-base py-4 rounded-xl flex items-center justify-center gap-3 cursor-not-allowed">
-                    <i class="fas fa-lock text-lg"></i>
-                    <span class="tracking-tight">Update Not Available</span>
-                </button>
-            </div>
-        <?php endif; ?>
-    </div>
-    </div>
+            <p class="text-xs text-red-700">
+                You cannot submit or update employment-related information at this time.<br>
+                Profile and personal information updates remain available.
+            </p>
+            <?php if (!$deadline_info['has_manual_override'] && $deadline_info['close_date']): ?>
+                <?php if (strtotime($deadline_info['close_date']) < time()): ?>
+                    <p class="text-xs text-red-600 mt-2 font-medium">
+                        <i class="fas fa-calendar-times mr-1"></i> 
+                        Submission closed on: <?php echo date('M j, Y \a\t g:i A', strtotime($deadline_info['close_date'])); ?>
+                    </p>
+                <?php elseif ($deadline_info['open_date'] && strtotime($deadline_info['open_date']) > time()): ?>
+                    <p class="text-xs text-blue-600 mt-2 font-medium">
+                        <i class="fas fa-calendar-alt mr-1"></i> 
+                        Submission opens on: <?php echo date('M j, Y \a\t g:i A', strtotime($deadline_info['open_date'])); ?>
+                    </p>
+                <?php endif; ?>
+            <?php endif; ?>
+        </div>
+        <div class="mt-5">
+            <button type="button" disabled class="w-full bg-gray-400 text-white font-semibold text-base py-4 rounded-xl flex items-center justify-center gap-3 cursor-not-allowed">
+                <i class="fas fa-lock text-lg"></i>
+                <span class="tracking-tight">Update Not Available</span>
+            </button>
+        </div>
+    <?php endif; ?>
+</div>
 
     <!-- Employment Information Card - Single Parent Div -->
     <div class="bg-white rounded-xl shadow-lg border-l-4 border-purple-500">
@@ -276,13 +304,26 @@ ob_start();
                     <!-- Vertical Separator Line -->
                     <div class="hidden lg:block border-l border-gray-200"></div>
 
-                    <!-- Right Section: Document Section -->
+                    <!-- Document Section -->
                     <div class="lg:w-1/3">
                         <div class="bg-gray-50 rounded-lg p-4 h-full">
                             <h4 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                                 <i class="fas fa-file-alt text-purple-600 mr-2"></i>
-                                Documents
+                                Documents & Status
                             </h4>
+                            
+                            <?php 
+                            // Fetch documents with their status
+                            $stmt_docs = $conn->prepare("SELECT document_type, file_path, document_status, rejection_reason FROM alumni_documents WHERE user_id = ? ORDER BY document_type");
+                            $stmt_docs->bind_param("i", $user_id);
+                            $stmt_docs->execute();
+                            $doc_result = $stmt_docs->get_result();
+                            $documents = [];
+                            while ($row = $doc_result->fetch_assoc()) {
+                                $documents[] = $row;
+                            }
+                            $stmt_docs->close();
+                            ?>
                             
                             <?php if (!empty($documents)): ?>
                                 <div class="space-y-3">
@@ -291,6 +332,8 @@ ob_start();
                                         $doc_name = '';
                                         $icon = '';
                                         $color = '';
+                                        $status = $doc['document_status'] ?? 'Pending';
+                                        $status_color = '';
                                         
                                         switch($doc_type) {
                                             case 'COE':
@@ -313,18 +356,45 @@ ob_start();
                                                 $icon = 'file-alt';
                                                 $color = 'text-gray-500';
                                         }
+                                        
+                                        // Set status color
+                                        if ($status === 'Approved') {
+                                            $status_color = 'text-emerald-600 bg-emerald-100 border-emerald-200';
+                                        } elseif ($status === 'Rejected') {
+                                            $status_color = 'text-red-600 bg-red-100 border-red-200';
+                                        } else {
+                                            $status_color = 'text-amber-600 bg-amber-100 border-amber-200';
+                                        }
                                     ?>
-                                        <div class="flex items-center justify-between bg-white p-3 rounded-lg border border-gray-200 hover:border-gray-300 transition duration-200">
-                                            <div class="flex items-center">
-                                                <i class="fas <?php echo $icon; ?> <?php echo $color; ?> mr-3"></i>
-                                                <div>
-                                                    <p class="font-medium text-gray-800 text-sm"><?php echo htmlspecialchars($doc_name); ?></p>
-                                                    <p class="text-xs text-gray-500">PDF Document</p>
+                                        <div class="bg-white p-3 rounded-lg border border-gray-200 hover:border-gray-300 transition duration-200">
+                                            <div class="flex items-center justify-between">
+                                                <div class="flex items-center">
+                                                    <i class="fas <?php echo $icon; ?> <?php echo $color; ?> mr-3"></i>
+                                                    <div>
+                                                        <p class="font-medium text-gray-800 text-sm"><?php echo htmlspecialchars($doc_name); ?></p>
+                                                        <span class="text-xs px-2 py-1 rounded-full border <?php echo $status_color; ?>">
+                                                            <?php echo $status; ?>
+                                                        </span>
+                                                    </div>
                                                 </div>
+                                                <a href="../<?php echo htmlspecialchars($doc['file_path']); ?>" target="_blank" class="text-purple-600 hover:text-purple-800 font-medium text-sm px-3 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 transition duration-200">
+                                                    View
+                                                </a>
                                             </div>
-                                            <a href="../<?php echo htmlspecialchars($doc['file_path']); ?>" target="_blank" class="text-purple-600 hover:text-purple-800 font-medium text-sm px-3 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 transition duration-200">
-                                                View
-                                            </a>
+                                            
+                                            <?php if ($status === 'Rejected' && !empty($doc['rejection_reason'])): ?>
+                                                <div class="mt-2 p-2 bg-red-50 border border-red-100 rounded text-xs text-red-700">
+                                                    <p class="font-semibold">Rejection Reason:</p>
+                                                    <p class="whitespace-pre-wrap"><?php echo htmlspecialchars($doc['rejection_reason']); ?></p>
+                                                    <p class="font-semibold mt-2 text-red-800">Action Required:</p>
+                                                    <p class="text-red-700">Please upload a corrected document</p>
+                                                </div>
+                                            <?php elseif ($status === 'Approved'): ?>
+                                                <div class="mt-2 p-2 bg-emerald-50 border border-emerald-100 rounded text-xs text-emerald-700">
+                                                    <p class="font-semibold">✓ Approved</p>
+                                                    <p class="text-emerald-700">This document has been verified</p>
+                                                </div>
+                                            <?php endif; ?>
                                         </div>
                                     <?php endforeach; ?>
                                 </div>
@@ -335,6 +405,61 @@ ob_start();
                                     </div>
                                     <p class="text-gray-500 font-medium">No documents uploaded</p>
                                     <p class="text-gray-400 text-xs mt-1">Upload supporting documents when updating employment</p>
+                                </div>
+                            <?php endif; ?>
+                            
+                            <!-- Overall Status Summary -->
+                            <?php if (!empty($documents)): ?>
+                                <?php
+                                $approved_count = 0;
+                                $rejected_count = 0;
+                                $pending_count = 0;
+                                
+                                foreach ($documents as $doc) {
+                                    $status = $doc['document_status'] ?? 'Pending';
+                                    if ($status === 'Approved') $approved_count++;
+                                    elseif ($status === 'Rejected') $rejected_count++;
+                                    else $pending_count++;
+                                }
+                                
+                                $total_docs = count($documents);
+                                $all_approved = ($approved_count === $total_docs);
+                                $any_rejected = ($rejected_count > 0);
+                                ?>
+                                
+                                <div class="mt-4 pt-4 border-t border-gray-200">
+                                    <div class="flex justify-between items-center text-sm">
+                                        <div>
+                                            <p class="font-semibold text-gray-700">Review Summary</p>
+                                            <div class="flex space-x-2 mt-1">
+                                                <span class="text-xs px-2 py-1 bg-emerald-100 text-emerald-800 rounded-full">
+                                                    Approved: <?php echo $approved_count; ?>
+                                                </span>
+                                                <?php if ($pending_count > 0): ?>
+                                                    <span class="text-xs px-2 py-1 bg-amber-100 text-amber-800 rounded-full">
+                                                        Pending: <?php echo $pending_count; ?>
+                                                    </span>
+                                                <?php endif; ?>
+                                                <?php if ($rejected_count > 0): ?>
+                                                    <span class="text-xs px-2 py-1 bg-red-100 text-red-800 rounded-full">
+                                                        Rejected: <?php echo $rejected_count; ?>
+                                                    </span>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+                                        <div class="text-right">
+                                            <?php if ($all_approved): ?>
+                                                <p class="font-bold text-emerald-700">✓ All Approved</p>
+                                                <p class="text-xs text-gray-500">Documents verified</p>
+                                            <?php elseif ($any_rejected): ?>
+                                                <p class="font-bold text-red-700">✗ Needs Attention</p>
+                                                <p class="text-xs text-gray-500">Review rejection reasons</p>
+                                            <?php else: ?>
+                                                <p class="font-bold text-amber-700">⏳ Under Review</p>
+                                                <p class="text-xs text-gray-500">Awaiting admin action</p>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
                                 </div>
                             <?php endif; ?>
                         </div>
@@ -371,25 +496,25 @@ ob_start();
         
         <!-- Content Area -->
         <div class="flex-1 overflow-y-auto p-6 bg-gray-50">
-            <!-- NEW: Employment submission status warning -->
-            <?php if (!$submission_open): ?>
-                <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-r-lg">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0">
-                            <i class="fas fa-lock text-red-500"></i>
-                        </div>
-                        <div class="ml-3">
-                            <p class="text-sm text-red-700 font-medium">
-                                <span class="font-bold">Employment submission is currently locked by the administrator.</span>
-                            </p>
-                            <p class="text-sm text-red-600 mt-1">
-                                You cannot submit or update any employment-related information at this time.
-                                All form inputs and buttons are disabled.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            <?php endif; ?>
+           <!-- NEW: Employment submission status warning -->
+<?php if (!$submission_open): ?>
+    <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-r-lg">
+        <div class="flex items-center">
+            <div class="flex-shrink-0">
+                <i class="fas fa-lock text-red-500"></i>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-red-700 font-medium">
+                    <span class="font-bold">Employment submission is currently locked by the administrator.</span>
+                </p>
+                <p class="text-sm text-red-600 mt-1">
+                    You cannot submit or update any employment-related information at this time.
+                    All form inputs and buttons are disabled.
+                </p>
+            </div>
+        </div>
+    </div>
+<?php endif; ?>
             
             <form id="employmentForm" class="space-y-6" action="update_employment.php" method="post" enctype="multipart/form-data">
                 
@@ -404,10 +529,11 @@ ob_start();
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="space-y-1">
                             <label class="block text-sm font-medium text-gray-700">Employment Status <span class="text-red-500">*</span></label>
-                            <select id="employmentStatusSelect" name="employment_status" 
-                                    class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" 
-                                    required
-                                    <?php if (!$submission_open) echo 'disabled'; ?>>
+                           <!-- Update all form fields to include this condition -->
+<select id="employmentStatusSelect" name="employment_status" 
+        class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" 
+        required
+        <?php if (!$submission_open) echo 'disabled'; ?>>
                                 <option value="">Select Status</option>
                                 <option value="Employed" <?php echo $employment_status === 'Employed' ? 'selected' : ''; ?>>Employed</option>
                                 <option value="Self-Employed" <?php echo $employment_status === 'Self-Employed' ? 'selected' : ''; ?>>Self-Employed</option>
@@ -746,22 +872,23 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Form validation
-    const employmentForm = document.getElementById('employmentForm');
-    if (employmentForm) {
-        employmentForm.addEventListener('submit', function(event) {
-            const submissionOpen = <?php echo $submission_open ? 'true' : 'false'; ?>;
-            
-            if (!submissionOpen) {
-                event.preventDefault();
-                showToast('Employment submission is currently locked by administrator.', 'error');
-                return false;
-            }
-            
-            if (!validateEmploymentForm()) {
-                event.preventDefault();
-            }
-        });
-    }
+ // In the script section of alumni_employment.php
+const employmentForm = document.getElementById('employmentForm');
+if (employmentForm) {
+    employmentForm.addEventListener('submit', function(event) {
+        const submissionOpen = <?php echo $submission_open ? 'true' : 'false'; ?>;
+        
+        if (!submissionOpen) {
+            event.preventDefault();
+            showToast('Employment submission is currently locked by administrator.', 'error');
+            return false;
+        }
+        
+        if (!validateEmploymentForm()) {
+            event.preventDefault();
+        }
+    });
+}
 
     // Student year options
     initializeStudentYearOptions();

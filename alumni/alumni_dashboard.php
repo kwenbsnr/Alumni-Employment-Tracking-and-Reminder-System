@@ -1,5 +1,4 @@
 <?php
-
 session_start();
 if (!isset($_SESSION["user_id"]) || $_SESSION["role"] !== "alumni") {
     header("Location: ../login/login.php");
@@ -10,7 +9,7 @@ $page_title = "Dashboard";
 $active_page = "dashboard";
 $user_id = $_SESSION["user_id"];
 
-// ---- 1. UPDATED FETCH SQL QUERY ----
+// ---- 1. FETCH PROFILE DATA ----
 $stmt = $conn->prepare("
     SELECT 
         u.user_id, 
@@ -35,34 +34,30 @@ $stmt = $conn->prepare("
     LEFT JOIN alumni_address aa ON u.user_id = aa.user_id
     WHERE u.user_id = ?
 ");
-
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
 $result = $stmt->get_result();
 $profile_info = $result->fetch_assoc() ?: [];
 $stmt->close();
 
-// Build full name from the new structure
+// Build full name
 $full_name = 'Alumni';
 if (!empty($profile_info) && !empty($profile_info['official_name'])) {
     $full_name = htmlspecialchars($profile_info['official_name']);
 }
 
-// --- UPDATED PROFILE COMPLETION LOGIC ---
-// Basic required fields that everyone needs
+// --- PROFILE COMPLETION LOGIC ---
 $has_basic_info = !empty($profile_info) && 
     !empty($profile_info['contact_number']) &&
     !empty($profile_info['employment_status']) &&
     !empty($profile_info['citizenship']) &&
     !empty($profile_info['civil_status']);
 
-// Check worldwide address
 $has_address = !empty($profile_info) && 
     !empty($profile_info['country']) && 
     !empty($profile_info['state_province']) && 
     !empty($profile_info['city']);
 
-// Check photo
 $has_photo = false;
 $stmt_photo = $conn->prepare("SELECT photo_path FROM alumni_profile WHERE user_id = ?");
 if ($stmt_photo) {
@@ -74,13 +69,11 @@ if ($stmt_photo) {
     $has_photo = !empty($photo_data['photo_path']);
 }
 
-// Check documents - BUT if unemployed, documents are not required
 $employment_status = $profile_info['employment_status'] ?? '';
 $is_unemployed = $employment_status === 'Unemployed';
 
 $has_documents = false;
 if (!$is_unemployed) {
-    // Only check documents if NOT unemployed
     $stmt_docs = $conn->prepare("SELECT 1 FROM alumni_documents WHERE user_id = ?");
     if ($stmt_docs) {
         $stmt_docs->bind_param("i", $user_id);
@@ -89,88 +82,83 @@ if (!$is_unemployed) {
         $stmt_docs->close();
     }
 } else {
-    // If unemployed, consider documents requirement as met
     $has_documents = true;
 }
 
-// --- NEW COMBINED CHECKLIST ITEMS FOR NEW REQUIREMENT ---
-// This item represents the complete Personal Profile (Basic, Address, Photo)
 $has_profile_management = $has_basic_info && $has_address && $has_photo;
-
-// This item represents Employment status set AND documents uploaded (if required)
 $has_employment_documents = !empty($profile_info['employment_status']) && $has_documents;
 
+// ---- UNIFIED DOCUMENT STATUS CALCULATION ----
+require_once '../api/utils/submission_status.php';
+$submission_status = getSubmissionStatus($conn, $user_id);
 
-// Profile is complete when all required sections are filled
-$is_profile_complete = $has_basic_info && $has_address && $has_photo && $has_documents;
+// Map to alumni dashboard display
+$document_status = $submission_status;
 
-// ---- DOCUMENT STATUS CALCULATION ----
-$stmt_doc_status = $conn->prepare("
-    SELECT 
-        COUNT(*) as total,
-        SUM(CASE WHEN document_status = 'Approved' THEN 1 ELSE 0 END) as approved,
-        SUM(CASE WHEN document_status = 'Pending' THEN 1 ELSE 0 END) as pending,
-        SUM(CASE WHEN document_status = 'Rejected' THEN 1 ELSE 0 END) as rejected
-    FROM alumni_documents 
-    WHERE user_id = ?
-");
-$stmt_doc_status->bind_param("i", $user_id);
-$stmt_doc_status->execute();
-$doc_result = $stmt_doc_status->get_result();
-$doc_data = $doc_result->fetch_assoc() ?: [];
-$stmt_doc_status->close();
-
-$total_docs = $doc_data['total'] ?? 0;
-$approved_docs = $doc_data['approved'] ?? 0;
-$pending_docs = $doc_data['pending'] ?? 0;
-$rejected_docs = $doc_data['rejected'] ?? 0;
-
-// Calculate overall document status
-if ($total_docs === 0) {
-    $document_status = 'No Documents';
-    $document_message = 'Upload required documents';
-} elseif ($rejected_docs > 0) {
-    $document_status = 'Rejected';
-    $document_message = 'Needs resubmission';
-} elseif ($approved_docs === $total_docs) {
-    $document_status = 'Approved';
-    $document_message = 'All documents approved';
-} elseif ($pending_docs > 0) {
-    $document_status = 'Under Review';
-    $document_message = 'Awaiting administrator review';
-} else {
-    $document_status = 'Submitted';
-    $document_message = 'Ready for review';
+// Set appropriate messages
+switch($document_status) {
+    case 'No Recent Update':
+        $document_message = 'Upload required documents';
+        break;
+    case 'Rejected':
+        $document_message = 'Documents rejected - needs resubmission';
+        break;
+    case 'Approved':
+        $document_message = 'All documents approved';
+        break;
+    case 'Pending':
+        $document_message = 'Awaiting administrator review';
+        break;
+    default:
+        $document_message = 'Ready for review';
 }
 
-// Use document status for profile status
-$submission_status = $document_status;
-$profile_status = 'Incomplete';
-
-if ($document_status === 'Rejected') {
-    $profile_status = 'Rejected';
-    
-    // FORCE DOCUMENTS TO BE UNCHECKED WHEN REJECTED (since rejection is usually document-related)
-    if (!$is_unemployed) {
-        $has_documents = false;
-        $is_profile_complete = false;
-    }
-} elseif ($is_profile_complete) {
-    if ($document_status === 'Approved') {
+// Profile status mapping
+switch($submission_status) {
+    case 'No Recent Update':
+        $profile_status = 'Incomplete';
+        break;
+    case 'Approved':
         $profile_status = 'Complete';
-    } elseif ($document_status === 'Under Review' || $document_status === 'Submitted') {
+        break;
+    case 'Rejected':
+        $profile_status = 'Rejected';
+        break;
+    case 'Pending':
         $profile_status = 'Pending Approval';
-    } else {
-        $profile_status = 'Ready to Submit';
-    }
+        break;
+    default:
+        $profile_status = 'Incomplete';
 }
+
+// Fetch rejected documents with reasons
+$rejected_docs = [];
+if ($document_status === 'Rejected') {
+    $rejection_stmt = $conn->prepare("SELECT document_type, rejection_reason FROM alumni_documents WHERE user_id = ? AND document_status = 'Rejected'");
+    $rejection_stmt->bind_param("i", $user_id);
+    $rejection_stmt->execute();
+    $rejection_result = $rejection_stmt->get_result();
+    while ($row = $rejection_result->fetch_assoc()) {
+        $rejected_docs[] = $row;
+    }
+    $rejection_stmt->close();
+}
+
+// Document count for display
+$stmt_doc_count = $conn->prepare("SELECT COUNT(*) as total FROM alumni_documents WHERE user_id = ?");
+$stmt_doc_count->bind_param("i", $user_id);
+$stmt_doc_count->execute();
+$count_result = $stmt_doc_count->get_result();
+$count_data = $count_result->fetch_assoc();
+$total_docs = $count_data['total'] ?? 0;
+$stmt_doc_count->close();
 
 // Annual update check
 $needs_semiannual_update = !empty($profile_info) &&
     ($profile_info['last_profile_update'] === null ||
      strtotime($profile_info['last_profile_update'] . ' +6 months') <= time());
 
-$needs_profile_update = empty($profile_info) || !$is_profile_complete || $needs_semiannual_update;
+$needs_profile_update = empty($profile_info) || !$has_profile_management || $needs_semiannual_update;
 
 // Profile & Document status arrays for display
 $profile = [
@@ -194,6 +182,51 @@ $stmt_act = $conn->prepare("
 $stmt_act->bind_param("i", $user_id);
 $stmt_act->execute();
 $activities = $stmt_act->get_result();
+
+// Fetch submission status for the new card
+require_once dirname(__DIR__) . '/api/utils/deadline.php';
+$submission_open = isEmploymentSubmissionOpen($conn);
+$deadline_info = getAllDeadlineInfo($conn);
+
+// Determine status text and styling for submission card
+$status_text = '';
+$status_icon = '';
+$status_color = '';
+$bg_color_class = '';
+$border_color_class = '';
+$details_text = '';
+
+if ($deadline_info['has_manual_override']) {
+    $status_text = $submission_open ? "Open" : "Closed";
+    $status_icon = $submission_open ? "fa-unlock" : "fa-lock";
+    $status_color = $submission_open ? "text-green-800" : "text-red-800";
+    $bg_color_class = $submission_open ? "bg-green-100 border-green-300" : "bg-red-100 border-red-300";
+    $details_text = $submission_open ? "Submissions are currently OPEN for all alumni. Update your profile and employment information now." : "Submissions are currently CLOSED by the administrator. Please wait for further announcements or instructions before attempting to submit again.";
+} else {
+    $now = time();
+    $open_ts = $deadline_info['open_date'] ? strtotime($deadline_info['open_date']) : 0;
+    $close_ts = $deadline_info['close_date'] ? strtotime($deadline_info['close_date']) : 0;
+    
+    if ($open_ts > $now) {
+        $status_text = "Scheduled";
+        $status_icon = "fa-clock";
+        $status_color = "text-amber-800";
+        $bg_color_class = "bg-amber-100 border-amber-300";
+        $details_text = "Submissions will open on ". date('M j, Y \a\t g:i A', $open_ts) . ". Please check back at the scheduled time to submit your information.";
+    } elseif ($close_ts < $now) {
+        $status_text = "Closed";
+        $status_icon = "fa-calendar-times";
+        $status_color = "text-red-800";
+        $bg_color_class = "bg-red-100 border-red-300";
+        $details_text = "The deadline for submission was ". date('M j, Y \a\t g:i A', $close_ts) . ". Submissions are no longer being accepted.";
+    } else {
+        $status_text = "Open";
+        $status_icon = "fa-calendar-check";
+        $status_color = "text-green-800";
+        $bg_color_class = "bg-green-100 border-green-300";
+        $details_text = "Submissions are open until " . date('M j, Y \a\t g:i A', $close_ts) . ". Please complete profile update before the deadline.";
+    }
+}
 
 ob_start();
 ?>
@@ -231,9 +264,56 @@ ob_start();
             <?php unset($_SESSION['show_welcome']); ?>
         <?php endif; ?>
 
+        <!-- Rejection Notice -->
+        <?php if ($document_status === 'Rejected' && !empty($rejected_docs)): ?>
+            <div id="rejectionNotice" class="bg-gradient-to-r from-red-500 to-rose-600 p-4 text-white flex items-center justify-between shadow-xl animate-fade-in rounded-xl border border-red-400/30 backdrop-blur-sm mb-4">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-white bg-opacity-20 flex items-center justify-center rounded-lg backdrop-blur-sm">
+                        <i class="fas fa-exclamation-triangle text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold">Documents Require Attention!</h3>
+                        <p class="text-red-100 text-opacity-90 text-sm">Your employment documents have been rejected. Please review and resubmit.</p>
+                        <a href="alumni_employment.php" class="text-sm font-semibold underline mt-1 inline-block hover:text-red-200">
+                            Go to Employment Information →
+                        </a>
+                    </div>
+                </div>
+                <button id="closeRejectionNotice" class="text-white hover:text-red-200 text-xl font-bold transition-all duration-300 hover:scale-110">×</button>
+            </div>
+        <?php endif; ?>
+
         <div class="grid grid-cols-1 xl:grid-cols-4 gap-4">
             <div class="xl:col-span-3 space-y-4">
                 
+                <div class="p-5 rounded-xl shadow-lg border-2 border-dashed transition-all duration-500 hover:shadow-xl <?php echo $bg_color_class; ?>">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <i class="fas <?php echo $status_icon; ?> <?php echo $status_color; ?> text-2xl"></i>
+                            <div>
+                                <h3 class="text-lg font-extrabold text-gray-900 leading-none">Submission Period Status</h3>
+                                <span class="inline-block mt-1 font-extrabold text-sm uppercase tracking-wider px-3 py-1 rounded-full shadow-inner 
+                                    <?php
+                                        if ($status_text === 'Open') {
+                                            echo 'text-green-800 bg-green-200 border border-green-400';
+                                        } elseif ($status_text === 'Closed') {
+                                            echo 'text-red-800 bg-red-200 border border-red-400';
+                                        } else { // Scheduled
+                                            echo 'text-amber-800 bg-amber-200 border border-amber-400';
+                                        }
+                                    ?>">
+                                    <?php echo $status_text; ?>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 pt-3 border-t border-gray-200">
+                         <p class="text-sm text-gray-700 font-medium">
+                            <?php echo $details_text; ?>
+                        </p>
+                    </div>
+                </div>
                 <div class="bg-white rounded-xl shadow-lg border-t-4 border-b-4 border-indigo-300 overflow-hidden transition-all duration-500 hover:shadow-xl">
                     
                     <div class="p-6 pb-4 bg-gradient-to-r from-indigo-50 to-purple-50 relative overflow-hidden">
@@ -263,7 +343,7 @@ ob_start();
                                 
                                 <div>
                                     <h3 class="text-2xl font-extrabold text-indigo-900 leading-none">Your Profile Status</h3> 
-                                    <span class="inline-block mt-1 font-extrabold text-sm uppercase tracking-wider px-3 py-1 rounded-full shadow-inner 
+                                    <span class="inline-block mt-4 font-extrabold text-sm uppercase tracking-wider px-3 py-2 rounded-full shadow-inner 
                                         <?php
                                             if ($profile_status === 'Complete') {
                                                 echo 'text-emerald-800 bg-emerald-100 border border-emerald-300';
@@ -293,7 +373,7 @@ ob_start();
                                 <?php
                                 echo $profile_status === 'Complete' ? 'Fantastic! Your profile is complete and verified. Enjoy full access to all alumni features.'
                                             : ($profile_status === 'Pending Approval' ? 'Review in Progress: Your submission is currently being reviewed by the administrator.'
-                                            : ($profile_status === 'Rejected' ? 'Urgent: Please review the rejection feedback in the Documents section and resubmit.'
+                                            : ($profile_status === 'Rejected' ? 'Urgent: Your employment documents require attention. Please review the rejection reasons below and resubmit.'
                                             : 'Action Required: Complete the checklist below and click "Submit Profile" to begin the verification process.'));
                                 ?>
                             </p>
@@ -323,24 +403,33 @@ ob_start();
                                 </p>
                             </div>
 
+                            <!-- Document Status Card -->
                             <div class="p-4 rounded-xl shadow-md transition duration-300 hover:shadow-lg 
                                 <?php 
                                     if ($document_status === 'Approved') {
                                         echo 'bg-emerald-50 border border-emerald-200 hover:border-emerald-300';
                                         $docTextClass = 'text-emerald-700';
+                                        $docIcon = 'fa-check-circle';
+                                        $docMessage = 'All documents approved and verified';
                                     } elseif ($document_status === 'Rejected') {
                                         echo 'bg-red-50 border border-red-200 hover:border-red-300';
                                         $docTextClass = 'text-red-700';
-                                    } elseif ($document_status === 'No Documents') {
+                                        $docIcon = 'fa-times-circle';
+                                        $docMessage = count($rejected_docs) . ' document(s) rejected';
+                                    } elseif ($document_status === 'No Recent Update') {
                                         echo 'bg-gray-50 border border-gray-200 hover:border-gray-300';
                                         $docTextClass = 'text-gray-700';
+                                        $docIcon = 'fa-file-circle-question';
+                                        $docMessage = 'Upload required documents';
                                     } else {
                                         echo 'bg-amber-50 border border-amber-200 hover:border-amber-300';
                                         $docTextClass = 'text-amber-700';
+                                        $docIcon = 'fa-clock';
+                                        $docMessage = 'Awaiting administrator review';
                                     }
                                 ?>">
                                 <p class="text-xs font-semibold <?= $docTextClass ?> uppercase tracking-wider mb-1 flex items-center gap-2">
-                                    <i class="fas fa-file-shield text-sm"></i> Document Review
+                                    <i class="fas <?= $docIcon ?> text-sm"></i> Document Review
                                 </p>
                                 <span class="text-xl font-extrabold <?= $docTextClass ?> block">
                                     <?php echo $document_status; ?>
@@ -348,6 +437,35 @@ ob_start();
                                 <p class="text-xs text-gray-600 mt-1 truncate">
                                     <?php echo $document['document_count']; ?> file<?php echo $document['document_count'] != 1 ? 's' : ''; ?> uploaded
                                 </p>
+                                
+                                <?php if ($document_status === 'Rejected' && !empty($rejected_docs)): ?>
+                                    <div class="mt-3 space-y-2">
+                                        <?php foreach ($rejected_docs as $doc): 
+                                            $doc_type_name = '';
+                                            switch($doc['document_type']) {
+                                                case 'COE': $doc_type_name = 'Certificate of Employment'; break;
+                                                case 'B_CERT': $doc_type_name = 'Business Certificate'; break;
+                                                case 'COR': $doc_type_name = 'Certificate of Registration'; break;
+                                                default: $doc_type_name = $doc['document_type'];
+                                            }
+                                        ?>
+                                            <div class="p-2 bg-red-100 border border-red-200 rounded-lg">
+                                                <p class="text-xs font-semibold text-red-800 mb-1"><?php echo htmlspecialchars($doc_type_name); ?>:</p>
+                                                <p class="text-xs text-red-700 whitespace-pre-wrap"><?php echo htmlspecialchars($doc['rejection_reason']); ?></p>
+                                            </div>
+                                        <?php endforeach; ?>
+                                        <div class="text-center pt-2">
+                                            <a href="alumni_employment.php" class="text-xs font-semibold text-red-700 hover:text-red-800 underline">
+                                                <i class="fas fa-edit mr-1"></i> Update and Resubmit
+                                            </a>
+                                        </div>
+                                    </div>
+                                <?php elseif ($document_status === 'Approved'): ?>
+                                    <div class="mt-2 p-2 bg-emerald-50 border border-emerald-200 rounded-lg">
+                                        <p class="text-xs font-semibold text-emerald-800">✓ All documents approved</p>
+                                        <p class="text-xs text-emerald-700 mt-1">Your employment documents have been verified successfully!</p>
+                                    </div>
+                                <?php endif; ?>
                             </div>
 
                             <div class="p-4 rounded-xl shadow-md transition duration-300 hover:shadow-lg 
@@ -389,33 +507,57 @@ ob_start();
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 text-sm">
                             
                             <?php 
-                            function renderChecklistItem($condition, $label) {
-                                $icon = $condition ? 'fa-check-circle' : 'fa-circle-dot';
-                                $color = $condition ? 'text-emerald-600' : 'text-gray-500';
-                                $borderColor = $condition ? 'border-emerald-500' : 'border-indigo-300';
+                            function renderChecklistItem($condition, $label, $status = 'pending') {
+                                $icon = $condition ? 'fa-check-circle' : 
+                                       ($status === 'rejected' ? 'fa-times-circle' : 'fa-circle-dot');
+                                $color = $condition ? 'text-emerald-600' : 
+                                        ($status === 'rejected' ? 'text-red-600' : 'text-gray-500');
+                                $borderColor = $condition ? 'border-emerald-500' : 
+                                              ($status === 'rejected' ? 'border-red-500' : 'border-indigo-300');
                                 
-                                // Used bg-white for list items to contrast with the indigo-50 footer, 
-                                // and a strong border-2 to match the activity list item design language.
                                 echo "<div class='flex items-center p-3 bg-white rounded-lg border-2 $borderColor shadow-md transition-all duration-300 hover:shadow-lg hover:scale-[1.02]'>";
                                 echo "<i class='fas $icon $color text-lg mr-3'></i>";
                                 echo "<span class='text-xs font-semibold text-gray-700'>$label</span>";
+                                if ($status === 'rejected') {
+                                    echo "<span class='ml-auto text-xs font-bold text-red-600'>REJECTED</span>";
+                                }
                                 echo "</div>";
                             }
-                            ?>
-
-                            <?php 
+                            
+                            // Determine if employment documents are rejected
+                            $employment_rejected = ($submission_status === 'Rejected');
+                            
                             // 1. Profile Management (Requires Basic Info, Address, and Photo)
                             renderChecklistItem($has_profile_management, 'Profile Management (Personal, Contact, Photo)'); 
                             
-                            // 2. Employment Information & Documents (Requires employment status and documents upload if not 'Unemployed')
-                            renderChecklistItem($has_employment_documents, 'Employment Information & Documents'); 
+                            // 2. Employment Information & Documents (Check if rejected)
+                            renderChecklistItem(
+                                $has_employment_documents && !$employment_rejected, 
+                                'Employment Information & Documents',
+                                $employment_rejected ? 'rejected' : 'pending'
+                            ); 
                             ?>
 
                         </div>
+                        
+                        <?php if ($submission_status === 'Rejected'): ?>
+                            <div class="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                                <p class="text-sm font-semibold text-red-800 flex items-center gap-2">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    Employment Documents Rejected
+                                </p>
+                                <p class="text-xs text-red-700 mt-1">
+                                    Please review the rejection reasons above and resubmit your employment documents.
+                                </p>
+                                <a href="alumni_employment.php" class="inline-block mt-2 text-xs font-semibold text-red-800 hover:text-red-900 underline">
+                                    Go to Employment Information to Resubmit →
+                                </a>
+                            </div>
+                        <?php endif; ?>
                     </div>
                     
-                </div>
-                </div>
+                    </div>
+            </div>
 
             <div class="xl:col-span-1">
                 <div class="bg-white rounded-xl shadow-lg border-t-4 border-b-4 border-indigo-300 overflow-hidden h-full flex flex-col transition-shadow duration-500 hover:shadow-xl">
@@ -623,6 +765,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 successCard.style.opacity = '0';
                 successCard.style.transform = 'translateY(-20px)';
                 setTimeout(() => successCard.remove(), 400);
+            });
+        }
+    }
+
+    // Rejection Notice Auto-Hide & Close Button
+    const rejectionNotice = document.getElementById('rejectionNotice');
+    const closeRejectionNotice = document.getElementById('closeRejectionNotice');
+
+    if (rejectionNotice) {
+        // Auto-hide after 10 seconds
+        const autoHideRejection = setTimeout(() => {
+            rejectionNotice.style.transition = 'opacity 0.6s ease-out, transform 0.6s ease-out';
+            rejectionNotice.style.opacity = '0';
+            rejectionNotice.style.transform = 'translateY(-20px)';
+            setTimeout(() => rejectionNotice.remove(), 600);
+        }, 10000);
+
+        // Manual close
+        if (closeRejectionNotice) {
+            closeRejectionNotice.addEventListener('click', () => {
+                clearTimeout(autoHideRejection);
+                rejectionNotice.style.transition = 'opacity 0.4s ease-out, transform 0.4s ease-out';
+                rejectionNotice.style.opacity = '0';
+                rejectionNotice.style.transform = 'translateY(-20px)';
+                setTimeout(() => rejectionNotice.remove(), 400);
             });
         }
     }

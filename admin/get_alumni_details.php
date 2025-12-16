@@ -56,12 +56,14 @@ $query = "
         (SELECT country FROM alumni_address WHERE user_id = u.user_id LIMIT 1) as country,
         (SELECT street FROM alumni_address WHERE user_id = u.user_id LIMIT 1) as street,
         -- Get overall document status (check if any are pending)
-        CASE 
-            WHEN EXISTS (SELECT 1 FROM alumni_documents WHERE user_id = u.user_id AND document_status = 'Rejected') THEN 'Rejected'
-            WHEN EXISTS (SELECT 1 FROM alumni_documents WHERE user_id = u.user_id AND document_status = 'Pending') THEN 'Pending'
-            WHEN EXISTS (SELECT 1 FROM alumni_documents WHERE user_id = u.user_id AND document_status = 'Approved') THEN 'Approved'
-            ELSE 'No Documents'
-        END as document_status
+       -- Get overall document status (UNIFIED LOGIC)
+CASE 
+    WHEN NOT EXISTS (SELECT 1 FROM alumni_documents WHERE user_id = u.user_id) THEN 'No Recent Update'
+    WHEN EXISTS (SELECT 1 FROM alumni_documents WHERE user_id = u.user_id AND document_status = 'Rejected') THEN 'Rejected'
+    WHEN (SELECT COUNT(*) FROM alumni_documents WHERE user_id = u.user_id AND document_status = 'Approved') = 
+         (SELECT COUNT(*) FROM alumni_documents WHERE user_id = u.user_id) THEN 'Approved'
+    ELSE 'Pending'
+END as document_status
     FROM users u
     LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id
     WHERE u.user_id = ?
