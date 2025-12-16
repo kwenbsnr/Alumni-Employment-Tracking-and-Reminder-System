@@ -621,6 +621,7 @@ function is_first_time_submission($conn, $user_id) {
     return ($row['count'] == 0);
 }
 
+
 // Check if alumni submission was previously rejected
 function was_submission_rejected($conn, $user_id) {
     $query = "SELECT COUNT(*) as count FROM alumni_documents WHERE user_id = ? AND document_status = 'Rejected' LIMIT 1";
@@ -631,6 +632,30 @@ function was_submission_rejected($conn, $user_id) {
     $row = $result->fetch_assoc();
     
     // Was rejected if any document was previously rejected
+    return ($row['count'] > 0);
+}
+
+// Check if alumni has existing approved documents
+function has_approved_documents($conn, $user_id) {
+    $query = "SELECT COUNT(*) as count FROM alumni_documents WHERE user_id = ? AND document_status = 'Approved'";
+    $stmt = $conn->prepare($query);
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $row = $result->fetch_assoc();
+    
+    return ($row['count'] > 0);
+}
+
+// Check if alumni has any previous submissions
+function has_previous_submissions($conn, $user_id) {
+    $query = "SELECT COUNT(*) as count FROM alumni_documents WHERE user_id = ?";
+    $stmt = $conn->prepare($query);
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $row = $result->fetch_assoc();
+    
     return ($row['count'] > 0);
 }
 
