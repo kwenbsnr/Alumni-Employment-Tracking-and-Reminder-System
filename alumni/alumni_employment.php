@@ -80,15 +80,11 @@ while ($row = $result->fetch_assoc()) {
 }
 $stmt->close();
 
-// check general submission status
-if (!function_exists('isSubmissionPeriodOpen')) {
+// ========== Check if EMPLOYMENT submission is open ==========
+if (!function_exists('isEmploymentSubmissionOpen')) {
     require_once dirname(__DIR__) . '/api/utils/deadline.php';
 }
-$general_submission_open = isSubmissionPeriodOpen($conn);
-$employment_submission_open = isEmploymentSubmissionOpen($conn);
-
-// Combine checks: Employment must be specifically open AND general submissions must be open
-$submission_open = $general_submission_open && $employment_submission_open;
+$submission_open = isEmploymentSubmissionOpen($conn);
 
 ob_start();
 ?>
@@ -151,7 +147,7 @@ ob_start();
             <?php endif; ?>
         </div>
 
-        <?php if ($submission_open): ?>
+                <?php if ($submission_open): ?>
             <div class="bg-blue-50 rounded-xl px-4 py-3 border border-blue-200">
                 <p class="text-sm font-medium text-blue-900">Keep your employment information current</p>
                 <p class="text-xs text-blue-700 mt-1">Update your job details, employment status, and educational pursuits</p>
@@ -163,7 +159,7 @@ ob_start();
                 </button>
             </div>
         <?php else: ?>
-            <!-- NEW: Specific message for employment lock -->
+            <!-- Employment lock message -->
             <div class="bg-red-50 rounded-xl px-4 py-3 border border-red-200 mb-4">
                 <div class="flex items-center gap-2 mb-2">
                     <i class="fas fa-lock text-red-500"></i>
@@ -181,6 +177,7 @@ ob_start();
                 </button>
             </div>
         <?php endif; ?>
+    </div>
     </div>
 
     <!-- Employment Information Card - Single Parent Div -->
