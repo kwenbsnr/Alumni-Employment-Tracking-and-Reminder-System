@@ -554,11 +554,6 @@ function validateSubmissionDates() {
         return false;
     }
     
-    const now = new Date();
-    if (openDate < now) {
-        showError('Warning: Opening date is in the past. Submissions will open immediately.', 'warning');
-    }
-    
     return true;
 }
 
