@@ -20,9 +20,14 @@ $conn->query("CREATE TABLE IF NOT EXISTS submission_status (
     manual_override TINYINT(1) DEFAULT 0,
     open_date DATETIME NULL,
     close_date DATETIME NULL,
-    employment_submission_open TINYINT(1) DEFAULT 0,  -- NEW: Employment-specific control
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB");
+
+// Check if employment_submission_open column exists, add it if not
+$result = $conn->query("SHOW COLUMNS FROM submission_status LIKE 'employment_submission_open'");
+if ($result->num_rows == 0) {
+    $conn->query("ALTER TABLE submission_status ADD COLUMN employment_submission_open TINYINT(1) DEFAULT 0");
+}
 
 // Ensure a single record exists
 $statusCheck = $conn->query("SELECT * FROM submission_status LIMIT 1");

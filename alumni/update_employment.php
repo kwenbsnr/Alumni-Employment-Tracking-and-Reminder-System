@@ -31,12 +31,36 @@ mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
 $user_id = $_SESSION['user_id'];
 
-// Check submission period
+// ========== Check if EMPLOYMENT submission is open ==========
+// check general submission status
 if (!function_exists('isSubmissionPeriodOpen')) {
     require_once dirname(__DIR__) . '/api/utils/deadline.php';
 }
-$submission_open = isSubmissionPeriodOpen($conn);
+$general_submission_open = isSubmissionPeriodOpen($conn);
 
+// Check specifically for employment submissions
+function isEmploymentSubmissionOpen($conn) {
+    // First check if column exists
+    $result = $conn->query("SHOW COLUMNS FROM submission_status LIKE 'employment_submission_open'");
+    if ($result->num_rows == 0) {
+        return false; // Column doesn't exist yet
+    }
+    
+    // Get employment submission status
+    $result = $conn->query("SELECT employment_submission_open FROM submission_status LIMIT 1");
+    if ($result && $result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        return (bool)($row['employment_submission_open'] ?? 0);
+    }
+    return false;
+}
+
+$employment_submission_open = isEmploymentSubmissionOpen($conn);
+
+// Combine checks: Employment must be specifically open AND general submissions must be open
+$submission_open = $general_submission_open && $employment_submission_open;
+
+// NEW: Server-side validation - REJECT if employment submission is closed
 if (!$submission_open) {
     ob_end_clean();
     header("Location: alumni_employment.php?error=" . urlencode("Employment updates are currently closed by administrator."));
@@ -92,7 +116,7 @@ function upload_employment_document($field, $user_id, $type) {
         $lastname = 'user';
     }
     
-    // Map document types to abbreviations (lowercase as per requirement)
+    // Map document types to abbreviations
     $doc_type_map = [
         'coe' => 'coe',
         'business' => 'bcert', 
@@ -121,35 +145,30 @@ function upload_employment_document($field, $user_id, $type) {
     return 'uploads/documents/' . $filename;
 }
 
-// Helper function to generate unique filename with 5 random chars
+// Helper function to generate unique filename
 function generate_unique_filename($upload_dir, $lastname, $doc_type) {
     $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    $max_attempts = 10; // Safety limit
+    $max_attempts = 10;
     
     for ($attempt = 0; $attempt < $max_attempts; $attempt++) {
-        // Generate 5 random characters
         $random_chars = '';
         for ($i = 0; $i < 5; $i++) {
             $random_chars .= $characters[random_int(0, strlen($characters) - 1)];
         }
         
-        // Create filename: lastname_doctype_5randomcharsasuniqid.pdf
         $filename = $lastname . '_' . $doc_type . '_' . $random_chars . '.pdf';
         $target_path = $upload_dir . $filename;
         
-        // Check if file doesn't exist (unique)
         if (!file_exists($target_path)) {
             return $filename;
         }
         
-        // If we're on the last attempt, add timestamp to ensure uniqueness
         if ($attempt === $max_attempts - 1) {
             $filename = $lastname . '_' . $doc_type . '_' . $random_chars . '_' . time() . '.pdf';
             return $filename;
         }
     }
     
-    // Fallback with timestamp
     $random_chars = substr(str_shuffle($characters), 0, 5);
     return $lastname . '_' . $doc_type . '_' . $random_chars . '_' . time() . '.pdf';
 }
@@ -161,36 +180,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         error_log("POST Data: " . print_r($_POST, true));
         error_log("FILES Data: " . print_r($_FILES, true));
         error_log("User ID: " . $user_id);
-        
-        // Verify database structure
-        error_log("=== DATABASE VERIFICATION ===");
-        $tables_check = $conn->query("SHOW TABLES LIKE 'users'");
-        if ($tables_check->num_rows > 0) {
-            error_log("✓ 'users' table exists");
-            
-            // Check columns in users table
-            $columns_check = $conn->query("SHOW COLUMNS FROM users");
-            $columns = [];
-            while ($col = $columns_check->fetch_assoc()) {
-                $columns[] = $col['Field'];
-            }
-            error_log("Columns in users table: " . implode(', ', $columns));
-            
-            // Check if user exists
-            $user_check = $conn->prepare("SELECT user_id, first_name, last_name FROM users WHERE user_id = ?");
-            $user_check->bind_param("i", $user_id);
-            $user_check->execute();
-            $user_result = $user_check->get_result();
-            if ($user_result->num_rows > 0) {
-                $user = $user_result->fetch_assoc();
-                error_log("✓ User found: ID=" . $user['user_id'] . ", Name=" . $user['first_name'] . " " . $user['last_name']);
-            } else {
-                error_log("✗ User NOT found with ID: " . $user_id);
-            }
-            $user_check->close();
-        } else {
-            error_log("✗ 'users' table does NOT exist");
-        }
+        error_log("Employment Submission Open: " . ($submission_open ? 'Yes' : 'No'));
+    }
+    
+    // NEW: Double-check employment submission status before processing
+    // This prevents bypassing frontend validation
+    if (!$submission_open) {
+        ob_end_clean();
+        header("Location: alumni_employment.php?error=" . urlencode("Employment updates are currently closed by administrator."));
+        exit();
     }
     
     $conn->begin_transaction();
@@ -236,7 +234,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 break;
                 
             case 'Employed & Student':
-                // BOTH employment AND student validations
                 if (empty($job_title_input)) {
                     throw new Exception("Job title is required for 'Employed & Student' status.");
                 }
@@ -294,7 +291,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 break;
                 
             case 'Unemployed':
-                // No additional validation needed
                 break;
         }
 
@@ -319,7 +315,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        // ---- 4. Handle Job Titles (According to Schema) --------------------
+        // ---- 4. Handle Job Titles ------------------------------------------
         $job_title_id = null;
         if (in_array($employment_status, ['Employed', 'Employed & Student']) && !empty($job_title_input)) {
             $final_job_title = ($job_title_input === 'Other') ? $other_job_title : $job_title_input;
@@ -348,7 +344,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // ---- 5. Update alumni_profile table with employment_status -----
-        // Check if alumni_profile record exists
         $stmt = $conn->prepare("SELECT user_id FROM alumni_profile WHERE user_id = ?");
         $stmt->bind_param("i", $user_id);
         $stmt->execute();
@@ -357,7 +352,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->close();
         
         if ($profile_exists) {
-            // Update with employment_status (according to schema)
             $stmt = $conn->prepare("UPDATE alumni_profile SET 
                 employment_status = ?,
                 last_profile_update = NOW(),
@@ -365,7 +359,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 WHERE user_id = ?");
             $stmt->bind_param("si", $employment_status, $user_id);
         } else {
-            // Insert new record with employment_status (according to schema)
             $stmt = $conn->prepare("INSERT INTO alumni_profile 
                 (user_id, employment_status, last_profile_update, submitted_at)
                 VALUES (?, ?, NOW(), NOW())");
@@ -378,20 +371,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         $stmt->close();
 
-        // ---- 6. Handle employment_info (According to Schema) ---------------
-        // Delete existing employment info
+        // ---- 6. Handle employment_info --------------------------------------
         $stmt = $conn->prepare("DELETE FROM employment_info WHERE user_id = ?");
         $stmt->bind_param("i", $user_id);
         $stmt->execute();
         $stmt->close();
         
-        // Insert new employment info for relevant statuses
         if (in_array($employment_status, ['Employed', 'Self-Employed', 'Employed & Student'])) {
-            // Handle business type according to schema (VARCHAR 255)
             $final_business_type = null;
             if ($employment_status === 'Self-Employed') {
                 $final_business_type = ($business_type === 'Others (Please specify)') ? $business_type_other : $business_type;
-                // Clear company fields for Self-Employed
                 $company_name = '';
                 $company_address = '';
             }
@@ -440,13 +429,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // ---- 8. Handle Documents -------------------------------------------
-        // Delete existing documents for this user
         $stmt = $conn->prepare("DELETE FROM alumni_documents WHERE user_id = ?");
         $stmt->bind_param("i", $user_id);
         $stmt->execute();
         $stmt->close();
         
-        // Upload and insert new documents
         if (in_array($employment_status, ['Employed', 'Employed & Student'])) {
             $coe_path = upload_employment_document('coe_file', $user_id, 'coe');
             if (!$coe_path) {
@@ -492,7 +479,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Clear output buffer before redirect
         ob_end_clean();
         
-        // Redirect with consistent success message
+        // Redirect with success message
         header("Location: alumni_employment.php?success=Employment information submitted successfully!");
         exit();
 
