@@ -18,6 +18,7 @@ if (isset($_POST['generate_report'])) {
     $report_type      = $_POST['report_type'] ?? 'summary';
 
     if (!empty($selected_batches)) {
+        // The function will handle the PDF output and exit
         generateAlumniReport($selected_batches, $report_type, $conn);
         // Exit after generating report to prevent further execution
         exit();
@@ -103,7 +104,7 @@ if (isset($_SESSION['error_message'])) {
     </h2>
     <p class="text-gray-600 mb-6">Select the graduation batches and the type of report you wish to generate (Summary or Detailed List).</p>
     
-    <form method="POST" action="" class="space-y-6" id="reportForm">
+    <form method="POST" action="" class="space-y-6" id="reportForm" target="_blank">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="bg-white p-5 rounded-xl border-2 border-gray-200">
                 <h3 class="font-semibold text-xl mb-4 flex items-center gap-2 text-gray-700">
@@ -214,6 +215,7 @@ include("admin_format.php");
 <?php
 // ====================== generateAlumniReport Function ======================
 function generateAlumniReport($selected_batches, $report_type, $conn) {
+    // Clear any output buffer to ensure only the PDF binary is sent
     if (ob_get_length()) ob_clean();
 
     // Validate and sanitize batches
@@ -366,6 +368,7 @@ function generateAlumniReport($selected_batches, $report_type, $conn) {
     // ==================================================================
     // PDF GENERATION
     // ==================================================================
+    // 'L' for Landscape, 'mm' for unit, 'A4' for format
     $pdf = new TCPDF('L', 'mm', 'A4', true, 'UTF-8', false);
     $pdf->SetCreator('Alumni Tracking System');
     $pdf->SetAuthor('Administrator');
@@ -508,6 +511,8 @@ function generateAlumniReport($selected_batches, $report_type, $conn) {
 
     // Output the PDF
     $pdf_filename = strtoupper($report_type) . '_Alumni_Report_' . date('Ymd_His') . '.pdf';
-    $pdf->Output($pdf_filename, 'I');
+    // 'I' (Inline) is used, and the form's target="_blank" handles the new tab.
+    $pdf->Output($pdf_filename, 'I'); 
     exit;
 }
+?>
