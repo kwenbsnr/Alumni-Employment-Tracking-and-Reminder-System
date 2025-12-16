@@ -609,28 +609,82 @@ function get_admin_emails($conn) {
     return $emails;
 }
 
-// Check if alumni has existing profile (for first-time submission detection)
 function is_first_time_submission($conn, $user_id) {
-    $query = "SELECT COUNT(*) as count FROM alumni_profile WHERE user_id = ?";
+    $query = "SELECT COUNT(*) as count FROM alumni_profile WHERE user_id = ? AND submitted_at IS NOT NULL";
     $stmt = $conn->prepare($query);
     $stmt->bind_param("i", $user_id);
     $stmt->execute();
     $result = $stmt->get_result();
     $row = $result->fetch_assoc();
     
-    return $row['count'] == 0 || empty($row['count']);
+    // First time if they've never submitted before
+    return ($row['count'] == 0);
 }
+
 
 // Check if alumni submission was previously rejected
 function was_submission_rejected($conn, $user_id) {
-    $query = "SELECT rejection_reason FROM alumni_documents WHERE user_id = ? AND rejection_reason IS NOT NULL LIMIT 1";
+    $query = "SELECT COUNT(*) as count FROM alumni_documents WHERE user_id = ? AND document_status = 'Rejected'";
     $stmt = $conn->prepare($query);
     $stmt->bind_param("i", $user_id);
     $stmt->execute();
     $result = $stmt->get_result();
     $row = $result->fetch_assoc();
+    $stmt->close();
     
-    return $row && !empty($row['rejection_reason']);
+    return ($row['count'] > 0);
+}
+
+// Check if alumni has approved documents
+function has_approved_documents($conn, $user_id) {
+    $query = "SELECT COUNT(*) as count FROM alumni_documents WHERE user_id = ? AND document_status = 'Approved'";
+    $stmt = $conn->prepare($query);
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $row = $result->fetch_assoc();
+    $stmt->close();
+    
+    return ($row['count'] > 0);
+}
+
+// Check if alumni has any previous submissions (any document status)
+function has_previous_submissions($conn, $user_id) {
+    $query = "SELECT COUNT(*) as count FROM alumni_documents WHERE user_id = ?";
+    $stmt = $conn->prepare($query);
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $row = $result->fetch_assoc();
+    $stmt->close();
+    
+    return ($row['count'] > 0);
+}
+
+// Simple check for new alumni (no documents at all)
+function is_new_alumni($conn, $user_id) {
+    $query = "SELECT COUNT(*) as count FROM alumni_documents WHERE user_id = ?";
+    $stmt = $conn->prepare($query);
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $row = $result->fetch_assoc();
+    $stmt->close();
+    
+    return ($row['count'] == 0);
+}
+
+// Simple check for resubmission (was previously rejected)
+function was_previously_rejected($conn, $user_id) {
+    $query = "SELECT document_status FROM alumni_documents WHERE user_id = ? AND document_status = 'Rejected' LIMIT 1";
+    $stmt = $conn->prepare($query);
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $row = $result->fetch_assoc();
+    $stmt->close();
+    
+    return ($row && $row['document_status'] == 'Rejected');
 }
 
 // ==================== USAGE EXAMPLES ====================

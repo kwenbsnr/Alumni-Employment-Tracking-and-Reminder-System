@@ -26,10 +26,8 @@ unset($_SESSION['last_attempt_role']);
 
 <body class="bg-gray-50 min-h-screen">
     <header class="fixed top-0 left-0 w-full z-50">
-        <!-- Top Green Bar -->
         <div class="top-green-bar"></div>
 
-        <!-- Top Links -->
         <div class="top-links">
             <div class="jhcsc-card-link">
                 <a href="https://jhcsc.edu.ph/" target="_blank">
@@ -49,36 +47,15 @@ unset($_SESSION['last_attempt_role']);
         </div>
     </header>
 
-    <!-- Login Page Content -->
     <div id="loginPage" class="login-container">
-        <!-- Left Side - School Branding -->
         <div class="school-branding flex items-center justify-center p-8">
             <img src="images/jh-building.png" alt="JHCSC Building" class="absolute inset-0 w-full h-full object-cover opacity-30">
             <div class="text-center text-white z-10 p-4 max-w-lg">
-                <div class="flex items-center justify-center gap-6 mb-18">
-                    <div class="w-32 h-32 rounded-full flex items-center justify-center shadow-lg">
-                        <img src="images/favicon.png" alt="JHCSC Logo" class="h-full object-cover rounded-xl">
-                    </div>
-                    <div class="w-32 h-32 rounded-full flex items-center justify-center shadow-lg">
-                        <img src="images/socs-logo.png" alt="SCS Logo" class="h-full object-cover rounded-xl">
-                    </div>
-                </div>
-
                 <h1 class="text-4xl font-extrabold mb-7">JHCSC BSIT Alumni Monitoring System</h1>
-                <p class="text-xl mb-30 opacity-95">Connecting Graduates, Building Futures</p>
-
-                <div class="mt-12 grid grid-cols-2 gap-4">
-                    <div class="h-24 bg-white bg-opacity-20 rounded-xl flex items-center justify-center shadow-inner">
-                        <i class="fas fa-graduation-cap text-3xl"></i>
-                    </div>
-                    <div class="h-24 bg-white bg-opacity-20 rounded-xl flex items-center justify-center shadow-inner">
-                        <i class="fas fa-building text-3xl"></i>
-                    </div>
-                </div>
+                <p class="text-xl opacity-95">Connecting Graduates, Building Futures</p>
             </div>
         </div>
 
-        <!-- Right Side - Login Form -->
         <div class="login-right">
             <div class="login-box">
                 <div class="text-center mb-8">
@@ -86,7 +63,6 @@ unset($_SESSION['last_attempt_role']);
                     <p class="text-gray-600">Please select your role and sign in</p>
                 </div>
 
-                <!-- Role Selection -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
                     <div class="role-selector p-4 rounded-lg cursor-pointer text-center bg-gray-50 <?php echo ($last_role === 'alumni') ? 'selected' : ''; ?>" data-role="alumni">
                         <i class="fas fa-user-graduate text-3xl text-green-600 mb-2"></i>
@@ -104,12 +80,6 @@ unset($_SESSION['last_attempt_role']);
                             <i class="fas fa-exclamation-triangle mr-2"></i>
                             <?php echo htmlspecialchars($_SESSION['login_error']); ?>
                         </div>
-                        <?php if (strpos($_SESSION['login_error'], 'Incorrect password') !== false): ?>
-                            <div class="mt-2 text-sm text-red-600 flex items-center justify-center">
-                                <i class="fas fa-lightbulb mr-1"></i>
-                                <span>Please re-enter your password carefully</span>
-                            </div>
-                        <?php endif; ?>
                     </div>
                     <?php unset($_SESSION['login_error']); ?>
                 <?php endif; ?>
@@ -122,9 +92,7 @@ unset($_SESSION['last_attempt_role']);
                         <input type="email" id="loginEmail" name="email" required 
                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all" 
                                placeholder="Enter your email" 
-                               autocomplete="email"
                                value="<?php echo htmlspecialchars($last_email); ?>">
-                        <div id="emailError" class="text-red-500 text-sm mt-1 hidden"></div>
                     </div>
 
                     <div class="relative">
@@ -132,70 +100,20 @@ unset($_SESSION['last_attempt_role']);
                         <div class="password-field-container">
                             <input type="password" id="loginPassword" name="password" required 
                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all <?php echo ($login_attempts > 0) ? 'password-retry-field' : ''; ?>" 
-                                   placeholder="Enter your password" 
-                                   autocomplete="current-password">
-                            <button type="button" id="togglePassword" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
+                                   placeholder="Enter your password">
+                            <button type="button" id="togglePassword" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400">
                                 <i class="fas fa-eye"></i>
                             </button>
                         </div>
-                        <div id="passwordError" class="text-red-500 text-sm mt-1 hidden"></div>
-                        <?php if ($login_attempts > 0): ?>
-                            <div class="text-orange-600 text-sm mt-2 flex items-center">
-                                <i class="fas fa-info-circle mr-1"></i>
-                                <span>Previous login attempt failed. Please re-enter your password carefully.</span>
-                            </div>
-                        <?php endif; ?>
                     </div>
 
                     <button type="submit" id="loginButton" class="w-full py-3 font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 transition <?php echo ($last_role) ? '' : 'opacity-50 cursor-not-allowed'; ?>" <?php echo ($last_role) ? '' : 'disabled'; ?>>
-                        <?php if ($login_attempts > 0): ?>
-                            <i class="fas fa-redo-alt mr-2"></i> Try Again
-                        <?php else: ?>
-                            Sign In
-                        <?php endif; ?>
+                        <?php echo ($login_attempts > 0) ? 'Try Again' : 'Sign In'; ?>
                     </button>
                 </form>
             </div>
         </div>
     </div>
-
-    <!-- Inline Script: Enable Enter Key to Submit Form -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const emailInput = document.getElementById('loginEmail');
-            const passwordInput = document.getElementById('loginPassword');
-            const loginButton = document.getElementById('loginButton');
-            const selectedRole = document.getElementById('selectedRole');
-
-            // Press Enter in Email → Go to Password
-            emailInput.addEventListener('keypress', function (e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    passwordInput.focus();
-                }
-            });
-
-            // Press Enter in Password → Submit (only if role selected)
-            passwordInput.addEventListener('keypress', function (e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    if (selectedRole.value && !loginButton.disabled) {
-                        loginButton.click(); // Triggers form submit
-                    }
-                }
-            });
-
-            // Optional: Also allow Enter anywhere on the page when inputs are focused
-            document.addEventListener('keydown', function (e) {
-                if (e.key === 'Enter' && (document.activeElement === emailInput || document.activeElement === passwordInput)) {
-                    if (selectedRole.value && !loginButton.disabled) {
-                        e.preventDefault();
-                        loginButton.click();
-                    }
-                }
-            });
-        });
-    </script>
 
     <script src="login.js"></script>
 </body>
