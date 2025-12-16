@@ -40,10 +40,8 @@ mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
 $user_id = $_SESSION['user_id'];
 
-// ========== Check if EMPLOYMENT submission is open ==========
-if (!function_exists('isEmploymentSubmissionOpen')) {
-    require_once dirname(__DIR__) . '/api/utils/deadline.php';
-}
+// Check if employment submission is open
+require_once dirname(__DIR__) . '/api/utils/deadline.php';
 $submission_open = isEmploymentSubmissionOpen($conn);
 
 // ---- Document Upload Helper -----------------------------------------------
