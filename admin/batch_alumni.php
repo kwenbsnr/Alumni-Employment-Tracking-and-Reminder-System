@@ -1061,6 +1061,13 @@ function submitDocumentRejection() {
         }
     }
     
+    // VALIDATION: Rejection reason cannot be empty for Rejected status
+    if (!finalReason.trim()) {
+        errorElement.textContent = 'Rejection reason cannot be empty.';
+        errorElement.classList.remove('hidden');
+        return;
+    }
+    
     // All validations passed, submit the rejection
     errorElement.classList.add('hidden');
     

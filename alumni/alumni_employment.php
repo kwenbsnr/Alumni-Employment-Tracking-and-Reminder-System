@@ -304,13 +304,26 @@ ob_start();
                     <!-- Vertical Separator Line -->
                     <div class="hidden lg:block border-l border-gray-200"></div>
 
-                    <!-- Right Section: Document Section -->
+                    <!-- Document Section -->
                     <div class="lg:w-1/3">
                         <div class="bg-gray-50 rounded-lg p-4 h-full">
                             <h4 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                                 <i class="fas fa-file-alt text-purple-600 mr-2"></i>
-                                Documents
+                                Documents & Status
                             </h4>
+                            
+                            <?php 
+                            // Fetch documents with their status
+                            $stmt_docs = $conn->prepare("SELECT document_type, file_path, document_status, rejection_reason FROM alumni_documents WHERE user_id = ? ORDER BY document_type");
+                            $stmt_docs->bind_param("i", $user_id);
+                            $stmt_docs->execute();
+                            $doc_result = $stmt_docs->get_result();
+                            $documents = [];
+                            while ($row = $doc_result->fetch_assoc()) {
+                                $documents[] = $row;
+                            }
+                            $stmt_docs->close();
+                            ?>
                             
                             <?php if (!empty($documents)): ?>
                                 <div class="space-y-3">
@@ -319,6 +332,8 @@ ob_start();
                                         $doc_name = '';
                                         $icon = '';
                                         $color = '';
+                                        $status = $doc['document_status'] ?? 'Pending';
+                                        $status_color = '';
                                         
                                         switch($doc_type) {
                                             case 'COE':
@@ -341,18 +356,42 @@ ob_start();
                                                 $icon = 'file-alt';
                                                 $color = 'text-gray-500';
                                         }
+                                        
+                                        // Set status color
+                                        if ($status === 'Approved') {
+                                            $status_color = 'text-emerald-600 bg-emerald-100 border-emerald-200';
+                                        } elseif ($status === 'Rejected') {
+                                            $status_color = 'text-red-600 bg-red-100 border-red-200';
+                                        } else {
+                                            $status_color = 'text-amber-600 bg-amber-100 border-amber-200';
+                                        }
                                     ?>
-                                        <div class="flex items-center justify-between bg-white p-3 rounded-lg border border-gray-200 hover:border-gray-300 transition duration-200">
-                                            <div class="flex items-center">
-                                                <i class="fas <?php echo $icon; ?> <?php echo $color; ?> mr-3"></i>
-                                                <div>
-                                                    <p class="font-medium text-gray-800 text-sm"><?php echo htmlspecialchars($doc_name); ?></p>
-                                                    <p class="text-xs text-gray-500">PDF Document</p>
+                                        <div class="bg-white p-3 rounded-lg border border-gray-200 hover:border-gray-300 transition duration-200">
+                                            <div class="flex items-center justify-between">
+                                                <div class="flex items-center">
+                                                    <i class="fas <?php echo $icon; ?> <?php echo $color; ?> mr-3"></i>
+                                                    <div>
+                                                        <p class="font-medium text-gray-800 text-sm"><?php echo htmlspecialchars($doc_name); ?></p>
+                                                        <span class="text-xs px-2 py-1 rounded-full border <?php echo $status_color; ?>">
+                                                            <?php echo $status; ?>
+                                                        </span>
+                                                    </div>
                                                 </div>
+                                                <a href="../<?php echo htmlspecialchars($doc['file_path']); ?>" target="_blank" class="text-purple-600 hover:text-purple-800 font-medium text-sm px-3 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 transition duration-200">
+                                                    View
+                                                </a>
                                             </div>
-                                            <a href="../<?php echo htmlspecialchars($doc['file_path']); ?>" target="_blank" class="text-purple-600 hover:text-purple-800 font-medium text-sm px-3 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 transition duration-200">
-                                                View
-                                            </a>
+                                            
+                                            <?php if ($status === 'Rejected' && !empty($doc['rejection_reason'])): ?>
+                                                <div class="mt-2 p-2 bg-red-50 border border-red-100 rounded text-xs text-red-700">
+                                                    <p class="font-semibold">Rejection Reason:</p>
+                                                    <p class="whitespace-pre-wrap"><?php echo htmlspecialchars($doc['rejection_reason']); ?></p>
+                                                </div>
+                                            <?php elseif ($status === 'Approved'): ?>
+                                                <div class="mt-2 p-2 bg-emerald-50 border border-emerald-100 rounded text-xs text-emerald-700">
+                                                    <p class="font-semibold">✓ Approved</p>
+                                                </div>
+                                            <?php endif; ?>
                                         </div>
                                     <?php endforeach; ?>
                                 </div>
@@ -363,6 +402,61 @@ ob_start();
                                     </div>
                                     <p class="text-gray-500 font-medium">No documents uploaded</p>
                                     <p class="text-gray-400 text-xs mt-1">Upload supporting documents when updating employment</p>
+                                </div>
+                            <?php endif; ?>
+                            
+                            <!-- Overall Status Summary -->
+                            <?php if (!empty($documents)): ?>
+                                <?php
+                                $approved_count = 0;
+                                $rejected_count = 0;
+                                $pending_count = 0;
+                                
+                                foreach ($documents as $doc) {
+                                    $status = $doc['document_status'] ?? 'Pending';
+                                    if ($status === 'Approved') $approved_count++;
+                                    elseif ($status === 'Rejected') $rejected_count++;
+                                    else $pending_count++;
+                                }
+                                
+                                $total_docs = count($documents);
+                                $all_approved = ($approved_count === $total_docs);
+                                $any_rejected = ($rejected_count > 0);
+                                ?>
+                                
+                                <div class="mt-4 pt-4 border-t border-gray-200">
+                                    <div class="flex justify-between items-center text-sm">
+                                        <div>
+                                            <p class="font-semibold text-gray-700">Review Summary</p>
+                                            <div class="flex space-x-2 mt-1">
+                                                <span class="text-xs px-2 py-1 bg-emerald-100 text-emerald-800 rounded-full">
+                                                    Approved: <?php echo $approved_count; ?>
+                                                </span>
+                                                <?php if ($pending_count > 0): ?>
+                                                    <span class="text-xs px-2 py-1 bg-amber-100 text-amber-800 rounded-full">
+                                                        Pending: <?php echo $pending_count; ?>
+                                                    </span>
+                                                <?php endif; ?>
+                                                <?php if ($rejected_count > 0): ?>
+                                                    <span class="text-xs px-2 py-1 bg-red-100 text-red-800 rounded-full">
+                                                        Rejected: <?php echo $rejected_count; ?>
+                                                    </span>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+                                        <div class="text-right">
+                                            <?php if ($all_approved): ?>
+                                                <p class="font-bold text-emerald-700">✓ All Approved</p>
+                                                <p class="text-xs text-gray-500">Documents verified</p>
+                                            <?php elseif ($any_rejected): ?>
+                                                <p class="font-bold text-red-700">✗ Needs Attention</p>
+                                                <p class="text-xs text-gray-500">Review rejection reasons</p>
+                                            <?php else: ?>
+                                                <p class="font-bold text-amber-700">⏳ Under Review</p>
+                                                <p class="text-xs text-gray-500">Awaiting admin action</p>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
                                 </div>
                             <?php endif; ?>
                         </div>
