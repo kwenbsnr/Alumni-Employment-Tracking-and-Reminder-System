@@ -411,38 +411,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->bind_param("i", $user_id);
         $stmt->execute();
         $stmt->close();
-        
+
         if (in_array($employment_status, ['Employed', 'Employed & Student'])) {
             $coe_path = upload_employment_document('coe_file', $user_id, 'coe');
             if (!$coe_path) {
                 throw new Exception("Failed to upload Certificate of Employment (COE).");
             }
             
-            $stmt = $conn->prepare("INSERT INTO alumni_documents (user_id, document_type, file_path) VALUES (?, 'COE', ?)");
+            // Set default status to 'Pending' when alumni submits
+            $stmt = $conn->prepare("INSERT INTO alumni_documents (user_id, document_type, file_path, document_status) VALUES (?, 'COE', ?, 'Pending')");
             $stmt->bind_param("is", $user_id, $coe_path);
             $stmt->execute();
             $stmt->close();
         }
-        
+
         if ($employment_status === 'Self-Employed') {
             $business_path = upload_employment_document('business_file', $user_id, 'business');
             if (!$business_path) {
                 throw new Exception("Failed to upload Business Certificate.");
             }
             
-            $stmt = $conn->prepare("INSERT INTO alumni_documents (user_id, document_type, file_path) VALUES (?, 'B_CERT', ?)");
+            // Set default status to 'Pending' when alumni submits
+            $stmt = $conn->prepare("INSERT INTO alumni_documents (user_id, document_type, file_path, document_status) VALUES (?, 'B_CERT', ?, 'Pending')");
             $stmt->bind_param("is", $user_id, $business_path);
             $stmt->execute();
             $stmt->close();
         }
-        
+
         if (in_array($employment_status, ['Student', 'Employed & Student'])) {
             $cor_path = upload_employment_document('cor_file', $user_id, 'cor');
             if (!$cor_path) {
                 throw new Exception("Failed to upload Certificate of Registration (COR).");
             }
             
-            $stmt = $conn->prepare("INSERT INTO alumni_documents (user_id, document_type, file_path) VALUES (?, 'COR', ?)");
+            // Set default status to 'Pending' when alumni submits
+            $stmt = $conn->prepare("INSERT INTO alumni_documents (user_id, document_type, file_path, document_status) VALUES (?, 'COR', ?, 'Pending')");
             $stmt->bind_param("is", $user_id, $cor_path);
             $stmt->execute();
             $stmt->close();

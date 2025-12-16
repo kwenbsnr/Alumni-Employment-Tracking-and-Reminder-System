@@ -397,24 +397,43 @@ ob_start();
                                 </p>
                             </div>
 
+                            <!-- Document Status Card -->
                             <div class="p-4 rounded-xl shadow-md transition duration-300 hover:shadow-lg 
                                 <?php 
                                     if ($document_status === 'Approved') {
                                         echo 'bg-emerald-50 border border-emerald-200 hover:border-emerald-300';
                                         $docTextClass = 'text-emerald-700';
+                                        $docIcon = 'fa-check-circle';
+                                        $docMessage = 'All documents approved and verified';
                                     } elseif ($document_status === 'Rejected') {
                                         echo 'bg-red-50 border border-red-200 hover:border-red-300';
                                         $docTextClass = 'text-red-700';
+                                        $docIcon = 'fa-times-circle';
+                                        
+                                        // Fetch rejection reason if any document is rejected
+                                        $rejection_stmt = $conn->prepare("SELECT rejection_reason FROM alumni_documents WHERE user_id = ? AND document_status = 'Rejected' LIMIT 1");
+                                        $rejection_stmt->bind_param("i", $user_id);
+                                        $rejection_stmt->execute();
+                                        $rejection_result = $rejection_stmt->get_result();
+                                        $rejection_data = $rejection_result->fetch_assoc();
+                                        $rejection_stmt->close();
+                                        
+                                        $rejection_reason = $rejection_data['rejection_reason'] ?? 'No reason provided';
+                                        $docMessage = 'Rejected: ' . htmlspecialchars($rejection_reason);
                                     } elseif ($document_status === 'No Documents') {
                                         echo 'bg-gray-50 border border-gray-200 hover:border-gray-300';
                                         $docTextClass = 'text-gray-700';
+                                        $docIcon = 'fa-file-circle-question';
+                                        $docMessage = 'Upload required documents';
                                     } else {
                                         echo 'bg-amber-50 border border-amber-200 hover:border-amber-300';
                                         $docTextClass = 'text-amber-700';
+                                        $docIcon = 'fa-clock';
+                                        $docMessage = 'Awaiting administrator review';
                                     }
                                 ?>">
                                 <p class="text-xs font-semibold <?= $docTextClass ?> uppercase tracking-wider mb-1 flex items-center gap-2">
-                                    <i class="fas fa-file-shield text-sm"></i> Document Review
+                                    <i class="fas <?= $docIcon ?> text-sm"></i> Document Review
                                 </p>
                                 <span class="text-xl font-extrabold <?= $docTextClass ?> block">
                                     <?php echo $document_status; ?>
@@ -422,6 +441,17 @@ ob_start();
                                 <p class="text-xs text-gray-600 mt-1 truncate">
                                     <?php echo $document['document_count']; ?> file<?php echo $document['document_count'] != 1 ? 's' : ''; ?> uploaded
                                 </p>
+                                <?php if ($document_status === 'Rejected' && isset($rejection_reason)): ?>
+                                    <div class="mt-2 p-2 bg-red-100 border border-red-200 rounded-lg">
+                                        <p class="text-xs font-semibold text-red-800 mb-1">Rejection Reason:</p>
+                                        <p class="text-xs text-red-700 whitespace-pre-wrap"><?php echo htmlspecialchars($rejection_reason); ?></p>
+                                    </div>
+                                <?php elseif ($document_status === 'Approved'): ?>
+                                    <div class="mt-2 p-2 bg-emerald-100 border border-emerald-200 rounded-lg">
+                                        <p class="text-xs font-semibold text-emerald-800 mb-1">Status:</p>
+                                        <p class="text-xs text-emerald-700">Your documents have been approved successfully!</p>
+                                    </div>
+                                <?php endif; ?>
                             </div>
 
                             <div class="p-4 rounded-xl shadow-md transition duration-300 hover:shadow-lg 

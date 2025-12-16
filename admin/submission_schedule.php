@@ -424,6 +424,7 @@ ob_start();
                             </label>
                         </div>
 
+                        <!--
                         <div class="bg-white p-5 rounded-xl border-2 border-gray-200 mt-4">
                             <div class="flex items-center gap-3 mb-4">
                                 <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
@@ -447,6 +448,7 @@ ob_start();
                                 </div>
                             </div>
                         </div>
+                        -->
 
                         <div id="scheduleInputs" class="bg-white p-5 rounded-xl border-2 border-gray-200 mt-4 <?= !$manual_override ? '' : 'opacity-60' ?>">
                             <div class="flex items-center gap-3 mb-4">
