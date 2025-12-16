@@ -538,9 +538,7 @@ $page_title = $page_title ?? "Alumni Page";
                         <div class="p-4 border-b border-gray-200 font-semibold text-gray-800 flex justify-between items-center text-sm bg-gray-50 rounded-t-xl">
                             <span>Notifications</span>
                             <div class="flex items-center gap-2">
-                                <button id="refreshNotifications" class="text-gray-500 hover:text-gray-700 p-1 rounded" title="Refresh notifications">
-                                    <i class="fas fa-sync-alt text-xs"></i>
-                                </button>
+                                
                                 <?php if ($notif_count > 0): ?>
                                     <button id="markReadBtn" class="text-xs text-blue-600 hover:text-blue-800 hover:underline font-medium">Mark all as read</button>
                                 <?php endif; ?>
