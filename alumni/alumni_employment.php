@@ -10,6 +10,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 include("../connect.php");
+require_once dirname(__DIR__) . '/api/utils/deadline.php';
 
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
@@ -85,6 +86,16 @@ if (!function_exists('isEmploymentSubmissionOpen')) {
     require_once dirname(__DIR__) . '/api/utils/deadline.php';
 }
 $submission_open = isEmploymentSubmissionOpen($conn);
+if (function_exists('getAllDeadlineInfo')) {
+    $deadline_info = getAllDeadlineInfo($conn);
+} else {
+    // Fallback if function doesn't exist
+    $deadline_info = [
+        'has_manual_override' => false,
+        'close_date' => null,
+        'open_date' => null
+    ];
+}
 
 ob_start();
 ?>
@@ -123,62 +134,79 @@ ob_start();
     </div>
 <?php endif; ?>
 
-<div class="space-y-6 mt-3 mb-5">
-    <!-- Status Card for Employment Information -->
-    <div id="updateEmploymentBtn" class="
+<div class="space-y-6 mt-3 mb-5"><!-- Status Card for Employment Information -->
+<div id="updateEmploymentBtn" class="
+    <?php if ($submission_open): ?>
+        bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-300 hover:border-blue-400 shadow-sm hover:shadow-lg cursor-pointer border-t-blue-500
+    <?php else: ?>
+        bg-gray-50 border-gray-300 cursor-not-allowed opacity-80 border-t-gray-400
+    <?php endif; ?>
+    rounded-2xl p-5 transition-all duration-300 border-2 border-t-[6px]
+">
+    <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-3">
+            <i class="fas fa-briefcase text-2xl <?php echo $submission_open ? 'text-blue-600' : 'text-gray-500'; ?>"></i>
+            <h3 class="text-lg font-bold tracking-tight <?php echo $submission_open ? 'text-blue-900' : 'text-gray-700'; ?>">
+                <?php echo $submission_open ? 'Update Employment Information' : 'Employment Update Locked'; ?>
+            </h3>
+        </div>
         <?php if ($submission_open): ?>
-            bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-300 hover:border-blue-400 shadow-sm hover:shadow-lg cursor-pointer border-t-blue-500
+            <i class="fas fa-arrow-right text-lg text-blue-600 opacity-80"></i>
         <?php else: ?>
-            bg-gray-50 border-gray-300 cursor-not-allowed opacity-80 border-t-gray-400
+            <i class="fas fa-lock text-lg text-gray-500"></i>
         <?php endif; ?>
-        rounded-2xl p-5 transition-all duration-300 border-2 border-t-[6px]
-    ">
-        <div class="flex items-center justify-between mb-3">
-            <div class="flex items-center gap-3">
-                <i class="fas fa-briefcase text-2xl <?php echo $submission_open ? 'text-blue-600' : 'text-gray-500'; ?>"></i>
-                <h3 class="text-lg font-bold tracking-tight <?php echo $submission_open ? 'text-blue-900' : 'text-gray-700'; ?>">
-                    <?php echo $submission_open ? 'Update Employment Information' : 'Employment Update Locked'; ?>
-                </h3>
-            </div>
-            <?php if ($submission_open): ?>
-                <i class="fas fa-arrow-right text-lg text-blue-600 opacity-80"></i>
-            <?php else: ?>
-                <i class="fas fa-lock text-lg text-gray-500"></i>
+    </div>
+
+    <?php if ($submission_open): ?>
+        <div class="bg-blue-50 rounded-xl px-4 py-3 border border-blue-200">
+            <p class="text-sm font-medium text-blue-900">Keep your employment information current</p>
+            <p class="text-xs text-blue-700 mt-1">Update your job details, employment status, and educational pursuits</p>
+            <?php if (!$deadline_info['has_manual_override'] && $deadline_info['close_date']): ?>
+                <p class="text-xs text-blue-600 mt-2 font-medium">
+                    <i class="fas fa-clock mr-1"></i> 
+                    Submission closes: <?php echo date('M j, Y \a\t g:i A', strtotime($deadline_info['close_date'])); ?>
+                </p>
             <?php endif; ?>
         </div>
-
-                <?php if ($submission_open): ?>
-            <div class="bg-blue-50 rounded-xl px-4 py-3 border border-blue-200">
-                <p class="text-sm font-medium text-blue-900">Keep your employment information current</p>
-                <p class="text-xs text-blue-700 mt-1">Update your job details, employment status, and educational pursuits</p>
+        <div class="mt-5">
+            <button type="button" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-base py-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center gap-3 transform hover:scale-[1.02] active:scale-100">
+                <i class="fas fa-edit text-lg"></i>
+                <span class="tracking-tight">Update Employment Information</span>
+            </button>
+        </div>
+    <?php else: ?>
+        <!-- Employment lock message -->
+        <div class="bg-red-50 rounded-xl px-4 py-3 border border-red-200 mb-4">
+            <div class="flex items-center gap-2 mb-2">
+                <i class="fas fa-lock text-red-500"></i>
+                <p class="text-sm font-medium text-red-800">Employment submission is currently locked by the administrator.</p>
             </div>
-            <div class="mt-5">
-                <button type="button" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-base py-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center gap-3 transform hover:scale-[1.02] active:scale-100">
-                    <i class="fas fa-edit text-lg"></i>
-                    <span class="tracking-tight">Update Employment Information</span>
-                </button>
-            </div>
-        <?php else: ?>
-            <!-- Employment lock message -->
-            <div class="bg-red-50 rounded-xl px-4 py-3 border border-red-200 mb-4">
-                <div class="flex items-center gap-2 mb-2">
-                    <i class="fas fa-lock text-red-500"></i>
-                    <p class="text-sm font-medium text-red-800">Employment submission is currently locked by the administrator.</p>
-                </div>
-                <p class="text-xs text-red-700">
-                    You cannot submit or update employment-related information at this time.<br>
-                    Profile and personal information updates remain available.
-                </p>
-            </div>
-            <div class="mt-5">
-                <button type="button" disabled class="w-full bg-gray-400 text-white font-semibold text-base py-4 rounded-xl flex items-center justify-center gap-3 cursor-not-allowed">
-                    <i class="fas fa-lock text-lg"></i>
-                    <span class="tracking-tight">Update Not Available</span>
-                </button>
-            </div>
-        <?php endif; ?>
-    </div>
-    </div>
+            <p class="text-xs text-red-700">
+                You cannot submit or update employment-related information at this time.<br>
+                Profile and personal information updates remain available.
+            </p>
+            <?php if (!$deadline_info['has_manual_override'] && $deadline_info['close_date']): ?>
+                <?php if (strtotime($deadline_info['close_date']) < time()): ?>
+                    <p class="text-xs text-red-600 mt-2 font-medium">
+                        <i class="fas fa-calendar-times mr-1"></i> 
+                        Submission closed on: <?php echo date('M j, Y \a\t g:i A', strtotime($deadline_info['close_date'])); ?>
+                    </p>
+                <?php elseif ($deadline_info['open_date'] && strtotime($deadline_info['open_date']) > time()): ?>
+                    <p class="text-xs text-blue-600 mt-2 font-medium">
+                        <i class="fas fa-calendar-alt mr-1"></i> 
+                        Submission opens on: <?php echo date('M j, Y \a\t g:i A', strtotime($deadline_info['open_date'])); ?>
+                    </p>
+                <?php endif; ?>
+            <?php endif; ?>
+        </div>
+        <div class="mt-5">
+            <button type="button" disabled class="w-full bg-gray-400 text-white font-semibold text-base py-4 rounded-xl flex items-center justify-center gap-3 cursor-not-allowed">
+                <i class="fas fa-lock text-lg"></i>
+                <span class="tracking-tight">Update Not Available</span>
+            </button>
+        </div>
+    <?php endif; ?>
+</div>
 
     <!-- Employment Information Card - Single Parent Div -->
     <div class="bg-white rounded-xl shadow-lg border-l-4 border-purple-500">
@@ -371,25 +399,25 @@ ob_start();
         
         <!-- Content Area -->
         <div class="flex-1 overflow-y-auto p-6 bg-gray-50">
-            <!-- NEW: Employment submission status warning -->
-            <?php if (!$submission_open): ?>
-                <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-r-lg">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0">
-                            <i class="fas fa-lock text-red-500"></i>
-                        </div>
-                        <div class="ml-3">
-                            <p class="text-sm text-red-700 font-medium">
-                                <span class="font-bold">Employment submission is currently locked by the administrator.</span>
-                            </p>
-                            <p class="text-sm text-red-600 mt-1">
-                                You cannot submit or update any employment-related information at this time.
-                                All form inputs and buttons are disabled.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            <?php endif; ?>
+           <!-- NEW: Employment submission status warning -->
+<?php if (!$submission_open): ?>
+    <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-r-lg">
+        <div class="flex items-center">
+            <div class="flex-shrink-0">
+                <i class="fas fa-lock text-red-500"></i>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-red-700 font-medium">
+                    <span class="font-bold">Employment submission is currently locked by the administrator.</span>
+                </p>
+                <p class="text-sm text-red-600 mt-1">
+                    You cannot submit or update any employment-related information at this time.
+                    All form inputs and buttons are disabled.
+                </p>
+            </div>
+        </div>
+    </div>
+<?php endif; ?>
             
             <form id="employmentForm" class="space-y-6" action="update_employment.php" method="post" enctype="multipart/form-data">
                 
@@ -404,10 +432,11 @@ ob_start();
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="space-y-1">
                             <label class="block text-sm font-medium text-gray-700">Employment Status <span class="text-red-500">*</span></label>
-                            <select id="employmentStatusSelect" name="employment_status" 
-                                    class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" 
-                                    required
-                                    <?php if (!$submission_open) echo 'disabled'; ?>>
+                           <!-- Update all form fields to include this condition -->
+<select id="employmentStatusSelect" name="employment_status" 
+        class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" 
+        required
+        <?php if (!$submission_open) echo 'disabled'; ?>>
                                 <option value="">Select Status</option>
                                 <option value="Employed" <?php echo $employment_status === 'Employed' ? 'selected' : ''; ?>>Employed</option>
                                 <option value="Self-Employed" <?php echo $employment_status === 'Self-Employed' ? 'selected' : ''; ?>>Self-Employed</option>
@@ -746,22 +775,23 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Form validation
-    const employmentForm = document.getElementById('employmentForm');
-    if (employmentForm) {
-        employmentForm.addEventListener('submit', function(event) {
-            const submissionOpen = <?php echo $submission_open ? 'true' : 'false'; ?>;
-            
-            if (!submissionOpen) {
-                event.preventDefault();
-                showToast('Employment submission is currently locked by administrator.', 'error');
-                return false;
-            }
-            
-            if (!validateEmploymentForm()) {
-                event.preventDefault();
-            }
-        });
-    }
+ // In the script section of alumni_employment.php
+const employmentForm = document.getElementById('employmentForm');
+if (employmentForm) {
+    employmentForm.addEventListener('submit', function(event) {
+        const submissionOpen = <?php echo $submission_open ? 'true' : 'false'; ?>;
+        
+        if (!submissionOpen) {
+            event.preventDefault();
+            showToast('Employment submission is currently locked by administrator.', 'error');
+            return false;
+        }
+        
+        if (!validateEmploymentForm()) {
+            event.preventDefault();
+        }
+    });
+}
 
     // Student year options
     initializeStudentYearOptions();

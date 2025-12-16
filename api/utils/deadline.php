@@ -9,10 +9,25 @@
  * @return array|null Deadline configuration or null if not found
  */
 function getCurrentDeadlineConfig($conn) {
-    // try to get the latest configuration regardless of status
-    $sql = "SELECT * FROM submission_status 
-            ORDER BY submission_id DESC 
-            LIMIT 1";
+    // Ensure the table exists with correct structure
+    $conn->query("CREATE TABLE IF NOT EXISTS submission_status (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        is_open TINYINT(1) DEFAULT 0,
+        manual_override TINYINT(1) DEFAULT 0,
+        open_date DATETIME NULL,
+        close_date DATETIME NULL,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB");
+    
+    // Ensure a record exists
+    $check = $conn->query("SELECT COUNT(*) as count FROM submission_status");
+    $row = $check->fetch_assoc();
+    if ($row['count'] == 0) {
+        $conn->query("INSERT INTO submission_status (is_open, manual_override) VALUES (0, 0)");
+    }
+    
+    // Get the current configuration
+    $sql = "SELECT * FROM submission_status LIMIT 1";
     
     $result = $conn->query($sql);
     
@@ -64,24 +79,44 @@ function isSubmissionPeriodOpen($conn) {
         return false; // No schedule configured at all
     }
     
-    $currentTime = date('Y-m-d H:i:s');
-    
-    // Manual override takes priority - if enabled, always open
+    // Manual override takes priority - if enabled, use manual status
     if ($config['manual_override'] == 1) {
-        return true;
+        return $config['is_open'] == 1;
     }
     
-    // If manual override is off, check date range
-    if ($config['open_date'] && $config['close_date']) {
-        $isWithinDateRange = ($currentTime >= $config['open_date'] && 
-                            $currentTime <= $config['close_date']);
+    // If manual override is off, calculate based on schedule
+    $timezone = 'Asia/Manila';
+    date_default_timezone_set($timezone);
+    
+    $now = time();
+    $is_open = false;
+    
+    if ($config['open_date']) {
+        $open_timestamp = strtotime($config['open_date']);
         
-        // Also check is_open flag for additional control
-        return $isWithinDateRange && ($config['is_open'] == 1);
+        if ($open_timestamp <= $now) {
+            if ($config['close_date']) {
+                $close_timestamp = strtotime($config['close_date']);
+                if ($close_timestamp > $now) {
+                    $is_open = true;
+                }
+            } else {
+                // No close date means indefinitely open
+                $is_open = true;
+            }
+        }
     }
     
-    // Fallback: just check is_open flag
-    return ($config['is_open'] == 1);
+    // Update the status in database if it differs from calculated
+    if ($config['manual_override'] == 0 && $config['is_open'] != ($is_open ? 1 : 0)) {
+        $new_status = $is_open ? 1 : 0;
+        $stmt = $conn->prepare("UPDATE submission_status SET is_open = ?, updated_at = NOW() WHERE id = ?");
+        $stmt->bind_param("ii", $new_status, $config['id']);
+        $stmt->execute();
+        $stmt->close();
+    }
+    
+    return $is_open;
 }
 
 /**
@@ -91,26 +126,8 @@ function isSubmissionPeriodOpen($conn) {
  * @return bool True if employment submissions are accepted
  */
 function isEmploymentSubmissionOpen($conn) {
-    $config = getCurrentDeadlineConfig($conn);
-    
-    if (!$config) {
-        return false; // No schedule configured at all
-    }
-    
-    // First check if column exists (for backward compatibility)
-    if (!isset($config['employment_submission_open'])) {
-        // Column doesn't exist yet, default to false
-        return false;
-    }
-    
-    // Check if employment submission is specifically enabled
-    $employment_open = (bool)($config['employment_submission_open'] ?? 0);
-    
-    if (!$employment_open) {
-        return false;
-    }
-    
-    // Employment submissions require both general submissions to be open AND employment specifically open
+    // For employment submission, we use the same logic as general submission
+    // since we now have only one submission control system
     return isSubmissionPeriodOpen($conn);
 }
 
@@ -176,20 +193,22 @@ function getAllDeadlineInfo($conn) {
     $config = getCurrentDeadlineConfig($conn);
     $deadlineDate = getDeadlineDate($conn);
     $daysLeft = calculateDaysUntilDeadline($conn);
+    $is_open = isSubmissionPeriodOpen($conn);
     
     return [
         'config' => $config,
         'raw_date' => $deadlineDate,
         'formatted_date' => getFormattedDeadline($conn),
         'days_remaining' => $daysLeft,
-        'is_open' => isSubmissionPeriodOpen($conn),
-        'is_employment_open' => isEmploymentSubmissionOpen($conn),
+        'is_open' => $is_open,
+        'is_employment_open' => $is_open, // Same as is_open for new system
         'is_approaching' => isDeadlineApproaching($conn),
         'urgency_level' => getDeadlineUrgency($conn),
         'open_date' => $config ? $config['open_date'] : null,
         'close_date' => $config ? $config['close_date'] : null,
         'has_manual_override' => $config ? ($config['manual_override'] == 1) : false,
-        'employment_submission_open' => $config ? ($config['employment_submission_open'] ?? 0) : 0
+        'current_status' => $config ? ($config['is_open'] ? 'OPEN' : 'CLOSED') : 'CLOSED',
+        'mode' => $config ? ($config['manual_override'] ? 'Manual Override' : 'Scheduled Control') : 'Not Configured'
     ];
 }
 
@@ -263,6 +282,13 @@ function isSubmissionBeforeDeadline($submissionDate, $conn) {
     return strtotime($submissionDate) <= strtotime($deadline);
 }
 
+/**
+ * Get submission deadline date
+ * 
+ * @param mysqli $conn Database connection
+ * @param int $fallback_days Days to add if no deadline set
+ * @return string Deadline date in 'Y-m-d' format
+ */
 function getSubmissionDeadline($conn, $fallback_days = 14) {
     $config = getCurrentDeadlineConfig($conn);
     

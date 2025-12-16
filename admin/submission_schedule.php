@@ -117,14 +117,20 @@ $close_date = $statusRow['close_date'] ?? null;
 
 // Check and update status if not manually overridden and scheduled dates exist
 if (!$manual_override && $open_date && $close_date) {
+    // Set timezone
+    date_default_timezone_set('Asia/Manila');
+    
     $now = date('Y-m-d H:i:s');
-    $new_status = ($now >= $open_date && $now <= $close_date) ? 1 : 0;
+    $open_ts = strtotime($open_date);
+    $close_ts = strtotime($close_date);
+    $now_ts = time();
+    
+    $new_status = ($now_ts >= $open_ts && $now_ts <= $close_ts) ? 1 : 0;
     
     // Only update DB if the status has actually changed
     if ($new_status != $is_open) {
-        
-        $stmt = $conn->prepare("UPDATE submission_status SET is_open = ?");
-        $stmt->bind_param('i', $new_status);
+        $stmt = $conn->prepare("UPDATE submission_status SET is_open = ?, updated_at = NOW() WHERE id = ?");
+        $stmt->bind_param('ii', $new_status, $statusRow['id']);
         $stmt->execute();
         $stmt->close();
         

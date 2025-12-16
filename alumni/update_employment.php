@@ -1,16 +1,25 @@
 <?php
-// Development error reporting only
-if ($_SERVER['SERVER_NAME'] === 'localhost' || $_SERVER['SERVER_NAME'] === '127.0.0.1') {
-    error_reporting(E_ALL);
-    ini_set('display_errors', 1);
+// update_employment.php
+session_start();
+if (!isset($_SESSION['user_id'])) {
+    header("Location: ../login/login.php");
+    exit();
 }
 
-ob_start();
-session_start();
+include("../connect.php");
 
-if (!isset($_SESSION['user_id'])) {
-    ob_end_clean();
-    header("Location: ../login/login.php");
+// Check if submission is open
+if (!function_exists('isEmploymentSubmissionOpen')) {
+    require_once dirname(__DIR__) . '/api/utils/deadline.php';
+}
+$submission_open = isEmploymentSubmissionOpen($conn);
+
+if (!$submission_open) {
+    // Log the attempt
+    error_log("Unauthorized employment update attempt by user " . $_SESSION['user_id'] . " while submission is closed");
+    
+    // Redirect back with error
+    header("Location: alumni_employment.php?error=Employment+submission+is+currently+locked+by+administrator.");
     exit();
 }
 
