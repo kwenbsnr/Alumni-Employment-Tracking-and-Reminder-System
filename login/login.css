@@ -12,31 +12,24 @@ body {
     font-family: 'Inter', sans-serif;
 }
 
-/* Color Variables */
 :root {
     --primary-green: #006400;
     --forest-green: #024e02;
     --lime-green: #0b870b;
     --light-bg: #f3f4f6;
     --dark-text: #1C1C1C;
-    --error-red: #dc2626;
-    --error-bg: #fef2f2;
-    --error-border: #fecaca;
-
     --primary-blue: #1e40af;
     --dark-blue: #1e3a8a;
     --light-blue: #3b82f6;
     --blue-bg: #f0f7ff;
 }
 
-/* Top Navigation Styles */
 .top-green-bar {
     height: 10px;
     width: 100%;
     background-color: var(--primary-green);
     position: fixed;
     top: 0;
-    left: 0;
     z-index: 50;
     box-shadow: 0 2px 6px rgba(0,0,0,0.2);
 }
@@ -48,7 +41,6 @@ body {
     background-color: white;
     position: fixed;
     top: 10px;
-    left: 0;
     width: 100%;
     z-index: 50;
     box-shadow: 0 2px 6px rgba(0,0,0,0.1);
@@ -59,38 +51,31 @@ body {
     color: var(--primary-green);
     font-weight: 500;
     text-decoration: none;
-    transition: all 0.3s ease;
     display: flex;
     align-items: center;
 }
-.top-links a:hover {
-    color: var(--forest-green);
-    text-decoration: underline;
-}
 
-/* Layout Containers */
 .login-container {
     min-height: 100vh;
     display: flex;
     padding-top: 50px;
 }
 
-/* LEFT SIDE - School Branding */
 .school-branding {
     background-image: url('images/jh-building.png');
     background-size: cover;
     background-position: center;
     height: 100vh;
-    width: 60%; /* Slightly adjusted for balance */
+    width: 60%;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 3rem;
     position: relative;
-    overflow: hidden;
     color: white;
+    text-align: center;
 }
+
 .school-branding::before {
     content: "";
     position: absolute;
@@ -101,23 +86,18 @@ body {
     background-color: rgba(14, 70, 4, 0.85);
     z-index: 5;
 }
-.school-branding h1, .school-branding p, .school-branding .flex > div {
+
+.school-branding h1, .school-branding p {
     z-index: 10;
     position: relative;
-}
-.school-branding h1 {
-    font-size: 3rem;
-    font-weight: 800;
-    margin-bottom: 0.5rem;
-    text-shadow: 1px 1px 4px rgba(0,0,0,0.8);
-}
-.school-branding p {
-    font-size: 1.25rem;
-    opacity: 0.95;
     text-shadow: 1px 1px 4px rgba(0,0,0,0.8);
 }
 
-/* Right Side - Login Form */
+.school-branding h1 {
+    font-size: 3rem;
+    font-weight: 800;
+}
+
 .login-right {
     background: var(--light-bg);
     width: 40%;
@@ -125,13 +105,10 @@ body {
     align-items: center;
     justify-content: center;
     padding: 2rem;
-    transition: background 0.3s ease;
-}
-body.admin-selected .login-right {
-    background: var(--blue-bg);
 }
 
-/* Login Box UI */
+body.admin-selected .login-right { background: var(--blue-bg); }
+
 .login-box {
     background: white;
     padding: 3rem 2.5rem;
@@ -139,101 +116,30 @@ body.admin-selected .login-right {
     width: 100%;
     max-width: 450px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-    transition: all 0.3s ease;
-    border: 2px solid transparent;
 }
-.login-box:hover {
-    box-shadow: 0 15px 35px rgba(0,0,0,0.2);
-}
-.login-box h2 {
-    font-size: 2rem;
-    color: var(--dark-text);
-}
-body.alumni-selected .login-box h2 { color: var(--forest-green); }
-body.admin-selected .login-box h2 { color: var(--dark-blue); }
 
-/* Role Selector Styles */
 .role-selector {
-    border: 3px solid transparent;
-    transition: all 0.3s ease;
     padding: 1.5rem 1rem;
     border-radius: 12px;
     cursor: pointer;
     background: #f1f5f9;
-}
-.role-selector:hover {
-    background: #e2e8f0;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-}
-.role-selector[data-role="alumni"].selected {
-    border-color: var(--forest-green);
-    background: #e6f7e6;
-}
-.role-selector[data-role="admin"].selected {
-    border-color: var(--dark-blue);
-    background: #dbeafe;
-}
-
-/* Forms & Inputs */
-.login-box input {
-    border: 1px solid #d1d5db;
-    padding: 0.75rem 1rem;
-    border-radius: 12px;
-    width: 100%;
+    border: 3px solid transparent;
     transition: all 0.3s ease;
 }
-.login-box input:focus {
-    border-color: var(--lime-green);
-    box-shadow: 0 0 10px rgba(11, 135, 11, 0.3);
-}
-body.admin-selected .login-box input:focus {
-    border-color: var(--light-blue);
-    box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
-}
+
+.role-selector[data-role="alumni"].selected { border-color: var(--forest-green); background: #e6f7e6; }
+.role-selector[data-role="admin"].selected { border-color: var(--dark-blue); background: #dbeafe; }
 
 .password-field-container { position: relative; }
 .password-field-container input { padding-right: 3rem !important; }
 
-#togglePassword {
-    position: absolute;
-    right: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: transparent;
+#loginButton {
     border: none;
     cursor: pointer;
-    color: #6b7280;
 }
 
-/* Button & Errors */
-.login-box #loginButton {
-    background: var(--primary-green);
-    color: white;
-    font-weight: 600;
-    border-radius: 12px;
-    padding: 0.75rem 1rem;
-    width: 100%;
-    border: none;
-    transition: all 0.3s ease;
-}
-.login-box #loginButton:hover {
-    background: var(--forest-green);
-    transform: translateY(-1px);
-}
-body.admin-selected .login-box #loginButton:enabled {
-    background: linear-gradient(135deg, var(--light-blue), var(--primary-blue));
-}
-
-@keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-5px); }
-    75% { transform: translateX(5px); }
-}
-.login-error-message { animation: shake 0.5s ease-in-out; }
-
-/* Responsive adjustments */
 @media (max-width: 1024px) {
     .login-container { flex-direction: column; }
     .school-branding, .login-right { width: 100%; }
-    .school-branding { height: 35vh; }
+    .school-branding { height: 30vh; }
 }
