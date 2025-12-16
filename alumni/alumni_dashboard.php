@@ -200,13 +200,20 @@ require_once dirname(__DIR__) . '/api/utils/deadline.php';
 $submission_open = isEmploymentSubmissionOpen($conn);
 $deadline_info = getAllDeadlineInfo($conn);
 
-// Determine status text and styling for submission card
+// Determine status text and styling for submission card (FOR THE NEW CARD)
+$status_text = '';
+$status_icon = '';
+$status_color = '';
+$bg_color_class = '';
+$border_color_class = '';
+$details_text = '';
+
 if ($deadline_info['has_manual_override']) {
-    $status_text = $submission_open ? "Open (Manual)" : "Closed (Manual)";
+    $status_text = $submission_open ? "Open" : "Closed";
     $status_icon = $submission_open ? "fa-unlock" : "fa-lock";
-    $status_color = $submission_open ? "text-green-600" : "text-red-600";
-    $border_color = $submission_open ? "border-green-500" : "border-red-500";
-    $bg_color = $submission_open ? "bg-green-50" : "bg-red-50";
+    $status_color = $submission_open ? "text-green-800" : "text-red-800";
+    $bg_color_class = $submission_open ? "bg-green-100 border-green-300" : "bg-red-100 border-red-300";
+    $details_text = $submission_open ? "Submissions are currently OPEN for all alumni. Update your profile and employment information now." : "Submissions are currently CLOSED by the administrator. Please wait for further announcements or instructions before attempting to submit again.";
 } else {
     $now = time();
     $open_ts = $deadline_info['open_date'] ? strtotime($deadline_info['open_date']) : 0;
@@ -215,23 +222,24 @@ if ($deadline_info['has_manual_override']) {
     if ($open_ts > $now) {
         $status_text = "Scheduled";
         $status_icon = "fa-clock";
-        $status_color = "text-amber-600";
-        $border_color = "border-amber-500";
-        $bg_color = "bg-amber-50";
+        $status_color = "text-amber-800";
+        $bg_color_class = "bg-amber-100 border-amber-300";
+        $details_text = "Submissions will open on ". date('M j, Y \a\t g:i A', $open_ts) . ". Please check back at the scheduled time to submit your information.";
     } elseif ($close_ts < $now) {
-        $status_text = "Closed (Past Deadline)";
+        $status_text = "Closed";
         $status_icon = "fa-calendar-times";
-        $status_color = "text-red-600";
-        $border_color = "border-red-500";
-        $bg_color = "bg-red-50";
+        $status_color = "text-red-800";
+        $bg_color_class = "bg-red-100 border-red-300";
+        $details_text = "The deadline for submission was ". date('M j, Y \a\t g:i A', $close_ts) . ". Submissions are no longer being accepted.";
     } else {
-        $status_text = "Open (Scheduled)";
+        $status_text = "Open";
         $status_icon = "fa-calendar-check";
-        $status_color = "text-green-600";
-        $border_color = "border-green-500";
-        $bg_color = "bg-green-50";
+        $status_color = "text-green-800";
+        $bg_color_class = "bg-green-100 border-green-300";
+        $details_text = "Submissions are open until " . date('M j, Y \a\t g:i A', $close_ts) . ". Please complete profile update before the deadline.";
     }
 }
+
 
 ob_start();
 ?>
@@ -272,6 +280,34 @@ ob_start();
         <div class="grid grid-cols-1 xl:grid-cols-4 gap-4">
             <div class="xl:col-span-3 space-y-4">
                 
+                <div class="p-5 rounded-xl shadow-lg border-2 border-dashed transition-all duration-500 hover:shadow-xl <?php echo $bg_color_class; ?>">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <i class="fas <?php echo $status_icon; ?> <?php echo $status_color; ?> text-2xl"></i>
+                            <div>
+                                <h3 class="text-lg font-extrabold text-gray-900 leading-none">Submission Period Status</h3>
+                                <span class="inline-block mt-1 font-extrabold text-sm uppercase tracking-wider px-3 py-1 rounded-full shadow-inner 
+                                    <?php
+                                        if ($status_text === 'Open') {
+                                            echo 'text-green-800 bg-green-200 border border-green-400';
+                                        } elseif ($status_text === 'Closed') {
+                                            echo 'text-red-800 bg-red-200 border border-red-400';
+                                        } else { // Scheduled
+                                            echo 'text-amber-800 bg-amber-200 border border-amber-400';
+                                        }
+                                    ?>">
+                                    <?php echo $status_text; ?>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 pt-3 border-t border-gray-200">
+                         <p class="text-sm text-gray-700 font-medium">
+                            <?php echo $details_text; ?>
+                        </p>
+                    </div>
+                </div>
                 <div class="bg-white rounded-xl shadow-lg border-t-4 border-b-4 border-indigo-300 overflow-hidden transition-all duration-500 hover:shadow-xl">
                     
                     <div class="p-6 pb-4 bg-gradient-to-r from-indigo-50 to-purple-50 relative overflow-hidden">
@@ -452,50 +488,7 @@ ob_start();
                         </div>
                     </div>
                     
-                                      <!-- NEW: Employment Submission Status Card -->
-                    <div class="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border-t border-blue-200 mt-5">
-                        <h4 class="text-lg font-bold text-blue-800 mb-2 flex items-center gap-2">
-                            <i class="fas fa-calendar-alt text-blue-600"></i> Employment Submission Status
-                        </h4>
-                        
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 text-sm">
-                            
-                            <!-- Current Status Card -->
-                            <div class="flex items-center p-4 <?php echo $bg_color; ?> rounded-lg border-2 <?php echo $border_color; ?> shadow-md transition-all duration-300 hover:shadow-lg hover:scale-[1.02]">
-                                <i class="fas <?php echo $status_icon; ?> <?php echo $status_color; ?> text-lg mr-3"></i>
-                                <div class="flex-1">
-                                    <span class="text-xs font-semibold text-gray-700 block">Current Status</span>
-                                    <span class="text-sm font-bold <?php echo $status_color; ?>"><?php echo $status_text; ?></span>
-                                </div>
-                            </div>
-                            
-                            <!-- Schedule Details Card -->
-                            <div class="flex items-center p-4 bg-white rounded-lg border-2 border-blue-300 shadow-md transition-all duration-300 hover:shadow-lg hover:scale-[1.02]">
-                                <i class="fas fa-calendar-day text-blue-600 text-lg mr-3"></i>
-                                <div class="flex-1">
-                                    <span class="text-xs font-semibold text-gray-700 block">Schedule Details</span>
-                                    <?php if ($deadline_info['has_manual_override']): ?>
-                                        <span class="text-sm font-bold text-gray-800">Manually Controlled</span>
-                                    <?php elseif ($deadline_info['open_date'] && $deadline_info['close_date']): ?>
-                                        <span class="text-sm font-bold text-gray-800">
-                                            <?php echo date('M j, Y', strtotime($deadline_info['open_date'])); ?> - 
-                                            <?php echo date('M j, Y', strtotime($deadline_info['close_date'])); ?>
-                                        </span>
-                                        <p class="text-xs text-gray-600 mt-1">
-                                            <?php echo date('g:i A', strtotime($deadline_info['open_date'])); ?> to 
-                                            <?php echo date('g:i A', strtotime($deadline_info['close_date'])); ?>
-                                        </p>
-                                    <?php else: ?>
-                                        <span class="text-sm font-bold text-gray-800">No Schedule Set</span>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- REMOVED: Status Explanation section -->
                     </div>
-                    
-                </div>
             </div>
 
             <div class="xl:col-span-1">
