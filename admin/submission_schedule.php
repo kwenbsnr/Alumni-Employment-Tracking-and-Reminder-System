@@ -13,45 +13,42 @@ $page_title = "Employment Submission Schedule";
 $active_page = "submission_schedule";
 
 // ====================== EMPLOYMENT SUBMISSION CONTROL LOGIC ======================
-// Ensure the table exists (simplified - no employment_submission_open column)
+// Ensure the table exists WITH employment_submission_open column
 $conn->query("CREATE TABLE IF NOT EXISTS submission_status (
     id INT AUTO_INCREMENT PRIMARY KEY,
     is_open TINYINT(1) DEFAULT 0,
+    employment_submission_open TINYINT(1) DEFAULT 0,
     manual_override TINYINT(1) DEFAULT 0,
     open_date DATETIME NULL,
     close_date DATETIME NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB");
 
-// Remove the employment_submission_open column if it exists (cleanup from previous version)
-$result = $conn->query("SHOW COLUMNS FROM submission_status LIKE 'employment_submission_open'");
-if ($result->num_rows > 0) {
-    $conn->query("ALTER TABLE submission_status DROP COLUMN employment_submission_open");
-}
-
 // Ensure a single record exists
 $statusCheck = $conn->query("SELECT * FROM submission_status LIMIT 1");
 if ($statusCheck->num_rows == 0) {
     // Default to closed and manually overridden
-    $conn->query("INSERT INTO submission_status (is_open, manual_override) VALUES (0, 1)");
+    $conn->query("INSERT INTO submission_status (is_open, employment_submission_open, manual_override) VALUES (0, 0, 1)");
 }
 
 // ====================== FORM SUBMISSION PROCESSING ======================
 if (isset($_POST['update_submission_status'])) {
     $action = $_POST['submission_action'] ?? '';
+    $employment_submission = isset($_POST['employment_submission']) ? 1 : 0; // NEW: Get employment submission checkbox
     $update_successful = false;
 
     if ($action === 'open_now' || $action === 'close_now') { 
         
         $new_is_open = $action === 'open_now' ? 1 : 0;
         
-        // Use prepared statement for safety
+        // Use prepared statement for safety - UPDATE: Include employment_submission_open
         $stmt = $conn->prepare("UPDATE submission_status SET 
             is_open = ?, 
+            employment_submission_open = ?,
             manual_override = 1, 
             open_date = NULL, 
             close_date = NULL");
-        $stmt->bind_param('i', $new_is_open);
+        $stmt->bind_param('ii', $new_is_open, $employment_submission);
         $update_successful = $stmt->execute();
         $stmt->close();
 
@@ -59,6 +56,14 @@ if (isset($_POST['update_submission_status'])) {
             $status_message = $new_is_open 
                 ? "Employment submissions are now OPEN indefinitely. Alumni can update employment information." 
                 : "Employment submissions are now CLOSED indefinitely. Alumni cannot update employment information.";
+            
+            // Add employment-specific message
+            if ($employment_submission) {
+                $status_message .= " Employment updates are ENABLED.";
+            } else {
+                $status_message .= " Employment updates are DISABLED.";
+            }
+            
             $status_type = 'success';
         } else {
             $status_message = "Database error: Could not update status.";
@@ -83,18 +88,24 @@ if (isset($_POST['update_submission_status'])) {
             $now = date('Y-m-d H:i:s');
             $new_is_open = ($now >= $open_date && $now <= $close_date) ? 1 : 0;
 
-            // Use prepared statement for security
+            // Use prepared statement for security - UPDATE: Include employment_submission_open
             $stmt = $conn->prepare("UPDATE submission_status SET 
                 open_date = ?, 
                 close_date = ?, 
+                employment_submission_open = ?,
                 manual_override = 0,
                 is_open = ?");
-            $stmt->bind_param('ssi', $open_date, $close_date, $new_is_open);
+            $stmt->bind_param('ssii', $open_date, $close_date, $employment_submission, $new_is_open);
             $update_successful = $stmt->execute();
             $stmt->close();
 
             if ($update_successful) {
                 $status_message = "Employment submissions scheduled — Opens: $from | Closes: $to";
+                if ($employment_submission) {
+                    $status_message .= " Employment updates are ENABLED during this period.";
+                } else {
+                    $status_message .= " Employment updates are DISABLED.";
+                }
                 $status_type = 'success';
             } else {
                 $status_message = "Database error: Could not update schedule.";
@@ -111,6 +122,7 @@ if (isset($_POST['update_submission_status'])) {
 // ====================== LOAD & AUTOMATIC STATUS CHECK ======================
 $statusRow = $conn->query("SELECT * FROM submission_status LIMIT 1")->fetch_assoc();
 $is_open = (bool)($statusRow['is_open'] ?? 0);
+$employment_submission_open = (bool)($statusRow['employment_submission_open'] ?? 0); // NEW
 $manual_override = (bool)($statusRow['manual_override'] ?? 1);
 $open_date = $statusRow['open_date'] ?? null;
 $close_date = $statusRow['close_date'] ?? null;
