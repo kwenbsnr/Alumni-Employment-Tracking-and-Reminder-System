@@ -93,6 +93,15 @@ if (isset($_GET['type']) && $_GET['type'] === 'document_bulk_reject' && isset($_
                 $combined_reason = implode("; ", array_unique($rejection_reasons));
                 send_rejection_notification($conn, $user_id, $combined_reason);
                 error_log("Rejection notification sent to alumni user: $user_id");
+                
+                // Create system notification for alumni
+                create_alumni_notification($conn, $user_id, 
+                    "Documents Rejected", 
+                    "$rejected_count document(s) have been rejected. Please review the rejection reasons and resubmit.", 
+                    'error', 
+                    'document', 
+                    $user_id
+                );
             } catch (Exception $e) {
                 error_log("Failed to send rejection notification: " . $e->getMessage());
             }
@@ -178,9 +187,36 @@ elseif (isset($_GET['user_id']) && isset($_GET['status'])) {
                         if ($status === 'Approved') {
                             send_approval_notification($conn, $doc_user_id);
                             error_log("Approval notification sent to alumni user: $doc_user_id");
+                            
+                            // Create system notification for alumni
+                            create_alumni_notification($conn, $doc_user_id, 
+                                "Document Approved", 
+                                "Your document has been approved by the administrator.", 
+                                'success', 
+                                'document', 
+                                $doc_id
+                            );
                         } elseif ($status === 'Rejected') {
                             send_rejection_notification($conn, $doc_user_id, $reason);
                             error_log("Rejection notification sent to alumni user: $doc_user_id");
+                            
+                            // Create system notification for alumni
+                            create_alumni_notification($conn, $doc_user_id, 
+                                "Document Rejected", 
+                                "Your document has been rejected. Reason: $reason", 
+                                'error', 
+                                'document', 
+                                $doc_id
+                            );
+                        } elseif ($status === 'Pending' && ($currentDocStatus === 'Approved' || $currentDocStatus === 'Rejected')) {
+                            // Document reverted to pending
+                            create_alumni_notification($conn, $doc_user_id, 
+                                "Document Status Updated", 
+                                "Your document status has been reverted to pending review.", 
+                                'info', 
+                                'document', 
+                                $doc_id
+                            );
                         }
                     } catch (Exception $e) {
                         error_log("Failed to send notification: " . $e->getMessage());
@@ -270,6 +306,24 @@ elseif (isset($_GET['user_id']) && isset($_GET['status'])) {
                         if ($status === 'Approved') {
                             send_approval_notification($conn, $user_id);
                             error_log("Bulk approval notification sent to alumni user: $user_id");
+                            
+                            // Create system notification for alumni
+                            create_alumni_notification($conn, $user_id, 
+                                "Documents Approved", 
+                                count($valid_doc_ids) . " document(s) have been approved by the administrator.", 
+                                'success', 
+                                'document', 
+                                $user_id
+                            );
+                        } elseif ($status === 'Pending') {
+                            // Bulk revert to pending
+                            create_alumni_notification($conn, $user_id, 
+                                "Documents Status Updated", 
+                                count($valid_doc_ids) . " document(s) have been reverted to pending review.", 
+                                'info', 
+                                'document', 
+                                $user_id
+                            );
                         }
                     } catch (Exception $e) {
                         error_log("Failed to send bulk notification: " . $e->getMessage());
@@ -333,9 +387,36 @@ elseif (isset($_GET['user_id']) && isset($_GET['status'])) {
                             if ($status === 'Approved') {
                                 send_approval_notification($conn, $user_id);
                                 error_log("Profile-level approval notification sent to alumni user: $user_id");
+                                
+                                // Create system notification for alumni
+                                create_alumni_notification($conn, $user_id, 
+                                    "Profile Approved", 
+                                    "Your profile and all documents have been approved by the administrator.", 
+                                    'success', 
+                                    'profile', 
+                                    $user_id
+                                );
                             } elseif ($status === 'Rejected') {
                                 send_rejection_notification($conn, $user_id, $reason);
                                 error_log("Profile-level rejection notification sent to alumni user: $user_id");
+                                
+                                // Create system notification for alumni
+                                create_alumni_notification($conn, $user_id, 
+                                    "Profile Rejected", 
+                                    "Your profile has been rejected. Reason: $reason", 
+                                    'error', 
+                                    'profile', 
+                                    $user_id
+                                );
+                            } elseif ($status === 'Pending' && ($currentStatus === 'Approved' || $currentStatus === 'Rejected')) {
+                                // Profile reverted to pending
+                                create_alumni_notification($conn, $user_id, 
+                                    "Profile Status Updated", 
+                                    "Your profile status has been reverted to pending review.", 
+                                    'info', 
+                                    'profile', 
+                                    $user_id
+                                );
                             }
                         } catch (Exception $e) {
                             error_log("Failed to send profile-level notification: " . $e->getMessage());
@@ -440,4 +521,20 @@ if (isset($_SESSION['message'])) {
 
 header("Location: $redirect_url");
 exit();
+
+// Function to create alumni notifications
+function create_alumni_notification($conn, $user_id, $title, $message, $type = 'info', $related_type = 'profile', $related_id = null) {
+    $stmt = $conn->prepare("INSERT INTO alumni_notifications (user_id, title, message, type, related_type, related_id, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW())");
+    
+    if ($related_id) {
+        $stmt->bind_param("issssi", $user_id, $title, $message, $type, $related_type, $related_id);
+    } else {
+        $stmt->bind_param("isssss", $user_id, $title, $message, $type, $related_type, $related_id);
+    }
+    
+    $result = $stmt->execute();
+    $stmt->close();
+    
+    return $result;
+}
 ?>
