@@ -126,7 +126,7 @@ $alumniQuery = "
             WHEN EXISTS (SELECT 1 FROM alumni_documents ad WHERE ad.user_id = u.user_id AND ad.document_status = 'Rejected') THEN 'Rejected'
             WHEN EXISTS (SELECT 1 FROM alumni_documents ad WHERE ad.user_id = u.user_id AND ad.document_status = 'Approved') THEN 'Approved'
             WHEN EXISTS (SELECT 1 FROM alumni_documents ad WHERE ad.user_id = u.user_id AND ad.document_status = 'Pending') THEN 'Pending'
-            ELSE 'No Recent Update' -- Alumni profile exists but no recent document uploads/status
+            ELSE 'No Recent Update' 
         END as submission_status
     FROM users u
     LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id
@@ -278,8 +278,7 @@ ob_start();
                     <?php while ($alumni = $alumniResult->fetch_assoc()): ?>
                         <?php
                         // Fetch documents for the current alumni
-                        // MODIFIED: Added rejection_reason to the document query
-                        $docStmt = $conn->prepare("SELECT doc_id, document_type, file_path, document_status, rejection_reason FROM alumni_documents WHERE user_id = ?");
+                        $docStmt = $conn->prepare("SELECT doc_id, document_type, file_path, document_status, rejection_reason FROM alumni_documents WHERE user_id = ? ORDER BY doc_id ASC");
                         $docStmt->bind_param('i', $alumni['user_id']);
                         $docStmt->execute();
                         $docResult = $docStmt->get_result();
@@ -298,13 +297,11 @@ ob_start();
                         // Check for 'No Recent Update' status
                         $is_no_update = $alumni['submission_status'] === 'No Recent Update';
 
-                        // Get the latest document for the View button in Actions column
-                        // Assuming the first document fetched is the 'latest' or representative, 
-                        // though the logic is slightly flawed as it only uses the first document.
-                        // A more correct approach would require another query or logic to find the single latest.
-                        // For the purpose of this request, we'll check if ANY documents exist.
+                        // Check if ANY documents exist.
                         $has_documents = !empty($documents);
-                        $latest_doc = $has_documents ? $documents[0] : null;
+                        
+                        // Encode ALL documents into a JSON string for the modal function
+                        $documents_json = htmlspecialchars(json_encode($documents), ENT_QUOTES, 'UTF-8');
 
                         ?>
                         <tr class="hover:bg-gray-50">
@@ -348,7 +345,7 @@ ob_start();
                                 </span>
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-500">
-                                <?php if (!empty($documents)): ?>
+                                <?php if ($has_documents): ?>
                                     <div class="space-y-1">
                                         <?php foreach ($documents as $doc): ?>
                                             <?php
@@ -358,8 +355,7 @@ ob_start();
                                             ?>
                                             <div class="flex items-center rounded px-2 py-1">
                                                 <span class="font-semibold text-gray-800 text-sm"><?= $name ?></span>
-                                                
-                                                </div>
+                                            </div>
                                         <?php endforeach; ?>
                                     </div>
                                 <?php else: ?>
@@ -377,30 +373,16 @@ ob_start();
                                 <?php endif; ?>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <?php if ($has_documents && $latest_doc): 
-                                    // Ensure we have all necessary details for the modal, taking from the first document fetched.
-                                    $doc_names_map = ['COR' => 'Certificate of Registration', 'COE' => 'Certificate of Employment', 'B_CERT' => 'Business Certificate'];
-                                    $doc_name_full = $doc_names_map[$latest_doc['document_type']] ?? $latest_doc['document_type'];
-                                ?>
+                                <?php if ($has_documents): ?>
                                     <button 
-                                        onclick="openDocumentModal(
-                                            <?= $latest_doc['doc_id'] ?>, 
-                                            '<?= htmlspecialchars($latest_doc['file_path']) ?>', 
-                                            '<?= htmlspecialchars($doc_name_full, ENT_QUOTES) ?>', 
-                                            '<?= htmlspecialchars($alumni['name'], ENT_QUOTES) ?>', 
-                                            '<?= $alumni['user_id'] ?>', 
-                                            '<?= $latest_doc['document_type'] ?>', 
-                                            '<?= $latest_doc['document_status'] ?>', 
-                                            '<?= htmlspecialchars($latest_doc['rejection_reason'] ?? '', ENT_QUOTES) ?>'
-                                        )"
+                                        onclick="openMultiDocumentModal('<?= htmlspecialchars($alumni['name'], ENT_QUOTES) ?>', '<?= $alumni['user_id'] ?>', '<?= $documents_json ?>')"
                                         class="text-indigo-600 hover:text-indigo-900 px-3 py-1 border border-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors inline-flex items-center">
                                         <i class="fas fa-eye mr-1"></i> View Documents
                                     </button>
                                 <?php else: ?>
                                     <span class="text-gray-400 text-sm">No Document Action</span>
                                 <?php endif; ?>
-                                
-                                </td>
+                            </td>
                         </tr>
                     <?php endwhile; ?>
                 </tbody>
@@ -561,22 +543,27 @@ ob_start();
     <div class="bg-white rounded-xl shadow-2xl max-w-6xl w-full mx-4 h-[90vh] flex flex-col">
         <div class="flex items-center justify-between p-4 border-b">
             <h3 class="text-xl font-bold text-gray-900" id="docModalTitle">Document View</h3>
-            <div class="flex items-center space-x-3">
-                <span id="docCurrentStatus" class="px-3 py-1.5 inline-flex text-sm font-semibold rounded-full"></span>
-                <button onclick="closeDocumentModal()" class="text-gray-500 hover:text-gray-800 transition-colors">
-                    <i class="fas fa-times text-2xl"></i>
-                </button>
-            </div>
+            <button onclick="closeDocumentModal()" class="text-gray-500 hover:text-gray-800 transition-colors">
+                <i class="fas fa-times text-2xl"></i>
+            </button>
         </div>
         
+        <div id="docTabs" class="flex-shrink-0 border-b bg-gray-50 flex overflow-x-auto">
+            </div>
+
         <div class="flex-1 overflow-hidden flex">
             <div class="flex-1 flex flex-col p-4 border-r border-gray-200">
-                <div id="docRejectionDetails" class="mb-4"></div>
-                <div class="flex-1 bg-gray-100 rounded-lg overflow-hidden">
-                    <iframe id="documentViewer" src="" frameborder="0" class="w-full h-full"></iframe>
-                </div>
-                <div class="mt-4 flex justify-center space-x-4" id="docActionButtons">
+                <div id="docViewerContent">
+                    <div class="flex items-center justify-between mb-4">
+                        <span id="docCurrentStatus" class="px-3 py-1.5 inline-flex text-sm font-semibold rounded-full"></span>
                     </div>
+                    <div id="docRejectionDetails" class="mb-4"></div>
+                    <div class="flex-1 bg-gray-100 rounded-lg overflow-hidden h-[calc(90vh-280px)]">
+                        <iframe id="documentViewer" src="" frameborder="0" class="w-full h-full"></iframe>
+                    </div>
+                    <div class="mt-4 flex justify-center space-x-4" id="docActionButtons">
+                        </div>
+                </div>
             </div>
             
             <div id="rejectionPanel" class="w-96 flex flex-col border-l border-gray-200 hidden">
@@ -626,11 +613,20 @@ ob_start();
 
 <script>
 let currentUserId = null;
-let currentDocId = null; 
-let currentDocType = null; 
 let currentAlumniName = null; 
 let hoverTimeout = null;
 let isModalHovered = false;
+
+// New global state for multi-document handling
+let allDocuments = []; // Stores the full array of documents for the current alumni
+let currentActiveDoc = null; // Stores the document object for the currently visible tab
+
+// Document type to full name map
+const docTypeMap = {
+    'COR': 'Certificate of Registration', 
+    'COE': 'Certificate of Employment', 
+    'B_CERT': 'Business Certificate'
+};
 
 // Employment status specific rejection reasons (Unchanged)
 const rejectionReasons = {
@@ -656,13 +652,13 @@ const rejectionReasons = {
     ]
 };
 
-// Document type specific rejection reasons
+// Document type specific rejection reasons (Pulled from PHP function getDocumentRejectionReasons())
 const documentRejectionReasons = <?= json_encode(getDocumentRejectionReasons()) ?>;
 
-/** Approve Modal Logic (Profile) - Retained for completeness, though buttons are removed **/
+// --- PROFILE MODAL LOGIC (Unchanged, retained for completeness) ---
+
 function showApproveModal(id, name) { 
     currentUserId = id; 
-    currentDocId = null; 
     currentAlumniName = name;
     document.getElementById('approveAlumniName').textContent = name; 
     document.getElementById('approveModal').classList.remove('hidden'); 
@@ -674,17 +670,15 @@ function closeApproveModal() {
     currentAlumniName = null;
 }
 
-// Redirects to update_status.php to process profile approval
 function processApproval() { 
     if (currentUserId) {
         window.location.href = `update_status.php?user_id=${currentUserId}&status=Approved&type=profile&<?= htmlspecialchars($queryString) ?>&page=<?= $current_page ?>`; 
     }
 }
 
-/** Reject Modal Logic (For Profile Rejections) - Retained for completeness, though buttons are removed **/
 function showRejectModal(id, name, typeValue, statusOrDocType, docId = null) {
+    // This is primarily for Profile Rejection now, but kept generic for compatibility
     currentUserId = id;
-    currentDocId = docId;
     currentAlumniName = name;
     
     // Set form hidden fields
@@ -701,9 +695,7 @@ function showRejectModal(id, name, typeValue, statusOrDocType, docId = null) {
     rejectModalTitleEl.textContent = isProfile ? 'Reject Profile' : 'Reject Document';
     
     const modalDescriptionEl = document.querySelector('#rejectModal p.text-gray-600');
-    modalDescriptionEl.innerHTML = isProfile
-        ? `Reason for rejecting <span id="rejectAlumniName" class="font-semibold">${name}</span>'s profile:`
-        : `Reason for rejecting <span id="rejectAlumniName" class="font-semibold">${name}</span>'s document:`;
+    modalDescriptionEl.innerHTML = `Reason for rejecting <span id="rejectAlumniName" class="font-semibold">${name}</span>'s ${isProfile ? 'profile' : 'document'}:`;
     
     // Handle Common Reasons Visibility
     const container = document.getElementById('commonReasons');
@@ -778,11 +770,9 @@ function closeRejectModal() {
     document.getElementById('rejectAlumniName').textContent = '';
     
     currentUserId = null; 
-    currentDocId = null;
     currentAlumniName = null;
 }
 
-/** Revert Modal Logic - Retained for completeness, though buttons are removed **/
 function showRevertModal(id, name) { 
     currentUserId = id; 
     currentAlumniName = name;
@@ -802,61 +792,118 @@ function processRevert() {
     }
 }
 
-/** Document Modal Logic with Side-by-Side Rejection Panel **/
-function openDocumentModal(docId, filePath, docName, alumniName, userId, docType, currentStatus, rejectionReason) {
+// --- MULTI-DOCUMENT MODAL LOGIC (New/Updated) ---
+
+/** * Opens the multi-tab document modal.
+ * @param {string} alumniName 
+ * @param {number} userId 
+ * @param {string} documentsJson - JSON string of the documents array 
+ */
+function openMultiDocumentModal(alumniName, userId, documentsJson) {
     const modal = document.getElementById('documentModal');
-    const viewer = document.getElementById('documentViewer');
-    const title = document.getElementById('docModalTitle');
-    const statusEl = document.getElementById('docCurrentStatus');
-    const actionButtons = document.getElementById('docActionButtons');
-    const rejectionDetailsEl = document.getElementById('docRejectionDetails');
-
-    currentDocId = docId;
+    const docTabs = document.getElementById('docTabs');
+    
     currentUserId = userId;
-    currentDocType = docType;
     currentAlumniName = alumniName;
+    allDocuments = JSON.parse(documentsJson);
     
-    // Set Modal Title and Status
-    title.innerHTML = `${docName} for <span class="text-indigo-600">${alumniName}</span>`;
+    if (!allDocuments || allDocuments.length === 0) {
+        alert("No documents found for this alumni.");
+        return;
+    }
     
-    let statusClass = getStatusColorClass(currentStatus, true);
-    statusEl.className = `px-3 py-1.5 inline-flex text-sm font-semibold rounded-full ${statusClass}`;
-    statusEl.textContent = currentStatus;
+    // Update Modal Title
+    document.getElementById('docModalTitle').innerHTML = `Document View for <span class="text-indigo-600">${alumniName}</span>`;
+    
+    // 1. Generate Tabs
+    docTabs.innerHTML = '';
+    allDocuments.forEach((doc, index) => {
+        const docName = docTypeMap[doc.document_type] || doc.document_type;
+        const statusClass = getStatusColorClass(doc.document_status);
+        
+        // Add tab button
+        docTabs.innerHTML += `
+            <button 
+                id="tab-${doc.doc_id}"
+                onclick="switchDocumentTab(${doc.doc_id})"
+                class="px-4 py-3 text-sm font-medium border-b-2 border-transparent text-gray-700 hover:text-indigo-600 hover:border-indigo-500 transition-colors duration-150 flex items-center">
+                <span>${docName}</span>
+                <span id="tab-status-${doc.doc_id}" class="ml-2 text-xs font-bold ${statusClass.replace('bg-', 'text-').replace('-100', '-600')}">(${doc.document_status})</span>
+            </button>
+        `;
+    });
+    
+    // 2. Load the first document
+    switchDocumentTab(allDocuments[0].doc_id);
+    
+    // 3. Show Modal
+    modal.classList.remove('hidden');
+}
 
-    // Load Document
-    viewer.src = `../${filePath}`;
+/**
+ * Switches the active document tab in the modal.
+ * @param {number} docId 
+ */
+function switchDocumentTab(docId) {
+    const doc = allDocuments.find(d => d.doc_id == docId);
     
-    // Display Rejection Reason if exists
+    if (!doc) return;
+    
+    currentActiveDoc = doc;
+    
+    // 1. Update Tabs visual state
+    document.querySelectorAll('#docTabs button').forEach(btn => {
+        btn.classList.remove('border-indigo-600', 'text-indigo-600');
+        btn.classList.add('border-transparent', 'text-gray-700');
+    });
+    
+    const activeTab = document.getElementById(`tab-${docId}`);
+    if (activeTab) {
+        activeTab.classList.remove('border-transparent', 'text-gray-700');
+        activeTab.classList.add('border-indigo-600', 'text-indigo-600');
+    }
+    
+    // 2. Update Document Viewer Content
+    
+    // Status Badge
+    const statusEl = document.getElementById('docCurrentStatus');
+    let statusClass = getStatusColorClass(doc.document_status, true);
+    statusEl.className = `px-3 py-1.5 inline-flex text-sm font-semibold rounded-full ${statusClass}`;
+    statusEl.textContent = doc.document_status;
+    
+    // Rejection Details
+    const rejectionDetailsEl = document.getElementById('docRejectionDetails');
     rejectionDetailsEl.innerHTML = '';
-    if (currentStatus === 'Rejected' && rejectionReason && rejectionReason.trim() !== '') {
+    if (doc.document_status === 'Rejected' && doc.rejection_reason && doc.rejection_reason.trim() !== '') {
         rejectionDetailsEl.innerHTML = `
             <div class="p-3 bg-red-50 border border-red-200 rounded-lg">
                 <h4 class="text-sm font-bold text-red-700 mb-1"><i class="fas fa-exclamation-triangle mr-1"></i> Rejection Reason:</h4>
-                <p class="text-sm text-red-600 whitespace-pre-wrap">${rejectionReason}</p>
+                <p class="text-sm text-red-600 whitespace-pre-wrap">${doc.rejection_reason}</p>
             </div>
         `;
     }
     
-    // Hide rejection panel by default
-    closeRejectionPanel();
+    // Iframe Source
+    document.getElementById('documentViewer').src = `../${doc.file_path}`;
     
-    // Set Action Buttons based on current status
+    // 3. Update Action Buttons
+    const actionButtons = document.getElementById('docActionButtons');
     actionButtons.innerHTML = '';
     
-    if (currentStatus === 'Pending') {
+    if (doc.document_status === 'Pending') {
         actionButtons.innerHTML = `
             <button onclick="processDocumentApproval()" 
                     class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors flex-shrink-0">
                 <i class="fas fa-check mr-1"></i> Approve Document
             </button>
-            <button onclick="openRejectionPanel('${docType}')" 
+            <button onclick="openRejectionPanel('${doc.document_type}')" 
                     class="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors flex-shrink-0">
                 <i class="fas fa-times mr-1"></i> Reject Document
             </button>
         `;
     } else {
         actionButtons.innerHTML = `
-            <span class="text-sm font-medium text-gray-700">Document status is: <b>${currentStatus}</b>.</span>
+            <span class="text-sm font-medium text-gray-700">Document status is: <b>${doc.document_status}</b>.</span>
             <button onclick="processDocumentRevert()" 
                     class="bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-700 transition-colors flex-shrink-0">
                 <i class="fas fa-undo mr-1"></i> Revert to Pending
@@ -864,9 +911,13 @@ function openDocumentModal(docId, filePath, docName, alumniName, userId, docType
         `;
     }
 
-    // Show Modal
-    modal.classList.remove('hidden');
+    // 4. Update Rejection Panel form fields (if panel is not open, it's fine, the function will handle it)
+    updateRejectionPanelForm(doc.document_type);
+    
+    // 5. Close the rejection panel (as the action applies to a specific document/tab)
+    closeRejectionPanel();
 }
+
 
 function closeDocumentModal(resetState = true) {
     document.getElementById('documentModal').classList.add('hidden');
@@ -876,23 +927,22 @@ function closeDocumentModal(resetState = true) {
     closeRejectionPanel();
     
     if (resetState) {
-        currentDocId = null;
         currentUserId = null;
-        currentDocType = null;
         currentAlumniName = null;
+        allDocuments = [];
+        currentActiveDoc = null;
     }
 }
 
 /** Rejection Panel Functions (Side-by-Side) **/
-function openRejectionPanel(docType) {
-    const panel = document.getElementById('rejectionPanel');
+function updateRejectionPanelForm(docType) {
     const docCommonReasons = document.getElementById('docCommonReasons');
     const reasonLabel = document.getElementById('docReasonLabel');
     
     // Set hidden fields
     document.getElementById('docRejectUserId').value = currentUserId;
-    document.getElementById('docRejectDocId').value = currentDocId;
-    document.getElementById('docRejectType').value = currentDocType;
+    document.getElementById('docRejectDocId').value = currentActiveDoc.doc_id;
+    document.getElementById('docRejectType').value = docType;
     
     // Update alumni name in rejection panel
     document.getElementById('rejectDocAlumniName').textContent = currentAlumniName;
@@ -942,9 +992,15 @@ function openRejectionPanel(docType) {
     // Clear any previous values
     document.getElementById('docCustomReason').value = '';
     document.getElementById('docReasonError').classList.add('hidden');
+}
+
+
+function openRejectionPanel(docType) {
+    // Re-populate the form with current active document details
+    updateRejectionPanelForm(docType);
     
     // Show the panel
-    panel.classList.remove('hidden');
+    document.getElementById('rejectionPanel').classList.remove('hidden');
 }
 
 function closeRejectionPanel() {
@@ -961,11 +1017,14 @@ function submitDocumentRejection() {
     const customReason = document.getElementById('docCustomReason').value.trim();
     const errorElement = document.getElementById('docReasonError');
     
+    if (!currentActiveDoc) return; // Should not happen
+    
     let finalReason = '';
+    const docType = currentActiveDoc.document_type;
     
     // Check if common reasons exist
-    const hasCommonReasons = documentRejectionReasons[currentDocType] && 
-                             documentRejectionReasons[currentDocType].length > 0;
+    const hasCommonReasons = documentRejectionReasons[docType] && 
+                             documentRejectionReasons[docType].length > 0;
     
     if (!hasCommonReasons) {
         // No common reasons - custom reason is required
@@ -1007,20 +1066,20 @@ function submitDocumentRejection() {
     errorElement.classList.add('hidden');
     
     // Redirect to update_status.php to process document rejection
-    window.location.href = `update_status.php?user_id=${currentUserId}&doc_id=${currentDocId}&status=Rejected&type=document&reason=${encodeURIComponent(finalReason)}&<?= htmlspecialchars($queryString) ?>&page=<?= $current_page ?>`;
+    window.location.href = `update_status.php?user_id=${currentActiveDoc.user_id}&doc_id=${currentActiveDoc.doc_id}&status=Rejected&type=document&reason=${encodeURIComponent(finalReason)}&<?= htmlspecialchars($queryString) ?>&page=<?= $current_page ?>`;
 }
 
-// Process document approval
+// Process document approval (Uses currentActiveDoc)
 function processDocumentApproval() {
-    if (currentDocId && currentUserId) {
-        window.location.href = `update_status.php?user_id=${currentUserId}&doc_id=${currentDocId}&status=Approved&type=document&<?= htmlspecialchars($queryString) ?>&page=<?= $current_page ?>`;
+    if (currentActiveDoc) {
+        window.location.href = `update_status.php?user_id=${currentActiveDoc.user_id}&doc_id=${currentActiveDoc.doc_id}&status=Approved&type=document&<?= htmlspecialchars($queryString) ?>&page=<?= $current_page ?>`;
     }
 }
 
-// Process document revert
+// Process document revert (Uses currentActiveDoc)
 function processDocumentRevert() {
-    if (currentDocId && currentUserId) {
-        window.location.href = `update_status.php?user_id=${currentUserId}&doc_id=${currentDocId}&status=Pending&type=document&<?= htmlspecialchars($queryString) ?>&page=<?= $current_page ?>`;
+    if (currentActiveDoc) {
+        window.location.href = `update_status.php?user_id=${currentActiveDoc.user_id}&doc_id=${currentActiveDoc.doc_id}&status=Pending&type=document&<?= htmlspecialchars($queryString) ?>&page=<?= $current_page ?>`;
     }
 }
 
@@ -1035,21 +1094,9 @@ function getStatusColorClass(status, isDocument = false) {
     }
 }
 
-/** Event Listeners for Document Rejection Form **/
+/** Event Listeners **/
 document.addEventListener('DOMContentLoaded', function() {
-    const docCustomReason = document.getElementById('docCustomReason');
-    
-    if (docCustomReason) {
-        // Auto-select "Other" radio button when user starts typing
-        docCustomReason.addEventListener('input', function(e) {
-            const otherRadio = document.getElementById('docReasonCustom');
-            if (otherRadio && this.value.trim() !== '') {
-                otherRadio.checked = true;
-            }
-        });
-    }
-    
-    // Event listener for profile rejection form (unchanged)
+    // Event listeners for profile rejection form (unchanged)
     const rejectForm = document.getElementById('rejectForm');
     const customReason = document.getElementById('customReason');
     
@@ -1115,9 +1162,20 @@ document.addEventListener('DOMContentLoaded', function() {
             window.location.href = redirectUrl;
         });
     }
+    
+    // Event listener for document rejection form (for side panel)
+    const docCustomReason = document.getElementById('docCustomReason');
+    if (docCustomReason) {
+        docCustomReason.addEventListener('input', function(e) {
+            const otherRadio = document.getElementById('docReasonCustom');
+            if (otherRadio && this.value.trim() !== '') {
+                otherRadio.checked = true;
+            }
+        });
+    }
 });
 
-/** Hover Details Modal Logic **/
+/** Hover Details Modal Logic (Unchanged) **/
 document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.alumni-name-hover').forEach(el => {
         el.addEventListener('mouseenter', () => { 
