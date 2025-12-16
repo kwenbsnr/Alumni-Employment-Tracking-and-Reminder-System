@@ -43,7 +43,6 @@ if (file_exists(dirname(__DIR__) . '/utils/deadline.php')) {
     error_log("WARNING: deadline.php not found in api/utils/");
 }
 
-
 // Use the class
 use NotificationAPI\NotificationAPI;
 
@@ -81,7 +80,6 @@ function send_notification($template_id, $recipient_email, $parameters = []) {
 
 // ==================== DYNAMIC DATA FETCHING FUNCTIONS ====================
 
-
 // Get complete alumni data for notifications
 function get_complete_alumni_data($conn, $user_id) {
     $query = "
@@ -103,9 +101,6 @@ function get_complete_alumni_data($conn, $user_id) {
             ap.employment_status,
             u.contact_number,
             ap.last_profile_update,
-            ap.submission_status,
-            ap.rejection_reason,
-            ap.rejected_at,
             ap.submitted_at,
             ei.company_name as current_company,
             jt.title as current_position,
@@ -135,7 +130,7 @@ function get_complete_alumni_data($conn, $user_id) {
 
 // Get previous rejection reason for resubmissions
 function get_previous_rejection_reason($conn, $user_id) {
-    $query = "SELECT rejection_reason, rejected_at FROM alumni_profile WHERE user_id = ? AND rejection_reason IS NOT NULL";
+    $query = "SELECT rejection_reason, rejected_at FROM alumni_documents WHERE user_id = ? AND rejection_reason IS NOT NULL ORDER BY rejected_at DESC LIMIT 1";
     $stmt = $conn->prepare($query);
     $stmt->bind_param("i", $user_id);
     $stmt->execute();
@@ -238,7 +233,7 @@ function generate_employment_details($employment_status, $alumni_data = []) {
 // ==================== ALUMNI NOTIFICATIONS ====================
 
 // Send profile update reminder to alumni (template_one)
-// Also handles semiannual updates for approved alumni
+// Also handles semiannual updates for alumni with approved documents
 function send_profile_update_reminder($conn, $user_id, $closing_date = '') {
     // Get alumni data including last update date
     $query = "
@@ -254,8 +249,7 @@ function send_profile_update_reminder($conn, $user_id, $closing_date = '') {
             u.email as alumni_email,
             u.batch_year as graduation_year,
             ap.employment_status,
-            ap.last_profile_update,
-            ap.submission_status
+            ap.last_profile_update
         FROM users u 
         INNER JOIN alumni_profile ap ON u.user_id = ap.user_id 
         WHERE u.user_id = ?
@@ -272,12 +266,25 @@ function send_profile_update_reminder($conn, $user_id, $closing_date = '') {
         return ['success' => false, 'error' => 'Alumni data not found'];
     }
     
-    // Check if this is a semiannual update for approved alumni
+    // Check if alumni has approved documents
+    $stmt = $conn->prepare("
+        SELECT COUNT(*) as approved_count 
+        FROM alumni_documents 
+        WHERE user_id = ? AND document_status = 'Approved'
+    ");
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $doc_result = $stmt->get_result();
+    $doc_data = $doc_result->fetch_assoc();
+    $stmt->close();
+    
+    $has_approved_docs = ($doc_data['approved_count'] ?? 0) > 0;
+    
+    // Check if this is a semiannual update for alumni with approved documents
     $is_semiannual_update = false;
     $months_since_update = 0;
     
-    if ($alumni_data['submission_status'] === 'Approved' && 
-        !empty($alumni_data['last_profile_update'])) {
+    if ($has_approved_docs && !empty($alumni_data['last_profile_update'])) {
         
         // Calculate months since last update
         $last_update = new DateTime($alumni_data['last_profile_update']);
@@ -291,8 +298,8 @@ function send_profile_update_reminder($conn, $user_id, $closing_date = '') {
         }
     }
     
-    // If approved but less than 6 months, don't send notification
-    if ($alumni_data['submission_status'] === 'Approved' && !$is_semiannual_update) {
+    // If has approved docs but less than 6 months, don't send notification
+    if ($has_approved_docs && !$is_semiannual_update) {
         return ['success' => false, 'error' => 'No update needed - less than 6 months since last update'];
     }
     
@@ -332,7 +339,7 @@ function send_profile_update_reminder($conn, $user_id, $closing_date = '') {
 
 // Send semiannual updates to ALL eligible alumni (for batch processing)
 function send_semiannual_updates_to_all($conn) {
-    // Get all approved alumni who haven't updated in 6+ months
+    // Get all alumni with approved documents who haven't updated in 6+ months
     $query = "
         SELECT 
             u.user_id,
@@ -346,14 +353,17 @@ function send_semiannual_updates_to_all($conn) {
             u.email as alumni_email,
             u.batch_year as graduation_year,
             ap.last_profile_update,
-            ap.submission_status,
             TIMESTAMPDIFF(MONTH, ap.last_profile_update, NOW()) as months_since_update
         FROM users u 
         INNER JOIN alumni_profile ap ON u.user_id = ap.user_id 
         WHERE u.role = 'alumni'
-        AND ap.submission_status = 'Approved'
         AND ap.last_profile_update IS NOT NULL
         AND TIMESTAMPDIFF(MONTH, ap.last_profile_update, NOW()) >= 6
+        AND EXISTS (
+            SELECT 1 FROM alumni_documents ad 
+            WHERE ad.user_id = u.user_id 
+            AND ad.document_status = 'Approved'
+        )
         ORDER BY ap.last_profile_update ASC
     ";
     
@@ -544,7 +554,7 @@ function send_new_submission_admin_notification($conn, $user_id) {
 
 // ==================== HELPER FUNCTIONS ====================
 
-// Get alumni who need reminders (haven't updated in 6 months AND not approved)
+// Get alumni who need reminders (haven't updated in 6 months AND no approved documents)
 function get_alumni_for_reminders($conn) {
     $alumni = [];
     
@@ -559,11 +569,15 @@ function get_alumni_for_reminders($conn) {
                ) as alumni_name,
                u.email as alumni_email, 
                u.batch_year as graduation_year, ap.employment_status,
-               ap.last_profile_update, ap.submission_status
+               ap.last_profile_update
         FROM users u 
         INNER JOIN alumni_profile ap ON u.user_id = ap.user_id 
         WHERE u.role = 'alumni' 
-        AND ap.submission_status != 'Approved'
+        AND NOT EXISTS (
+            SELECT 1 FROM alumni_documents ad 
+            WHERE ad.user_id = u.user_id 
+            AND ad.document_status = 'Approved'
+        )
         AND (ap.last_profile_update IS NULL OR 
              ap.last_profile_update < DATE_SUB(NOW(), INTERVAL 6 MONTH))
         ORDER BY u.batch_year DESC, alumni_name
@@ -597,7 +611,7 @@ function get_admin_emails($conn) {
 
 // Check if alumni has existing profile (for first-time submission detection)
 function is_first_time_submission($conn, $user_id) {
-    $query = "SELECT COUNT(*) as count FROM alumni_profile WHERE user_id = ? AND (submission_status IS NULL OR submission_status = 'Not Submitted')";
+    $query = "SELECT COUNT(*) as count FROM alumni_profile WHERE user_id = ?";
     $stmt = $conn->prepare($query);
     $stmt->bind_param("i", $user_id);
     $stmt->execute();
@@ -609,14 +623,14 @@ function is_first_time_submission($conn, $user_id) {
 
 // Check if alumni submission was previously rejected
 function was_submission_rejected($conn, $user_id) {
-    $query = "SELECT submission_status, rejection_reason FROM alumni_profile WHERE user_id = ?";
+    $query = "SELECT rejection_reason FROM alumni_documents WHERE user_id = ? AND rejection_reason IS NOT NULL LIMIT 1";
     $stmt = $conn->prepare($query);
     $stmt->bind_param("i", $user_id);
     $stmt->execute();
     $result = $stmt->get_result();
     $row = $result->fetch_assoc();
     
-    return $row && $row['submission_status'] === 'Rejected';
+    return $row && !empty($row['rejection_reason']);
 }
 
 // ==================== USAGE EXAMPLES ====================

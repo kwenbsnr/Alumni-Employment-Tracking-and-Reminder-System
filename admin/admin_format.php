@@ -207,6 +207,18 @@ if (!function_exists('getSubmissionStatusIcon')) {
                         </a>
                     </li>
                    <li>
+                        <a href="report_generation.php" class="sidebar-item admin-sidebar-item <?php echo ($active_page ?? '') === 'report_generation' ? 'active' : ''; ?> flex items-center space-x-3 p-3 rounded-lg">
+                            <i class="fas fa-file-export w-6 text-lg" aria-hidden="true"></i>
+                            <span>Generate Report</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="submission_schedule.php" class="sidebar-item admin-sidebar-item <?php echo ($active_page ?? '') === 'submission_schedule' ? 'active' : ''; ?> flex items-center space-x-3 p-3 rounded-lg">
+                            <i class="fas fa-calendar-alt w-6 text-lg" aria-hidden="true"></i>
+                            <span>Submission Schedule</span>
+                        </a>
+                    </li>
+                   <li>
                         <a href="activity_log.php" class="sidebar-item admin-sidebar-item <?php echo ($active_page ?? '') === 'activity_log' ? 'active' : ''; ?> flex items-center space-x-3 p-3 rounded-lg">
                             <i class="fas fa-history w-6 text-lg" aria-hidden="true"></i>
                             <span>Activity Log</span>
@@ -225,7 +237,7 @@ if (!function_exists('getSubmissionStatusIcon')) {
         </nav>
 
         <div class="flex-1 flex flex-col min-w-0">
-            <header class="bg-white header-shadow z-10">
+            <header class="bg-white header-shadow sticky top-0 z-20"> 
                 <div class="flex items-center justify-between p-4">
                     <div>
                         <h1 class="text-3xl font-bold text-gray-800">
@@ -238,6 +250,10 @@ if (!function_exists('getSubmissionStatusIcon')) {
                             
                             if ($active_page === 'alumni_management') {
                                 $welcome_text = "Manage and view all alumni records in the system.";
+                            } elseif ($active_page === 'report_generation') {
+                                $welcome_text = "Generate comprehensive reports on alumni data.";
+                            } elseif ($active_page === 'submission_schedule') { // NEW WELCOME TEXT
+                                $welcome_text = "Set and manage the alumni profile submission period.";
                             } elseif ($active_page === 'activity_log') {
                                 $welcome_text = "Track updates, approvals, rejections, and other admin activities.";
                             } elseif ($active_page === 'dashboard') {
@@ -321,20 +337,21 @@ if (!function_exists('getSubmissionStatusIcon')) {
         
         // Toggle user dropdown
         const userMenuButton = document.getElementById('userMenuButton');
-        const userDropdown = document.getElementById('userDropdown');
+        // Note: The userDropdown element is not present in the provided HTML. 
+        // I will keep the listener logic commented out or removed until the element is added.
         
-        if (userMenuButton && userDropdown) {
-            userMenuButton.addEventListener('click', () => {
-                userDropdown.classList.toggle('hidden');
-            });
+        // if (userMenuButton && userDropdown) {
+        //     userMenuButton.addEventListener('click', () => {
+        //         userDropdown.classList.toggle('hidden');
+        //     });
             
-            // Close dropdown when clicking outside
-            document.addEventListener('click', (e) => {
-                if (!userMenuButton.contains(e.target) && !userDropdown.contains(e.target)) {
-                    userDropdown.classList.add('hidden');
-                }
-            });
-        }
+        //     // Close dropdown when clicking outside
+        //     document.addEventListener('click', (e) => {
+        //         if (!userMenuButton.contains(e.target) && !userDropdown.contains(e.target)) {
+        //             userDropdown.classList.add('hidden');
+        //         }
+        //     });
+        // }
     });
     
     function showToast(message, type = 'success') {
