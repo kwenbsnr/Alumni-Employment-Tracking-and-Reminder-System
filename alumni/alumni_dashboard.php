@@ -131,7 +131,7 @@ switch($document_status) {
         $document_message = 'Ready for review';
 }
 
-// Profile status mapping (MUST MATCH ADMIN VIEW)
+// In alumni_dashboard.php, update the profile status mapping:
 switch($submission_status) {
     case 'No Recent Update':
         $profile_status = 'Incomplete';
@@ -141,11 +141,8 @@ switch($submission_status) {
         break;
     case 'Rejected':
         $profile_status = 'Rejected';
-        // When rejected, documents requirement is not met
-        if (!$is_unemployed) {
-            $has_documents = false;
-            $is_profile_complete = false;
-        }
+        // When rejected, show specific message about employment documents
+        $profile_message = 'Employment documents rejected. Please review and resubmit.';
         break;
     case 'Pending':
         $profile_status = 'Pending Approval';
@@ -408,17 +405,19 @@ ob_start();
                                         $docTextClass = 'text-red-700';
                                         $docIcon = 'fa-times-circle';
                                         
-                                        // Fetch rejection reason if any document is rejected
-                                        $rejection_stmt = $conn->prepare("SELECT rejection_reason FROM alumni_documents WHERE user_id = ? AND document_status = 'Rejected' LIMIT 1");
+                                        // Fetch ALL rejection reasons for rejected documents
+                                        $rejection_stmt = $conn->prepare("SELECT document_type, rejection_reason FROM alumni_documents WHERE user_id = ? AND document_status = 'Rejected'");
                                         $rejection_stmt->bind_param("i", $user_id);
                                         $rejection_stmt->execute();
                                         $rejection_result = $rejection_stmt->get_result();
-                                        $rejection_data = $rejection_result->fetch_assoc();
+                                        $rejected_docs = [];
+                                        while ($row = $rejection_result->fetch_assoc()) {
+                                            $rejected_docs[] = $row;
+                                        }
                                         $rejection_stmt->close();
                                         
-                                        $rejection_reason = $rejection_data['rejection_reason'] ?? 'No reason provided';
-                                        $docMessage = 'Rejected: ' . htmlspecialchars($rejection_reason);
-                                    } elseif ($document_status === 'No Documents') {
+                                        $docMessage = count($rejected_docs) . ' document(s) rejected';
+                                    } elseif ($document_status === 'No Recent Update') {
                                         echo 'bg-gray-50 border border-gray-200 hover:border-gray-300';
                                         $docTextClass = 'text-gray-700';
                                         $docIcon = 'fa-file-circle-question';
@@ -439,15 +438,33 @@ ob_start();
                                 <p class="text-xs text-gray-600 mt-1 truncate">
                                     <?php echo $document['document_count']; ?> file<?php echo $document['document_count'] != 1 ? 's' : ''; ?> uploaded
                                 </p>
-                                <?php if ($document_status === 'Rejected' && isset($rejection_reason)): ?>
-                                    <div class="mt-2 p-2 bg-red-100 border border-red-200 rounded-lg">
-                                        <p class="text-xs font-semibold text-red-800 mb-1">Rejection Reason:</p>
-                                        <p class="text-xs text-red-700 whitespace-pre-wrap"><?php echo htmlspecialchars($rejection_reason); ?></p>
+                                
+                                <?php if ($document_status === 'Rejected' && !empty($rejected_docs)): ?>
+                                    <div class="mt-3 space-y-2">
+                                        <?php foreach ($rejected_docs as $doc): 
+                                            $doc_type_name = '';
+                                            switch($doc['document_type']) {
+                                                case 'COE': $doc_type_name = 'Certificate of Employment'; break;
+                                                case 'B_CERT': $doc_type_name = 'Business Certificate'; break;
+                                                case 'COR': $doc_type_name = 'Certificate of Registration'; break;
+                                                default: $doc_type_name = $doc['document_type'];
+                                            }
+                                        ?>
+                                            <div class="p-2 bg-red-100 border border-red-200 rounded-lg">
+                                                <p class="text-xs font-semibold text-red-800 mb-1"><?php echo htmlspecialchars($doc_type_name); ?>:</p>
+                                                <p class="text-xs text-red-700 whitespace-pre-wrap"><?php echo htmlspecialchars($doc['rejection_reason']); ?></p>
+                                            </div>
+                                        <?php endforeach; ?>
+                                        <div class="text-center pt-2">
+                                            <a href="alumni_employment.php" class="text-xs font-semibold text-red-700 hover:text-red-800 underline">
+                                                <i class="fas fa-edit mr-1"></i> Update and Resubmit
+                                            </a>
+                                        </div>
                                     </div>
                                 <?php elseif ($document_status === 'Approved'): ?>
-                                    <div class="mt-2 p-2 bg-emerald-100 border border-emerald-200 rounded-lg">
-                                        <p class="text-xs font-semibold text-emerald-800 mb-1">Status:</p>
-                                        <p class="text-xs text-emerald-700">Your documents have been approved successfully!</p>
+                                    <div class="mt-2 p-2 bg-emerald-50 border border-emerald-200 rounded-lg">
+                                        <p class="text-xs font-semibold text-emerald-800">✓ All documents approved</p>
+                                        <p class="text-xs text-emerald-700 mt-1">Your employment documents have been verified successfully!</p>
                                     </div>
                                 <?php endif; ?>
                             </div>
