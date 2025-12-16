@@ -9,11 +9,11 @@ include("../connect.php");
 require_once '../api/notification/notif_service.php';
 require_once __DIR__ . '/../api/utils/common_functions.php';
 
-$page_title = "Submission Schedule";
+$page_title = "Employment Submission Schedule";
 $active_page = "submission_schedule";
 
-// ====================== SUBMISSIONS CONTROL LOGIC ======================
-// Ensure the table exists with employment control field
+// ====================== EMPLOYMENT SUBMISSION CONTROL LOGIC ======================
+// Ensure the table exists (simplified - no employment_submission_open column)
 $conn->query("CREATE TABLE IF NOT EXISTS submission_status (
     id INT AUTO_INCREMENT PRIMARY KEY,
     is_open TINYINT(1) DEFAULT 0,
@@ -23,42 +23,23 @@ $conn->query("CREATE TABLE IF NOT EXISTS submission_status (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB");
 
-// Check if employment_submission_open column exists, add it if not
+// Remove the employment_submission_open column if it exists (cleanup from previous version)
 $result = $conn->query("SHOW COLUMNS FROM submission_status LIKE 'employment_submission_open'");
-if ($result->num_rows == 0) {
-    $conn->query("ALTER TABLE submission_status ADD COLUMN employment_submission_open TINYINT(1) DEFAULT 0");
+if ($result->num_rows > 0) {
+    $conn->query("ALTER TABLE submission_status DROP COLUMN employment_submission_open");
 }
 
 // Ensure a single record exists
 $statusCheck = $conn->query("SELECT * FROM submission_status LIMIT 1");
 if ($statusCheck->num_rows == 0) {
     // Default to closed and manually overridden
-    $conn->query("INSERT INTO submission_status (is_open, manual_override, employment_submission_open) VALUES (0, 1, 0)");
-}
-
-// --- Function to fetch alumni needing updates ---
-function get_alumni_for_update_notification($conn) {
-    return $conn->query("
-        SELECT u.user_id 
-        FROM users u 
-        LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id 
-        WHERE u.role = 'alumni' 
-        AND (
-            ap.user_id IS NULL 
-            OR ap.last_profile_update IS NULL 
-            OR ap.last_profile_update < DATE_SUB(NOW(), INTERVAL 6 MONTH)
-        )
-    ");
+    $conn->query("INSERT INTO submission_status (is_open, manual_override) VALUES (0, 1)");
 }
 
 // ====================== FORM SUBMISSION PROCESSING ======================
 if (isset($_POST['update_submission_status'])) {
     $action = $_POST['submission_action'] ?? '';
-    $notification_count = 0;
     $update_successful = false;
-    
-    // Get employment submission status from POST
-    $employment_submission_open = isset($_POST['employment_submission_open']) ? 1 : 0;
 
     if ($action === 'open_now' || $action === 'close_now') { 
         
@@ -69,39 +50,16 @@ if (isset($_POST['update_submission_status'])) {
             is_open = ?, 
             manual_override = 1, 
             open_date = NULL, 
-            close_date = NULL,
-            employment_submission_open = ?");
-        $stmt->bind_param('ii', $new_is_open, $employment_submission_open);
+            close_date = NULL");
+        $stmt->bind_param('i', $new_is_open);
         $update_successful = $stmt->execute();
         $stmt->close();
 
         if ($update_successful) {
-            $status_message = $new_is_open ? "Alumni submissions are now OPEN indefinitely." : "Alumni submissions are now CLOSED indefinitely.";
-            
-            // Add employment status info
-            if ($employment_submission_open) {
-                $status_message .= " Employment submissions are OPEN.";
-            } else {
-                $status_message .= " Employment submissions are CLOSED.";
-            }
-            
+            $status_message = $new_is_open 
+                ? "Employment submissions are now OPEN indefinitely. Alumni can update employment information." 
+                : "Employment submissions are now CLOSED indefinitely. Alumni cannot update employment information.";
             $status_type = 'success';
-        
-            if ($new_is_open && $employment_submission_open) {
-                // NOTIFICATION API INTEGRATION (Open Now)
-                $alumni_to_notify = get_alumni_for_update_notification($conn);
-                
-                while ($alumni = $alumni_to_notify->fetch_assoc()) {
-                    $result = send_profile_update_reminder($conn, $alumni['user_id']);
-                    if ($result['success']) {
-                        $notification_count++;
-                    }
-                }
-                
-                if ($notification_count > 0) {
-                    $status_message .= " Sent profile update reminders to {$notification_count} alumni.";
-                }
-            }
         } else {
             $status_message = "Database error: Could not update status.";
             $status_type = 'error';
@@ -130,39 +88,14 @@ if (isset($_POST['update_submission_status'])) {
                 open_date = ?, 
                 close_date = ?, 
                 manual_override = 0,
-                is_open = ?,
-                employment_submission_open = ?");
-            $stmt->bind_param('ssii', $open_date, $close_date, $new_is_open, $employment_submission_open);
+                is_open = ?");
+            $stmt->bind_param('ssi', $open_date, $close_date, $new_is_open);
             $update_successful = $stmt->execute();
             $stmt->close();
 
             if ($update_successful) {
-                $status_message = "Submissions scheduled — Opens: $from | Closes: $to";
-                
-                // Add employment status info
-                if ($employment_submission_open) {
-                    $status_message .= " Employment submissions are OPEN.";
-                } else {
-                    $status_message .= " Employment submissions are CLOSED.";
-                }
-                
+                $status_message = "Employment submissions scheduled — Opens: $from | Closes: $to";
                 $status_type = 'success';
-                
-                // NOTIFICATION API INTEGRATION FOR SCHEDULED OPENING (if currently open)
-                if ($new_is_open && $employment_submission_open) {
-                    $alumni_to_notify = get_alumni_for_update_notification($conn);
-                    
-                    while ($alumni = $alumni_to_notify->fetch_assoc()) {
-                        $result = send_profile_update_reminder($conn, $alumni['user_id']);
-                        if ($result['success']) {
-                            $notification_count++;
-                        }
-                    }
-
-                    if ($notification_count > 0) {
-                        $status_message .= " Sent scheduled update reminders to {$notification_count} alumni.";
-                    }
-                }
             } else {
                 $status_message = "Database error: Could not update schedule.";
                 $status_type = 'error';
@@ -181,7 +114,6 @@ $is_open = (bool)($statusRow['is_open'] ?? 0);
 $manual_override = (bool)($statusRow['manual_override'] ?? 1);
 $open_date = $statusRow['open_date'] ?? null;
 $close_date = $statusRow['close_date'] ?? null;
-$employment_submission_open = (bool)($statusRow['employment_submission_open'] ?? 0);
 
 // Check and update status if not manually overridden and scheduled dates exist
 if (!$manual_override && $open_date && $close_date) {
@@ -197,24 +129,6 @@ if (!$manual_override && $open_date && $close_date) {
         $stmt->close();
         
         $is_open = $new_status;
-
-        // AUTOMATIC NOTIFICATION WHEN SCHEDULE OPENS
-        if ($new_status == 1 && $employment_submission_open) {
-            // Notify alumni when submissions automatically open per schedule
-            $alumni_to_notify = get_alumni_for_update_notification($conn);
-            
-            $notification_count = 0;
-            while ($alumni = $alumni_to_notify->fetch_assoc()) {
-                $result = send_profile_update_reminder($conn, $alumni['user_id']);
-                if ($result['success']) {
-                    $notification_count++;
-                }
-            }
-
-            if ($notification_count > 0) {
-                error_log("[" . date('Y-m-d H:i:s') . "] Automatically sent profile update reminders to {$notification_count} alumni when submissions opened on schedule.");
-            }
-        }
     }
 }
 
@@ -226,17 +140,11 @@ $control_text = $manual_override ? 'Manual Control' : 'Scheduled Period';
 $control_icon = $manual_override ? 'fa-hand-pointer' : 'fa-calendar-check';
 $control_color = $manual_override ? 'blue' : 'indigo';
 
-// Employment submission status
-$employment_status_text = $employment_submission_open ? "OPEN" : "CLOSED";
-$employment_status_color = $employment_submission_open ? 'emerald' : 'red';
-$employment_status_icon = $employment_submission_open ? "fa-briefcase" : "fa-briefcase";
-
 // ====================== HTML OUTPUT START ======================
 ob_start();
 ?>
 
 <style>
-    /* MODIFIED STYLES FOR FULL WIDTH AND SCROLLBAR REMOVAL/ADJUSTMENT */
     .card-glow {
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
         transition: all 0.3s ease;
@@ -352,51 +260,6 @@ ob_start();
             opacity: 1;
         }
     }
-    
-    .toggle-switch {
-        position: relative;
-        display: inline-block;
-        width: 60px;
-        height: 30px;
-    }
-    
-    .toggle-switch input {
-        opacity: 0;
-        width: 0;
-        height: 0;
-    }
-    
-    .toggle-slider {
-        position: absolute;
-        cursor: pointer;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background-color: #ccc;
-        transition: .4s;
-        border-radius: 34px;
-    }
-    
-    .toggle-slider:before {
-        position: absolute;
-        content: "";
-        height: 22px;
-        width: 22px;
-        left: 4px;
-        bottom: 4px;
-        background-color: white;
-        transition: .4s;
-        border-radius: 50%;
-    }
-    
-    input:checked + .toggle-slider {
-        background-color: #10b981;
-    }
-    
-    input:checked + .toggle-slider:before {
-        transform: translateX(30px);
-    }
 </style>
 
 <div class="main-content-container">
@@ -433,63 +296,40 @@ ob_start();
                 <div class="flex items-start justify-between mb-4">
                     <div>
                         <h2 class="text-1xl font-bold text-gray-800 mb-0 flex items-center gap-1">
-                            Current Submission Status
+                            Current Employment Submission Status
                         </h2>
-                        <p class="text-gray-600 text-sm">Real-time availability for alumni profile and employment updates.</p>
+                        <p class="text-gray-600 text-sm">Controls alumni employment information updates only. Profile updates remain always available.</p>
                     </div>
                     
                     <div class="flex items-center gap-2 flex-shrink-0">
                         <span class="status-badge <?= $is_open ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-red-100 text-red-800 border border-red-200' ?>">
                             <span class="status-indicator <?= $is_open ? 'bg-emerald-500' : 'bg-red-500' ?>"></span>
-                            General: <?= $status_text ?>
-                        </span>
-                        <span class="status-badge <?= $employment_submission_open ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-red-100 text-red-800 border border-red-200' ?>">
-                            <span class="status-indicator <?= $employment_submission_open ? 'bg-emerald-500' : 'bg-red-500' ?>"></span>
-                            Employment: <?= $employment_status_text ?>
+                            Employment Submission: <?= $status_text ?>
                         </span>
                     </div>
                 </div>
                 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <!-- General Submission Status -->
-                    <div class="bg-white p-5 rounded-xl border-2 <?= $is_open ? 'border-emerald-200' : 'border-red-200' ?>">
-                        <div class="flex items-start gap-4 mb-3">
-                            <div class="w-12 h-12 rounded-full <?= $is_open ? 'bg-emerald-100' : 'bg-red-100' ?> flex items-center justify-center flex-shrink-0">
-                                <i class="fas <?= $status_icon ?> text-xl <?= $is_open ? 'text-emerald-600' : 'text-red-600' ?>"></i>
-                            </div>
-                            <div>
-                                <h3 class="font-bold text-gray-800 text-lg leading-snug">General Submissions</h3>
-                                <p class="text-gray-500 text-sm mt-0.5">
-                                    <?= $is_open ? 'Alumni can submit and update their profiles.' : 'Alumni submissions are currently not accepted.' ?>
-                                </p>
-                            </div>
+                <div class="bg-white p-5 rounded-xl border-2 <?= $is_open ? 'border-emerald-200' : 'border-red-200' ?>">
+                    <div class="flex items-start gap-4 mb-3">
+                        <div class="w-12 h-12 rounded-full <?= $is_open ? 'bg-emerald-100' : 'bg-red-100' ?> flex items-center justify-center flex-shrink-0">
+                            <i class="fas <?= $status_icon ?> text-xl <?= $is_open ? 'text-emerald-600' : 'text-red-600' ?>"></i>
                         </div>
-                        <div class="text-xs text-gray-600">
-                            <p class="font-medium">Control Mode: <span class="text-gray-500"><?= $control_text ?></span></p>
+                        <div>
+                            <h3 class="font-bold text-gray-800 text-lg leading-snug">Employment Information Updates</h3>
+                            <p class="text-gray-500 text-sm mt-0.5">
+                                <?= $is_open 
+                                    ? 'Alumni can currently update employment information, job details, and upload documents.' 
+                                    : 'Employment updates are currently locked. Alumni cannot submit or update employment-related information.' ?>
+                            </p>
                         </div>
                     </div>
-                    
-                    <!-- Employment Submission Status -->
-                    <div class="bg-white p-5 rounded-xl border-2 <?= $employment_submission_open ? 'border-emerald-200' : 'border-red-200' ?>">
-                        <div class="flex items-start gap-4 mb-3">
-                            <div class="w-12 h-12 rounded-full <?= $employment_submission_open ? 'bg-emerald-100' : 'bg-red-100' ?> flex items-center justify-center flex-shrink-0">
-                                <i class="fas <?= $employment_status_icon ?> text-xl <?= $employment_submission_open ? 'text-emerald-600' : 'text-red-600' ?>"></i>
-                            </div>
-                            <div>
-                                <h3 class="font-bold text-gray-800 text-lg leading-snug">Employment Submissions</h3>
-                                <p class="text-gray-500 text-sm mt-0.5">
-                                    <?= $employment_submission_open ? 'Alumni can update employment information.' : 'Employment updates are currently locked.' ?>
-                                </p>
-                            </div>
-                        </div>
-                        <div class="text-xs text-gray-600">
-                            <p class="font-medium">Affected Data: <span class="text-gray-500">Employment status, job details, documents</span></p>
-                        </div>
+                    <div class="text-xs text-gray-600">
+                        <p class="font-medium">Control Mode: <span class="text-gray-500"><?= $control_text ?></span></p>
                     </div>
                 </div>
                 
                 <?php if (!$manual_override && $open_date && $close_date): ?>
-                    <div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                    <div class="bg-blue-50 p-3 rounded-lg border border-blue-200 mt-4">
                         <div class="flex items-center gap-2 text-blue-700">
                             <i class="fas fa-calendar-alt"></i>
                             <span class="text-sm font-medium">Current Schedule Active</span>
@@ -505,9 +345,9 @@ ob_start();
             <!-- Control Settings -->
             <div class="bg-gradient-to-br from-gray-50 to-white p-6 rounded-2xl card-glow">
                 <h2 class="text-xl font-bold text-gray-800 mb-0 flex items-center gap-3">
-                    Submission Control Settings
+                    Employment Submission Control Settings
                 </h2>
-                <p class="text-gray-600 mb-4">Define the availability for alumni submissions.</p>
+                <p class="text-gray-600 mb-4">Define when alumni can submit and update employment information.</p>
                 
                 <form method="POST" class="space-y-6" onsubmit="return validateSubmissionDates()" id="scheduleForm">
                     <div class="space-y-4">
@@ -524,7 +364,7 @@ ob_start();
                                             <i class="fas fa-unlock-alt text-emerald-500"></i>
                                             <h3 class="font-semibold text-gray-800">Open Indefinitely</h3>
                                         </div>
-                                        <p class="text-sm text-gray-500">Alumni can submit profiles immediately without time restrictions.</p>
+                                        <p class="text-sm text-gray-500">Alumni can update employment information immediately without time restrictions.</p>
                                     </div>
                                 </div>
                             </label>
@@ -539,7 +379,7 @@ ob_start();
                                             <i class="fas fa-lock text-red-500"></i>
                                             <h3 class="font-semibold text-gray-800">Close Indefinitely</h3>
                                         </div>
-                                        <p class="text-sm text-gray-500">All submissions are stopped until explicitly opened.</p>
+                                        <p class="text-sm text-gray-500">All employment submissions are stopped until explicitly opened.</p>
                                     </div>
                                 </div>
                             </label>
@@ -554,36 +394,10 @@ ob_start();
                                             <i class="fas fa-clock text-blue-500"></i>
                                             <h3 class="font-semibold text-gray-800">Schedule Period</h3>
                                         </div>
-                                        <p class="text-sm text-gray-500">Set specific open and close dates for submissions.</p>
+                                        <p class="text-sm text-gray-500">Set specific open and close dates for employment submissions.</p>
                                     </div>
                                 </div>
                             </label>
-                        </div>
-
-                        <!-- Employment Submission Toggle -->
-                        <div class="bg-white p-5 rounded-xl border-2 border-gray-200 mt-4">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                                        <i class="fas fa-briefcase text-blue-600"></i>
-                                    </div>
-                                    <div>
-                                        <h3 class="font-semibold text-gray-800">Employment Submission Control</h3>
-                                        <p class="text-sm text-gray-500">Control specifically for employment information updates</p>
-                                    </div>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" name="employment_submission_open" 
-                                           value="1" <?= $employment_submission_open ? 'checked' : '' ?>>
-                                    <span class="toggle-slider"></span>
-                                </label>
-                            </div>
-                            <div class="mt-3 p-3 bg-gray-50 rounded-lg">
-                                <p class="text-sm text-gray-700">
-                                    <span class="font-medium">When enabled:</span> Alumni can update employment status, job details, and upload documents.<br>
-                                    <span class="font-medium">When disabled:</span> Employment updates are locked with a message shown to alumni.
-                                </p>
-                            </div>
                         </div>
 
                         <div id="scheduleInputs" class="bg-white p-5 rounded-xl border-2 border-gray-200 mt-4 <?= !$manual_override ? '' : 'opacity-60' ?>">
@@ -626,7 +440,7 @@ ob_start();
                         <button type="submit" name="update_submission_status" 
                                 class="control-btn flex items-center gap-2">
                             <i class="fas fa-save"></i>
-                            Save Submission Settings
+                            Save Employment Submission Settings
                         </button>
                     </div>
                 </form>
