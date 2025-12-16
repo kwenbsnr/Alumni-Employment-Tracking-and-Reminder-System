@@ -2,8 +2,8 @@
 -- version 5.2.1
 -- https://www.phpmyadmin.net/
 --
--- Host: 127.0.0.1
--- Generation Time: Dec 16, 2025 at 04:31 AM
+-- Host: 127.0.0.1:3306
+-- Generation Time: Dec 16, 2025 at 06:29 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -35,6 +35,15 @@ CREATE TABLE `alumni_activity_log` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+--
+-- Dumping data for table `alumni_activity_log`
+--
+
+INSERT INTO `alumni_activity_log` (`log_id`, `user_id`, `action_type`, `description`, `created_at`) VALUES
+(227, 3, 'employment_updated', 'Updated employment information', '2025-12-16 08:50:45'),
+(228, 3, 'profile_updated', 'Updated personal information and uploaded new profile photo', '2025-12-16 09:19:55'),
+(229, 2, 'employment_updated', 'Updated employment information', '2025-12-16 12:27:09');
+
 -- --------------------------------------------------------
 
 --
@@ -62,7 +71,7 @@ INSERT INTO `alumni_address` (`address_id`, `user_id`, `city`, `state_province`,
 (37, 26, 'San Miguel', 'Zamboanga del Sur', '909 Del Pilar Street', 'Philippines', '2025-12-15 03:41:27', '2025-12-15 04:56:43'),
 (38, 22, 'Dumingag', 'Zamboanga del Sur', '981 Mabini Street', 'Philippines', '2025-12-15 04:06:43', '2025-12-15 04:56:43'),
 (39, 1, 'Labangan', 'Zamboanga del Sur', '607 Rizal Street', 'Philippines', '2025-12-15 05:26:06', '2025-12-15 05:26:06'),
-(40, 3, 'San Miguel', 'Zamboanga del Sur', '412 Bonifacio Drive', 'Philippines', '2025-12-15 05:26:06', '2025-12-15 06:52:00'),
+(40, 3, 'San Miguel', 'Zamboanga del Sur', '412 Bonifacio Drive', 'Philippines', '2025-12-15 05:26:06', '2025-12-16 09:19:55'),
 (41, 4, 'Dumingag', 'Zamboanga del Sur', '13 Mabini Street', 'Philippines', '2025-12-15 05:26:06', '2025-12-15 05:26:06'),
 (42, 5, 'Molave', 'Zamboanga del Sur', '880 Del Pilar Street', 'Philippines', '2025-12-15 05:26:06', '2025-12-15 05:26:06'),
 (43, 6, 'Mahayag', 'Zamboanga del Sur', '932 Rizal Street', 'Philippines', '2025-12-15 05:26:06', '2025-12-15 05:26:06'),
@@ -121,6 +130,16 @@ CREATE TABLE `alumni_documents` (
   `document_status` enum('Pending','Approved','Rejected') DEFAULT 'Pending'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `alumni_documents`
+--
+
+INSERT INTO `alumni_documents` (`doc_id`, `user_id`, `document_type`, `file_path`, `rejection_reason`, `rejected_at`, `document_status`) VALUES
+(160, 3, 'COE', 'uploads/documents/jorge_coe_2YU4I.pdf', NULL, NULL, 'Pending'),
+(161, 3, 'COR', 'uploads/documents/jorge_cor_Agdml.pdf', NULL, NULL, 'Pending'),
+(162, 2, 'COE', 'uploads/documents/bisnar_coe_iVVHg.pdf', NULL, NULL, 'Approved'),
+(163, 2, 'COR', 'uploads/documents/bisnar_cor_MtaaF.pdf', NULL, NULL, 'Approved');
+
 -- --------------------------------------------------------
 
 --
@@ -134,6 +153,14 @@ CREATE TABLE `alumni_profile` (
   `last_profile_update` timestamp NULL DEFAULT NULL,
   `submitted_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `alumni_profile`
+--
+
+INSERT INTO `alumni_profile` (`user_id`, `employment_status`, `photo_path`, `last_profile_update`, `submitted_at`) VALUES
+(2, 'Employed & Student', NULL, '2025-12-16 12:27:09', '2025-12-16 12:30:41'),
+(3, 'Employed & Student', 'uploads/profile_photos/jorge_profile_d5036.png', '2025-12-16 09:19:55', '2025-12-16 08:50:45');
 
 -- --------------------------------------------------------
 
@@ -150,6 +177,14 @@ CREATE TABLE `education_info` (
   `end_year` year(4) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+--
+-- Dumping data for table `education_info`
+--
+
+INSERT INTO `education_info` (`education_id`, `user_id`, `school_name`, `degree_pursued`, `start_year`, `end_year`) VALUES
+(66, 3, 'Zambo Sur', 'Phd', '2021', '2024'),
+(67, 2, 'Zamboanga del Sur State University', 'Master of Science in Cybersecurity', '2023', '2026');
+
 -- --------------------------------------------------------
 
 --
@@ -165,6 +200,14 @@ CREATE TABLE `employment_info` (
   `business_type` varchar(255) DEFAULT NULL,
   `company_address` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `employment_info`
+--
+
+INSERT INTO `employment_info` (`employment_id`, `user_id`, `job_title_id`, `company_name`, `salary_range`, `business_type`, `company_address`) VALUES
+(113, 3, 23, 'Achuchu', '₱30,000–₱40,000', NULL, 'Ukraine'),
+(115, 2, 12, 'Meta', '₱20,000–₱30,000', NULL, 'USA');
 
 -- --------------------------------------------------------
 
@@ -215,15 +258,17 @@ CREATE TABLE `submission_status` (
   `manual_override` tinyint(1) DEFAULT 0,
   `open_date` datetime DEFAULT NULL,
   `close_date` datetime DEFAULT NULL,
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `employment_submission_open` tinyint(1) DEFAULT 0,
+  `user_id` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `submission_status`
 --
 
-INSERT INTO `submission_status` (`id`, `is_open`, `manual_override`, `open_date`, `close_date`, `updated_at`) VALUES
-(1, 0, 0, '2025-12-16 11:27:00', '2025-12-16 11:29:00', '2025-12-16 03:29:02');
+INSERT INTO `submission_status` (`id`, `is_open`, `manual_override`, `open_date`, `close_date`, `updated_at`, `employment_submission_open`, `user_id`) VALUES
+(1, 1, 1, NULL, NULL, '2025-12-16 12:25:26', 0, NULL);
 
 -- --------------------------------------------------------
 
@@ -239,6 +284,17 @@ CREATE TABLE `update_log` (
   `update_details` text DEFAULT NULL,
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `update_log`
+--
+
+INSERT INTO `update_log` (`log_id`, `updated_by`, `updated_id`, `update_type`, `update_details`, `updated_at`) VALUES
+(78, 47, 0, 'approve', 'Approved alumni documents', '2025-12-16 09:20:40'),
+(79, 47, 0, 'reject', 'Rejected alumni documents - Reason: test rejection', '2025-12-16 09:22:05'),
+(80, 47, 2, 'approve', 'Approved specific document (ID: 162)', '2025-12-16 12:28:20'),
+(81, 47, 2, 'approve', 'Approved specific document (ID: 163)', '2025-12-16 12:30:41'),
+(82, 47, 0, 'reject', 'Rejected all alumni documents - Reason: Document is blurry or illegible.', '2025-12-16 13:40:42');
 
 -- --------------------------------------------------------
 
@@ -273,7 +329,7 @@ CREATE TABLE `users` (
 INSERT INTO `users` (`user_id`, `email`, `password`, `role`, `first_name`, `middle_name`, `last_name`, `suffix`, `created_at`, `student_id`, `date_of_birth`, `gender`, `program`, `batch_year`, `citizenship`, `civil_status`, `contact_number`) VALUES
 (1, 'josieoliveros013@gmail.com', '$2y$10$ehX/E2zWveVcemhEh6PmLOGJM8HlV2g5jePA7LEfwgftW1DJZ8Uz.', 'alumni', 'Josie', 'Gumera', 'Oliveros', '', '2025-10-13 13:59:40', '2020-00123', '1997-01-11', 'Female', 'Bachelor of Science in Information Technology', '2020', 'Filipino', 'Single', '09163046602'),
 (2, 'quienbisnar@gmail.com', '$2y$10$iVt2fcpR/Z19c8jTMKyA5OgBFCYb5GK44KCQMXmagMMxDstzdparC', 'alumni', 'Quien', 'Bendula', 'Bisnar', '', '2025-10-13 11:48:34', '2020-00124', '2002-12-02', 'Female', 'Bachelor of Science in Information Technology', '2018', 'Filipino', 'Single', '09857825230'),
-(3, 'aseneroglaiza@gmail.com', '$2y$10$UHN1b.vJAkh26l4TdpkxT.Zfsvi3DgvgH5m41PRIGAnMefSpfufhO', 'alumni', 'George', 'Corge', 'Jorge', '', '2025-10-13 14:01:10', '2020-01011', '2000-11-02', 'Female', 'Bachelor of Science in Information Technology', '2018', 'Filipino', 'Single', '09532677351'),
+(3, 'aseneroglaiza@gmail.com', '$2y$10$UHN1b.vJAkh26l4TdpkxT.Zfsvi3DgvgH5m41PRIGAnMefSpfufhO', 'alumni', 'Glaiza', 'Ewayan', 'Aseñero', 'Jr', '2025-10-13 14:01:10', '2020-01011', '2000-11-02', 'Female', 'Bachelor of Science in Information Technology', '2018', 'Filipino', 'Single', '09532677351'),
 (4, 'glowentanamanmil08@gmail.com', '$2y$10$.X6JG2ZcAC.Oi3RLDciATehWeH1FxfvrB4NBhnT8Eqwy9dkcT1TL.', 'alumni', 'Glowen', '', 'Tanaman', '', '2025-10-17 08:59:39', '2020-11141', '2001-07-16', 'Male', 'Bachelor of Science in Information Technology', '2019', 'Filipino', 'Single', '09426456224'),
 (5, 'repe.ronaldojr@gmail.com', '$2y$10$AV5HSa53xpJRPykHLCQhuei9q5Rtk7SMFfs.yS9riewWH/d0hylKC', 'alumni', 'Ronaldo', 'Montemor', 'Repe', 'Jr.', '2025-10-17 08:59:39', '2020-09898', '2000-04-14', 'Male', 'Bachelor of Science in Information Technology', '2018', 'Filipino', 'Single', '09732322022'),
 (6, 'davelabadan1@gmail.com', '$2y$10$h6Xx10eFsuv0vhUk9ApM/OmLJ1YHyYRGx.lAb.0iSmuHFZ8NpwjO2', 'alumni', 'China Dave', 'Jumuad', 'Labadan', '', '2025-10-17 08:59:39', '2020-00004', '2000-03-11', 'Male', 'Bachelor of Science in Information Technology', '2021', 'Filipino', 'Single', '09382241467'),
@@ -382,7 +438,8 @@ ALTER TABLE `job_titles`
 -- Indexes for table `submission_status`
 --
 ALTER TABLE `submission_status`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `fk_submission_status_user` (`user_id`);
 
 --
 -- Indexes for table `update_log`
@@ -410,7 +467,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `alumni_activity_log`
 --
 ALTER TABLE `alumni_activity_log`
-  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=227;
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=230;
 
 --
 -- AUTO_INCREMENT for table `alumni_address`
@@ -422,19 +479,19 @@ ALTER TABLE `alumni_address`
 -- AUTO_INCREMENT for table `alumni_documents`
 --
 ALTER TABLE `alumni_documents`
-  MODIFY `doc_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=160;
+  MODIFY `doc_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=164;
 
 --
 -- AUTO_INCREMENT for table `education_info`
 --
 ALTER TABLE `education_info`
-  MODIFY `education_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=66;
+  MODIFY `education_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=68;
 
 --
 -- AUTO_INCREMENT for table `employment_info`
 --
 ALTER TABLE `employment_info`
-  MODIFY `employment_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=113;
+  MODIFY `employment_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=116;
 
 --
 -- AUTO_INCREMENT for table `job_titles`
@@ -452,7 +509,7 @@ ALTER TABLE `submission_status`
 -- AUTO_INCREMENT for table `update_log`
 --
 ALTER TABLE `update_log`
-  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=78;
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=83;
 
 --
 -- AUTO_INCREMENT for table `users`
@@ -501,6 +558,12 @@ ALTER TABLE `employment_info`
   ADD CONSTRAINT `employment_info_ibfk_1` FOREIGN KEY (`job_title_id`) REFERENCES `job_titles` (`job_title_id`) ON DELETE SET NULL,
   ADD CONSTRAINT `fk_employment_info_user_id` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE,
   ADD CONSTRAINT `fk_employment_job` FOREIGN KEY (`job_title_id`) REFERENCES `job_titles` (`job_title_id`);
+
+--
+-- Constraints for table `submission_status`
+--
+ALTER TABLE `submission_status`
+  ADD CONSTRAINT `fk_submission_status_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 --
 -- Constraints for table `update_log`
