@@ -7,7 +7,6 @@ if (!isset($_SESSION["user_id"]) || $_SESSION["role"] !== "admin") {
 }
 
 include("../connect.php");
-require_once '../api/notification/notif_service.php';
 
 function syncAlumniStatus($conn, $user_id) {
     require_once '../api/utils/submission_status.php';
@@ -18,6 +17,7 @@ function syncAlumniStatus($conn, $user_id) {
     
     return $new_status;
 }
+
 function shouldSendNotification($conn) {
     if (!function_exists('isSubmissionPeriodOpen')) {
         require_once dirname(__DIR__) . '/api/utils/deadline.php';
@@ -30,7 +30,79 @@ $referrer = $_SERVER['HTTP_REFERER'] ?? '';
 $came_from_batch = strpos($referrer, 'batch_alumni.php') !== false;
 $came_from_all = strpos($referrer, 'all_alumni.php') !== false;
 
-if (isset($_GET['user_id']) && isset($_GET['status'])) {
+// Handle bulk rejection from unified modal
+if (isset($_GET['type']) && $_GET['type'] === 'document_bulk_reject' && isset($_GET['rejections'])) {
+    $user_id = intval($_GET['user_id']);
+    $admin_id = $_SESSION["user_id"];
+    
+    // Decode the rejections parameter
+    $rejections = $_GET['rejections'];
+    if (is_string($rejections)) {
+        $rejections = json_decode(urldecode($rejections), true);
+    }
+    
+    // Ensure it's an array
+    if (!is_array($rejections)) {
+        $rejections = [];
+    }
+    
+    if (empty($rejections)) {
+        $_SESSION['message'] = "No documents selected for rejection";
+        $_SESSION['message_type'] = "error";
+    } else {
+        $conn->begin_transaction();
+        
+        try {
+            $rejected_count = 0;
+            
+            foreach ($rejections as $rejection) {
+                if (!isset($rejection['doc_id']) || !isset($rejection['reason'])) {
+                    continue;
+                }
+                
+                $doc_id = intval($rejection['doc_id']);
+                $reason = trim($rejection['reason']);
+                
+                if (empty($reason)) {
+                    continue;
+                }
+                
+                // Update the specific document
+                $stmt = $conn->prepare("UPDATE alumni_documents SET document_status = 'Rejected', rejection_reason = ?, rejected_at = NOW() WHERE doc_id = ?");
+                $stmt->bind_param("si", $reason, $doc_id);
+                $stmt->execute();
+                $stmt->close();
+                
+                $rejected_count++;
+            }
+            
+            // Update alumni_profile submitted_at timestamp
+            $updateTimestampStmt = $conn->prepare("UPDATE alumni_profile SET submitted_at = NOW() WHERE user_id = ?");
+            $updateTimestampStmt->bind_param("i", $user_id);
+            $updateTimestampStmt->execute();
+            $updateTimestampStmt->close();
+            
+            // Log the action
+            $details = "Rejected $rejected_count document(s) via bulk rejection";
+            $logStmt = $conn->prepare("INSERT INTO update_log (updated_by, updated_id, update_type, update_details, updated_at) VALUES (?, ?, 'reject', ?, NOW())");
+            $logStmt->bind_param("iis", $admin_id, $user_id, $details);
+            $logStmt->execute();
+            $logStmt->close();
+            
+            $conn->commit();
+            
+            $_SESSION['message'] = "Successfully rejected $rejected_count document(s)";
+            $_SESSION['message_type'] = "success";
+            
+        } catch (Exception $e) {
+            $conn->rollback();
+            $_SESSION['message'] = "Error: " . $e->getMessage();
+            $_SESSION['message_type'] = "error";
+        }
+    }
+} 
+// Handle regular status updates
+elseif (isset($_GET['user_id']) && isset($_GET['status'])) {
     $user_id = intval($_GET['user_id']);
     $status = $_GET['status'];
     $reason = $_GET['reason'] ?? '';
@@ -78,7 +150,7 @@ if (isset($_GET['user_id']) && isset($_GET['status'])) {
                     $stmt->execute();
                     $stmt->close();
                     
-                    // FIX: Update alumni_profile submitted_at timestamp when ANY document is approved OR rejected
+                    // Update alumni_profile submitted_at timestamp when ANY document is approved OR rejected
                     if ($status === 'Approved' || $status === 'Rejected') {
                         $updateTimestampStmt = $conn->prepare("UPDATE alumni_profile SET submitted_at = NOW() WHERE user_id = ?");
                         $updateTimestampStmt->bind_param("i", $doc_user_id);
@@ -130,6 +202,64 @@ if (isset($_GET['user_id']) && isset($_GET['status'])) {
                     }
                     $_SESSION['message_type'] = "success";
                     
+                } 
+                // Handle bulk document actions
+                elseif ($type === 'document_bulk' && isset($_GET['doc_ids'])) {
+                    $doc_ids = explode(',', $_GET['doc_ids']);
+                    $valid_doc_ids = array_filter(array_map('intval', $doc_ids));
+                    
+                    if (empty($valid_doc_ids)) {
+                        throw new Exception("No valid document IDs provided");
+                    }
+                    
+                    // Update all specified documents
+                    $placeholders = implode(',', array_fill(0, count($valid_doc_ids), '?'));
+                    $types = str_repeat('i', count($valid_doc_ids));
+                    
+                    if ($status === 'Rejected') {
+                        // For bulk reject, we need individual reasons - this should use the bulk_reject handler above
+                        throw new Exception("Bulk rejection requires individual reasons for each document");
+                    } else {
+                        // For bulk approve or revert to pending
+                        $query = "UPDATE alumni_documents SET document_status = ?, rejection_reason = NULL, rejected_at = NULL WHERE doc_id IN ($placeholders)";
+                        $stmt = $conn->prepare($query);
+                        $params = array_merge([$status], $valid_doc_ids);
+                        $stmt->bind_param(str_repeat('s', 1) . $types, ...$params);
+                        $stmt->execute();
+                        $stmt->close();
+                    }
+                    
+                    // Update alumni_profile submitted_at timestamp
+                    if ($status === 'Approved' || $status === 'Rejected') {
+                        $updateTimestampStmt = $conn->prepare("UPDATE alumni_profile SET submitted_at = NOW() WHERE user_id = ?");
+                        $updateTimestampStmt->bind_param("i", $user_id);
+                        $updateTimestampStmt->execute();
+                        $updateTimestampStmt->close();
+                    }
+                    
+                    // LOG THE ACTION - Bulk document
+                    $update_type = '';
+                    $details = '';
+                    
+                    if ($status === 'Approved') {
+                        $update_type = 'approve';
+                        $details = "Approved " . count($valid_doc_ids) . " document(s) via bulk action";
+                    } elseif ($status === 'Pending') {
+                        $update_type = 'update';
+                        $details = "Reverted " . count($valid_doc_ids) . " document(s) to pending status via bulk action";
+                    }
+                    
+                    // Insert into update_log
+                    $logStmt = $conn->prepare("INSERT INTO update_log (updated_by, updated_id, update_type, update_details, updated_at) VALUES (?, ?, ?, ?, NOW())");
+                    $logStmt->bind_param("iiss", $admin_id, $user_id, $update_type, $details);
+                    $logStmt->execute();
+                    $logStmt->close();
+                    
+                    $conn->commit();
+                    
+                    $_SESSION['message'] = "Successfully updated " . count($valid_doc_ids) . " document(s) to " . strtolower($status);
+                    $_SESSION['message_type'] = "success";
+                    
                 } else {
                     // --- PROFILE-LEVEL UPDATE (legacy) ---
                     // Get current document status before update for undo context
@@ -152,7 +282,7 @@ if (isset($_GET['user_id']) && isset($_GET['status'])) {
                     }
 
                     if ($stmt->execute()) {
-                        // FIX: Update alumni_profile submitted_at timestamp when documents are approved OR rejected
+                        // Update alumni_profile submitted_at timestamp when documents are approved OR rejected
                         if ($status === 'Approved' || $status === 'Rejected') {
                             $updateTimestampStmt = $conn->prepare("UPDATE alumni_profile SET submitted_at = NOW() WHERE user_id = ?");
                             $updateTimestampStmt->bind_param("i", $user_id);
@@ -208,34 +338,6 @@ if (isset($_GET['user_id']) && isset($_GET['status'])) {
                     $stmt->close();
                 }
                 
-                // === NOTIFICATION INTEGRATION ===
-                // Check if notifications should be sent based on schedule
-                if (shouldSendNotification($conn) && ($status === 'Approved' || $status === 'Rejected')) {
-                    // Ensure notification functions exist
-                    if (!function_exists('send_approval_notification')) {
-                        require_once '../api/notification/notif_service.php';
-                    }
-                    
-                    if ($status === 'Approved') {
-                        // Send approval notification to alumni
-                        $result = send_approval_notification($conn, $user_id);
-                    } elseif ($status === 'Rejected') {
-                        // Send rejection notification to alumni
-                        $result = send_rejection_notification($conn, $user_id, $reason);
-                    }
-                    
-                    // Log notification results
-                    if (isset($result['success']) && $result['success']) {
-                        error_log("Notification sent for user $user_id, status: $status");
-                    } else {
-                        error_log("Notification failed for user $user_id: " . ($result['error'] ?? 'Unknown error'));
-                    }
-                } else {
-                    // Log why notification wasn't sent
-                    $schedule_status = shouldSendNotification($conn) ? "Schedule closed" : "Invalid status";
-                    error_log("Notification not sent for user $user_id: $schedule_status");
-                }
-
             } catch (Exception $e) {
                 // Rollback on any error
                 $conn->rollback();
@@ -287,3 +389,4 @@ if (isset($_SESSION['message'])) {
 
 header("Location: $redirect_url");
 exit();
+?>
