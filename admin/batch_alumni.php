@@ -270,9 +270,7 @@ ob_start();
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employment Status</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submission Status</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Documents Uploaded</th> 
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Submitted</th> 
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                    </tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th> <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Submitted</th> </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     <?php while ($alumni = $alumniResult->fetch_assoc()): ?>
@@ -362,16 +360,7 @@ ob_start();
                                     <span class="text-gray-400 text-sm">No recent uploads</span>
                                 <?php endif; ?>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <?php if ($submitted_at): ?>
-                                    <div class="text-sm text-gray-900">
-                                        <div class="font-medium"><?= $submitted_date ?></div>
-                                        <div class="text-xs text-gray-500"><?= $submitted_time ?></div>
-                                    </div>
-                                <?php else: ?>
-                                    <span class="text-gray-400 text-sm">—</span>
-                                <?php endif; ?>
-                            </td>
+                            
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                 <?php if ($has_documents): ?>
                                     <button 
@@ -381,6 +370,16 @@ ob_start();
                                     </button>
                                 <?php else: ?>
                                     <span class="text-gray-400 text-sm">No Document Action</span>
+                                <?php endif; ?>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <?php if ($submitted_at): ?>
+                                    <div class="text-sm text-gray-900">
+                                        <div class="font-medium"><?= $submitted_date ?></div>
+                                        <div class="text-xs text-gray-500"><?= $submitted_time ?></div>
+                                    </div>
+                                <?php else: ?>
+                                    <span class="text-gray-400 text-sm">—</span>
                                 <?php endif; ?>
                             </td>
                         </tr>
