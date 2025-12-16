@@ -9,7 +9,7 @@
  * @return array|null Deadline configuration or null if not found
  */
 function getCurrentDeadlineConfig($conn) {
-    // First, try to get the latest configuration regardless of status
+    // try to get the latest configuration regardless of status
     $sql = "SELECT * FROM submission_status 
             ORDER BY submission_id DESC 
             LIMIT 1";
@@ -85,6 +85,36 @@ function isSubmissionPeriodOpen($conn) {
 }
 
 /**
+ * Check if EMPLOYMENT submission is specifically open
+ * 
+ * @param mysqli $conn Database connection
+ * @return bool True if employment submissions are accepted
+ */
+function isEmploymentSubmissionOpen($conn) {
+    $config = getCurrentDeadlineConfig($conn);
+    
+    if (!$config) {
+        return false; // No schedule configured at all
+    }
+    
+    // First check if column exists (for backward compatibility)
+    if (!isset($config['employment_submission_open'])) {
+        // Column doesn't exist yet, default to false
+        return false;
+    }
+    
+    // Check if employment submission is specifically enabled
+    $employment_open = (bool)($config['employment_submission_open'] ?? 0);
+    
+    if (!$employment_open) {
+        return false;
+    }
+    
+    // Employment submissions require both general submissions to be open AND employment specifically open
+    return isSubmissionPeriodOpen($conn);
+}
+
+/**
  * Calculate days remaining until deadline
  * 
  * @param mysqli $conn Database connection
@@ -153,11 +183,13 @@ function getAllDeadlineInfo($conn) {
         'formatted_date' => getFormattedDeadline($conn),
         'days_remaining' => $daysLeft,
         'is_open' => isSubmissionPeriodOpen($conn),
+        'is_employment_open' => isEmploymentSubmissionOpen($conn),
         'is_approaching' => isDeadlineApproaching($conn),
         'urgency_level' => getDeadlineUrgency($conn),
         'open_date' => $config ? $config['open_date'] : null,
         'close_date' => $config ? $config['close_date'] : null,
-        'has_manual_override' => $config ? ($config['manual_override'] == 1) : false
+        'has_manual_override' => $config ? ($config['manual_override'] == 1) : false,
+        'employment_submission_open' => $config ? ($config['employment_submission_open'] ?? 0) : 0
     ];
 }
 

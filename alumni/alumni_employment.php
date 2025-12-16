@@ -80,11 +80,11 @@ while ($row = $result->fetch_assoc()) {
 }
 $stmt->close();
 
-// Check if submission period is open
-if (!function_exists('isSubmissionPeriodOpen')) {
+// ========== Check if EMPLOYMENT submission is open ==========
+if (!function_exists('isEmploymentSubmissionOpen')) {
     require_once dirname(__DIR__) . '/api/utils/deadline.php';
 }
-$submission_open = isSubmissionPeriodOpen($conn);
+$submission_open = isEmploymentSubmissionOpen($conn);
 
 ob_start();
 ?>
@@ -142,10 +142,12 @@ ob_start();
             </div>
             <?php if ($submission_open): ?>
                 <i class="fas fa-arrow-right text-lg text-blue-600 opacity-80"></i>
+            <?php else: ?>
+                <i class="fas fa-lock text-lg text-gray-500"></i>
             <?php endif; ?>
         </div>
 
-        <?php if ($submission_open): ?>
+                <?php if ($submission_open): ?>
             <div class="bg-blue-50 rounded-xl px-4 py-3 border border-blue-200">
                 <p class="text-sm font-medium text-blue-900">Keep your employment information current</p>
                 <p class="text-xs text-blue-700 mt-1">Update your job details, employment status, and educational pursuits</p>
@@ -157,10 +159,25 @@ ob_start();
                 </button>
             </div>
         <?php else: ?>
-            <div class="bg-gray-100 rounded-xl px-4 py-2.5">
-                <p class="text-xs font-medium text-gray-700 text-center">Employment updates are temporarily closed by admin</p>
+            <!-- Employment lock message -->
+            <div class="bg-red-50 rounded-xl px-4 py-3 border border-red-200 mb-4">
+                <div class="flex items-center gap-2 mb-2">
+                    <i class="fas fa-lock text-red-500"></i>
+                    <p class="text-sm font-medium text-red-800">Employment submission is currently locked by the administrator.</p>
+                </div>
+                <p class="text-xs text-red-700">
+                    You cannot submit or update employment-related information at this time.<br>
+                    Profile and personal information updates remain available.
+                </p>
+            </div>
+            <div class="mt-5">
+                <button type="button" disabled class="w-full bg-gray-400 text-white font-semibold text-base py-4 rounded-xl flex items-center justify-center gap-3 cursor-not-allowed">
+                    <i class="fas fa-lock text-lg"></i>
+                    <span class="tracking-tight">Update Not Available</span>
+                </button>
             </div>
         <?php endif; ?>
+    </div>
     </div>
 
     <!-- Employment Information Card - Single Parent Div -->
@@ -354,6 +371,26 @@ ob_start();
         
         <!-- Content Area -->
         <div class="flex-1 overflow-y-auto p-6 bg-gray-50">
+            <!-- NEW: Employment submission status warning -->
+            <?php if (!$submission_open): ?>
+                <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-r-lg">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-lock text-red-500"></i>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm text-red-700 font-medium">
+                                <span class="font-bold">Employment submission is currently locked by the administrator.</span>
+                            </p>
+                            <p class="text-sm text-red-600 mt-1">
+                                You cannot submit or update any employment-related information at this time.
+                                All form inputs and buttons are disabled.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
+            
             <form id="employmentForm" class="space-y-6" action="update_employment.php" method="post" enctype="multipart/form-data">
                 
                 <!-- Employment Information -->
@@ -367,7 +404,10 @@ ob_start();
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="space-y-1">
                             <label class="block text-sm font-medium text-gray-700">Employment Status <span class="text-red-500">*</span></label>
-                            <select id="employmentStatusSelect" name="employment_status" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" required>
+                            <select id="employmentStatusSelect" name="employment_status" 
+                                    class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" 
+                                    required
+                                    <?php if (!$submission_open) echo 'disabled'; ?>>
                                 <option value="">Select Status</option>
                                 <option value="Employed" <?php echo $employment_status === 'Employed' ? 'selected' : ''; ?>>Employed</option>
                                 <option value="Self-Employed" <?php echo $employment_status === 'Self-Employed' ? 'selected' : ''; ?>>Self-Employed</option>
@@ -390,7 +430,10 @@ ob_start();
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div id="jobTitleField" class="hidden space-y-1">
                             <label class="block text-sm font-medium text-gray-700">Job Title</label>
-                            <select id="jobTitleSelect" name="job_title" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" autocomplete="organization-title">
+                            <select id="jobTitleSelect" name="job_title" 
+                                    class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" 
+                                    autocomplete="organization-title"
+                                    <?php if (!$submission_open) echo 'disabled'; ?>>
                                 <option value="">Select Job Title</option>
                                 <?php
                                 $stmt_titles = $conn->prepare("SELECT title FROM job_titles ORDER BY title ASC");
@@ -409,20 +452,34 @@ ob_start();
                                 <option value="Other" <?php if ($is_other && $existing_title) echo 'selected'; ?>>Other (Please specify)</option>
                             </select>
                             <div id="otherJobTitleDiv" class="mt-2" style="display: <?php echo ($is_other && $existing_title) ? 'block' : 'none'; ?>;">
-                                <input type="text" id="otherJobTitleInput" name="other_job_title" placeholder="Enter custom job title" value="<?php echo ($is_other && $existing_title) ? htmlspecialchars($existing_title) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm">
+                                <input type="text" id="otherJobTitleInput" name="other_job_title" 
+                                       placeholder="Enter custom job title" 
+                                       value="<?php echo ($is_other && $existing_title) ? htmlspecialchars($existing_title) : ''; ?>" 
+                                       class="w-full border border-gray-300 rounded-lg p-3 text-sm"
+                                       <?php if (!$submission_open) echo 'disabled'; ?>>
                             </div>
                         </div>
                         <div id="companyField" class="hidden space-y-1">
                             <label class="block text-sm font-medium text-gray-700">Company Name</label>
-                            <input type="text" name="company_name" value="<?php echo !empty($employment['company_name']) ? htmlspecialchars($employment['company_name']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" autocomplete="organization">
+                            <input type="text" name="company_name" 
+                                   value="<?php echo !empty($employment['company_name']) ? htmlspecialchars($employment['company_name']) : ''; ?>" 
+                                   class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" 
+                                   autocomplete="organization"
+                                   <?php if (!$submission_open) echo 'disabled'; ?>>
                         </div>
                         <div id="companyAddressField" class="hidden space-y-1 md:col-span-2">
                             <label class="block text-sm font-medium text-gray-700">Company Address</label>
-                            <input type="text" name="company_address" value="<?php echo !empty($company_address) ? htmlspecialchars($company_address) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" autocomplete="street-address">
+                            <input type="text" name="company_address" 
+                                   value="<?php echo !empty($company_address) ? htmlspecialchars($company_address) : ''; ?>" 
+                                   class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" 
+                                   autocomplete="street-address"
+                                   <?php if (!$submission_open) echo 'disabled'; ?>>
                         </div>
                         <div id="businessTypeField" class="hidden space-y-1">
                             <label class="block text-sm font-medium text-gray-700">Business Type</label>
-                            <select id="businessTypeSelect" name="business_type" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200">
+                            <select id="businessTypeSelect" name="business_type" 
+                                    class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200"
+                                    <?php if (!$submission_open) echo 'disabled'; ?>>
                                 <option value="">Select Business Type</option>
                                 <option value="Food Service / Catering" <?php echo $business_type === 'Food Service / Catering' ? 'selected' : ''; ?>>Food Service / Catering</option>
                                 <option value="Retail / Online Selling" <?php echo $business_type === 'Retail / Online Selling' ? 'selected' : ''; ?>>Retail / Online Selling</option>
@@ -436,12 +493,18 @@ ob_start();
                                 <option value="Others (Please specify)" <?php echo $business_type === 'Others (Please specify)' ? 'selected' : ''; ?>>Others (Please specify)</option>
                             </select>
                             <div id="businessTypeOtherDiv" class="mt-2" style="display: <?php echo ($business_type === 'Others (Please specify)') ? 'block' : 'none'; ?>;">
-                                <input type="text" id="businessTypeOtherInput" name="business_type_other" value="<?php echo htmlspecialchars($business_type_other); ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm" placeholder="Specify Business Type">
+                                <input type="text" id="businessTypeOtherInput" name="business_type_other" 
+                                       value="<?php echo htmlspecialchars($business_type_other); ?>" 
+                                       class="w-full border border-gray-300 rounded-lg p-3 text-sm" 
+                                       placeholder="Specify Business Type"
+                                       <?php if (!$submission_open) echo 'disabled'; ?>>
                             </div>
                         </div>
                         <div id="salaryField" class="space-y-1">
                             <label class="block text-sm font-medium text-gray-700">Salary Range</label>
-                            <select name="salary_range" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200">
+                            <select name="salary_range" 
+                                    class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200"
+                                    <?php if (!$submission_open) echo 'disabled'; ?>>
                                 <option value="">Select Salary Range</option>
                                 <option value="Below ₱10,000" <?php echo ($employment['salary_range'] ?? '') === 'Below ₱10,000' ? 'selected' : ''; ?>>Below ₱10,000</option>
                                 <option value="₱10,000–₱20,000" <?php echo ($employment['salary_range'] ?? '') === '₱10,000–₱20,000' ? 'selected' : ''; ?>>₱10,000–₱20,000</option>
@@ -465,19 +528,28 @@ ob_start();
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="space-y-1">
                             <label class="block text-sm font-medium text-gray-700">School Name</label>
-                            <input type="text" name="school_name" value="<?php echo !empty($education['school_name']) ? htmlspecialchars($education['school_name']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" autocomplete="organization">
+                            <input type="text" name="school_name" 
+                                   value="<?php echo !empty($education['school_name']) ? htmlspecialchars($education['school_name']) : ''; ?>" 
+                                   class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" 
+                                   autocomplete="organization"
+                                   <?php if (!$submission_open) echo 'disabled'; ?>>
                         </div>
                         <div class="space-y-1">
                             <label class="block text-sm font-medium text-gray-700">Degree Pursued</label>
-                            <input type="text" name="degree_pursued" value="<?php echo !empty($education['degree_pursued']) ? htmlspecialchars($education['degree_pursued']) : ''; ?>" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" autocomplete="off">
+                            <input type="text" name="degree_pursued" 
+                                   value="<?php echo !empty($education['degree_pursued']) ? htmlspecialchars($education['degree_pursued']) : ''; ?>" 
+                                   class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200" 
+                                   autocomplete="off"
+                                   <?php if (!$submission_open) echo 'disabled'; ?>>
                         </div>
                         <div class="space-y-1">
                             <label class="block text-sm font-medium text-gray-700">Start Year</label>
-                            <select name="start_year" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200">
+                            <select name="start_year" 
+                                    class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200"
+                                    <?php if (!$submission_open) echo 'disabled'; ?>>
                                 <option value="">Select Start Year</option>
                                 <?php
                                 $currentYear = date('Y');
-                                // Start from the later of batch_year or 2000, up to current year
                                 $startYearRange = max((int)$batch_year, 2000);
                                 for ($y = $currentYear; $y >= $startYearRange; $y--) {
                                     $selected = ($education['start_year'] ?? '') == $y ? 'selected' : '';
@@ -488,11 +560,11 @@ ob_start();
                         </div>      
                         <div class="space-y-1">
                             <label class="block text-sm font-medium text-gray-700">End Year (Expected)</label>
-                            <select name="end_year" class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200">
+                            <select name="end_year" 
+                                    class="w-full border border-gray-300 rounded-lg p-3 text-sm hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition duration-200"
+                                    <?php if (!$submission_open) echo 'disabled'; ?>>
                                 <option value="">Select End Year</option>
                                 <?php
-                                $currentYear = date('Y');
-                                // Initially show empty options, will be populated by JavaScript
                                 if (!empty($education['end_year'])) {
                                     $selected_year = $education['end_year'];
                                     echo "<option value=\"$selected_year\" selected>$selected_year</option>";
@@ -520,7 +592,9 @@ ob_start();
                                 <?php if ($submission_open): ?><span class="text-red-500">*</span><?php endif; ?>
                             </label>
                             <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-blue-400 transition duration-200 bg-gray-50">
-                                <input type="file" name="coe_file" accept="application/pdf" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                                <input type="file" name="coe_file" accept="application/pdf" 
+                                       class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                                       <?php if (!$submission_open) echo 'disabled'; ?>>
                             </div>
                             <p class="text-xs text-gray-500 mt-1">PDF format only</p>
                         </div>
@@ -533,7 +607,9 @@ ob_start();
                                 <?php if ($submission_open): ?><span class="text-red-500">*</span><?php endif; ?>
                             </label>
                             <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-blue-400 transition duration-200 bg-gray-50">
-                                <input type="file" name="business_file" accept="application/pdf" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                                <input type="file" name="business_file" accept="application/pdf" 
+                                       class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                                       <?php if (!$submission_open) echo 'disabled'; ?>>
                             </div>
                             <p class="text-xs text-gray-500 mt-1">PDF format only</p>
                         </div>
@@ -546,7 +622,9 @@ ob_start();
                                 <?php if ($submission_open): ?><span class="text-red-500">*</span><?php endif; ?>
                             </label>
                             <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-blue-400 transition duration-200 bg-gray-50">
-                                <input type="file" name="cor_file" accept="application/pdf" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                                <input type="file" name="cor_file" accept="application/pdf" 
+                                       class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                                       <?php if (!$submission_open) echo 'disabled'; ?>>
                             </div>
                             <p class="text-xs text-gray-500 mt-1">PDF format only</p>
                         </div>
@@ -581,14 +659,12 @@ ob_start();
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const url = new URL(window.location);
-        if (url.searchParams.has('success') || url.searchParams.has('error')) {
-            url.searchParams.delete('success');
-            url.searchParams.delete('error');
-            window.history.replaceState({}, '', url);
-        }
-});
-
-document.addEventListener('DOMContentLoaded', () => {
+    if (url.searchParams.has('success') || url.searchParams.has('error')) {
+        url.searchParams.delete('success');
+        url.searchParams.delete('error');
+        window.history.replaceState({}, '', url);
+    }
+    
     // Modal functionality
     const updateEmploymentBtn = document.getElementById('updateEmploymentBtn');
     const updateEmploymentModal = document.getElementById('employmentUpdateModal');
@@ -601,6 +677,14 @@ document.addEventListener('DOMContentLoaded', () => {
             updateEmploymentBtn.addEventListener('click', () => {
                 updateEmploymentModal.classList.remove('hidden');
                 updateEmploymentModal.classList.add('show', 'flex');
+            });
+        } else {
+            // When employment submission is closed, show modal but prevent form submission
+            updateEmploymentBtn.addEventListener('click', () => {
+                updateEmploymentModal.classList.remove('hidden');
+                updateEmploymentModal.classList.add('show', 'flex');
+                // Show a toast message
+                showToast('Employment updates are currently locked by administrator.', 'warning');
             });
         }
     }
@@ -627,7 +711,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const startYearSelect = document.querySelector('[name="start_year"]');
     if (startYearSelect) {
         startYearSelect.addEventListener('change', function() {
-            // Save the selected value to restore later
             this.setAttribute('data-previous-value', this.value);
             updateEndYearOptions();
         });
@@ -666,6 +749,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const employmentForm = document.getElementById('employmentForm');
     if (employmentForm) {
         employmentForm.addEventListener('submit', function(event) {
+            const submissionOpen = <?php echo $submission_open ? 'true' : 'false'; ?>;
+            
+            if (!submissionOpen) {
+                event.preventDefault();
+                showToast('Employment submission is currently locked by administrator.', 'error');
+                return false;
+            }
+            
             if (!validateEmploymentForm()) {
                 event.preventDefault();
             }
@@ -852,7 +943,6 @@ function initializeStudentYearOptions() {
     const employmentStatusSelect = document.getElementById('employmentStatusSelect');
     const startYearSelect = document.querySelector('[name="start_year"]');
     
-    // Save initial start year value if exists
     if (startYearSelect && startYearSelect.value) {
         startYearSelect.setAttribute('data-previous-value', startYearSelect.value);
     }
@@ -875,8 +965,7 @@ function updateEndYearOptions() {
         const currentYear = new Date().getFullYear();
         
         endYearSelect.innerHTML = '<option value="">Select End Year</option>';
-        // Only show years from startYear+1 to currentYear (not currentYear+5)
-        for (let y = startYear + 1; y <= currentYear; y++) {
+        for (let y = startYear + 1; y <= currentYear + 5; y++) {
             const option = document.createElement('option');
             option.value = y;
             option.textContent = y;
@@ -885,22 +974,38 @@ function updateEndYearOptions() {
     }
 }
 
-function updateEndYearOptions() {
-    const startYearSelect = document.querySelector('[name="start_year"]');
-    const endYearSelect = document.querySelector('[name="end_year"]');
+function showToast(message, type = 'info') {
+    // Remove existing toast
+    const existingToast = document.getElementById('custom-toast');
+    if (existingToast) existingToast.remove();
     
-    if (startYearSelect && endYearSelect && startYearSelect.value) {
-        const startYear = parseInt(startYearSelect.value);
-        const currentYear = new Date().getFullYear();
-        
-        endYearSelect.innerHTML = '<option value="">Select End Year</option>';
-        for (let y = startYear + 1; y <= currentYear + 5; y++) {
-            const option = document.createElement('option');
-            option.value = y;
-            option.textContent = y;
-            endYearSelect.appendChild(option);
-        }
-    }
+    // Create new toast
+    const toast = document.createElement('div');
+    toast.id = 'custom-toast';
+    toast.className = `fixed bottom-4 right-4 z-50 px-6 py-4 rounded-lg shadow-lg text-white font-medium flex items-center gap-3 animate-slide-up ${
+        type === 'error' ? 'bg-red-500' : 
+        type === 'success' ? 'bg-green-500' : 
+        type === 'warning' ? 'bg-amber-500' : 'bg-blue-500'
+    }`;
+    
+    const icon = type === 'error' ? 'fa-exclamation-circle' :
+                type === 'success' ? 'fa-check-circle' :
+                type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle';
+    
+    toast.innerHTML = `
+        <i class="fas ${icon} text-xl"></i>
+        <span>${message}</span>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        toast.style.transition = 'all 0.4s ease-out';
+        toast.style.transform = 'translateY(150%)';
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 500);
+    }, 5000);
 }
 </script>
 
