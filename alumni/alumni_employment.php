@@ -85,24 +85,6 @@ if (!function_exists('isSubmissionPeriodOpen')) {
     require_once dirname(__DIR__) . '/api/utils/deadline.php';
 }
 $general_submission_open = isSubmissionPeriodOpen($conn);
-
-// Check specifically for employment submissions
-function isEmploymentSubmissionOpen($conn) {
-    // First check if column exists
-    $result = $conn->query("SHOW COLUMNS FROM submission_status LIKE 'employment_submission_open'");
-    if ($result->num_rows == 0) {
-        return false; // Column doesn't exist yet
-    }
-    
-    // Get employment submission status
-    $result = $conn->query("SELECT employment_submission_open FROM submission_status LIMIT 1");
-    if ($result && $result->num_rows > 0) {
-        $row = $result->fetch_assoc();
-        return (bool)($row['employment_submission_open'] ?? 0);
-    }
-    return false;
-}
-
 $employment_submission_open = isEmploymentSubmissionOpen($conn);
 
 // Combine checks: Employment must be specifically open AND general submissions must be open
