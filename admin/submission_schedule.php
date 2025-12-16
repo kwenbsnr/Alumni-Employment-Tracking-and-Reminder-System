@@ -17,12 +17,18 @@ $active_page = "submission_schedule";
 $conn->query("CREATE TABLE IF NOT EXISTS submission_status (
     id INT AUTO_INCREMENT PRIMARY KEY,
     is_open TINYINT(1) DEFAULT 0,
-    employment_submission_open TINYINT(1) DEFAULT 0,
     manual_override TINYINT(1) DEFAULT 0,
     open_date DATETIME NULL,
     close_date DATETIME NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB");
+
+// Check if employment_submission_open column exists, if not add it
+$result = $conn->query("SHOW COLUMNS FROM submission_status LIKE 'employment_submission_open'");
+if ($result->num_rows == 0) {
+    // Add the missing column
+    $conn->query("ALTER TABLE submission_status ADD COLUMN employment_submission_open TINYINT(1) DEFAULT 0");
+}
 
 // Ensure a single record exists
 $statusCheck = $conn->query("SELECT * FROM submission_status LIMIT 1");
@@ -410,6 +416,30 @@ ob_start();
                                     </div>
                                 </div>
                             </label>
+                        </div>
+
+                        <div class="bg-white p-5 rounded-xl border-2 border-gray-200 mt-4">
+                            <div class="flex items-center gap-3 mb-4">
+                                <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                                    <i class="fas fa-briefcase text-blue-600"></i>
+                                </div>
+                                <h3 class="font-semibold text-gray-800">Employment Update Settings</h3>
+                            </div>
+                            
+                            <div class="flex items-start gap-3">
+                                <input type="checkbox" id="employment_submission" name="employment_submission" value="1" 
+                                    class="w-5 h-5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 mt-1"
+                                    <?= $employment_submission_open ? 'checked' : '' ?>>
+                                <div>
+                                    <label for="employment_submission" class="block text-sm font-medium text-gray-900">
+                                        Allow Employment Information Updates
+                                    </label>
+                                    <p class="text-sm text-gray-500 mt-1">
+                                        When enabled, alumni can update employment status, job details, and upload documents.
+                                        When disabled, alumni can only update personal/profile information.
+                                    </p>
+                                </div>
+                            </div>
                         </div>
 
                         <div id="scheduleInputs" class="bg-white p-5 rounded-xl border-2 border-gray-200 mt-4 <?= !$manual_override ? '' : 'opacity-60' ?>">

@@ -97,21 +97,28 @@ function isEmploymentSubmissionOpen($conn) {
         return false; // No schedule configured at all
     }
     
-    // First check if column exists (for backward compatibility)
-    if (!isset($config['employment_submission_open'])) {
-        // Column doesn't exist yet, default to false
-        return false;
-    }
-    
     // Check if employment submission is specifically enabled
-    $employment_open = (bool)($config['employment_submission_open'] ?? 0);
-    
-    if (!$employment_open) {
-        return false;
+    // First check if column exists (for backward compatibility)
+    $columnExists = false;
+    $result = $conn->query("SHOW COLUMNS FROM submission_status LIKE 'employment_submission_open'");
+    if ($result && $result->num_rows > 0) {
+        $columnExists = true;
     }
     
-    // Employment submissions require both general submissions to be open AND employment specifically open
-    return isSubmissionPeriodOpen($conn);
+    if ($columnExists) {
+        $employment_open = (bool)($config['employment_submission_open'] ?? 0);
+    } else {
+        // Column doesn't exist yet, default to true if is_open is true
+        // This maintains backward compatibility
+        $employment_open = (bool)($config['is_open'] ?? 0);
+    }
+    
+    // For employment submissions, we need BOTH:
+    // 1. General submissions to be open (is_open = 1)
+    // 2. Employment submissions specifically enabled (employment_submission_open = 1)
+    $general_open = isSubmissionPeriodOpen($conn);
+    
+    return $general_open && $employment_open;
 }
 
 /**
