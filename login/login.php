@@ -26,10 +26,8 @@ unset($_SESSION['last_attempt_role']);
 
 <body class="bg-gray-50 min-h-screen">
     <header class="fixed top-0 left-0 w-full z-50">
-        <!-- Top Green Bar -->
         <div class="top-green-bar"></div>
 
-        <!-- Top Links -->
         <div class="top-links">
             <div class="jhcsc-card-link">
                 <a href="https://jhcsc.edu.ph/" target="_blank">
@@ -49,13 +47,11 @@ unset($_SESSION['last_attempt_role']);
         </div>
     </header>
 
-    <!-- Login Page Content -->
     <div id="loginPage" class="login-container">
-        <!-- Left Side - School Branding -->
         <div class="school-branding flex items-center justify-center p-8">
             <img src="images/jh-building.png" alt="JHCSC Building" class="absolute inset-0 w-full h-full object-cover opacity-30">
             <div class="text-center text-white z-10 p-4 max-w-lg">
-                <div class="flex items-center justify-center gap-6 mb-18">
+                <div class="flex items-center justify-center gap-6 mb-12">
                     <div class="w-32 h-32 rounded-full flex items-center justify-center shadow-lg">
                         <img src="images/favicon.png" alt="JHCSC Logo" class="h-full object-cover rounded-xl">
                     </div>
@@ -65,20 +61,11 @@ unset($_SESSION['last_attempt_role']);
                 </div>
 
                 <h1 class="text-4xl font-extrabold mb-7">JHCSC BSIT Alumni Monitoring System</h1>
-                <p class="text-xl mb-30 opacity-95">Connecting Graduates, Building Futures</p>
-
-                <div class="mt-12 grid grid-cols-2 gap-4">
-                    <div class="h-24 bg-white bg-opacity-20 rounded-xl flex items-center justify-center shadow-inner">
-                        <i class="fas fa-graduation-cap text-3xl"></i>
-                    </div>
-                    <div class="h-24 bg-white bg-opacity-20 rounded-xl flex items-center justify-center shadow-inner">
-                        <i class="fas fa-building text-3xl"></i>
-                    </div>
+                <p class="text-xl opacity-95">Connecting Graduates, Building Futures</p>
+                
                 </div>
-            </div>
         </div>
 
-        <!-- Right Side - Login Form -->
         <div class="login-right">
             <div class="login-box">
                 <div class="text-center mb-8">
@@ -86,7 +73,6 @@ unset($_SESSION['last_attempt_role']);
                     <p class="text-gray-600">Please select your role and sign in</p>
                 </div>
 
-                <!-- Role Selection -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
                     <div class="role-selector p-4 rounded-lg cursor-pointer text-center bg-gray-50 <?php echo ($last_role === 'alumni') ? 'selected' : ''; ?>" data-role="alumni">
                         <i class="fas fa-user-graduate text-3xl text-green-600 mb-2"></i>
@@ -159,7 +145,6 @@ unset($_SESSION['last_attempt_role']);
         </div>
     </div>
 
-    <!-- Inline Script: Enable Enter Key to Submit Form -->
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const emailInput = document.getElementById('loginEmail');
@@ -167,7 +152,6 @@ unset($_SESSION['last_attempt_role']);
             const loginButton = document.getElementById('loginButton');
             const selectedRole = document.getElementById('selectedRole');
 
-            // Press Enter in Email → Go to Password
             emailInput.addEventListener('keypress', function (e) {
                 if (e.key === 'Enter') {
                     e.preventDefault();
@@ -175,17 +159,15 @@ unset($_SESSION['last_attempt_role']);
                 }
             });
 
-            // Press Enter in Password → Submit (only if role selected)
             passwordInput.addEventListener('keypress', function (e) {
                 if (e.key === 'Enter') {
                     e.preventDefault();
                     if (selectedRole.value && !loginButton.disabled) {
-                        loginButton.click(); // Triggers form submit
+                        loginButton.click();
                     }
                 }
             });
 
-            // Optional: Also allow Enter anywhere on the page when inputs are focused
             document.addEventListener('keydown', function (e) {
                 if (e.key === 'Enter' && (document.activeElement === emailInput || document.activeElement === passwordInput)) {
                     if (selectedRole.value && !loginButton.disabled) {
@@ -196,7 +178,6 @@ unset($_SESSION['last_attempt_role']);
             });
         });
     </script>
-
     <script src="login.js"></script>
 </body>
 </html>
