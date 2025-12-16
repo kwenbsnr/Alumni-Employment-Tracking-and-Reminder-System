@@ -454,6 +454,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Commit transaction
         $conn->commit();
 
+        // ---- 9. TRIGGER NOTIFICATIONS (EMPLOYMENT SUBMISSION ONLY) ----------------
+        try {
+            // Load notification service
+            require_once dirname(__DIR__) . '/api/notification/notif_service.php';
+            
+            // Check if this is a resubmission (previously rejected)
+            $was_rejected = was_submission_rejected($conn, $user_id);
+            
+            // Check if this is first-time submission
+            $is_first_time = is_first_time_submission($conn, $user_id);
+            
+            if ($was_rejected) {
+                // Resubmission after rejection
+                error_log("Resubmission detected for user $user_id - sending resubmission admin notification");
+                send_resubmission_admin_notification($conn, $user_id);
+            } elseif ($is_first_time) {
+                // First-time submission
+                error_log("First-time submission for user $user_id - sending new submission admin notification");
+                send_new_submission_admin_notification($conn, $user_id);
+            } else {
+                // Regular update
+                error_log("Regular employment update for user $user_id - sending update admin notification");
+                send_update_admin_notification($conn, $user_id);
+            }
+            
+        } catch (Exception $e) {
+            // Log notification error but don't fail the transaction
+            error_log("Notification error for user $user_id: " . $e->getMessage());
+        }
+
         // Log activity
         log_alumni_activity($conn, $user_id, 'employment_updated', 'Updated employment information');
 
