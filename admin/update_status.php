@@ -10,12 +10,10 @@ include("../connect.php");
 require_once '../api/notification/notif_service.php';
 
 function syncAlumniStatus($conn, $user_id) {
-    // Force status recalculation and ensure consistency
     require_once '../api/utils/submission_status.php';
     
     $new_status = getSubmissionStatus($conn, $user_id);
     
-    // Optional: Store in cache or log for debugging
     error_log("Status sync for user $user_id: $new_status");
     
     return $new_status;
@@ -80,8 +78,8 @@ if (isset($_GET['user_id']) && isset($_GET['status'])) {
                     $stmt->execute();
                     $stmt->close();
                     
-                    // Update alumni_profile submitted_at timestamp when ANY document is approved
-                    if ($status === 'Approved') {
+                    // FIX: Update alumni_profile submitted_at timestamp when ANY document is approved OR rejected
+                    if ($status === 'Approved' || $status === 'Rejected') {
                         $updateTimestampStmt = $conn->prepare("UPDATE alumni_profile SET submitted_at = NOW() WHERE user_id = ?");
                         $updateTimestampStmt->bind_param("i", $doc_user_id);
                         $updateTimestampStmt->execute();
@@ -154,8 +152,8 @@ if (isset($_GET['user_id']) && isset($_GET['status'])) {
                     }
 
                     if ($stmt->execute()) {
-                        // Update alumni_profile submitted_at timestamp when documents are approved
-                        if ($status === 'Approved') {
+                        // FIX: Update alumni_profile submitted_at timestamp when documents are approved OR rejected
+                        if ($status === 'Approved' || $status === 'Rejected') {
                             $updateTimestampStmt = $conn->prepare("UPDATE alumni_profile SET submitted_at = NOW() WHERE user_id = ?");
                             $updateTimestampStmt->bind_param("i", $user_id);
                             $updateTimestampStmt->execute();
