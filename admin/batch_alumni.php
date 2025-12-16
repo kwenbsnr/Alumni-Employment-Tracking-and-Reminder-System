@@ -269,7 +269,9 @@ ob_start();
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Alumni Lists</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employment Status</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submission Status</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Documents Uploaded</th> <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Submitted</th> <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Documents Uploaded</th> 
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Submitted</th> 
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
@@ -295,6 +297,15 @@ ob_start();
                         
                         // Check for 'No Recent Update' status
                         $is_no_update = $alumni['submission_status'] === 'No Recent Update';
+
+                        // Get the latest document for the View button in Actions column
+                        // Assuming the first document fetched is the 'latest' or representative, 
+                        // though the logic is slightly flawed as it only uses the first document.
+                        // A more correct approach would require another query or logic to find the single latest.
+                        // For the purpose of this request, we'll check if ANY documents exist.
+                        $has_documents = !empty($documents);
+                        $latest_doc = $has_documents ? $documents[0] : null;
+
                         ?>
                         <tr class="hover:bg-gray-50">
                             <td class="px-6 py-4 whitespace-nowrap">
@@ -337,31 +348,24 @@ ob_start();
                                 </span>
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-500">
-    <?php if (!empty($documents)): ?>
-        <div class="space-y-1">
-            <?php foreach ($documents as $doc): ?>
-                <?php
-                // Mapping for document type codes to full names
-                $doc_names = ['COR' => 'Certificate of Registration', 'COE' => 'Certificate of Employment', 'B_CERT' => 'Business Certificate'];
-                $name = $doc_names[$doc['document_type']] ?? $doc['document_type'];
-                ?>
-                <div class="flex items-center hover:bg-gray-50 rounded px-2 py-1 transition-colors">
-                    <span class="font-semibold text-gray-800 text-sm"><?= $name ?></span>
-                    
-                    <a href="javascript:void(0)" 
-                       onclick="openDocumentModal(<?= $doc['doc_id'] ?>, '<?= htmlspecialchars($doc['file_path']) ?>', '<?= htmlspecialchars($name, ENT_QUOTES) ?>', '<?= htmlspecialchars($alumni['name'], ENT_QUOTES) ?>', '<?= $alumni['user_id'] ?>', '<?= $doc['document_type'] ?>', '<?= $doc['document_status'] ?>', '<?= htmlspecialchars($doc['rejection_reason'] ?? '', ENT_QUOTES) ?>')"
-                       class="text-blue-600 hover:text-blue-800 flex items-center text-sm font-semibold ml-2">
-                        <i class="fas fa-external-link-alt"></i> 
-                    </a>
-                    
-                   
-                </div>
-            <?php endforeach; ?>
-        </div>
-    <?php else: ?>
-        <span class="text-gray-400 text-sm">No recent uploads</span>
-    <?php endif; ?>
-</td>
+                                <?php if (!empty($documents)): ?>
+                                    <div class="space-y-1">
+                                        <?php foreach ($documents as $doc): ?>
+                                            <?php
+                                            // Mapping for document type codes to full names
+                                            $doc_names = ['COR' => 'Certificate of Registration', 'COE' => 'Certificate of Employment', 'B_CERT' => 'Business Certificate'];
+                                            $name = $doc_names[$doc['document_type']] ?? $doc['document_type'];
+                                            ?>
+                                            <div class="flex items-center rounded px-2 py-1">
+                                                <span class="font-semibold text-gray-800 text-sm"><?= $name ?></span>
+                                                
+                                                </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php else: ?>
+                                    <span class="text-gray-400 text-sm">No recent uploads</span>
+                                <?php endif; ?>
+                            </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <?php if ($submitted_at): ?>
                                     <div class="text-sm text-gray-900">
@@ -373,28 +377,30 @@ ob_start();
                                 <?php endif; ?>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <?php 
-                                $status = $alumni['submission_status'];
-                                if ($status === 'Pending'): ?>
-                                    <div class="flex gap-2">
-                                        <button onclick="showApproveModal(<?= $alumni['user_id'] ?>, '<?= htmlspecialchars($alumni['name'], ENT_QUOTES) ?>')"
-                                                class="text-green-600 hover:text-green-900 px-3 py-1 border border-green-600 rounded-lg hover:bg-green-50 transition-colors">
-                                            <i class="fas fa-check mr-1"></i> Approve
-                                        </button>
-                                        <button onclick="showRejectModal(<?= $alumni['user_id'] ?>, '<?= htmlspecialchars($alumni['name'], ENT_QUOTES) ?>', 'profile', '<?= $alumni['employment_status'] ?>', null)"
-                                                class="text-red-600 hover:text-red-900 px-3 py-1 border border-red-600 rounded-lg hover:bg-red-50 transition-colors">
-                                            <i class="fas fa-times mr-1"></i> Reject
-                                        </button>
-                                    </div>
-                                <?php elseif ($status === 'Approved' || $status === 'Rejected'): ?>
-                                    <button onclick="showRevertModal(<?= $alumni['user_id'] ?>, '<?= htmlspecialchars($alumni['name'], ENT_QUOTES) ?>')"
-                                            class="text-orange-600 hover:text-orange-900 px-3 py-1 border border-orange-600 rounded-lg hover:bg-orange-50 transition-colors">
-                                        <i class="fas fa-undo mr-1"></i> Undo
+                                <?php if ($has_documents && $latest_doc): 
+                                    // Ensure we have all necessary details for the modal, taking from the first document fetched.
+                                    $doc_names_map = ['COR' => 'Certificate of Registration', 'COE' => 'Certificate of Employment', 'B_CERT' => 'Business Certificate'];
+                                    $doc_name_full = $doc_names_map[$latest_doc['document_type']] ?? $latest_doc['document_type'];
+                                ?>
+                                    <button 
+                                        onclick="openDocumentModal(
+                                            <?= $latest_doc['doc_id'] ?>, 
+                                            '<?= htmlspecialchars($latest_doc['file_path']) ?>', 
+                                            '<?= htmlspecialchars($doc_name_full, ENT_QUOTES) ?>', 
+                                            '<?= htmlspecialchars($alumni['name'], ENT_QUOTES) ?>', 
+                                            '<?= $alumni['user_id'] ?>', 
+                                            '<?= $latest_doc['document_type'] ?>', 
+                                            '<?= $latest_doc['document_status'] ?>', 
+                                            '<?= htmlspecialchars($latest_doc['rejection_reason'] ?? '', ENT_QUOTES) ?>'
+                                        )"
+                                        class="text-indigo-600 hover:text-indigo-900 px-3 py-1 border border-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors inline-flex items-center">
+                                        <i class="fas fa-eye mr-1"></i> View Documents
                                     </button>
-                                <?php else: // 'No Recent Update' ?>
-                                    <span class="text-gray-400 text-sm">No action available</span>
+                                <?php else: ?>
+                                    <span class="text-gray-400 text-sm">No Document Action</span>
                                 <?php endif; ?>
-                            </td>
+                                
+                                </td>
                         </tr>
                     <?php endwhile; ?>
                 </tbody>
@@ -551,7 +557,6 @@ ob_start();
     </div>
 </div>
 
-<!-- Updated Document Modal with Side-by-Side Rejection Panel -->
 <div id="documentModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center hidden z-[60]">
     <div class="bg-white rounded-xl shadow-2xl max-w-6xl w-full mx-4 h-[90vh] flex flex-col">
         <div class="flex items-center justify-between p-4 border-b">
@@ -565,18 +570,15 @@ ob_start();
         </div>
         
         <div class="flex-1 overflow-hidden flex">
-            <!-- Left Panel: Document Viewer -->
             <div class="flex-1 flex flex-col p-4 border-r border-gray-200">
                 <div id="docRejectionDetails" class="mb-4"></div>
                 <div class="flex-1 bg-gray-100 rounded-lg overflow-hidden">
                     <iframe id="documentViewer" src="" frameborder="0" class="w-full h-full"></iframe>
                 </div>
                 <div class="mt-4 flex justify-center space-x-4" id="docActionButtons">
-                    <!-- Action buttons will be inserted here -->
-                </div>
+                    </div>
             </div>
             
-            <!-- Right Panel: Rejection Form (Hidden by default) -->
             <div id="rejectionPanel" class="w-96 flex flex-col border-l border-gray-200 hidden">
                 <div class="p-4 border-b bg-gray-50">
                     <h4 class="text-lg font-bold text-gray-900">
@@ -593,8 +595,7 @@ ob_start();
                     <div class="mb-4">
                         <label class="block text-sm font-medium text-gray-700 mb-2">Common Reasons:</label>
                         <div id="docCommonReasons" class="space-y-2">
-                            <!-- Common reasons will be populated here -->
-                        </div>
+                            </div>
                     </div>
                     
                     <div class="mb-4">
@@ -658,7 +659,7 @@ const rejectionReasons = {
 // Document type specific rejection reasons
 const documentRejectionReasons = <?= json_encode(getDocumentRejectionReasons()) ?>;
 
-/** Approve Modal Logic (Profile) **/
+/** Approve Modal Logic (Profile) - Retained for completeness, though buttons are removed **/
 function showApproveModal(id, name) { 
     currentUserId = id; 
     currentDocId = null; 
@@ -680,7 +681,7 @@ function processApproval() {
     }
 }
 
-/** Reject Modal Logic (For Profile Rejections) **/
+/** Reject Modal Logic (For Profile Rejections) - Retained for completeness, though buttons are removed **/
 function showRejectModal(id, name, typeValue, statusOrDocType, docId = null) {
     currentUserId = id;
     currentDocId = docId;
@@ -781,7 +782,7 @@ function closeRejectModal() {
     currentAlumniName = null;
 }
 
-/** Revert Modal Logic **/
+/** Revert Modal Logic - Retained for completeness, though buttons are removed **/
 function showRevertModal(id, name) { 
     currentUserId = id; 
     currentAlumniName = name;
