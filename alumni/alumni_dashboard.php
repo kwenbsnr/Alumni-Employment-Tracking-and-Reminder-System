@@ -93,6 +93,14 @@ if (!$is_unemployed) {
     $has_documents = true;
 }
 
+// --- NEW COMBINED CHECKLIST ITEMS FOR NEW REQUIREMENT ---
+// This item represents the complete Personal Profile (Basic, Address, Photo)
+$has_profile_management = $has_basic_info && $has_address && $has_photo;
+
+// This item represents Employment status set AND documents uploaded (if required)
+$has_employment_documents = !empty($profile_info['employment_status']) && $has_documents;
+
+
 // Profile is complete when all required sections are filled
 $is_profile_complete = $has_basic_info && $has_address && $has_photo && $has_documents;
 
@@ -378,7 +386,7 @@ ob_start();
                             <i class="fas fa-list-check text-indigo-600"></i> Verification Checklist
                         </h4>
                         
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 text-sm">
                             
                             <?php 
                             function renderChecklistItem($condition, $label) {
@@ -395,10 +403,13 @@ ob_start();
                             }
                             ?>
 
-                            <?php renderChecklistItem($has_basic_info, 'Basic Information & Employment'); ?>
-                            <?php renderChecklistItem($has_address, 'Address & Contact'); ?>
-                            <?php renderChecklistItem($has_photo, 'Profile Photo Uploaded'); ?>
-                            <?php renderChecklistItem($has_documents, 'Required Documents Uploaded'); ?>
+                            <?php 
+                            // 1. Profile Management (Requires Basic Info, Address, and Photo)
+                            renderChecklistItem($has_profile_management, 'Profile Management (Personal, Contact, Photo)'); 
+                            
+                            // 2. Employment Information & Documents (Requires employment status and documents upload if not 'Unemployed')
+                            renderChecklistItem($has_employment_documents, 'Employment Information & Documents'); 
+                            ?>
 
                         </div>
                     </div>
