@@ -104,66 +104,64 @@ $has_employment_documents = !empty($profile_info['employment_status']) && $has_d
 // Profile is complete when all required sections are filled
 $is_profile_complete = $has_basic_info && $has_address && $has_photo && $has_documents;
 
-// ---- DOCUMENT STATUS CALCULATION ----
-$stmt_doc_status = $conn->prepare("
-    SELECT 
-        COUNT(*) as total,
-        SUM(CASE WHEN document_status = 'Approved' THEN 1 ELSE 0 END) as approved,
-        SUM(CASE WHEN document_status = 'Pending' THEN 1 ELSE 0 END) as pending,
-        SUM(CASE WHEN document_status = 'Rejected' THEN 1 ELSE 0 END) as rejected
-    FROM alumni_documents 
-    WHERE user_id = ?
-");
-$stmt_doc_status->bind_param("i", $user_id);
-$stmt_doc_status->execute();
-$doc_result = $stmt_doc_status->get_result();
-$doc_data = $doc_result->fetch_assoc() ?: [];
-$stmt_doc_status->close();
+// ---- UNIFIED DOCUMENT STATUS CALCULATION ----
+require_once '../api/utils/submission_status.php';
 
-$total_docs = $doc_data['total'] ?? 0;
-$approved_docs = $doc_data['approved'] ?? 0;
-$pending_docs = $doc_data['pending'] ?? 0;
-$rejected_docs = $doc_data['rejected'] ?? 0;
+// Get the unified submission status (SINGLE SOURCE OF TRUTH)
+$submission_status = getSubmissionStatus($conn, $user_id);
 
-// Calculate overall document status
-if ($total_docs === 0) {
-    $document_status = 'No Documents';
-    $document_message = 'Upload required documents';
-} elseif ($rejected_docs > 0) {
-    $document_status = 'Rejected';
-    $document_message = 'Needs resubmission';
-} elseif ($approved_docs === $total_docs) {
-    $document_status = 'Approved';
-    $document_message = 'All documents approved';
-} elseif ($pending_docs > 0) {
-    $document_status = 'Under Review';
-    $document_message = 'Awaiting administrator review';
-} else {
-    $document_status = 'Submitted';
-    $document_message = 'Ready for review';
+// Map to alumni dashboard display
+$document_status = $submission_status;
+
+// Set appropriate messages
+switch($document_status) {
+    case 'No Recent Update':
+        $document_message = 'Upload required documents';
+        break;
+    case 'Rejected':
+        $document_message = 'Needs resubmission';
+        break;
+    case 'Approved':
+        $document_message = 'All documents approved';
+        break;
+    case 'Pending':
+        $document_message = 'Awaiting administrator review';
+        break;
+    default:
+        $document_message = 'Ready for review';
 }
 
-// Use document status for profile status
-$submission_status = $document_status;
-$profile_status = 'Incomplete';
-
-if ($document_status === 'Rejected') {
-    $profile_status = 'Rejected';
-    
-    // FORCE DOCUMENTS TO BE UNCHECKED WHEN REJECTED (since rejection is usually document-related)
-    if (!$is_unemployed) {
-        $has_documents = false;
-        $is_profile_complete = false;
-    }
-} elseif ($is_profile_complete) {
-    if ($document_status === 'Approved') {
+// Profile status mapping (MUST MATCH ADMIN VIEW)
+switch($submission_status) {
+    case 'No Recent Update':
+        $profile_status = 'Incomplete';
+        break;
+    case 'Approved':
         $profile_status = 'Complete';
-    } elseif ($document_status === 'Under Review' || $document_status === 'Submitted') {
+        break;
+    case 'Rejected':
+        $profile_status = 'Rejected';
+        // When rejected, documents requirement is not met
+        if (!$is_unemployed) {
+            $has_documents = false;
+            $is_profile_complete = false;
+        }
+        break;
+    case 'Pending':
         $profile_status = 'Pending Approval';
-    } else {
-        $profile_status = 'Ready to Submit';
-    }
+        break;
+    default:
+        $profile_status = 'Incomplete';
 }
+
+// Document count for display (optional)
+$stmt_doc_count = $conn->prepare("SELECT COUNT(*) as total FROM alumni_documents WHERE user_id = ?");
+$stmt_doc_count->bind_param("i", $user_id);
+$stmt_doc_count->execute();
+$count_result = $stmt_doc_count->get_result();
+$count_data = $count_result->fetch_assoc();
+$total_docs = $count_data['total'] ?? 0;
+$stmt_doc_count->close();
 
 // Annual update check
 $needs_semiannual_update = !empty($profile_info) &&

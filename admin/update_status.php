@@ -9,6 +9,17 @@ if (!isset($_SESSION["user_id"]) || $_SESSION["role"] !== "admin") {
 include("../connect.php");
 require_once '../api/notification/notif_service.php';
 
+function syncAlumniStatus($conn, $user_id) {
+    // Force status recalculation and ensure consistency
+    require_once '../api/utils/submission_status.php';
+    
+    $new_status = getSubmissionStatus($conn, $user_id);
+    
+    // Optional: Store in cache or log for debugging
+    error_log("Status sync for user $user_id: $new_status");
+    
+    return $new_status;
+}
 function shouldSendNotification($conn) {
     if (!function_exists('isSubmissionPeriodOpen')) {
         require_once dirname(__DIR__) . '/api/utils/deadline.php';
