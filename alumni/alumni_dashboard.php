@@ -337,7 +337,7 @@ ob_start();
                                 
                                 <div>
                                     <h3 class="text-2xl font-extrabold text-indigo-900 leading-none">Your Profile Status</h3> 
-                                    <span class="inline-block mt-1 font-extrabold text-sm uppercase tracking-wider px-3 py-1 rounded-full shadow-inner 
+                                    <span class="inline-block mt-4 font-extrabold text-sm uppercase tracking-wider px-3 py-2 rounded-full shadow-inner 
                                         <?php
                                             if ($profile_status === 'Complete') {
                                                 echo 'text-emerald-800 bg-emerald-100 border border-emerald-300';
