@@ -236,6 +236,7 @@ function generateAlumniReport($selected_batches, $report_type, $conn) {
 
     // Different queries for different report types
     if ($report_type === 'summary') {
+        // FIX: Removed the duplicate 'THEN 1 ELSE 0' which caused the SQL syntax error.
         $sql = "SELECT 
             u.batch_year,
             COUNT(*) as total_alumni,
@@ -285,16 +286,17 @@ function generateAlumniReport($selected_batches, $report_type, $conn) {
             CONCAT(
                 COALESCE(u.first_name, ''),
                 CASE WHEN u.middle_name IS NOT NULL AND u.middle_name != '' 
-                     THEN CONCAT(' ', u.middle_name) ELSE '' END,
+                    THEN CONCAT(' ', u.middle_name) ELSE '' END,
                 ' ',
                 COALESCE(u.last_name, ''),
                 CASE WHEN u.suffix IS NOT NULL AND u.suffix != '' 
-                     THEN CONCAT(' ', u.suffix) ELSE '' END
+                    THEN CONCAT(' ', u.suffix) ELSE '' END
             ) as name,
             COALESCE(u.email, 'N/A') as email,
             COALESCE(
                 CASE 
                     WHEN LOWER(TRIM(ap.employment_status)) = 'self-employed' THEN 'Self-Employed'
+                    WHEN ap.employment_status IS NULL OR TRIM(ap.employment_status) = '' THEN 'Not Updated'
                     ELSE ap.employment_status
                 END,
                 'Not Updated'
@@ -302,18 +304,20 @@ function generateAlumniReport($selected_batches, $report_type, $conn) {
             COALESCE(
                 CASE 
                     WHEN LOWER(TRIM(ap.employment_status)) = 'self-employed' 
-                    THEN COALESCE(ei.business_type, 'Self-Employed')
-                    ELSE jt.title
+                    THEN COALESCE(ei.business_type, 'Not Updated')
+                    WHEN (ap.employment_status IS NULL OR TRIM(ap.employment_status) = '' OR TRIM(ap.employment_status) IN ('unemployed', 'student', 'not updated')) THEN 'Not Updated'
+                    ELSE COALESCE(jt.title, 'Not Updated')
                 END,
-                '-'
+                'Not Updated'
             ) as current_job,
             COALESCE(
                 CASE 
                     WHEN LOWER(TRIM(ap.employment_status)) = 'self-employed' 
-                    THEN COALESCE(ei.business_type, 'Personal Business')
-                    ELSE ei.company_name
+                    THEN COALESCE(ei.business_type, 'Not Updated')
+                    WHEN (ap.employment_status IS NULL OR TRIM(ap.employment_status) = '' OR TRIM(ap.employment_status) IN ('unemployed', 'student', 'not updated')) THEN 'Not Updated'
+                    ELSE COALESCE(ei.company_name, 'Not Updated')
                 END,
-                '-'
+                'Not Updated'
             ) as current_employer
         FROM users u
         LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id
@@ -420,7 +424,6 @@ function generateAlumniReport($selected_batches, $report_type, $conn) {
 
     // Draw Table Body
     $pdf->SetFillColor(255);
-    $pdf->SetFont('helvetica', '', 9);
     
     // Initialize totals for summary report
     if ($report_type === 'summary') {
@@ -434,6 +437,12 @@ function generateAlumniReport($selected_batches, $report_type, $conn) {
         ];
     }
     
+    // Define the special text and its style for the detailed report
+    $special_text = 'Not Updated';
+    $special_text_na = 'N/A';
+    $special_style_font_size = 7; // Smaller font size
+    $special_style_text_color = [128, 128, 128]; // Gray color RGB
+
     foreach ($data as $row) {
         // Check for page break
         if ($pdf->GetY() + 8 > $pdf->getPageHeight() - $pdf->getBreakMargin()) {
@@ -446,37 +455,71 @@ function generateAlumniReport($selected_batches, $report_type, $conn) {
             }
             $pdf->Ln();
             $pdf->SetFillColor(255);
-            $pdf->SetFont('helvetica', '', 9);
         }
-
+        
         // Output row data
         for ($i = 0; $i < count($data_keys); $i++) {
             $key = $data_keys[$i];
             $value = $row[$key] ?? '';
+            $cell_width = $widths[$i];
+            $cell_align = $align[$i];
+            $default_font_style = ['helvetica', '', 9];
+            $default_text_color = [0, 0, 0];
             
-            // Format values for summary report
-            if ($report_type === 'summary') {
-                // Update totals
-                if (in_array($key, ['employed', 'self_employed', 'unemployed', 'student', 'employed_student', 'total_alumni'])) {
-                    $totals[$key] += (int)$value;
+            // Apply special formatting for detailed report's 'Not Updated' or 'N/A' fields
+            if ($report_type === 'detailed' && ($key === 'email' || $key === 'employment_status' || $key === 'current_job' || $key === 'current_employer')) {
+                
+                // Determine if special formatting is needed
+                $is_special = ($value === $special_text || $value === $special_text_na);
+
+                if ($is_special) {
+                    // Set font for special text
+                    $pdf->SetFont('helvetica', 'I', $special_style_font_size); // Italic, smaller size
+                    $pdf->SetTextColor($special_style_text_color[0], $special_style_text_color[1], $special_style_text_color[2]); // Gray color
+                    
+                    // Use 'Not Updated' text for all missing job/status data
+                    $display_value = $value === $special_text_na ? $special_text_na : $special_text;
+                    $pdf->Cell($cell_width, 6, $display_value, 1, 0, 'L', 1); // Align left for the special text
+                } else {
+                    // Reset to default font for regular data
+                    $pdf->SetFont($default_font_style[0], $default_font_style[1], $default_font_style[2]);
+                    $pdf->SetTextColor($default_text_color[0], $default_text_color[1], $default_text_color[2]);
+                    
+                    // Truncate long text for detailed report non-default values
+                    if (strlen($value) > 50) {
+                        $value = substr($value, 0, 47) . '...';
+                    }
+                    $pdf->Cell($cell_width, 6, $value, 1, 0, $cell_align, 1);
+                }
+            } else {
+                // Formatting for summary report and non-special columns in detailed report
+                
+                // Set default font/color for non-special cells
+                $pdf->SetFont($default_font_style[0], $default_font_style[1], $default_font_style[2]);
+                $pdf->SetTextColor($default_text_color[0], $default_text_color[1], $default_text_color[2]);
+                
+                if ($report_type === 'summary') {
+                    // Update totals
+                    if (in_array($key, ['employed', 'self_employed', 'unemployed', 'student', 'employed_student', 'total_alumni'])) {
+                        $totals[$key] += (int)$value;
+                    }
+                    
+                    // Format employment rate
+                    if ($key === 'employment_rate') {
+                        $value = is_numeric($value) ? number_format($value, 2) . '%' : $value;
+                    }
                 }
                 
-                // Format employment rate
-                if ($key === 'employment_rate') {
-                    $value = is_numeric($value) ? number_format($value, 2) . '%' : $value;
-                }
+                $pdf->Cell($cell_width, 6, $value, 1, 0, $cell_align, 1);
             }
-            
-            // Truncate long text for detailed report
-            if ($report_type === 'detailed' && strlen($value) > 50) {
-                $value = substr($value, 0, 47) . '...';
-            }
-            
-            $pdf->Cell($widths[$i], 6, $value, 1, 0, $align[$i], 1);
         }
         $pdf->Ln();
     }
     
+    // Ensure font and color are reset to black and default size for the totals row
+    $pdf->SetTextColor(0, 0, 0); 
+    $pdf->SetFont('helvetica', 'B', 9); 
+
     // Draw Totals Row for Summary Report
     if ($report_type === 'summary' && !empty($data)) {
         // Calculate overall employment rate
