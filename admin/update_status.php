@@ -8,6 +8,9 @@ if (!isset($_SESSION["user_id"]) || $_SESSION["role"] !== "admin") {
 
 include("../connect.php");
 
+// Load notification service
+require_once dirname(__DIR__) . '/api/notification/notif_service.php';
+
 function syncAlumniStatus($conn, $user_id) {
     require_once '../api/utils/submission_status.php';
     
@@ -54,6 +57,7 @@ if (isset($_GET['type']) && $_GET['type'] === 'document_bulk_reject' && isset($_
         
         try {
             $rejected_count = 0;
+            $rejection_reasons = [];
             
             foreach ($rejections as $rejection) {
                 if (!isset($rejection['doc_id']) || !isset($rejection['reason'])) {
@@ -74,6 +78,7 @@ if (isset($_GET['type']) && $_GET['type'] === 'document_bulk_reject' && isset($_
                 $stmt->close();
                 
                 $rejected_count++;
+                $rejection_reasons[] = $reason;
             }
             
             // Update alumni_profile submitted_at timestamp
@@ -81,6 +86,16 @@ if (isset($_GET['type']) && $_GET['type'] === 'document_bulk_reject' && isset($_
             $updateTimestampStmt->bind_param("i", $user_id);
             $updateTimestampStmt->execute();
             $updateTimestampStmt->close();
+            
+            // Send rejection notification to alumni
+            try {
+                // Combine rejection reasons
+                $combined_reason = implode("; ", array_unique($rejection_reasons));
+                send_rejection_notification($conn, $user_id, $combined_reason);
+                error_log("Rejection notification sent to alumni user: $user_id");
+            } catch (Exception $e) {
+                error_log("Failed to send rejection notification: " . $e->getMessage());
+            }
             
             // Log the action
             $details = "Rejected $rejected_count document(s) via bulk rejection";
@@ -156,6 +171,19 @@ elseif (isset($_GET['user_id']) && isset($_GET['status'])) {
                         $updateTimestampStmt->bind_param("i", $doc_user_id);
                         $updateTimestampStmt->execute();
                         $updateTimestampStmt->close();
+                    }
+                    
+                    // SEND NOTIFICATION TO ALUMNI BASED ON STATUS
+                    try {
+                        if ($status === 'Approved') {
+                            send_approval_notification($conn, $doc_user_id);
+                            error_log("Approval notification sent to alumni user: $doc_user_id");
+                        } elseif ($status === 'Rejected') {
+                            send_rejection_notification($conn, $doc_user_id, $reason);
+                            error_log("Rejection notification sent to alumni user: $doc_user_id");
+                        }
+                    } catch (Exception $e) {
+                        error_log("Failed to send notification: " . $e->getMessage());
                     }
                     
                     // LOG THE ACTION - Document specific
@@ -237,6 +265,16 @@ elseif (isset($_GET['user_id']) && isset($_GET['status'])) {
                         $updateTimestampStmt->close();
                     }
                     
+                    // SEND NOTIFICATION TO ALUMNI FOR BULK APPROVAL
+                    try {
+                        if ($status === 'Approved') {
+                            send_approval_notification($conn, $user_id);
+                            error_log("Bulk approval notification sent to alumni user: $user_id");
+                        }
+                    } catch (Exception $e) {
+                        error_log("Failed to send bulk notification: " . $e->getMessage());
+                    }
+                    
                     // LOG THE ACTION - Bulk document
                     $update_type = '';
                     $details = '';
@@ -288,6 +326,19 @@ elseif (isset($_GET['user_id']) && isset($_GET['status'])) {
                             $updateTimestampStmt->bind_param("i", $user_id);
                             $updateTimestampStmt->execute();
                             $updateTimestampStmt->close();
+                        }
+                        
+                        // SEND NOTIFICATION TO ALUMNI
+                        try {
+                            if ($status === 'Approved') {
+                                send_approval_notification($conn, $user_id);
+                                error_log("Profile-level approval notification sent to alumni user: $user_id");
+                            } elseif ($status === 'Rejected') {
+                                send_rejection_notification($conn, $user_id, $reason);
+                                error_log("Profile-level rejection notification sent to alumni user: $user_id");
+                            }
+                        } catch (Exception $e) {
+                            error_log("Failed to send profile-level notification: " . $e->getMessage());
                         }
                         
                         // LOG THE ACTION - Profile level
