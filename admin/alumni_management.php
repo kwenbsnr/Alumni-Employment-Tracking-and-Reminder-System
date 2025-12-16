@@ -63,7 +63,7 @@ ob_start();
                     </div>
                     <input type="text" name="search" value="<?= htmlspecialchars($search) ?>"
                            class="w-full pl-10 pr-4 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                           placeholder="Search alumni by name, email, or batch...">
+                           placeholder="Search alumni by name or email">
                 </div>
                 <div class="flex gap-2">
                     <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg flex items-center gap-2 whitespace-nowrap transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105">

@@ -719,10 +719,11 @@ ob_start();
                             </label>
                             <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-blue-400 transition duration-200 bg-gray-50">
                                 <input type="file" name="coe_file" accept="application/pdf" 
-                                       class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                                       <?php if (!$submission_open) echo 'disabled'; ?>>
+                                    class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                                    <?php if (!$submission_open) echo 'disabled'; ?>>
                             </div>
-                            <p class="text-xs text-gray-500 mt-1">PDF format only</p>
+                            <p class="text-xs text-gray-500 mt-1">PDF format only, maximum 2MB</p>
+                            <!-- Err msg will be inserted here by js -->
                         </div>
 
                         <!-- Business Certificate Field -->
@@ -734,10 +735,11 @@ ob_start();
                             </label>
                             <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-blue-400 transition duration-200 bg-gray-50">
                                 <input type="file" name="business_file" accept="application/pdf" 
-                                       class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                                       <?php if (!$submission_open) echo 'disabled'; ?>>
+                                    class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                                    <?php if (!$submission_open) echo 'disabled'; ?>>
                             </div>
-                            <p class="text-xs text-gray-500 mt-1">PDF format only</p>
+                            <p class="text-xs text-gray-500 mt-1">PDF format only, maximum 2MB</p>
+                            <!-- Error msg will be insrted here by js -->
                         </div>
 
                         <!-- COR Field -->
@@ -749,14 +751,14 @@ ob_start();
                             </label>
                             <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-blue-400 transition duration-200 bg-gray-50">
                                 <input type="file" name="cor_file" accept="application/pdf" 
-                                       class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                                       <?php if (!$submission_open) echo 'disabled'; ?>>
+                                    class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                                    <?php if (!$submission_open) echo 'disabled'; ?>>
                             </div>
-                            <p class="text-xs text-gray-500 mt-1">PDF format only</p>
+                            <p class="text-xs text-gray-500 mt-1">PDF format only, maximum 2MB</p>
+                            <!-- Error message will be inserted here by js -->
                         </div>
                     </div>
                 </div>
-
                 <!-- Submit Button -->
                 <div class="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
                     <div class="flex justify-between items-center">
@@ -1133,6 +1135,278 @@ function showToast(message, type = 'info') {
         toast.style.opacity = '0';
         setTimeout(() => toast.remove(), 500);
     }, 5000);
+}
+
+function validateFileSizes() {
+    const status = document.getElementById('employmentStatusSelect')?.value || '';
+    const maxSize = 2 * 1024 * 1024; // 2MB in bytes
+    let errors = [];
+    
+    // Check COE file if required
+    if (['Employed', 'Employed & Student'].includes(status)) {
+        const coeFile = document.querySelector('[name="coe_file"]');
+        if (coeFile && coeFile.files.length > 0) {
+            if (coeFile.files[0].size > maxSize) {
+                errors.push('Certificate of Employment (COE) exceeds 2MB size limit');
+                // Highlight the field
+                const coeField = document.getElementById('coeField');
+                if (coeField) {
+                    coeField.querySelector('input').classList.add('border-red-500', 'border-2');
+                    // Add error message
+                    let errorMsg = coeField.querySelector('.file-error');
+                    if (!errorMsg) {
+                        errorMsg = document.createElement('p');
+                        errorMsg.className = 'file-error text-red-500 text-xs mt-1';
+                        coeField.appendChild(errorMsg);
+                    }
+                    errorMsg.textContent = 'File exceeds 2MB size limit';
+                }
+            } else {
+                // Remove error if file is valid
+                const coeField = document.getElementById('coeField');
+                if (coeField) {
+                    coeField.querySelector('input').classList.remove('border-red-500', 'border-2');
+                    const errorMsg = coeField.querySelector('.file-error');
+                    if (errorMsg) errorMsg.remove();
+                }
+            }
+        }
+    }
+    
+    // Check Business Certificate file if required
+    if (status === 'Self-Employed') {
+        const businessFile = document.querySelector('[name="business_file"]');
+        if (businessFile && businessFile.files.length > 0) {
+            if (businessFile.files[0].size > maxSize) {
+                errors.push('Business Certificate exceeds 2MB size limit');
+                // Highlight the field
+                const businessField = document.getElementById('businessCertField');
+                if (businessField) {
+                    businessField.querySelector('input').classList.add('border-red-500', 'border-2');
+                    // Add error message
+                    let errorMsg = businessField.querySelector('.file-error');
+                    if (!errorMsg) {
+                        errorMsg = document.createElement('p');
+                        errorMsg.className = 'file-error text-red-500 text-xs mt-1';
+                        businessField.appendChild(errorMsg);
+                    }
+                    errorMsg.textContent = 'File exceeds 2MB size limit';
+                }
+            } else {
+                // Remove error if file is valid
+                const businessField = document.getElementById('businessCertField');
+                if (businessField) {
+                    businessField.querySelector('input').classList.remove('border-red-500', 'border-2');
+                    const errorMsg = businessField.querySelector('.file-error');
+                    if (errorMsg) errorMsg.remove();
+                }
+            }
+        }
+    }
+    
+    // Check COR file if required
+    if (['Student', 'Employed & Student'].includes(status)) {
+        const corFile = document.querySelector('[name="cor_file"]');
+        if (corFile && corFile.files.length > 0) {
+            if (corFile.files[0].size > maxSize) {
+                errors.push('Certificate of Registration (COR) exceeds 2MB size limit');
+                // Highlight the field
+                const corField = document.getElementById('corField');
+                if (corField) {
+                    corField.querySelector('input').classList.add('border-red-500', 'border-2');
+                    // Add error message
+                    let errorMsg = corField.querySelector('.file-error');
+                    if (!errorMsg) {
+                        errorMsg = document.createElement('p');
+                        errorMsg.className = 'file-error text-red-500 text-xs mt-1';
+                        corField.appendChild(errorMsg);
+                    }
+                    errorMsg.textContent = 'File exceeds 2MB size limit';
+                }
+            } else {
+                // Remove error if file is valid
+                const corField = document.getElementById('corField');
+                if (corField) {
+                    corField.querySelector('input').classList.remove('border-red-500', 'border-2');
+                    const errorMsg = corField.querySelector('.file-error');
+                    if (errorMsg) errorMsg.remove();
+                }
+            }
+        }
+    }
+    
+    return errors;
+}
+
+// Update the existing validateEmploymentForm function to include file size validation
+function validateEmploymentForm() {
+    const status = document.getElementById('employmentStatusSelect')?.value || '';
+    
+    if (!status) {
+        showModalError('Employment Status is required.');
+        return false;
+    }
+
+    // Clear any previous modal errors
+    clearModalErrors();
+
+    // Validate file sizes first
+    const fileSizeErrors = validateFileSizes();
+    if (fileSizeErrors.length > 0) {
+        showModalError(fileSizeErrors.join('<br>'));
+        return false;
+    }
+
+    // Employment validation
+    if (['Employed', 'Employed & Student'].includes(status)) {
+        const jobTitleSelect = document.getElementById('jobTitleSelect');
+        if (jobTitleSelect && !jobTitleSelect.value) {
+            showModalError('Job Title is required for this employment status.');
+            return false;
+        } else if (jobTitleSelect && jobTitleSelect.value === 'Other') {
+            const otherTitle = document.querySelector('[name="other_job_title"]');
+            if (otherTitle && !otherTitle.value.trim()) {
+                showModalError('Please specify job title if "Other" is selected.');
+                return false;
+            }
+        }
+        
+        const companyName = document.querySelector('[name="company_name"]');
+        if (companyName && !companyName.value.trim()) {
+            showModalError('Company Name is required for this employment status.');
+            return false;
+        }
+        
+        const companyAddress = document.querySelector('[name="company_address"]');
+        if (companyAddress && !companyAddress.value.trim()) {
+            showModalError('Company Address is required for this employment status.');
+            return false;
+        }
+        
+        const salary = document.querySelector('[name="salary_range"]');
+        if (salary && !salary.value) {
+            showModalError('Salary Range is required for this employment status.');
+            return false;
+        }
+    }
+
+    // Self-Employed validation
+    if (status === 'Self-Employed') {
+        const businessTypeSelect = document.getElementById('businessTypeSelect');
+        if (businessTypeSelect && !businessTypeSelect.value) {
+            showModalError('Business Type is required for Self-Employed status.');
+            return false;
+        } else if (businessTypeSelect && businessTypeSelect.value === 'Others (Please specify)') {
+            const businessTypeOther = document.querySelector('[name="business_type_other"]');
+            if (businessTypeOther && !businessTypeOther.value.trim()) {
+                showModalError('Please specify business type if "Others" is selected.');
+                return false;
+            }
+        }
+    }
+
+    // Education validation
+    if (['Student', 'Employed & Student'].includes(status)) {
+        const startYear = document.querySelector('[name="start_year"]')?.value;
+        const endYear = document.querySelector('[name="end_year"]')?.value;
+        const schoolName = document.querySelector('[name="school_name"]')?.value;
+        const degreePursued = document.querySelector('[name="degree_pursued"]')?.value;
+        
+        if (!schoolName || !schoolName.trim()) {
+            showModalError('School Name is required for student status.');
+            return false;
+        }
+        
+        if (!degreePursued || !degreePursued.trim()) {
+            showModalError('Degree Pursued is required for student status.');
+            return false;
+        }
+        
+        if (!startYear || !endYear) {
+            showModalError('Both Start Year and End Year are required for student status.');
+            return false;
+        }
+        
+        if (parseInt(endYear) <= parseInt(startYear)) {
+            showModalError('End Year must be later than Start Year.');
+            return false;
+        }
+    }
+
+    // Document presence validation
+    if (['Employed', 'Employed & Student'].includes(status)) {
+        const coeFile = document.querySelector('[name="coe_file"]');
+        if (coeFile && !coeFile.files.length) {
+            showModalError('Certificate of Employment (COE) is required for this employment status.');
+            return false;
+        }
+    }
+    
+    if (status === 'Self-Employed') {
+        const businessFile = document.querySelector('[name="business_file"]');
+        if (businessFile && !businessFile.files.length) {
+            showModalError('Business Certificate is required for Self-Employed status.');
+            return false;
+        }
+    }
+    
+    if (['Student', 'Employed & Student'].includes(status)) {
+        const corFile = document.querySelector('[name="cor_file"]');
+        if (corFile && !corFile.files.length) {
+            showModalError('Certificate of Registration (COR) is required for student status.');
+            return false;
+        }
+    }
+
+    return true;
+}
+
+// Add these helper functions to show errors in the modal
+function showModalError(message) {
+    // Remove any existing error message
+    const existingError = document.getElementById('modalError');
+    if (existingError) {
+        existingError.remove();
+    }
+    
+    // Create error message element
+    const errorDiv = document.createElement('div');
+    errorDiv.id = 'modalError';
+    errorDiv.className = 'bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-r-lg';
+    errorDiv.innerHTML = `
+        <div class="flex items-center">
+            <div class="flex-shrink-0">
+                <i class="fas fa-exclamation-triangle text-red-500"></i>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-red-700 font-medium">
+                    <span class="font-bold">Error:</span> ${message}
+                </p>
+            </div>
+        </div>
+    `;
+    
+    // Insert error at the top of the modal content
+    const modalContent = document.querySelector('#employmentUpdateModal .bg-gray-50');
+    if (modalContent) {
+        modalContent.insertBefore(errorDiv, modalContent.firstChild);
+        
+        // Scroll to the error
+        errorDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
+function clearModalErrors() {
+    const existingError = document.getElementById('modalError');
+    if (existingError) {
+        existingError.remove();
+    }
+    
+    // Also clear file field errors
+    document.querySelectorAll('.file-error').forEach(el => el.remove());
+    document.querySelectorAll('input[type="file"]').forEach(input => {
+        input.classList.remove('border-red-500', 'border-2');
+    });
 }
 </script>
 
