@@ -313,16 +313,22 @@ ob_start();
                             </h4>
                             
                             <?php 
-                            // Fetch documents with their status
-                            $stmt_docs = $conn->prepare("SELECT document_type, file_path, document_status, rejection_reason FROM alumni_documents WHERE user_id = ? ORDER BY document_type");
-                            $stmt_docs->bind_param("i", $user_id);
-                            $stmt_docs->execute();
-                            $doc_result = $stmt_docs->get_result();
+                            // Fetch uploaded documents with status
+                            $stmt = $conn->prepare("SELECT document_type, file_path, document_status, rejection_reason FROM alumni_documents WHERE user_id = ? ORDER BY document_type");
+                            $stmt->bind_param("i", $user_id);
+                            $stmt->execute();
+                            $result = $stmt->get_result();
                             $documents = [];
-                            while ($row = $doc_result->fetch_assoc()) {
+                            $has_rejected = false;
+                            $rejection_reason = '';
+                            while ($row = $result->fetch_assoc()) {
                                 $documents[] = $row;
+                                if ($row['document_status'] === 'Rejected' && !empty($row['rejection_reason'])) {
+                                    $has_rejected = true;
+                                    $rejection_reason = $row['rejection_reason'];
+                                }
                             }
-                            $stmt_docs->close();
+                            $stmt->close();
                             ?>
                             
                             <?php if (!empty($documents)): ?>
@@ -469,6 +475,27 @@ ob_start();
                     </div>
                     <p class="text-gray-500 font-medium">No employment information available</p>
                     <p class="text-gray-400 text-sm mt-1">Update your employment information to get started</p>
+                </div>
+            <?php endif; ?>
+             <!-- Special Note for Employed & Student Status -->
+            <?php if ($employment_status === 'Employed & Student' && !empty($documents)): ?>
+                <div class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div class="flex items-start">
+                        <i class="fas fa-info-circle text-blue-600 mt-1 mr-3"></i>
+                        <div>
+                            <p class="text-sm font-semibold text-blue-800 mb-1">Note for Employed & Student Status</p>
+                            <p class="text-xs text-blue-700">
+                                Your documents (COE and COR) are reviewed together as a single submission. 
+                                <?php if ($has_rejected && !empty($rejection_reason)): ?>
+                                    <strong>All documents were rejected with the same reason.</strong>
+                                <?php elseif (isset($all_approved) && $all_approved): ?>
+                                    <strong>All documents have been approved together.</strong>
+                                <?php else: ?>
+                                    Approval or rejection applies to all your uploaded documents simultaneously.
+                                <?php endif; ?>
+                            </p>
+                        </div>
+                    </div>
                 </div>
             <?php endif; ?>
         </div>

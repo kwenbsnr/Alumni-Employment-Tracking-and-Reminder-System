@@ -1018,6 +1018,16 @@ function submitDocumentRejection() {
     
     if (!currentActiveDoc) return; // Should not happen
     
+    // Check if this is Employed & Student status
+    const isEmployedStudent = allDocuments.length > 1; // Employed & Student has multiple docs
+    
+    if (isEmployedStudent) {
+        // For Employed & Student, show confirmation for unified rejection
+        if (!confirm("This alumni has 'Employed & Student' status. All documents (COE and COR) will be rejected together with the same reason. Continue?")) {
+            return;
+        }
+    }
+    
     let finalReason = '';
     const docType = currentActiveDoc.document_type;
     
@@ -1071,21 +1081,48 @@ function submitDocumentRejection() {
     // All validations passed, submit the rejection
     errorElement.classList.add('hidden');
     
-    // Redirect to update_status.php to process document rejection
-    window.location.href = `update_status.php?user_id=${currentActiveDoc.user_id}&doc_id=${currentActiveDoc.doc_id}&status=Rejected&type=document&reason=${encodeURIComponent(finalReason)}&<?= htmlspecialchars($queryString) ?>&page=<?= $current_page ?>`;
+    // For Employed & Student, use profile-level rejection (affects all docs)
+    if (isEmployedStudent) {
+        window.location.href = `update_status.php?user_id=${currentActiveDoc.user_id}&status=Rejected&type=profile&reason=${encodeURIComponent(finalReason)}&<?= htmlspecialchars($queryString) ?>&page=<?= $current_page ?>`;
+    } else {
+        // Single document rejection for other statuses
+        window.location.href = `update_status.php?user_id=${currentActiveDoc.user_id}&doc_id=${currentActiveDoc.doc_id}&status=Rejected&type=document&reason=${encodeURIComponent(finalReason)}&<?= htmlspecialchars($queryString) ?>&page=<?= $current_page ?>`;
+    }
 }
 
 // Process document approval (Uses currentActiveDoc)
 function processDocumentApproval() {
     if (currentActiveDoc) {
-        window.location.href = `update_status.php?user_id=${currentActiveDoc.user_id}&doc_id=${currentActiveDoc.doc_id}&status=Approved&type=document&<?= htmlspecialchars($queryString) ?>&page=<?= $current_page ?>`;
+        // Check if this is Employed & Student status
+        const isEmployedStudent = allDocuments.length > 1; // Simple check - Employed & Student has multiple docs
+        
+        if (isEmployedStudent) {
+            // For Employed & Student, confirm unified approval
+            if (confirm("This alumni has 'Employed & Student' status. All documents (COE and COR) will be approved together. Continue?")) {
+                window.location.href = `update_status.php?user_id=${currentActiveDoc.user_id}&status=Approved&type=profile&<?= htmlspecialchars($queryString) ?>&page=<?= $current_page ?>`;
+            }
+        } else {
+            // Single document approval for other statuses
+            window.location.href = `update_status.php?user_id=${currentActiveDoc.user_id}&doc_id=${currentActiveDoc.doc_id}&status=Approved&type=document&<?= htmlspecialchars($queryString) ?>&page=<?= $current_page ?>`;
+        }
     }
 }
 
 // Process document revert (Uses currentActiveDoc)
 function processDocumentRevert() {
     if (currentActiveDoc) {
-        window.location.href = `update_status.php?user_id=${currentActiveDoc.user_id}&doc_id=${currentActiveDoc.doc_id}&status=Pending&type=document&<?= htmlspecialchars($queryString) ?>&page=<?= $current_page ?>`;
+        // Check if this is Employed & Student status
+        const isEmployedStudent = allDocuments.length > 1; // Simple check - Employed & Student has multiple docs
+        
+        if (isEmployedStudent) {
+            // For Employed & Student, confirm unified revert
+            if (confirm("This alumni has 'Employed & Student' status. All documents will be reverted to pending together. Continue?")) {
+                window.location.href = `update_status.php?user_id=${currentActiveDoc.user_id}&status=Pending&type=profile&<?= htmlspecialchars($queryString) ?>&page=<?= $current_page ?>`;
+            }
+        } else {
+            // Single document revert for other statuses
+            window.location.href = `update_status.php?user_id=${currentActiveDoc.user_id}&doc_id=${currentActiveDoc.doc_id}&status=Pending&type=document&<?= htmlspecialchars($queryString) ?>&page=<?= $current_page ?>`;
+        }
     }
 }
 

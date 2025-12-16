@@ -45,66 +45,116 @@ if (isset($_GET['user_id']) && isset($_GET['status'])) {
             
             try {
                 if ($type === 'document' && $doc_id) {
-                    // --- DOCUMENT-SPECIFIC UPDATE ---
-                    // Get current document status before update
-                    $currentDocQuery = $conn->prepare("SELECT document_status, user_id FROM alumni_documents WHERE doc_id = ?");
-                    $currentDocQuery->bind_param("i", $doc_id);
-                    $currentDocQuery->execute();
-                    $currentDocResult = $currentDocQuery->get_result();
-                    $currentDocRow = $currentDocResult->fetch_assoc();
-                    $currentDocStatus = $currentDocRow['document_status'] ?? '';
-                    $doc_user_id = $currentDocRow['user_id'] ?? $user_id;
-                    $currentDocQuery->close();
+                    // --- UNIFIED DOCUMENT UPDATE FOR EMPLOYED & STUDENT ---
+                    // Get user's employment status
+                    $empStmt = $conn->prepare("SELECT employment_status FROM alumni_profile WHERE user_id = ?");
+                    $empStmt->bind_param("i", $user_id);
+                    $empStmt->execute();
+                    $empResult = $empStmt->get_result();
+                    $empData = $empResult->fetch_assoc();
+                    $employment_status = $empData['employment_status'] ?? '';
+                    $empStmt->close();
                     
-                    // Update the specific document
-                    if ($status === 'Rejected') {
-                        $stmt = $conn->prepare("UPDATE alumni_documents SET document_status = ?, rejection_reason = ?, rejected_at = NOW() WHERE doc_id = ?");
-                        $stmt->bind_param("ssi", $status, $reason, $doc_id);
-                    } else {
-                        // For approved or pending, clear rejection data
-                        $stmt = $conn->prepare("UPDATE alumni_documents SET document_status = ?, rejection_reason = NULL, rejected_at = NULL WHERE doc_id = ?");
-                        $stmt->bind_param("si", $status, $doc_id);
-                    }
-                    
-                    $stmt->execute();
-                    $stmt->close();
-                    
-                    // Update alumni_profile submitted_at timestamp when ANY document is approved
-                    if ($status === 'Approved') {
-                        $updateTimestampStmt = $conn->prepare("UPDATE alumni_profile SET submitted_at = NOW() WHERE user_id = ?");
-                        $updateTimestampStmt->bind_param("i", $doc_user_id);
-                        $updateTimestampStmt->execute();
-                        $updateTimestampStmt->close();
-                    }
-                    
-                    // LOG THE ACTION - Document specific
-                    $update_type = '';
-                    $details = '';
-                    
-                    if ($status === 'Approved') {
-                        $update_type = 'approve';
-                        $details = "Approved specific document (ID: $doc_id)";
-                    } elseif ($status === 'Rejected') {
-                        $update_type = 'reject';
-                        $details = "Rejected specific document (ID: $doc_id)";
-                        if (!empty($reason)) {
-                            $details .= " - Reason: " . htmlspecialchars($reason, ENT_QUOTES, 'UTF-8');
-                        }
-                    } elseif ($status === 'Pending') {
-                        $update_type = 'update';
-                        // Provide context for undo action
-                        if ($currentDocStatus === 'Approved') {
-                            $details = "Undo approval - Reverted document to pending status (ID: $doc_id)";
-                        } elseif ($currentDocStatus === 'Rejected') {
-                            $details = "Undo rejection - Reverted document to pending status (ID: $doc_id)";
+                    if ($employment_status === 'Employed & Student') {
+                        // For "Employed & Student", update ALL documents at once
+                        if ($status === 'Rejected') {
+                            $stmt = $conn->prepare("UPDATE alumni_documents SET document_status = ?, rejection_reason = ?, rejected_at = NOW() WHERE user_id = ?");
+                            $stmt->bind_param("ssi", $status, $reason, $user_id);
                         } else {
-                            $details = "Changed document status to pending (ID: $doc_id)";
+                            $stmt = $conn->prepare("UPDATE alumni_documents SET document_status = ?, rejection_reason = NULL, rejected_at = NULL WHERE user_id = ?");
+                            $stmt->bind_param("si", $status, $user_id);
+                        }
+                        
+                        $stmt->execute();
+                        $stmt->close();
+                        
+                        // Update alumni_profile submitted_at timestamp when ANY document is approved
+                        if ($status === 'Approved') {
+                            $updateTimestampStmt = $conn->prepare("UPDATE alumni_profile SET submitted_at = NOW() WHERE user_id = ?");
+                            $updateTimestampStmt->bind_param("i", $user_id);
+                            $updateTimestampStmt->execute();
+                            $updateTimestampStmt->close();
+                        }
+                        
+                        // LOG THE ACTION - All documents for Employed & Student
+                        $update_type = '';
+                        $details = '';
+                        
+                        if ($status === 'Approved') {
+                            $update_type = 'approve';
+                            $details = "Approved ALL documents for Employed & Student status";
+                        } elseif ($status === 'Rejected') {
+                            $update_type = 'reject';
+                            $details = "Rejected ALL documents for Employed & Student status";
+                            if (!empty($reason)) {
+                                $details .= " - Reason: " . htmlspecialchars($reason, ENT_QUOTES, 'UTF-8');
+                            }
+                        } elseif ($status === 'Pending') {
+                            $update_type = 'update';
+                            $details = "Reverted ALL documents to pending for Employed & Student status";
+                        }
+                    } else {
+                        // For other statuses, update specific document only
+                        // Get current document status before update
+                        $currentDocQuery = $conn->prepare("SELECT document_status, user_id FROM alumni_documents WHERE doc_id = ?");
+                        $currentDocQuery->bind_param("i", $doc_id);
+                        $currentDocQuery->execute();
+                        $currentDocResult = $currentDocQuery->get_result();
+                        $currentDocRow = $currentDocResult->fetch_assoc();
+                        $currentDocStatus = $currentDocRow['document_status'] ?? '';
+                        $doc_user_id = $currentDocRow['user_id'] ?? $user_id;
+                        $currentDocQuery->close();
+                        
+                        // Update the specific document
+                        if ($status === 'Rejected') {
+                            $stmt = $conn->prepare("UPDATE alumni_documents SET document_status = ?, rejection_reason = ?, rejected_at = NOW() WHERE doc_id = ?");
+                            $stmt->bind_param("ssi", $status, $reason, $doc_id);
+                        } else {
+                            // For approved or pending, clear rejection data
+                            $stmt = $conn->prepare("UPDATE alumni_documents SET document_status = ?, rejection_reason = NULL, rejected_at = NULL WHERE doc_id = ?");
+                            $stmt->bind_param("si", $status, $doc_id);
+                        }
+                        
+                        $stmt->execute();
+                        $stmt->close();
+                        
+                        // Update alumni_profile submitted_at timestamp when ANY document is approved
+                        if ($status === 'Approved') {
+                            $updateTimestampStmt = $conn->prepare("UPDATE alumni_profile SET submitted_at = NOW() WHERE user_id = ?");
+                            $updateTimestampStmt->bind_param("i", $doc_user_id);
+                            $updateTimestampStmt->execute();
+                            $updateTimestampStmt->close();
+                        }
+                        
+                        // LOG THE ACTION - Document specific
+                        $update_type = '';
+                        $details = '';
+                        
+                        if ($status === 'Approved') {
+                            $update_type = 'approve';
+                            $details = "Approved specific document (ID: $doc_id)";
+                        } elseif ($status === 'Rejected') {
+                            $update_type = 'reject';
+                            $details = "Rejected specific document (ID: $doc_id)";
+                            if (!empty($reason)) {
+                                $details .= " - Reason: " . htmlspecialchars($reason, ENT_QUOTES, 'UTF-8');
+                            }
+                        } elseif ($status === 'Pending') {
+                            $update_type = 'update';
+                            // Provide context for undo action
+                            if ($currentDocStatus === 'Approved') {
+                                $details = "Undo approval - Reverted document to pending status (ID: $doc_id)";
+                            } elseif ($currentDocStatus === 'Rejected') {
+                                $details = "Undo rejection - Reverted document to pending status (ID: $doc_id)";
+                            } else {
+                                $details = "Changed document status to pending (ID: $doc_id)";
+                            }
                         }
                     }
                     
                     // Insert into update_log
                     $logStmt = $conn->prepare("INSERT INTO update_log (updated_by, updated_id, update_type, update_details, updated_at) VALUES (?, ?, ?, ?, NOW())");
-                    $logStmt->bind_param("iiss", $admin_id, $doc_user_id, $update_type, $details);
+                    $logStmt->bind_param("iiss", $admin_id, $user_id, $update_type, $details);
                     $logStmt->execute();
                     $logStmt->close();
                     
@@ -113,11 +163,11 @@ if (isset($_GET['user_id']) && isset($_GET['status'])) {
                     
                     // Set success message
                     if ($status === 'Pending') {
-                        $_SESSION['message'] = "Document reverted to pending successfully";
+                        $_SESSION['message'] = "Document(s) reverted to pending successfully";
                     } elseif ($status === 'Approved') {
-                        $_SESSION['message'] = "Document approved successfully";
+                        $_SESSION['message'] = "Document(s) approved successfully";
                     } else {
-                        $_SESSION['message'] = "Document rejected successfully" . ($reason ? " - Reason: " . htmlspecialchars($reason, ENT_QUOTES, 'UTF-8') : "");
+                        $_SESSION['message'] = "Document(s) rejected successfully" . ($reason ? " - Reason: " . htmlspecialchars($reason, ENT_QUOTES, 'UTF-8') : "");
                     }
                     $_SESSION['message_type'] = "success";
                     

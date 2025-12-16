@@ -132,11 +132,25 @@ if ($total_docs === 0) {
 } elseif ($rejected_docs > 0) {
     $document_status = 'Rejected';
     $document_message = 'Needs resubmission';
+    
+    // For Employed & Student, get unified rejection reason
+    if ($employment_status === 'Employed & Student') {
+        $stmt = $conn->prepare("SELECT rejection_reason FROM alumni_documents WHERE user_id = ? AND document_status = 'Rejected' LIMIT 1");
+        $stmt->bind_param("i", $user_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $rejection_data = $result->fetch_assoc();
+        $stmt->close();
+        
+        if ($rejection_data && !empty($rejection_data['rejection_reason'])) {
+            $rejection_reason = $rejection_data['rejection_reason'];
+        }
+    }
 } elseif ($approved_docs === $total_docs) {
     $document_status = 'Approved';
     $document_message = 'All documents approved';
 } elseif ($pending_docs > 0) {
-    $document_status = 'Under Review';
+    $document_status = 'Pending';
     $document_message = 'Awaiting administrator review';
 } else {
     $document_status = 'Submitted';
@@ -410,7 +424,7 @@ ob_start();
                                         $docTextClass = 'text-red-700';
                                         $docIcon = 'fa-times-circle';
                                         
-                                        // Fetch rejection reason if any document is rejected
+                                        // Fetch rejection reason
                                         $rejection_stmt = $conn->prepare("SELECT rejection_reason FROM alumni_documents WHERE user_id = ? AND document_status = 'Rejected' LIMIT 1");
                                         $rejection_stmt->bind_param("i", $user_id);
                                         $rejection_stmt->execute();
