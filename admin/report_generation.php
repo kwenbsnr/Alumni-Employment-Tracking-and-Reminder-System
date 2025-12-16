@@ -209,7 +209,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
 <?php
 $page_content = ob_get_clean();
-include("admin_format.php");
+// Assuming admin_format.php exists and handles layout wrapping
+include("admin_format.php"); 
 ?>
 
 <?php
@@ -236,7 +237,6 @@ function generateAlumniReport($selected_batches, $report_type, $conn) {
 
     // Different queries for different report types
     if ($report_type === 'summary') {
-        // FIX: Removed the duplicate 'THEN 1 ELSE 0' which caused the SQL syntax error.
         $sql = "SELECT 
             u.batch_year,
             COUNT(*) as total_alumni,
@@ -404,10 +404,13 @@ function generateAlumniReport($selected_batches, $report_type, $conn) {
         $data_keys = ['batch_year', 'employed', 'self_employed', 'unemployed', 'student', 'employed_student', 'total_alumni', 'employment_rate'];
         $align = ['C', 'C', 'C', 'C', 'C', 'C', 'C', 'C'];
     } else {
-        $headers = ['Batch Year', 'Name', 'Email', 'Employment Status', 'Current Job', 'Current Employer'];
-        $widths = [25, 50, 60, 40, 40, 60];
-        $data_keys = ['batch_year', 'name', 'email', 'employment_status', 'current_job', 'current_employer'];
-        $align = ['C', 'L', 'L', 'L', 'L', 'L'];
+        // === CHANGES FOR DETAILED REPORT START HERE ===
+        $headers = ['No.', 'Batch Year', 'Name', 'Email', 'Employment Status', 'Current Job', 'Current Employer'];
+        // Adjusted widths to fit the new 'No.' column (287mm total page width - 30mm margins = 257mm available)
+        $widths = [15, 20, 50, 55, 35, 35, 47]; // Total: 257mm
+        $data_keys = ['index', 'batch_year', 'name', 'email', 'employment_status', 'current_job', 'current_employer'];
+        $align = ['C', 'C', 'L', 'L', 'L', 'L', 'L'];
+        // === CHANGES FOR DETAILED REPORT END HERE ===
     }
 
     // Draw Table Header
@@ -437,6 +440,9 @@ function generateAlumniReport($selected_batches, $report_type, $conn) {
         ];
     }
     
+    // Initialize row counter for detailed report
+    $row_index = 1;
+    
     // Define the special text and its style for the detailed report
     $special_text = 'Not Updated';
     $special_text_na = 'N/A';
@@ -460,14 +466,21 @@ function generateAlumniReport($selected_batches, $report_type, $conn) {
         // Output row data
         for ($i = 0; $i < count($data_keys); $i++) {
             $key = $data_keys[$i];
-            $value = $row[$key] ?? '';
+            
+            // Handle the new 'index' key for detailed report
+            if ($report_type === 'detailed' && $key === 'index') {
+                $value = $row_index;
+            } else {
+                $value = $row[$key] ?? '';
+            }
+            
             $cell_width = $widths[$i];
             $cell_align = $align[$i];
             $default_font_style = ['helvetica', '', 9];
             $default_text_color = [0, 0, 0];
             
             // Apply special formatting for detailed report's 'Not Updated' or 'N/A' fields
-            if ($report_type === 'detailed' && ($key === 'email' || $key === 'employment_status' || $key === 'current_job' || $key === 'current_employer')) {
+            if ($report_type === 'detailed' && in_array($key, ['email', 'employment_status', 'current_job', 'current_employer'])) {
                 
                 // Determine if special formatting is needed
                 $is_special = ($value === $special_text || $value === $special_text_na);
@@ -514,6 +527,11 @@ function generateAlumniReport($selected_batches, $report_type, $conn) {
             }
         }
         $pdf->Ln();
+        
+        // Increment row counter for detailed report
+        if ($report_type === 'detailed') {
+            $row_index++;
+        }
     }
     
     // Ensure font and color are reset to black and default size for the totals row
@@ -547,10 +565,30 @@ function generateAlumniReport($selected_batches, $report_type, $conn) {
         ];
         
         for ($i = 0; $i < count($headers); $i++) {
-            $pdf->Cell($widths[$i], 7, $total_data[$i] ?? '', 1, 0, 'C', 1);
+            // The first cell ('Batch Year' in summary) gets the 'GRAND TOTAL' text
+            $cell_content = ($i === 0) ? 'GRAND TOTAL' : ($total_data[$i] ?? '');
+            
+            // Adjust to merge the 'Batch Year' cell with its predecessor if the first column was 'No.' in detailed, 
+            // but since it's summary, we use the original columns and apply 'GRAND TOTAL' to the first column.
+            
+            // Calculate total width of non-data columns (Batch Year column has width 30)
+            if ($i === 0) {
+                 // For the summary report, merge the first column with the preceding columns' width if any.
+                 // In this case, it's just the first column, so we use its width and align center.
+                 $pdf->Cell($widths[$i], 7, $cell_content, 1, 0, 'C', 1);
+            } else {
+                 $pdf->Cell($widths[$i], 7, $total_data[$i] ?? '', 1, 0, 'C', 1);
+            }
         }
         $pdf->Ln();
     }
+    
+    // Handle totals row for Detailed Report: Merge all columns before the count column
+    // The detailed report does not have a formal totals row, but if one were needed, 
+    // the logic would go here, calculating the total number of records as the 'count' 
+    // and merging the preceding cells (No. + Batch Year + Name + Email + Status + Job + Employer)
+    // to put the label "Total Records:" on the left.
+    // Since the prompt only asked for the 'No.' column, we stop here.
 
     // Output the PDF
     $pdf_filename = strtoupper($report_type) . '_Alumni_Report_' . date('Ymd_His') . '.pdf';
