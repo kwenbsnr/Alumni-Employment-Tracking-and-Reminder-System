@@ -828,21 +828,26 @@ function closeBulkRejectionPanel(resetCheckboxes = true) {
     }
 }
 
+// Replace the existing document.getElementById('bulkRejectForm') event listener with this:
 document.getElementById('bulkRejectForm').addEventListener('submit', function(e) {
     e.preventDefault();
     const selectedIds = getSelectedDocumentIds();
     let allValid = true;
     const rejectionData = [];
+    
     selectedIds.forEach(docId => {
         const doc = allDocuments.find(d => d.doc_id == docId);
         if (!doc) return;
+        
         const reasons = documentRejectionReasons[doc.document_type] || [];
         const hasCommonReasons = reasons.length > 0;
         let finalReason = '';
+        
         const selectedReason = document.querySelector(`input[name="rejection_reason_${docId}"]:checked`);
         const customReason = document.getElementById(`custom_reason_${docId}`).value.trim();
         const errorElement = document.getElementById(`error_${docId}`);
         let docValid = false;
+        
         if (!hasCommonReasons) {
             if (customReason) {
                 finalReason = customReason;
@@ -867,6 +872,7 @@ document.getElementById('bulkRejectForm').addEventListener('submit', function(e)
                 docValid = true;
             }
         }
+        
         if (!docValid) {
             errorElement.textContent = 'A rejection reason is required for this document.';
             errorElement.classList.remove('hidden');
@@ -879,10 +885,18 @@ document.getElementById('bulkRejectForm').addEventListener('submit', function(e)
             });
         }
     });
+    
     if (!allValid) return;
+    
+    // Encode the rejection data as JSON
+    const rejectionJson = JSON.stringify(rejectionData);
+    
+    // Build the redirect URL
     const baseUrl = `update_status.php?user_id=${currentUserId}&type=document_bulk_reject&<?= htmlspecialchars($queryString) ?>&page=<?= $current_page ?>`;
-    const params = rejectionData.map(data => `rejections[]=${encodeURIComponent(JSON.stringify(data))}`).join('&');
-    window.location.href = `${baseUrl}&${params}`;
+    const encodedRejections = encodeURIComponent(rejectionJson);
+    
+    // Redirect to update_status.php with the rejection data
+    window.location.href = `${baseUrl}&rejections=${encodedRejections}`;
 });
 
 function closeUnifiedDocumentModal() {
