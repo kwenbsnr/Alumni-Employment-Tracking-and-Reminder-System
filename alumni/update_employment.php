@@ -32,15 +32,10 @@ mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 $user_id = $_SESSION['user_id'];
 
 // ========== Check if EMPLOYMENT submission is open ==========
-// check general submission status
-if (!function_exists('isSubmissionPeriodOpen')) {
+if (!function_exists('isEmploymentSubmissionOpen')) {
     require_once dirname(__DIR__) . '/api/utils/deadline.php';
 }
-$general_submission_open = isSubmissionPeriodOpen($conn);
-
-// Check specifically for employment submissions
-$employment_submission_open = isEmploymentSubmissionOpen($conn);
-$submission_open = $general_submission_open && $employment_submission_open;
+$submission_open = isEmploymentSubmissionOpen($conn);
 
 // ---- Document Upload Helper -----------------------------------------------
 function upload_employment_document($field, $user_id, $type) {
@@ -158,11 +153,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         error_log("Employment Submission Open: " . ($submission_open ? 'Yes' : 'No'));
     }
     
-    // NEW: Double-check employment submission status before processing
+    // Double-check employment submission status before processing
     // This prevents bypassing frontend validation
+    // Server-side validation - REJECT if employment submission is closed
     if (!$submission_open) {
         ob_end_clean();
-        header("Location: alumni_employment.php?error=" . urlencode("Employment updates are currently closed by administrator."));
+        header("Location: alumni_employment.php?error=" . urlencode("Employment submission is currently locked by the administrator."));
         exit();
     }
     
