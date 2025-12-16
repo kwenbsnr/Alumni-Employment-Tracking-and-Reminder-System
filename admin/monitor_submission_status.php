@@ -1,5 +1,4 @@
 <?php
-// Run via cron every 5 minutes: */5 * * * * php /path/to/monitor_submission_status.php
 
 include("connect.php");
 

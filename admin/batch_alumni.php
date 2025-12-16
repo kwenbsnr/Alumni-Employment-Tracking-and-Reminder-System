@@ -1,28 +1,28 @@
 <?php
 session_start();
-// 1. Access Control: Redirects non-admin users or unauthenticated users.
 if (!isset($_SESSION["user_id"]) || $_SESSION["role"] !== "admin") {
     header("Location: ../login/login.php");
     exit();
 }
-// Include database connection.
 include("../connect.php");
-// 2. Initial Setup and Parameter Handling
+
 $batch_year = $_GET['batch'] ?? '';
 if (empty($batch_year)) {
-    // Redirect if batch year is not specified
     header("Location: alumni_management.php");
     exit();
 }
+
 $page_title = "Batch $batch_year Alumni";
 $active_page = "alumni_management";
-// Get filter parameters from the URL
+
+// Get filter parameters
 $search = $_GET['search'] ?? '';
 $employment_status = $_GET['employment_status'] ?? '';
 $submission_status = $_GET['submission_status'] ?? '';
 $per_page = 20;
 $current_page = max(1, (int)($_GET['page'] ?? 1));
 $offset = ($current_page - 1) * $per_page;
+
 // 3. Fetch Batch Statistics (Total Count for Stats and Pagination)
 $statsQuery = "SELECT
     COUNT(*) as total_alumni,
@@ -38,14 +38,17 @@ $statsStmt->bind_param('s', $batch_year);
 $statsStmt->execute();
 $statsResult = $statsStmt->get_result();
 $batchStats = $statsResult->fetch_assoc();
+
 // Calculate profile completion rate
 $total_alumni = $batchStats['total_alumni'] ?? 0;
 $with_profiles = ($batchStats['approved_count'] ?? 0) + ($batchStats['pending_count'] ?? 0) + ($batchStats['rejected_count'] ?? 0);
 $completion_rate = $total_alumni > 0 ? round(($with_profiles / $total_alumni) * 100, 1) : 0;
-// 4. Build Query with Filters (for filtered total count and paginated list)
+
+// 4. Build Query with Filters
 $whereConditions = ["u.role = 'alumni'", "u.batch_year = ?"];
 $params = [$batch_year];
 $types = 's';
+
 if (!empty($search)) {
     $whereConditions[] = "(CONCAT(
         u.first_name,
@@ -59,12 +62,15 @@ if (!empty($search)) {
     $params[] = $searchTerm;
     $types .= 'ss';
 }
+
 if (!empty($employment_status)) {
     $whereConditions[] = "ap.employment_status = ?";
     $params[] = $employment_status;
     $types .= 's';
 }
+
 $whereClause = implode(" AND ", $whereConditions);
+
 // --- TOTAL FILTERED COUNT FOR PAGINATION ---
 $countQuery = "SELECT COUNT(*) as filtered_count FROM users u LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id WHERE $whereClause";
 $countStmt = $conn->prepare($countQuery);
@@ -73,6 +79,7 @@ $countStmt->execute();
 $countResult = $countStmt->get_result();
 $filteredCount = $countResult->fetch_assoc()['filtered_count'];
 $totalPages = ceil($filteredCount / $per_page);
+
 // Adjust current page if it exceeds total pages after filtering
 if ($current_page > $totalPages && $totalPages > 0) {
     $current_page = $totalPages;
@@ -81,7 +88,10 @@ if ($current_page > $totalPages && $totalPages > 0) {
     $current_page = 1;
     $offset = 0;
 }
+
 // --- END TOTAL FILTERED COUNT ---
+
+// FIXED: Updated query to properly check for profile existence and document status
 $alumniQuery = "
     SELECT
         u.user_id,
@@ -97,6 +107,7 @@ $alumniQuery = "
         ap.employment_status,
         ap.photo_path,
         ap.submitted_at,
+        ap.user_id as has_profile,
         (
             SELECT ad.document_status
             FROM alumni_documents ad
@@ -117,6 +128,7 @@ $alumniQuery = "
     ORDER BY name ASC
     LIMIT ? OFFSET ?
 ";
+
 $alumniStmt = $conn->prepare($alumniQuery);
 $types .= 'ii';
 $params[] = $per_page;
@@ -129,10 +141,12 @@ foreach ($bind_params as $key => $value) {
 call_user_func_array([$alumniStmt, 'bind_param'], $refs);
 $alumniStmt->execute();
 $alumniResult = $alumniStmt->get_result();
+
 // Get the current URL query string for pagination links
 $queryParams = $_GET;
 unset($queryParams['page']);
 $queryString = http_build_query($queryParams);
+
 // Start output buffering
 ob_start();
 ?>
@@ -814,21 +828,26 @@ function closeBulkRejectionPanel(resetCheckboxes = true) {
     }
 }
 
+// Replace the existing document.getElementById('bulkRejectForm') event listener with this:
 document.getElementById('bulkRejectForm').addEventListener('submit', function(e) {
     e.preventDefault();
     const selectedIds = getSelectedDocumentIds();
     let allValid = true;
     const rejectionData = [];
+    
     selectedIds.forEach(docId => {
         const doc = allDocuments.find(d => d.doc_id == docId);
         if (!doc) return;
+        
         const reasons = documentRejectionReasons[doc.document_type] || [];
         const hasCommonReasons = reasons.length > 0;
         let finalReason = '';
+        
         const selectedReason = document.querySelector(`input[name="rejection_reason_${docId}"]:checked`);
         const customReason = document.getElementById(`custom_reason_${docId}`).value.trim();
         const errorElement = document.getElementById(`error_${docId}`);
         let docValid = false;
+        
         if (!hasCommonReasons) {
             if (customReason) {
                 finalReason = customReason;
@@ -853,6 +872,7 @@ document.getElementById('bulkRejectForm').addEventListener('submit', function(e)
                 docValid = true;
             }
         }
+        
         if (!docValid) {
             errorElement.textContent = 'A rejection reason is required for this document.';
             errorElement.classList.remove('hidden');
@@ -865,10 +885,18 @@ document.getElementById('bulkRejectForm').addEventListener('submit', function(e)
             });
         }
     });
+    
     if (!allValid) return;
+    
+    // Encode the rejection data as JSON
+    const rejectionJson = JSON.stringify(rejectionData);
+    
+    // Build the redirect URL
     const baseUrl = `update_status.php?user_id=${currentUserId}&type=document_bulk_reject&<?= htmlspecialchars($queryString) ?>&page=<?= $current_page ?>`;
-    const params = rejectionData.map(data => `rejections[]=${encodeURIComponent(JSON.stringify(data))}`).join('&');
-    window.location.href = `${baseUrl}&${params}`;
+    const encodedRejections = encodeURIComponent(rejectionJson);
+    
+    // Redirect to update_status.php with the rejection data
+    window.location.href = `${baseUrl}&rejections=${encodedRejections}`;
 });
 
 function closeUnifiedDocumentModal() {

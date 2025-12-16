@@ -386,10 +386,13 @@ ob_start();
                                                 <div class="mt-2 p-2 bg-red-50 border border-red-100 rounded text-xs text-red-700">
                                                     <p class="font-semibold">Rejection Reason:</p>
                                                     <p class="whitespace-pre-wrap"><?php echo htmlspecialchars($doc['rejection_reason']); ?></p>
+                                                    <p class="font-semibold mt-2 text-red-800">Action Required:</p>
+                                                    <p class="text-red-700">Please upload a corrected document</p>
                                                 </div>
                                             <?php elseif ($status === 'Approved'): ?>
                                                 <div class="mt-2 p-2 bg-emerald-50 border border-emerald-100 rounded text-xs text-emerald-700">
                                                     <p class="font-semibold">✓ Approved</p>
+                                                    <p class="text-emerald-700">This document has been verified</p>
                                                 </div>
                                             <?php endif; ?>
                                         </div>
