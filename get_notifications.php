@@ -56,10 +56,10 @@ if ($result->num_rows === 0) {
         
         $read_class = $row['is_read'] ? 'notification-read' : 'notification-unread';
         
-        echo '<div class="notification-item p-4 hover:bg-gray-50 border-b border-gray-100 notification-' . $row['type'] . ' ' . $read_class . '" 
-              data-notification-id="' . $row['notification_id'] . '">
-                <div class="flex items-start space-x-3">
-                    <div class="flex-shrink-0 mt-1">';
+      echo '<div class="notification-item p-4 hover:bg-gray-50 border-b border-gray-100 notification-' . $row['type'] . ' ' . $read_class . '" 
+      data-notification-id="' . $row['notification_id'] . '">
+        <div class="flex items-start space-x-3">
+            <div class="flex-shrink-0 mt-1">';
         
         switch ($row['type']) {
             case 'success':

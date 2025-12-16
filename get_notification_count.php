@@ -2,6 +2,11 @@
 session_start();
 include("../connect.php");
 
+// Prevent caching
+header("Cache-Control: no-cache, no-store, must-revalidate");
+header("Pragma: no-cache");
+header("Expires: 0");
+
 if (!isset($_SESSION["user_id"]) || $_SESSION["role"] !== "alumni") {
     echo json_encode(['count' => 0]);
     exit();

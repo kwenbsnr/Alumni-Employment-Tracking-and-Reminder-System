@@ -615,302 +615,358 @@ $page_title = $page_title ?? "Alumni Page";
     </div>
     
     <!-- Notification Update Script -->
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Notification functionality
-        const notifButton = document.getElementById('notificationBtn');
-        const notifPopup = document.getElementById('notifPopup');
-        const notifBadge = document.getElementById('notificationBadge');
-        const notificationsContainer = document.getElementById('notificationsContainer');
-        const refreshBtn = document.getElementById('refreshNotifications');
-        
-        let isPopupOpen = false;
-        let refreshInterval = null;
-        
-        console.log('Notification system initialized');
-        
-        // Function to show popup
-        function showPopup() {
-            console.log('showPopup called');
-            if (notifPopup) {
-                notifPopup.classList.remove('hidden');
-                notifPopup.style.display = 'block';
-                // Force reflow for animation
-                notifPopup.offsetHeight;
-                notifPopup.classList.add('open');
-                isPopupOpen = true;
-                console.log('Popup shown, isPopupOpen:', isPopupOpen);
+   <script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Notification functionality
+    const notifButton = document.getElementById('notificationBtn');
+    const notifPopup = document.getElementById('notifPopup');
+    const notifBadge = document.getElementById('notificationBadge');
+    const notificationsContainer = document.getElementById('notificationsContainer');
+    const refreshBtn = document.getElementById('refreshNotifications');
+    
+    let isPopupOpen = false;
+    let refreshInterval = null;
+    
+    console.log('Notification system initialized');
+    
+    // Function to show popup
+    function showPopup() {
+        console.log('showPopup called');
+        if (notifPopup) {
+            notifPopup.classList.remove('hidden');
+            notifPopup.style.display = 'block';
+            // Force reflow for animation
+            notifPopup.offsetHeight;
+            notifPopup.classList.add('open');
+            isPopupOpen = true;
+            console.log('Popup shown, isPopupOpen:', isPopupOpen);
+            
+            // Start auto-refresh when popup is open
+            startAutoRefresh();
+        }
+    }
+    
+    // Function to hide popup
+    function hidePopup() {
+        console.log('hidePopup called');
+        if (notifPopup) {
+            notifPopup.classList.remove('open');
+            setTimeout(() => {
+                notifPopup.classList.add('hidden');
+                notifPopup.style.display = 'none';
+                isPopupOpen = false;
+                console.log('Popup hidden, isPopupOpen:', isPopupOpen);
                 
-                // Start auto-refresh when popup is open
-                startAutoRefresh();
-            }
+                // Stop auto-refresh when popup is closed
+                stopAutoRefresh();
+            }, 200); // Match CSS transition duration
+        }
+    }
+    
+    // Function to toggle popup
+    function togglePopup() {
+        console.log('togglePopup called, isPopupOpen:', isPopupOpen);
+        if (isPopupOpen) {
+            hidePopup();
+        } else {
+            showPopup();
+        }
+    }
+    
+    // Start auto-refresh for notifications
+    function startAutoRefresh() {
+        // Clear any existing interval
+        stopAutoRefresh();
+        
+        // Refresh every 30 seconds when popup is open
+        refreshInterval = setInterval(() => {
+            refreshNotifications();
+        }, 30000); // 30 seconds
+    }
+    
+    // Stop auto-refresh
+    function stopAutoRefresh() {
+        if (refreshInterval) {
+            clearInterval(refreshInterval);
+            refreshInterval = null;
+        }
+    }
+    
+    // Refresh notifications from server
+    function refreshNotifications() {
+        if (!isPopupOpen) return;
+        
+        console.log('Refreshing notifications...');
+        
+        // Show refreshing indicator
+        if (refreshBtn) {
+            refreshBtn.classList.add('refreshing');
         }
         
-        // Function to hide popup
-        function hidePopup() {
-            console.log('hidePopup called');
-            if (notifPopup) {
-                notifPopup.classList.remove('open');
-                setTimeout(() => {
-                    notifPopup.classList.add('hidden');
-                    notifPopup.style.display = 'none';
-                    isPopupOpen = false;
-                    console.log('Popup hidden, isPopupOpen:', isPopupOpen);
-                    
-                    // Stop auto-refresh when popup is closed
-                    stopAutoRefresh();
-                }, 200); // Match CSS transition duration
-            }
-        }
-        
-        // Function to toggle popup
-        function togglePopup() {
-            console.log('togglePopup called, isPopupOpen:', isPopupOpen);
-            if (isPopupOpen) {
-                hidePopup();
-            } else {
-                showPopup();
-            }
-        }
-        
-        // Start auto-refresh for notifications
-        function startAutoRefresh() {
-            // Clear any existing interval
-            stopAutoRefresh();
-            
-            // Refresh every 30 seconds when popup is open
-            refreshInterval = setInterval(() => {
-                refreshNotifications();
-            }, 30000); // 30 seconds
-        }
-        
-        // Stop auto-refresh
-        function stopAutoRefresh() {
-            if (refreshInterval) {
-                clearInterval(refreshInterval);
-                refreshInterval = null;
-            }
-        }
-        
-        // Refresh notifications from server
-        function refreshNotifications() {
-            if (!isPopupOpen) return;
-            
-            console.log('Refreshing notifications...');
-            
-            // Show refreshing indicator
-            if (refreshBtn) {
-                refreshBtn.classList.add('refreshing');
-            }
-            
-            // Fetch updated notifications
-            fetch('get_notifications.php?refresh=true')
-                .then(response => response.text())
-                .then(html => {
-                    // Update notifications container
-                    if (notificationsContainer) {
-                        notificationsContainer.innerHTML = html;
-                    }
-                    
-                    // Update badge count
-                    updateNotificationBadge();
-                    
-                    // Remove refreshing indicator
-                    if (refreshBtn) {
-                        setTimeout(() => {
-                            refreshBtn.classList.remove('refreshing');
-                        }, 500);
-                    }
-                    
-                    console.log('Notifications refreshed');
-                })
-                .catch(error => {
-                    console.error('Error refreshing notifications:', error);
-                    if (refreshBtn) {
+        // Fetch updated notifications
+        fetch('get_notifications.php?refresh=true&t=' + new Date().getTime())
+            .then(response => response.text())
+            .then(html => {
+                // Update notifications container
+                if (notificationsContainer) {
+                    notificationsContainer.innerHTML = html;
+                }
+                
+                // Update badge count
+                updateNotificationBadge();
+                
+                // Remove refreshing indicator
+                if (refreshBtn) {
+                    setTimeout(() => {
                         refreshBtn.classList.remove('refreshing');
-                    }
-                });
-        }
-        
-        // Update notification badge count
-        function updateNotificationBadge() {
-            fetch('get_notification_count.php')
-                .then(response => response.json())
-                .then(data => {
-                    if (notifBadge) {
-                        if (data.count > 0) {
-                            notifBadge.textContent = data.count;
-                            notifBadge.style.display = 'flex';
-                        } else {
-                            notifBadge.style.display = 'none';
-                        }
-                    }
-                })
-                .catch(error => {
-                    console.error('Error updating notification badge:', error);
-                });
-        }
-        
-        // Mark notification as read when clicked
-        function markNotificationAsRead(notificationId) {
-            fetch('mark_notification_read.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: 'notification_id=' + notificationId
+                    }, 500);
+                }
+                
+                console.log('Notifications refreshed');
             })
+            .catch(error => {
+                console.error('Error refreshing notifications:', error);
+                if (refreshBtn) {
+                    refreshBtn.classList.remove('refreshing');
+                }
+            });
+    }
+    
+    // Update notification badge count
+    function updateNotificationBadge() {
+        fetch('get_notification_count.php?t=' + new Date().getTime())
             .then(response => response.json())
             .then(data => {
-                if (data.success) {
-                    // Update UI
-                    const notificationElement = document.querySelector(`[data-notification-id="${notificationId}"]`);
-                    if (notificationElement) {
-                        notificationElement.classList.remove('notification-unread');
-                        notificationElement.classList.add('notification-read');
+                if (notifBadge) {
+                    if (data.count > 0) {
+                        notifBadge.textContent = data.count;
+                        notifBadge.style.display = 'flex';
                         
-                        // Remove unread dot
-                        const unreadDot = notificationElement.querySelector('.flex-shrink-0:last-child');
-                        if (unreadDot) {
-                            unreadDot.remove();
+                        // Show mark all as read button
+                        const markReadBtn = document.getElementById('markReadBtn');
+                        if (markReadBtn) {
+                            markReadBtn.style.display = 'block';
                         }
+                    } else {
+                        notifBadge.style.display = 'none';
                         
-                        // Update badge count
-                        updateNotificationBadge();
+                        // Hide mark all as read button
+                        const markReadBtn = document.getElementById('markReadBtn');
+                        if (markReadBtn) {
+                            markReadBtn.style.display = 'none';
+                        }
                     }
                 }
             })
             .catch(error => {
-                console.error('Error marking notification as read:', error);
+                console.error('Error updating notification badge:', error);
             });
-        }
-        
-        // Notification button click handler
-        if (notifButton) {
-            console.log('Adding click listener to notification button');
-            notifButton.addEventListener('click', function(e) {
-                console.log('Notification button CLICKED');
-                e.stopPropagation(); // Prevent event from bubbling up
-                e.preventDefault();
-                togglePopup();
-            });
-        }
-        
-        // Refresh button click handler
-        if (refreshBtn) {
-            refreshBtn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                e.preventDefault();
-                refreshNotifications();
-            });
-        }
-        
-        // Close popup when clicking outside
-        document.addEventListener('click', function(e) {
-            setTimeout(() => {
-                if (isPopupOpen && notifPopup) {
-                    const clickedOnPopup = notifPopup.contains(e.target);
-                    const clickedOnButton = notifButton.contains(e.target);
+    }
+    
+    // Mark notification as read when clicked
+    function markNotificationAsRead(notificationId) {
+        fetch('mark_notification_read.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'notification_id=' + notificationId
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update UI
+                const notificationElement = document.querySelector(`[data-notification-id="${notificationId}"]`);
+                if (notificationElement) {
+                    notificationElement.classList.remove('notification-unread');
+                    notificationElement.classList.add('notification-read');
                     
-                    if (!clickedOnPopup && !clickedOnButton) {
-                        console.log('Click outside detected, closing popup');
-                        hidePopup();
+                    // Remove unread dot
+                    const unreadDot = notificationElement.querySelector('.flex-shrink-0:last-child');
+                    if (unreadDot) {
+                        unreadDot.remove();
                     }
+                    
+                    // Update badge count
+                    updateNotificationBadge();
                 }
-            }, 10);
-        });
-        
-        // Close on escape key
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && isPopupOpen) {
-                console.log('Escape key pressed, closing popup');
-                hidePopup();
             }
+        })
+        .catch(error => {
+            console.error('Error marking notification as read:', error);
         });
+    }
+   // Mark all notifications as read
+function markAllNotificationsAsRead() {
+    console.log('Marking all notifications as read...');
+    
+    // Get user_id from PHP variable - we need to pass this
+    const userId = <?php echo $user_id; ?>;
+    
+    fetch('mark_all_notifications_read.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'user_id=' + userId
+    })
+    .then(response => {
+        console.log('Response status:', response.status);
+        if (!response.ok) {
+            throw new Error('Network response was not ok: ' + response.status);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Mark all as read response:', data);
         
-        // Mark all as read functionality
-        const markReadBtn = document.getElementById('markReadBtn');
-        if (markReadBtn) {
-            markReadBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('Mark all as read clicked');
+        if (data.success) {
+            console.log('All notifications marked as read');
+            
+            // Hide notification badge
+            if (notifBadge) {
+                notifBadge.style.display = 'none';
+            }
+            
+            // Hide mark all as read button
+            const markReadBtn = document.getElementById('markReadBtn');
+            if (markReadBtn) {
+                markReadBtn.style.display = 'none';
+            }
+            
+            // Update all notifications to read state in UI
+            document.querySelectorAll('.notification-item').forEach(item => {
+                item.classList.remove('notification-unread');
+                item.classList.add('notification-read');
                 
-                fetch('mark_all_notifications_read.php', {
-                    method: 'POST'
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // Hide notification badge
-                        if (notifBadge) {
-                            notifBadge.style.display = 'none';
-                        }
-                        
-                        // Hide mark all as read button
-                        markReadBtn.style.display = 'none';
-                        
-                        // Update all notifications to read state
-                        document.querySelectorAll('.notification-item').forEach(item => {
-                            item.classList.remove('notification-unread');
-                            item.classList.add('notification-read');
-                            
-                            // Remove unread dots
-                            const unreadDot = item.querySelector('.flex-shrink-0:last-child');
-                            if (unreadDot && unreadDot.querySelector('.bg-blue-500')) {
-                                unreadDot.remove();
-                            }
-                        });
-                        
-                        // Show confirmation
-                        const notificationHeader = notifPopup.querySelector('.p-4.border-b');
-                        if (notificationHeader) {
-                            const originalContent = notificationHeader.innerHTML;
-                            notificationHeader.innerHTML = '<span class="text-green-600"><i class="fas fa-check mr-2"></i>All notifications marked as read</span>';
-                            
-                            setTimeout(() => {
-                                notificationHeader.innerHTML = originalContent;
-                            }, 1500);
-                        }
+                // Remove unread dots
+                const unreadDot = item.querySelector('.flex-shrink-0:last-child');
+                if (unreadDot) {
+                    const blueDot = unreadDot.querySelector('.bg-blue-500, .w-2.h-2');
+                    if (blueDot) {
+                        unreadDot.remove();
                     }
-                })
-                .catch(error => {
-                    console.error('Error marking all as read:', error);
-                });
+                }
             });
+            
+            // Show confirmation message
+            showConfirmationMessage(data.message || 'All notifications marked as read');
+            
+        } else {
+            console.error('Failed to mark all as read:', data.message);
+            showConfirmationMessage(data.message || 'Failed to mark all as read', 'error');
         }
-        
-        // Mark individual notification as read when clicked
-        document.addEventListener('click', function(e) {
-            const notificationItem = e.target.closest('.notification-item');
-            if (notificationItem && isPopupOpen) {
-                const notificationId = notificationItem.dataset.notificationId;
-                if (notificationId) {
-                    markNotificationAsRead(notificationId);
+    })
+    .catch(error => {
+        console.error('Error marking all notifications as read:', error);
+        showConfirmationMessage('Error: ' + error.message, 'error');
+    });
+}
+    
+    // Show confirmation message
+    function showConfirmationMessage(message, type = 'success') {
+        const notificationHeader = document.querySelector('.p-4.border-b.border-gray-200');
+        if (notificationHeader) {
+            const originalContent = notificationHeader.innerHTML;
+            const colorClass = type === 'success' ? 'text-green-600' : 'text-red-600';
+            const icon = type === 'success' ? 'fa-check' : 'fa-exclamation-triangle';
+            
+            notificationHeader.innerHTML = `<span class="${colorClass}"><i class="fas ${icon} mr-2"></i>${message}</span>`;
+            
+            setTimeout(() => {
+                notificationHeader.innerHTML = originalContent;
+            }, 2000);
+        }
+    }
+    
+    // Notification button click handler
+    if (notifButton) {
+        console.log('Adding click listener to notification button');
+        notifButton.addEventListener('click', function(e) {
+            console.log('Notification button CLICKED');
+            e.stopPropagation(); // Prevent event from bubbling up
+            e.preventDefault();
+            togglePopup();
+        });
+    }
+    
+    // Refresh button click handler
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            refreshNotifications();
+        });
+    }
+    
+    // Mark all as read button click handler - FIXED
+    const markReadBtn = document.getElementById('markReadBtn');
+    if (markReadBtn) {
+        console.log('Adding click listener to mark all as read button');
+        markReadBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Mark all as read button clicked');
+            markAllNotificationsAsRead();
+        });
+    }
+    
+    // Close popup when clicking outside
+    document.addEventListener('click', function(e) {
+        setTimeout(() => {
+            if (isPopupOpen && notifPopup) {
+                const clickedOnPopup = notifPopup.contains(e.target);
+                const clickedOnButton = notifButton.contains(e.target);
+                
+                if (!clickedOnPopup && !clickedOnButton) {
+                    console.log('Click outside detected, closing popup');
+                    hidePopup();
                 }
             }
-        });
-        
-        // Prevent popup close when clicking inside popup
-        if (notifPopup) {
-            notifPopup.addEventListener('click', function(e) {
-                e.stopPropagation();
-                console.log('Clicked inside popup, preventing close');
-            });
-        }
-        
-        // Auto-refresh notification badge every 60 seconds
-        setInterval(() => {
-            updateNotificationBadge();
-        }, 60000);
-        
-        // Debug: Log current state
-        console.log('Initial state - isPopupOpen:', isPopupOpen);
-        console.log('Popup visibility:', notifPopup?.classList.contains('hidden') ? 'hidden' : 'visible');
-        
-        // Initial badge update
-        updateNotificationBadge();
+        }, 10);
     });
-    </script>
+    
+    // Close on escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && isPopupOpen) {
+            console.log('Escape key pressed, closing popup');
+            hidePopup();
+        }
+    });
+    
+    // Mark individual notification as read when clicked
+    document.addEventListener('click', function(e) {
+        const notificationItem = e.target.closest('.notification-item');
+        if (notificationItem && isPopupOpen) {
+            const notificationId = notificationItem.dataset.notificationId;
+            if (notificationId) {
+                markNotificationAsRead(notificationId);
+            }
+        }
+    });
+    
+    // Prevent popup close when clicking inside popup
+    if (notifPopup) {
+        notifPopup.addEventListener('click', function(e) {
+            e.stopPropagation();
+            console.log('Clicked inside popup, preventing close');
+        });
+    }
+    
+    // Auto-refresh notification badge every 60 seconds
+    setInterval(() => {
+        if (!isPopupOpen) {
+            updateNotificationBadge();
+        }
+    }, 60000);
+    
+    // Debug: Log current state
+    console.log('Initial state - isPopupOpen:', isPopupOpen);
+    console.log('Popup visibility:', notifPopup?.classList.contains('hidden') ? 'hidden' : 'visible');
+    
+    // Initial badge update
+    updateNotificationBadge();
+});
+</script>
 </body>
 </html>
