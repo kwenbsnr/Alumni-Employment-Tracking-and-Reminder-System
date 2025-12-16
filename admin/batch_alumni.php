@@ -461,11 +461,12 @@ ob_start();
             <p class="text-gray-500 mt-1">Try adjusting your filters or check if the batch has registered alumni.</p>
         </div>
     <?php endif; ?>
-</div>
+</div><div id="unifiedDocumentModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center hidden z-[60]">
+    
 
-<div id="unifiedDocumentModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center hidden z-[60]">
-    <div class="bg-white rounded-xl shadow-2xl max-w-6xl w-full mx-4 h-[90vh] flex flex-col">
-        <div class="flex items-center justify-between p-4 border-b">
+<div class="bg-white rounded-xl shadow-2xl max-w-7xl w-[95vw] mx-4 h-[90vh] flex flex-col">
+        <div class="flex items-center justify-between p-4 border-b bg-gray-300">
+             <i class="fas fa-tasks mr-2"></i> 
             <h3 class="text-xl font-bold text-gray-900" id="unifiedModalTitle">Document Review</h3>
             <button onclick="closeUnifiedDocumentModal()" class="text-gray-500 hover:text-gray-800 transition-colors">
                 <i class="fas fa-times text-2xl"></i>
@@ -473,10 +474,10 @@ ob_start();
         </div>
         
         <div class="flex-1 overflow-hidden flex">
-            <div class="flex-1 flex flex-col p-4 border-r border-gray-200">
-                <div class="mb-4">
+            <div class="w-3/5 flex flex-col p-2 border-r border-gray-200">
+                <div class="mb-2">
                     <div id="unifiedDocTabs" class="flex border-b overflow-x-auto">
-                        </div>
+                    </div>
                 </div>
                 
                 <div id="unifiedViewerContent">
@@ -491,19 +492,19 @@ ob_start();
                 </div>
             </div>
             
-            <div class="w-96 flex flex-col border-l border-gray-200">
+            <div class="w-2/5 flex flex-col border-l border-gray-200">
                 <div class="p-4 border-b bg-gray-50">
                     <h4 class="text-lg font-bold text-gray-900">
-                        <i class="fas fa-tasks mr-2"></i> Document Management
+                       Document Verification
                     </h4>
-                    <p class="text-sm text-gray-600 mt-1">Review and manage all documents for <span id="unifiedAlumniName" class="font-semibold"></span></p>
+                    <p class="text-sm text-gray-600 mt-1">Review and verify all documents submitted by <span id="unifiedAlumniName" class="font-semibold"></span></p>
                 </div>
                 
-                <div class="flex-1 overflow-y-auto p-4">
+                <div class="flex-1 overflow-y-auto p-2">
                     <div id="unifiedDocumentList" class="space-y-3 mb-6">
-                        </div>
+                    </div>
                     
-                    <div id="bulkActionsSection" class="border-t pt-4">
+                    <div id="bulkActionsSection" class="border-t pt-2">
                         <h5 class="text-md font-bold text-gray-800 mb-3">Bulk Actions</h5>
                         
                         <div class="mb-4">
@@ -548,7 +549,7 @@ ob_start();
                             <input type="hidden" id="bulkRejectUserId" name="user_id">
                             
                             <div id="bulkRejectionDocuments" class="space-y-4 mb-6 max-h-96 overflow-y-auto pr-2">
-                                </div>
+                            </div>
                             
                             <div class="flex gap-3 border-t pt-4">
                                 <button type="button" onclick="closeBulkRejectionPanel()" 
@@ -565,6 +566,7 @@ ob_start();
                 </div>
             </div>
         </div>
+        <div class="h-2 bg-gray-100 rounded-b-xl border-t border-gray-200"></div>
     </div>
 </div>
 
