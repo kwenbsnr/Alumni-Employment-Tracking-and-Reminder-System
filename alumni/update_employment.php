@@ -451,7 +451,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->close();
         }
 
-               // Commit transaction
+        // Commit transaction
         $conn->commit();
 
         // ---- 9. TRIGGER NOTIFICATIONS (EMPLOYMENT SUBMISSION ONLY) ----------------
@@ -459,32 +459,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Load notification service
             require_once dirname(__DIR__) . '/api/notification/notif_service.php';
             
-            // Check if this is a resubmission (has any rejected documents)
-            $was_rejected = was_submission_rejected($conn, $user_id);
+            // Check if this is the FIRST submission ever
+            $stmt = $conn->prepare("
+                SELECT 
+                    COUNT(DISTINCT DATE(submitted_at)) as total_submissions
+                FROM alumni_profile 
+                WHERE user_id = ?
+            ");
+            $stmt->bind_param("i", $user_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $data = $result->fetch_assoc();
+            $stmt->close();
             
-            // Check if alumni has ANY previous documents (approved, pending, or rejected)
-            $has_previous_docs = has_previous_submissions($conn, $user_id);
+            $total_submissions = $data['total_submissions'] ?? 0;
             
-            // Check if alumni has any approved documents
-            $has_approved_docs = has_approved_documents($conn, $user_id);
+            // Check for rejection
+            $stmt = $conn->prepare("SELECT document_status FROM alumni_documents WHERE user_id = ? AND document_status = 'Rejected' LIMIT 1");
+            $stmt->bind_param("i", $user_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $rejection_data = $result->fetch_assoc();
+            $stmt->close();
             
-            // Determine notification type
-            if ($was_rejected) {
-                // Resubmission after rejection
-                error_log("Resubmission detected for user $user_id - sending resubmission admin notification");
+            $was_rejected = ($rejection_data && $rejection_data['document_status'] == 'Rejected');
+            
+            // DETERMINE TEMPLATE BASED ON CLEAR RULES:
+            if ($total_submissions == 1) {
+                // FIRST-TIME SUBMISSION (only one submission date)
+                error_log("FIRST-TIME submission for user $user_id - sending NEW submission admin notification (template_admin_notif)");
+                send_new_submission_admin_notification($conn, $user_id);
+            } 
+            elseif ($was_rejected) {
+                // RESUBMISSION AFTER REJECTION
+                error_log("RESUBMISSION detected for user $user_id - sending resubmission admin notification (alum_resubmit_admin_notif)");
                 send_resubmission_admin_notification($conn, $user_id);
-            } elseif (!$has_previous_docs) {
-                // FIRST-TIME SUBMISSION (no previous documents at all)
-                error_log("FIRST-TIME submission for user $user_id - sending NEW submission admin notification");
-                send_new_submission_admin_notification($conn, $user_id);
-            } elseif ($has_approved_docs) {
-                // Semiannual update (has approved documents from previous submission)
-                error_log("Semiannual update for user $user_id - sending update admin notification");
+            }
+            else {
+                // SEMIANNUAL UPDATE (multiple submissions, never rejected)
+                error_log("SEMIANNUAL UPDATE for user $user_id - sending update admin notification (alum_update_admin_notif)");
                 send_update_admin_notification($conn, $user_id);
-            } else {
-                // Has previous documents but none approved (e.g., pending from previous attempt)
-                error_log("Update for user $user_id - sending new submission admin notification");
-                send_new_submission_admin_notification($conn, $user_id);
             }
             
         } catch (Exception $e) {
@@ -494,7 +508,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Log activity
         log_alumni_activity($conn, $user_id, 'employment_updated', 'Updated employment information');
-        
+
         // Clear output buffer before redirect
         ob_end_clean();
         
