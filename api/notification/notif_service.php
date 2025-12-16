@@ -661,6 +661,32 @@ function has_previous_submissions($conn, $user_id) {
     return ($row['count'] > 0);
 }
 
+// Simple check for new alumni (no documents at all)
+function is_new_alumni($conn, $user_id) {
+    $query = "SELECT COUNT(*) as count FROM alumni_documents WHERE user_id = ?";
+    $stmt = $conn->prepare($query);
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $row = $result->fetch_assoc();
+    $stmt->close();
+    
+    return ($row['count'] == 0);
+}
+
+// Simple check for resubmission (was previously rejected)
+function was_previously_rejected($conn, $user_id) {
+    $query = "SELECT document_status FROM alumni_documents WHERE user_id = ? AND document_status = 'Rejected' LIMIT 1";
+    $stmt = $conn->prepare($query);
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $row = $result->fetch_assoc();
+    $stmt->close();
+    
+    return ($row && $row['document_status'] == 'Rejected');
+}
+
 // ==================== USAGE EXAMPLES ====================
 
 /*
