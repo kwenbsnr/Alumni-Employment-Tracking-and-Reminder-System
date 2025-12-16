@@ -364,7 +364,7 @@ ob_start();
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                 <?php if ($has_documents): ?>
                                     <button 
-                                        onclick="openMultiDocumentModal('<?= htmlspecialchars($alumni['name'], ENT_QUOTES) ?>', '<?= $alumni['user_id'] ?>', '<?= $documents_json ?>')"
+                                        onclick="openUnifiedDocumentModal('<?= htmlspecialchars($alumni['name'], ENT_QUOTES) ?>', '<?= $alumni['user_id'] ?>', '<?= $alumni['employment_status'] ?>', '<?= $documents_json ?>')"
                                         class="text-indigo-600 hover:text-indigo-900 px-3 py-1 border border-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors inline-flex items-center">
                                         <i class="fas fa-eye mr-1"></i> View Documents
                                     </button>
@@ -463,162 +463,138 @@ ob_start();
     <?php endif; ?>
 </div>
 
-<div id="approveModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
-    <div class="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 p-6">
-        <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4"><i class="fas fa-check text-green-600 text-xl"></i></div>
-        <h3 class="text-lg font-bold text-center mb-2">Confirm Approval</h3>
-        <p class="text-gray-600 text-center mb-6">Approve <span id="approveAlumniName" class="font-semibold"></span>'s profile?</p>
-        <div class="flex gap-3">
-            <button onclick="closeApproveModal()" class="flex-1 bg-gray-300 py-2 rounded-lg hover:bg-gray-400 transition-colors">Cancel</button>
-            <button onclick="processApproval()" class="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition-colors">Confirm</button>
-        </div>
-    </div>
-</div>
-
-<div id="rejectModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-[70]"> <div class="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 p-6">
-        <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <i class="fas fa-times text-red-600 text-xl"></i>
-        </div>
-        <h3 class="text-lg font-bold text-center mb-2" id="rejectModalTitle">Reject Profile</h3>
-        <p class="text-gray-600 text-center mb-4">
-            Reason for rejecting <span id="rejectAlumniName" class="font-semibold"></span>:
-        </p>
-        <form id="rejectForm">
-            <input type="hidden" id="rejectUserId" name="user_id">
-            <input type="hidden" id="rejectDocId" name="doc_id"> 
-            <input type="hidden" id="rejectType" name="reject_type"> 
-            <div class="mb-4">
-                <label id="commonReasonsLabel" class="block text-sm font-medium text-gray-700 mb-2">Common Reasons:</label>
-                <div id="commonReasons" class="space-y-2">
-                    </div>
-            </div>
-            <div class="mb-4">
-                <label for="customReason" class="block text-sm font-medium text-gray-700 mb-2">Additional Notes (Optional)</label>
-                <textarea id="customReason" name="custom_reason" rows="3" 
-                          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                          placeholder="Add any additional notes or specific reasons..."></textarea>
-            </div>
-            <div class="flex gap-3">
-                <button type="button" onclick="closeRejectModal()" class="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400 transition-colors">
-                    Cancel
-                </button>
-                <button type="submit" class="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors">
-                    Reject
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<div id="revertModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
-    <div class="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 p-6">
-        <div class="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4"><i class="fas fa-undo text-orange-600 text-xl"></i></div>
-       <h3 class="text-lg font-bold text-gray-900 text-center mb-2">Undo Action</h3>
-        <p class="text-gray-600 text-center mb-6">
-            Are you sure you want to undo the action and set <span id="revertAlumniName" class="font-semibold"></span>'s profile status back to **Pending**?
-        </p>
-
-        <div class="flex gap-3">
-            <button type="button" onclick="closeRevertModal()" 
-                    class="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400 transition-colors">
-                Cancel
-            </button>
-            <button type="button" onclick="processRevert()" 
-                    class="flex-1 bg-orange-600 text-white py-2 px-4 rounded-lg hover:bg-orange-700 transition-colors">
-                Confirm Action
-            </button>
-        </div>
-    </div>
-</div>
-
-<div id="alumniModal" class="fixed inset-0 flex items-center justify-center hidden z-50 pointer-events-none">
-    <div class="pointer-events-auto max-w-4xl w-full mx-4">
-        <div id="alumniModalContent" class="bg-white rounded-xl shadow-2xl max-h-[90vh] overflow-y-auto">
-            </div>
-    </div>
-</div>
-
-<div id="documentModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center hidden z-[60]">
+<!-- Unified Document Modal -->
+<div id="unifiedDocumentModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center hidden z-[60]">
     <div class="bg-white rounded-xl shadow-2xl max-w-6xl w-full mx-4 h-[90vh] flex flex-col">
         <div class="flex items-center justify-between p-4 border-b">
-            <h3 class="text-xl font-bold text-gray-900" id="docModalTitle">Document View</h3>
-            <button onclick="closeDocumentModal()" class="text-gray-500 hover:text-gray-800 transition-colors">
+            <h3 class="text-xl font-bold text-gray-900" id="unifiedModalTitle">Document Review</h3>
+            <button onclick="closeUnifiedDocumentModal()" class="text-gray-500 hover:text-gray-800 transition-colors">
                 <i class="fas fa-times text-2xl"></i>
             </button>
         </div>
         
-        <div id="docTabs" class="flex-shrink-0 border-b bg-gray-50 flex overflow-x-auto">
-            </div>
-
         <div class="flex-1 overflow-hidden flex">
+            <!-- Left Panel: Document Viewing -->
             <div class="flex-1 flex flex-col p-4 border-r border-gray-200">
-                <div id="docViewerContent">
+                <div class="mb-4">
+                    <div id="unifiedDocTabs" class="flex border-b overflow-x-auto">
+                        <!-- Tabs will be generated here -->
+                    </div>
+                </div>
+                
+                <div id="unifiedViewerContent">
                     <div class="flex items-center justify-between mb-4">
-                        <span id="docCurrentStatus" class="px-3 py-1.5 inline-flex text-sm font-semibold rounded-full"></span>
+                        <span id="unifiedDocCurrentStatus" class="px-3 py-1.5 inline-flex text-sm font-semibold rounded-full"></span>
+                        <div id="unifiedDocumentCountBadge" class="text-sm text-gray-600"></div>
                     </div>
-                    <div id="docRejectionDetails" class="mb-4"></div>
+                    <div id="unifiedDocRejectionDetails" class="mb-4"></div>
                     <div class="flex-1 bg-gray-100 rounded-lg overflow-hidden h-[calc(90vh-280px)]">
-                        <iframe id="documentViewer" src="" frameborder="0" class="w-full h-full"></iframe>
+                        <iframe id="unifiedDocumentViewer" src="" frameborder="0" class="w-full h-full"></iframe>
                     </div>
-                    <div class="mt-4 flex justify-center space-x-4" id="docActionButtons">
-                        </div>
                 </div>
             </div>
             
-            <div id="rejectionPanel" class="w-96 flex flex-col border-l border-gray-200 hidden">
+            <!-- Right Panel: Document Management -->
+            <div class="w-96 flex flex-col border-l border-gray-200">
                 <div class="p-4 border-b bg-gray-50">
                     <h4 class="text-lg font-bold text-gray-900">
-                        <i class="fas fa-times text-red-600 mr-2"></i> Reject Document
+                        <i class="fas fa-tasks mr-2"></i> Document Management
                     </h4>
-                    <p class="text-sm text-gray-600 mt-1">Reason for rejecting <span id="rejectDocAlumniName" class="font-semibold"></span>'s document:</p>
+                    <p class="text-sm text-gray-600 mt-1">Review and manage all documents for <span id="unifiedAlumniName" class="font-semibold"></span></p>
                 </div>
                 
-                <form id="documentRejectForm" class="flex-1 overflow-y-auto p-4">
-                    <input type="hidden" id="docRejectUserId" name="user_id">
-                    <input type="hidden" id="docRejectDocId" name="doc_id">
-                    <input type="hidden" id="docRejectType" name="doc_type">
-                    
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Common Reasons:</label>
-                        <div id="docCommonReasons" class="space-y-2">
-                            </div>
+                <div class="flex-1 overflow-y-auto p-4">
+                    <!-- Document List with Status -->
+                    <div id="unifiedDocumentList" class="space-y-3 mb-6">
+                        <!-- Documents will be listed here -->
                     </div>
                     
-                    <div class="mb-4">
-                        <label for="docCustomReason" class="block text-sm font-medium text-gray-700 mb-2">
-                            <span id="docReasonLabel">Additional Notes (Optional)</span>
-                        </label>
-                        <textarea id="docCustomReason" name="custom_reason" rows="4" 
-                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500" 
-                                  placeholder="Add any additional notes or specific reasons..."></textarea>
-                        <div id="docReasonError" class="text-red-600 text-sm mt-1 hidden">Please provide a reason for rejection.</div>
+                    <!-- Bulk Actions Section -->
+                    <div class="border-t pt-4">
+                        <h5 class="text-md font-bold text-gray-800 mb-3">Bulk Actions</h5>
+                        
+                        <!-- Approve All Button -->
+                        <div class="mb-4">
+                            <button onclick="processBulkApproval()" id="bulkApproveBtn" 
+                                    class="w-full bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed">
+                                <i class="fas fa-check-circle mr-2"></i> Approve All Documents
+                            </button>
+                            <p class="text-xs text-gray-500 mt-1 text-center">All documents will be marked as Approved</p>
+                        </div>
+                        
+                        <!-- Reject Selected Button -->
+                        <div class="mb-4">
+                            <button onclick="openBulkRejectionPanel()" id="bulkRejectBtn"
+                                    class="w-full bg-red-600 text-white px-4 py-3 rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed">
+                                <i class="fas fa-times-circle mr-2"></i> Reject Selected Documents
+                            </button>
+                            <p class="text-xs text-gray-500 mt-1 text-center">Selected documents will be rejected with individual reasons</p>
+                        </div>
+                        
+                        <!-- Revert All to Pending -->
+                        <div>
+                            <button onclick="processBulkRevert()" id="bulkRevertBtn"
+                                    class="w-full bg-orange-600 text-white px-4 py-3 rounded-lg hover:bg-orange-700 transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed">
+                                <i class="fas fa-undo mr-2"></i> Revert All to Pending
+                            </button>
+                            <p class="text-xs text-gray-500 mt-1 text-center">All document statuses will be set back to Pending</p>
+                        </div>
                     </div>
-                </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Rejection Modal -->
+<div id="bulkRejectionModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center hidden z-[70]">
+    <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="p-6">
+            <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-times text-red-600 text-xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-center mb-2">Reject Selected Documents</h3>
+            <p class="text-gray-600 text-center mb-6">
+                Please provide rejection reasons for each selected document:
+            </p>
+            
+            <form id="bulkRejectForm">
+                <input type="hidden" id="bulkRejectUserId" name="user_id">
                 
-                <div class="p-4 border-t bg-gray-50 flex gap-3">
-                    <button type="button" onclick="closeRejectionPanel()" 
+                <div id="bulkRejectionDocuments" class="space-y-4 mb-6">
+                    <!-- Documents with rejection reason inputs will be added here -->
+                </div>
+                
+                <div class="flex gap-3">
+                    <button type="button" onclick="closeBulkRejectionModal()" 
                             class="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400 transition-colors">
                         Cancel
                     </button>
-                    <button type="button" onclick="submitDocumentRejection()" 
+                    <button type="submit" 
                             class="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors">
-                        Confirm Reject
+                        Confirm Rejection
                     </button>
                 </div>
-            </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Individual Document Actions Modal (Fallback) -->
+<div id="individualActionModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center hidden z-[70]">
+    <div class="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 p-6">
+        <div id="individualActionContent">
+            <!-- Content will be loaded dynamically -->
         </div>
     </div>
 </div>
 
 <script>
 let currentUserId = null;
-let currentAlumniName = null; 
-let hoverTimeout = null;
-let isModalHovered = false;
-
-// New global state for multi-document handling
-let allDocuments = []; // Stores the full array of documents for the current alumni
-let currentActiveDoc = null; // Stores the document object for the currently visible tab
+let currentAlumniName = null;
+let currentEmploymentStatus = null;
+let allDocuments = [];
+let currentActiveDoc = null;
 
 // Document type to full name map
 const docTypeMap = {
@@ -627,183 +603,59 @@ const docTypeMap = {
     'B_CERT': 'Business Certificate'
 };
 
-// Employment status specific rejection reasons (Unchanged)
-const rejectionReasons = {
-    'Unemployed': [],
-    'Self-Employed': [
-        'Missing Business permit document',
-        'Incorrect document submitted',
-        'Unclear business description',
-    ],
-    'Employed': [
-        'Missing Certificate of Employment document',
-        'Incomplete company information',
-        'Job position details unclear',
-    ],
-    'Student': [
-        'Missing Certificate of Registration document',
-        'Incomplete institution details',
-        'Degree pursued information unclear',
-    ],
-    'Employed & Student': [
-        'Missing COE or COR documents',
-        'Insufficient/incorrect supporting documents for both statuses'
-    ]
-};
-
-// Document type specific rejection reasons (Pulled from PHP function getDocumentRejectionReasons())
+// Document type specific rejection reasons
 const documentRejectionReasons = <?= json_encode(getDocumentRejectionReasons()) ?>;
 
-// --- PROFILE MODAL LOGIC (Unchanged, retained for completeness) ---
-
-function showApproveModal(id, name) { 
-    currentUserId = id; 
-    currentAlumniName = name;
-    document.getElementById('approveAlumniName').textContent = name; 
-    document.getElementById('approveModal').classList.remove('hidden'); 
-}
-
-function closeApproveModal() { 
-    document.getElementById('approveModal').classList.add('hidden'); 
-    currentUserId = null; 
-    currentAlumniName = null;
-}
-
-function processApproval() { 
-    if (currentUserId) {
-        window.location.href = `update_status.php?user_id=${currentUserId}&status=Approved&type=profile&<?= htmlspecialchars($queryString) ?>&page=<?= $current_page ?>`; 
+// Helper function to get the status color class
+function getStatusColorClass(status, isDocument = false) {
+    const docPrefix = isDocument ? 'border border-' : '';
+    switch (status) {
+        case 'Approved': return `${docPrefix}green-200 bg-green-100 text-green-800`;
+        case 'Pending': return `${docPrefix}yellow-200 bg-yellow-100 text-yellow-800`;
+        case 'Rejected': return `${docPrefix}red-200 bg-red-100 text-red-800`;
+        default: return `${docPrefix}gray-200 bg-gray-100 text-gray-800`;
     }
 }
 
-function showRejectModal(id, name, typeValue, statusOrDocType, docId = null) {
-    // This is primarily for Profile Rejection now, but kept generic for compatibility
-    currentUserId = id;
-    currentAlumniName = name;
-    
-    // Set form hidden fields
-    document.getElementById('rejectUserId').value = id;
-    document.getElementById('rejectDocId').value = docId || '';
-    document.getElementById('rejectType').value = typeValue;
-    
-    const isProfile = typeValue === 'profile';
-    const reasonSource = isProfile ? rejectionReasons : documentRejectionReasons;
-    const key = statusOrDocType;
-    
-    // Update Modal Title and Description Text
-    const rejectModalTitleEl = document.getElementById('rejectModalTitle');
-    rejectModalTitleEl.textContent = isProfile ? 'Reject Profile' : 'Reject Document';
-    
-    const modalDescriptionEl = document.querySelector('#rejectModal p.text-gray-600');
-    modalDescriptionEl.innerHTML = `Reason for rejecting <span id="rejectAlumniName" class="font-semibold">${name}</span>'s ${isProfile ? 'profile' : 'document'}:`;
-    
-    // Handle Common Reasons Visibility
-    const container = document.getElementById('commonReasons');
-    const containerLabel = document.getElementById('commonReasonsLabel');
-    const customReason = document.getElementById('customReason');
-    const customLabel = document.querySelector('label[for="customReason"]');
-    
-    container.innerHTML = '';
-    
-    const hasCommonReasons = reasonSource[key] && reasonSource[key].length > 0;
-
-    if (!hasCommonReasons) {
-        container.style.display = 'none';
-        containerLabel.style.display = 'none';
-        
-        if (customLabel) customLabel.textContent = isProfile 
-            ? 'Reason for profile rejection (required):' 
-            : 'Reason for document rejection (required):';
-        customReason.placeholder = 'Please specify the reason for rejection (required)...';
-        customReason.required = true;
-    } else {
-        container.style.display = 'block';
-        containerLabel.style.display = 'block';
-
-        if (customLabel) customLabel.textContent = 'Additional Notes (Optional)';
-        customReason.placeholder = 'Add any additional notes or specific reasons...';
-        customReason.required = false;
-        
-        // Populate common reasons
-        const reasons = reasonSource[key];
-        reasons.forEach((r, i) => {
-            const radioId = isProfile ? `pr${i}` : `dr${i}`; 
-            container.innerHTML += `
-                <div class="flex items-start">
-                    <input type="radio" name="rejection_reason" value="${r}" id="${radioId}" class="mt-1 mr-2 text-red-600 focus:ring-red-500 border-gray-300">
-                    <label for="${radioId}" class="text-sm cursor-pointer">${r}</label>
-                </div>
-            `;
-        });
-        
-        // Add "Other" option
-        container.innerHTML += `
-            <div class="flex items-start">
-                <input type="radio" name="rejection_reason" value="custom" id="rcustom" class="mt-1 mr-2 text-red-600 focus:ring-red-500 border-gray-300">
-                <label for="rcustom" class="text-sm cursor-pointer">Other (specify below)</label>
-            </div>
-        `;
-    }
-    
-    document.getElementById('rejectModal').classList.remove('hidden');
+// Helper function to check if all documents are approved
+function allDocumentsApproved() {
+    return allDocuments.every(doc => doc.document_status === 'Approved');
 }
 
-function closeRejectModal() { 
-    document.getElementById('rejectModal').classList.add('hidden'); 
-    document.getElementById('rejectForm').reset();
-    
-    // Reset form elements to their default state
-    const container = document.getElementById('commonReasons');
-    const containerLabel = document.getElementById('commonReasonsLabel');
-    const customReason = document.getElementById('customReason');
-    const modalDescriptionEl = document.querySelector('#rejectModal p.text-gray-600');
-    const customLabel = document.querySelector('label[for="customReason"]');
-    
-    container.style.display = 'block';
-    containerLabel.style.display = 'block';
-    
-    if (customLabel) customLabel.textContent = 'Additional Notes (Optional)';
-    customReason.placeholder = 'Add any additional notes or specific reasons...';
-    customReason.required = false;
-    
-    modalDescriptionEl.innerHTML = `Reason for rejecting <span id="rejectAlumniName" class="font-semibold"></span>:`;
-    document.getElementById('rejectAlumniName').textContent = '';
-    
-    currentUserId = null; 
-    currentAlumniName = null;
+// Helper function to check if any documents are pending
+function anyDocumentsPending() {
+    return allDocuments.some(doc => doc.document_status === 'Pending');
 }
 
-function showRevertModal(id, name) { 
-    currentUserId = id; 
-    currentAlumniName = name;
-    document.getElementById('revertAlumniName').textContent = name; 
-    document.getElementById('revertModal').classList.remove('hidden'); 
+// Helper function to check if any documents are rejected
+function anyDocumentsRejected() {
+    return allDocuments.some(doc => doc.document_status === 'Rejected');
 }
 
-function closeRevertModal() { 
-    document.getElementById('revertModal').classList.add('hidden'); 
-    currentUserId = null; 
-    currentAlumniName = null;
+// Helper function to update bulk action buttons state
+function updateBulkActionButtons() {
+    const bulkApproveBtn = document.getElementById('bulkApproveBtn');
+    const bulkRejectBtn = document.getElementById('bulkRejectBtn');
+    const bulkRevertBtn = document.getElementById('bulkRevertBtn');
+    
+    const allApproved = allDocumentsApproved();
+    const anyPending = anyDocumentsPending();
+    const anyRejected = anyDocumentsRejected();
+    
+    // Update button states
+    bulkApproveBtn.disabled = allApproved || !anyPending;
+    bulkRejectBtn.disabled = !anyPending;
+    bulkRevertBtn.disabled = !(allApproved || anyRejected);
 }
 
-function processRevert() { 
-    if (currentUserId) {
-        window.location.href = `update_status.php?user_id=${currentUserId}&status=Pending&type=profile&<?= htmlspecialchars($queryString) ?>&page=<?= $current_page ?>`; 
-    }
-}
-
-// --- MULTI-DOCUMENT MODAL LOGIC (New/Updated) ---
-
-/** * Opens the multi-tab document modal.
- * @param {string} alumniName 
- * @param {number} userId 
- * @param {string} documentsJson - JSON string of the documents array 
- */
-function openMultiDocumentModal(alumniName, userId, documentsJson) {
-    const modal = document.getElementById('documentModal');
-    const docTabs = document.getElementById('docTabs');
+// Main function to open unified document modal
+function openUnifiedDocumentModal(alumniName, userId, employmentStatus, documentsJson) {
+    const modal = document.getElementById('unifiedDocumentModal');
+    const tabsContainer = document.getElementById('unifiedDocTabs');
     
     currentUserId = userId;
     currentAlumniName = alumniName;
+    currentEmploymentStatus = employmentStatus;
     allDocuments = JSON.parse(documentsJson);
     
     if (!allDocuments || allDocuments.length === 0) {
@@ -811,39 +663,48 @@ function openMultiDocumentModal(alumniName, userId, documentsJson) {
         return;
     }
     
-    // Update Modal Title
-    document.getElementById('docModalTitle').innerHTML = `Document View for <span class="text-indigo-600">${alumniName}</span>`;
+    // Update Modal Title and Alumni Name
+    document.getElementById('unifiedModalTitle').innerHTML = `Document Review for <span class="text-indigo-600">${alumniName}</span>`;
+    document.getElementById('unifiedAlumniName').textContent = alumniName;
+    
+    // Update document count badge
+    document.getElementById('unifiedDocumentCountBadge').textContent = 
+        `${allDocuments.length} document${allDocuments.length > 1 ? 's' : ''} total`;
     
     // 1. Generate Tabs
-    docTabs.innerHTML = '';
+    tabsContainer.innerHTML = '';
     allDocuments.forEach((doc, index) => {
         const docName = docTypeMap[doc.document_type] || doc.document_type;
         const statusClass = getStatusColorClass(doc.document_status);
         
         // Add tab button
-        docTabs.innerHTML += `
+        tabsContainer.innerHTML += `
             <button 
-                id="tab-${doc.doc_id}"
-                onclick="switchDocumentTab(${doc.doc_id})"
-                class="px-4 py-3 text-sm font-medium border-b-2 border-transparent text-gray-700 hover:text-indigo-600 hover:border-indigo-500 transition-colors duration-150 flex items-center">
+                id="unified-tab-${doc.doc_id}"
+                onclick="switchUnifiedDocumentTab(${doc.doc_id})"
+                class="px-4 py-3 text-sm font-medium border-b-2 border-transparent text-gray-700 hover:text-indigo-600 hover:border-indigo-500 transition-colors duration-150 flex items-center whitespace-nowrap">
+                <i class="fas fa-file-${doc.document_type === 'COR' ? 'certificate' : (doc.document_type === 'COE' ? 'contract' : 'building')} mr-2"></i>
                 <span>${docName}</span>
-                <span id="tab-status-${doc.doc_id}" class="ml-2 text-xs font-bold ${statusClass.replace('bg-', 'text-').replace('-100', '-600')}">(${doc.document_status})</span>
+                <span id="unified-tab-status-${doc.doc_id}" class="ml-2 text-xs font-bold ${statusClass.replace('bg-', 'text-').replace('-100', '-600')}">(${doc.document_status})</span>
             </button>
         `;
     });
     
-    // 2. Load the first document
-    switchDocumentTab(allDocuments[0].doc_id);
+    // 2. Generate Document List in right panel
+    updateDocumentList();
     
-    // 3. Show Modal
+    // 3. Load the first document
+    switchUnifiedDocumentTab(allDocuments[0].doc_id);
+    
+    // 4. Update bulk action buttons state
+    updateBulkActionButtons();
+    
+    // 5. Show Modal
     modal.classList.remove('hidden');
 }
 
-/**
- * Switches the active document tab in the modal.
- * @param {number} docId 
- */
-function switchDocumentTab(docId) {
+// Switch between document tabs
+function switchUnifiedDocumentTab(docId) {
     const doc = allDocuments.find(d => d.doc_id == docId);
     
     if (!doc) return;
@@ -851,27 +712,25 @@ function switchDocumentTab(docId) {
     currentActiveDoc = doc;
     
     // 1. Update Tabs visual state
-    document.querySelectorAll('#docTabs button').forEach(btn => {
+    document.querySelectorAll('#unifiedDocTabs button').forEach(btn => {
         btn.classList.remove('border-indigo-600', 'text-indigo-600');
         btn.classList.add('border-transparent', 'text-gray-700');
     });
     
-    const activeTab = document.getElementById(`tab-${docId}`);
+    const activeTab = document.getElementById(`unified-tab-${docId}`);
     if (activeTab) {
         activeTab.classList.remove('border-transparent', 'text-gray-700');
         activeTab.classList.add('border-indigo-600', 'text-indigo-600');
     }
     
     // 2. Update Document Viewer Content
-    
-    // Status Badge
-    const statusEl = document.getElementById('docCurrentStatus');
+    const statusEl = document.getElementById('unifiedDocCurrentStatus');
     let statusClass = getStatusColorClass(doc.document_status, true);
     statusEl.className = `px-3 py-1.5 inline-flex text-sm font-semibold rounded-full ${statusClass}`;
     statusEl.textContent = doc.document_status;
     
     // Rejection Details
-    const rejectionDetailsEl = document.getElementById('docRejectionDetails');
+    const rejectionDetailsEl = document.getElementById('unifiedDocRejectionDetails');
     rejectionDetailsEl.innerHTML = '';
     if (doc.document_status === 'Rejected' && doc.rejection_reason && doc.rejection_reason.trim() !== '') {
         rejectionDetailsEl.innerHTML = `
@@ -883,162 +742,421 @@ function switchDocumentTab(docId) {
     }
     
     // Iframe Source
-    document.getElementById('documentViewer').src = `../${doc.file_path}`;
+    document.getElementById('unifiedDocumentViewer').src = `../${doc.file_path}`;
     
-    // 3. Update Action Buttons
-    const actionButtons = document.getElementById('docActionButtons');
-    actionButtons.innerHTML = '';
+    // 3. Update the document list selection
+    updateDocumentListSelection(docId);
+}
+
+// Update document list in right panel
+function updateDocumentList() {
+    const container = document.getElementById('unifiedDocumentList');
+    container.innerHTML = '';
     
-    if (doc.document_status === 'Pending') {
-        actionButtons.innerHTML = `
-            <button onclick="processDocumentApproval()" 
-                    class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors flex-shrink-0">
-                <i class="fas fa-check mr-1"></i> Approve Document
-            </button>
-            <button onclick="openRejectionPanel('${doc.document_type}')" 
-                    class="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors flex-shrink-0">
-                <i class="fas fa-times mr-1"></i> Reject Document
-            </button>
+    allDocuments.forEach(doc => {
+        const docName = docTypeMap[doc.document_type] || doc.document_type;
+        const statusClass = getStatusColorClass(doc.document_status);
+        
+        container.innerHTML += `
+            <div class="flex items-start justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
+                <div class="flex items-start space-x-3 flex-1">
+                    <div class="mt-1">
+                        <input type="checkbox" 
+                               id="doc-check-${doc.doc_id}" 
+                               value="${doc.doc_id}"
+                               onchange="handleDocumentSelection(${doc.doc_id})"
+                               class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                               ${doc.document_status === 'Pending' ? '' : 'disabled'}>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex items-center justify-between">
+                            <label for="doc-check-${doc.doc_id}" class="text-sm font-medium text-gray-700 cursor-pointer">
+                                <i class="fas fa-file-${doc.document_type === 'COR' ? 'certificate' : (doc.document_type === 'COE' ? 'contract' : 'building')} mr-2 text-gray-400"></i>
+                                ${docName}
+                            </label>
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full ${statusClass}">${doc.document_status}</span>
+                        </div>
+                        <div class="text-xs text-gray-500 mt-1">
+                            ${doc.document_status === 'Rejected' && doc.rejection_reason ? 
+                                `<div class="mt-1 text-red-600"><i class="fas fa-info-circle mr-1"></i>${doc.rejection_reason.substring(0, 60)}${doc.rejection_reason.length > 60 ? '...' : ''}</div>` : 
+                                ''}
+                        </div>
+                    </div>
+                </div>
+            </div>
         `;
+    });
+}
+
+// Update document list selection
+function updateDocumentListSelection(docId) {
+    // Remove active class from all
+    document.querySelectorAll('#unifiedDocumentList > div').forEach(div => {
+        div.classList.remove('border-indigo-300', 'bg-indigo-50');
+    });
+    
+    // Add active class to selected
+    const selectedDiv = document.querySelector(`#unifiedDocumentList > div input[value="${docId}"]`).closest('div.border');
+    if (selectedDiv) {
+        selectedDiv.classList.add('border-indigo-300', 'bg-indigo-50');
+    }
+}
+
+// Handle document checkbox selection
+function handleDocumentSelection(docId) {
+    // For now, just update visual state
+    const checkbox = document.getElementById(`doc-check-${docId}`);
+    const parentDiv = checkbox.closest('div.border');
+    
+    if (checkbox.checked) {
+        parentDiv.classList.add('border-red-300', 'bg-red-50');
     } else {
-        actionButtons.innerHTML = `
-            <span class="text-sm font-medium text-gray-700">Document status is: <b>${doc.document_status}</b>.</span>
-            <button onclick="processDocumentRevert()" 
-                    class="bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-700 transition-colors flex-shrink-0">
-                <i class="fas fa-undo mr-1"></i> Revert to Pending
-            </button>
-        `;
-    }
-
-    // 4. Update Rejection Panel form fields (if panel is not open, it's fine, the function will handle it)
-    updateRejectionPanelForm(doc.document_type);
-    
-    // 5. Close the rejection panel (as the action applies to a specific document/tab)
-    closeRejectionPanel();
-}
-
-
-function closeDocumentModal(resetState = true) {
-    document.getElementById('documentModal').classList.add('hidden');
-    document.getElementById('documentViewer').src = '';
-    
-    // Close rejection panel if open
-    closeRejectionPanel();
-    
-    if (resetState) {
-        currentUserId = null;
-        currentAlumniName = null;
-        allDocuments = [];
-        currentActiveDoc = null;
+        parentDiv.classList.remove('border-red-300', 'bg-red-50');
     }
 }
 
-/** Rejection Panel Functions (Side-by-Side) **/
-function updateRejectionPanelForm(docType) {
-    const docCommonReasons = document.getElementById('docCommonReasons');
-    const reasonLabel = document.getElementById('docReasonLabel');
+// Get selected document IDs
+function getSelectedDocumentIds() {
+    const selected = [];
+    document.querySelectorAll('#unifiedDocumentList input[type="checkbox"]:checked').forEach(checkbox => {
+        selected.push(parseInt(checkbox.value));
+    });
+    return selected;
+}
+
+// Process bulk approval
+function processBulkApproval() {
+    if (allDocumentsApproved()) {
+        alert('All documents are already approved.');
+        return;
+    }
     
-    // Set hidden fields
-    document.getElementById('docRejectUserId').value = currentUserId;
-    document.getElementById('docRejectDocId').value = currentActiveDoc.doc_id;
-    document.getElementById('docRejectType').value = docType;
+    if (!confirm(`Approve all ${allDocuments.length} documents for ${currentAlumniName}?`)) {
+        return;
+    }
     
-    // Update alumni name in rejection panel
-    document.getElementById('rejectDocAlumniName').textContent = currentAlumniName;
+    // Redirect to update_status.php with bulk approval
+    const docIds = allDocuments.map(doc => doc.doc_id).join(',');
+    window.location.href = `update_status.php?user_id=${currentUserId}&doc_ids=${docIds}&status=Approved&type=document_bulk&<?= htmlspecialchars($queryString) ?>&page=<?= $current_page ?>`;
+}
+
+// Process bulk revert
+function processBulkRevert() {
+    if (!confirm(`Revert all documents to Pending status for ${currentAlumniName}?`)) {
+        return;
+    }
+    
+    // Redirect to update_status.php with bulk revert
+    const docIds = allDocuments.map(doc => doc.doc_id).join(',');
+    window.location.href = `update_status.php?user_id=${currentUserId}&doc_ids=${docIds}&status=Pending&type=document_bulk&<?= htmlspecialchars($queryString) ?>&page=<?= $current_page ?>`;
+}
+
+// Open bulk rejection panel
+function openBulkRejectionPanel() {
+    const selectedIds = getSelectedDocumentIds();
+    
+    if (selectedIds.length === 0) {
+        alert('Please select at least one document to reject.');
+        return;
+    }
+    
+    const modal = document.getElementById('bulkRejectionModal');
+    const container = document.getElementById('bulkRejectionDocuments');
+    
+    // Set user ID
+    document.getElementById('bulkRejectUserId').value = currentUserId;
     
     // Clear previous content
-    docCommonReasons.innerHTML = '';
+    container.innerHTML = '';
     
-    // Get common reasons for this document type
-    const reasons = documentRejectionReasons[docType] || [];
-    
-    if (reasons.length > 0) {
-        // Populate common reasons
-        reasons.forEach((reason, index) => {
-            docCommonReasons.innerHTML += `
-                <div class="flex items-start">
-                    <input type="radio" name="doc_rejection_reason" value="${reason}" id="docReason${index}" 
-                           class="mt-1 mr-2 text-red-600 focus:ring-red-500 border-gray-300">
-                    <label for="docReason${index}" class="text-sm cursor-pointer">${reason}</label>
+    // Add rejection reason inputs for each selected document
+    selectedIds.forEach(docId => {
+        const doc = allDocuments.find(d => d.doc_id == docId);
+        if (!doc) return;
+        
+        const docName = docTypeMap[doc.document_type] || doc.document_type;
+        const reasons = documentRejectionReasons[doc.document_type] || [];
+        
+        container.innerHTML += `
+            <div class="p-4 border border-gray-200 rounded-lg" data-doc-id="${docId}">
+                <h5 class="font-medium text-gray-800 mb-2">${docName}</h5>
+                
+                ${reasons.length > 0 ? `
+                    <div class="mb-3">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Common Reasons:</label>
+                        <div class="space-y-2">
+                            ${reasons.map((reason, index) => `
+                                <div class="flex items-start">
+                                    <input type="radio" 
+                                           name="rejection_reason_${docId}" 
+                                           value="${reason}" 
+                                           id="reason_${docId}_${index}"
+                                           class="mt-1 mr-2 text-red-600 focus:ring-red-500 border-gray-300"
+                                           onchange="handleReasonSelection(${docId}, '${reason.replace(/'/g, "\\'")}')">
+                                    <label for="reason_${docId}_${index}" class="text-sm cursor-pointer">${reason}</label>
+                                </div>
+                            `).join('')}
+                            <div class="flex items-start">
+                                <input type="radio" 
+                                       name="rejection_reason_${docId}" 
+                                       value="custom" 
+                                       id="reason_${docId}_custom"
+                                       class="mt-1 mr-2 text-red-600 focus:ring-red-500 border-gray-300"
+                                       onchange="handleReasonSelection(${docId}, 'custom')">
+                                <label for="reason_${docId}_custom" class="text-sm cursor-pointer">Other (specify below)</label>
+                            </div>
+                        </div>
+                    </div>
+                ` : `
+                    <div class="mb-3">
+                        <p class="text-sm text-gray-600 mb-2">No common reasons defined for this document type.</p>
+                    </div>
+                `}
+                
+                <div>
+                    <label for="custom_reason_${docId}" class="block text-sm font-medium text-gray-700 mb-2">
+                        ${reasons.length > 0 ? 'Additional Notes (Required if selecting "Other")' : 'Reason for rejection (Required)'}
+                    </label>
+                    <textarea 
+                        id="custom_reason_${docId}" 
+                        name="custom_reason_${docId}"
+                        rows="2"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                        placeholder="${reasons.length > 0 ? 'Specify your reason here...' : 'Please provide a reason for rejection...'}"
+                        oninput="handleCustomReasonInput(${docId})"></textarea>
+                    <div id="error_${docId}" class="text-red-600 text-sm mt-1 hidden">Please provide a rejection reason.</div>
                 </div>
-            `;
-        });
-        
-        // Add "Other" option
-        docCommonReasons.innerHTML += `
-            <div class="flex items-start">
-                <input type="radio" name="doc_rejection_reason" value="custom" id="docReasonCustom" 
-                       class="mt-1 mr-2 text-red-600 focus:ring-red-500 border-gray-300">
-                <label for="docReasonCustom" class="text-sm cursor-pointer">Other (specify below)</label>
             </div>
         `;
-        
-        reasonLabel.textContent = 'Additional Notes (Optional)';
-        document.getElementById('docCustomReason').required = false;
-        document.getElementById('docCustomReason').placeholder = 'Add any additional notes or specific reasons...';
+    });
+    
+    modal.classList.remove('hidden');
+}
+
+// Handle reason selection in bulk rejection
+function handleReasonSelection(docId, reason) {
+    const textarea = document.getElementById(`custom_reason_${docId}`);
+    const errorElement = document.getElementById(`error_${docId}`);
+    
+    if (reason !== 'custom') {
+        textarea.required = false;
+        errorElement.classList.add('hidden');
     } else {
-        // No common reasons - make custom reason required
-        docCommonReasons.innerHTML = `
-            <div class="text-sm text-gray-500 italic">
-                No common reasons defined for this document type. Please specify your reason below.
+        textarea.required = true;
+    }
+}
+
+// Handle custom reason input
+function handleCustomReasonInput(docId) {
+    const textarea = document.getElementById(`custom_reason_${docId}`);
+    const customRadio = document.getElementById(`reason_${docId}_custom`);
+    
+    if (textarea.value.trim() !== '' && customRadio) {
+        customRadio.checked = true;
+    }
+}
+
+// Close bulk rejection modal
+function closeBulkRejectionModal() {
+    document.getElementById('bulkRejectionModal').classList.add('hidden');
+    document.getElementById('bulkRejectForm').reset();
+}
+
+// Submit bulk rejection
+document.getElementById('bulkRejectForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const selectedIds = getSelectedDocumentIds();
+    let allValid = true;
+    const rejectionData = [];
+    
+    // Validate each selected document
+    selectedIds.forEach(docId => {
+        const doc = allDocuments.find(d => d.doc_id == docId);
+        if (!doc) return;
+        
+        const reasons = documentRejectionReasons[doc.document_type] || [];
+        const hasCommonReasons = reasons.length > 0;
+        
+        let finalReason = '';
+        const selectedReason = document.querySelector(`input[name="rejection_reason_${docId}"]:checked`);
+        const customReason = document.getElementById(`custom_reason_${docId}`).value.trim();
+        const errorElement = document.getElementById(`error_${docId}`);
+        
+        if (!hasCommonReasons) {
+            // No common reasons - custom reason is required
+            if (!customReason) {
+                errorElement.textContent = 'Please provide a reason for rejection.';
+                errorElement.classList.remove('hidden');
+                allValid = false;
+                return;
+            }
+            finalReason = customReason;
+        } else {
+            // Has common reasons
+            if (!selectedReason && !customReason) {
+                errorElement.textContent = 'Please select a rejection reason or specify in the notes.';
+                errorElement.classList.remove('hidden');
+                allValid = false;
+                return;
+            }
+            
+            if (selectedReason) {
+                if (selectedReason.value === 'custom') {
+                    if (!customReason) {
+                        errorElement.textContent = 'Please provide a reason in the notes when selecting "Other".';
+                        errorElement.classList.remove('hidden');
+                        allValid = false;
+                        return;
+                    }
+                    finalReason = customReason;
+                } else {
+                    finalReason = selectedReason.value;
+                    if (customReason) {
+                        finalReason += ` | Note: ${customReason}`;
+                    }
+                }
+            } else {
+                // Only custom reason provided
+                finalReason = customReason;
+            }
+        }
+        
+        // Clear error if valid
+        errorElement.classList.add('hidden');
+        
+        // Add to rejection data
+        rejectionData.push({
+            doc_id: docId,
+            reason: finalReason
+        });
+    });
+    
+    if (!allValid) return;
+    
+    // Create URL with all rejection data
+    const baseUrl = `update_status.php?user_id=${currentUserId}&type=document_bulk_reject&<?= htmlspecialchars($queryString) ?>&page=<?= $current_page ?>`;
+    const params = rejectionData.map(data => `rejections[]=${encodeURIComponent(JSON.stringify(data))}`).join('&');
+    
+    window.location.href = `${baseUrl}&${params}`;
+});
+
+// Close unified document modal
+function closeUnifiedDocumentModal() {
+    document.getElementById('unifiedDocumentModal').classList.add('hidden');
+    document.getElementById('unifiedDocumentViewer').src = '';
+    
+    // Reset state
+    currentUserId = null;
+    currentAlumniName = null;
+    currentEmploymentStatus = null;
+    allDocuments = [];
+    currentActiveDoc = null;
+}
+
+// Individual document actions (fallback if needed)
+function openIndividualActionModal(docId, action) {
+    const doc = allDocuments.find(d => d.doc_id == docId);
+    if (!doc) return;
+    
+    const docName = docTypeMap[doc.document_type] || doc.document_type;
+    const modal = document.getElementById('individualActionModal');
+    const content = document.getElementById('individualActionContent');
+    
+    if (action === 'approve') {
+        content.innerHTML = `
+            <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-check text-green-600 text-xl"></i>
+            </div>
+            <h3 class="text-lg font-bold text-center mb-2">Approve Document</h3>
+            <p class="text-gray-600 text-center mb-6">Approve <span class="font-semibold">${docName}</span> for ${currentAlumniName}?</p>
+            <div class="flex gap-3">
+                <button onclick="closeIndividualActionModal()" class="flex-1 bg-gray-300 py-2 rounded-lg hover:bg-gray-400 transition-colors">Cancel</button>
+                <button onclick="processIndividualApproval(${docId})" class="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition-colors">Confirm</button>
             </div>
         `;
-        reasonLabel.textContent = 'Reason for rejection (required):';
-        document.getElementById('docCustomReason').required = true;
-        document.getElementById('docCustomReason').placeholder = 'Please specify the reason for rejection...';
+    } else if (action === 'reject') {
+        const reasons = documentRejectionReasons[doc.document_type] || [];
+        const hasCommonReasons = reasons.length > 0;
+        
+        content.innerHTML = `
+            <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-times text-red-600 text-xl"></i>
+            </div>
+            <h3 class="text-lg font-bold text-center mb-2">Reject Document</h3>
+            <p class="text-gray-600 text-center mb-4">Reason for rejecting <span class="font-semibold">${docName}</span>:</p>
+            <form onsubmit="return submitIndividualRejection(${docId})">
+                ${hasCommonReasons ? `
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Common Reasons:</label>
+                        <div class="space-y-2" id="individualReasons">
+                            ${reasons.map((reason, index) => `
+                                <div class="flex items-start">
+                                    <input type="radio" name="rejection_reason" value="${reason}" id="ind_reason_${index}" class="mt-1 mr-2 text-red-600 focus:ring-red-500 border-gray-300">
+                                    <label for="ind_reason_${index}" class="text-sm cursor-pointer">${reason}</label>
+                                </div>
+                            `).join('')}
+                            <div class="flex items-start">
+                                <input type="radio" name="rejection_reason" value="custom" id="ind_reason_custom" class="mt-1 mr-2 text-red-600 focus:ring-red-500 border-gray-300">
+                                <label for="ind_reason_custom" class="text-sm cursor-pointer">Other (specify below)</label>
+                            </div>
+                        </div>
+                    </div>
+                ` : `
+                    <div class="mb-4">
+                        <p class="text-sm text-gray-600 mb-2">No common reasons defined for this document type.</p>
+                    </div>
+                `}
+                <div class="mb-6">
+                    <label for="individual_custom_reason" class="block text-sm font-medium text-gray-700 mb-2">
+                        ${hasCommonReasons ? 'Additional Notes (Required if selecting "Other")' : 'Reason for rejection (Required)'}
+                    </label>
+                    <textarea id="individual_custom_reason" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"></textarea>
+                    <div id="individual_error" class="text-red-600 text-sm mt-1 hidden"></div>
+                </div>
+                <div class="flex gap-3">
+                    <button type="button" onclick="closeIndividualActionModal()" class="flex-1 bg-gray-300 py-2 rounded-lg hover:bg-gray-400 transition-colors">Cancel</button>
+                    <button type="submit" class="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 transition-colors">Reject</button>
+                </div>
+            </form>
+        `;
     }
     
-    // Clear any previous values
-    document.getElementById('docCustomReason').value = '';
-    document.getElementById('docReasonError').classList.add('hidden');
+    modal.classList.remove('hidden');
 }
 
-
-function openRejectionPanel(docType) {
-    // Re-populate the form with current active document details
-    updateRejectionPanelForm(docType);
-    
-    // Show the panel
-    document.getElementById('rejectionPanel').classList.remove('hidden');
+function closeIndividualActionModal() {
+    document.getElementById('individualActionModal').classList.add('hidden');
 }
 
-function closeRejectionPanel() {
-    const panel = document.getElementById('rejectionPanel');
-    panel.classList.add('hidden');
-    
-    // Reset form
-    document.getElementById('documentRejectForm').reset();
-    document.getElementById('docReasonError').classList.add('hidden');
+function processIndividualApproval(docId) {
+    window.location.href = `update_status.php?user_id=${currentUserId}&doc_id=${docId}&status=Approved&type=document&<?= htmlspecialchars($queryString) ?>&page=<?= $current_page ?>`;
 }
 
-function submitDocumentRejection() {
-    const selectedReason = document.querySelector('input[name="doc_rejection_reason"]:checked');
-    const customReason = document.getElementById('docCustomReason').value.trim();
-    const errorElement = document.getElementById('docReasonError');
+function submitIndividualRejection(docId) {
+    const doc = allDocuments.find(d => d.doc_id == docId);
+    if (!doc) return false;
     
-    if (!currentActiveDoc) return; // Should not happen
+    const reasons = documentRejectionReasons[doc.document_type] || [];
+    const hasCommonReasons = reasons.length > 0;
     
     let finalReason = '';
-    const docType = currentActiveDoc.document_type;
-    
-    // Check if common reasons exist
-    const hasCommonReasons = documentRejectionReasons[docType] && 
-                             documentRejectionReasons[docType].length > 0;
+    const selectedReason = document.querySelector('input[name="rejection_reason"]:checked');
+    const customReason = document.getElementById('individual_custom_reason').value.trim();
+    const errorElement = document.getElementById('individual_error');
     
     if (!hasCommonReasons) {
-        // No common reasons - custom reason is required
         if (!customReason) {
             errorElement.textContent = 'Please provide a reason for rejection.';
             errorElement.classList.remove('hidden');
-            return;
+            return false;
         }
         finalReason = customReason;
     } else {
-        // Has common reasons
         if (!selectedReason && !customReason) {
             errorElement.textContent = 'Please select a rejection reason or specify in the notes.';
             errorElement.classList.remove('hidden');
-            return;
+            return false;
         }
         
         if (selectedReason) {
@@ -1046,7 +1164,7 @@ function submitDocumentRejection() {
                 if (!customReason) {
                     errorElement.textContent = 'Please provide a reason in the notes when selecting "Other".';
                     errorElement.classList.remove('hidden');
-                    return;
+                    return false;
                 }
                 finalReason = customReason;
             } else {
@@ -1056,132 +1174,39 @@ function submitDocumentRejection() {
                 }
             }
         } else {
-            // Only custom reason provided
             finalReason = customReason;
         }
     }
     
-    // VALIDATION: Rejection reason cannot be empty for Rejected status
-    if (!finalReason.trim()) {
-        errorElement.textContent = 'Rejection reason cannot be empty.';
-        errorElement.classList.remove('hidden');
-        return;
-    }
-    
-    // All validations passed, submit the rejection
-    errorElement.classList.add('hidden');
-    
-    // Redirect to update_status.php to process document rejection
-    window.location.href = `update_status.php?user_id=${currentActiveDoc.user_id}&doc_id=${currentActiveDoc.doc_id}&status=Rejected&type=document&reason=${encodeURIComponent(finalReason)}&<?= htmlspecialchars($queryString) ?>&page=<?= $current_page ?>`;
+    window.location.href = `update_status.php?user_id=${currentUserId}&doc_id=${docId}&status=Rejected&type=document&reason=${encodeURIComponent(finalReason)}&<?= htmlspecialchars($queryString) ?>&page=<?= $current_page ?>`;
+    return false;
 }
 
-// Process document approval (Uses currentActiveDoc)
-function processDocumentApproval() {
-    if (currentActiveDoc) {
-        window.location.href = `update_status.php?user_id=${currentActiveDoc.user_id}&doc_id=${currentActiveDoc.doc_id}&status=Approved&type=document&<?= htmlspecialchars($queryString) ?>&page=<?= $current_page ?>`;
-    }
-}
-
-// Process document revert (Uses currentActiveDoc)
-function processDocumentRevert() {
-    if (currentActiveDoc) {
-        window.location.href = `update_status.php?user_id=${currentActiveDoc.user_id}&doc_id=${currentActiveDoc.doc_id}&status=Pending&type=document&<?= htmlspecialchars($queryString) ?>&page=<?= $current_page ?>`;
-    }
-}
-
-// Helper function to get the status color class for the badge
-function getStatusColorClass(status, isDocument = false) {
-    const docPrefix = isDocument ? 'border border-' : '';
-    switch (status) {
-        case 'Approved': return `${docPrefix}green-200 bg-green-100 text-green-800`;
-        case 'Pending': return `${docPrefix}yellow-200 bg-yellow-100 text-yellow-800`;
-        case 'Rejected': return `${docPrefix}red-200 bg-red-100 text-red-800`;
-        default: return `${docPrefix}gray-200 bg-gray-100 text-gray-800`;
-    }
-}
-
-/** Event Listeners **/
-document.addEventListener('DOMContentLoaded', function() {
-    // Event listeners for profile rejection form (unchanged)
-    const rejectForm = document.getElementById('rejectForm');
-    const customReason = document.getElementById('customReason');
-    
-    if (customReason) {
-        customReason.addEventListener('input', function(e) {
-            if (document.getElementById('commonReasons').style.display !== 'none' && this.value.trim() !== '') {
-                const otherRadio = document.getElementById('rcustom');
-                if (otherRadio) {
-                    otherRadio.checked = true;
-                }
-            }
-        });
-    }
-
-    if (rejectForm) {
-        rejectForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const selected = document.querySelector('input[name="rejection_reason"]:checked');
-            const customValue = document.getElementById('customReason').value.trim();
-            const rejectType = document.getElementById('rejectType').value;
-            
-            const isUnemployedMode = document.getElementById('commonReasons').style.display === 'none';
-            let finalReason = '';
-            
-            if (isUnemployedMode) {
-                if (!customValue) {
-                    alert('Please provide a reason for rejection.');
-                    return;
-                }
-                finalReason = customValue;
-            } else {
-                if (!selected && !customValue) {
-                    alert('Please select a rejection reason or specify in the notes.');
-                    return;
-                }
-                
-                if (selected && selected.value === 'custom') {
-                    if (!customValue) {
-                        alert('Please provide a reason in the additional notes when selecting "Other".');
-                        return;
-                    }
-                    finalReason = customValue;
-                } else if (selected) {
-                    finalReason = selected.value;
-                    if (customValue) {
-                        finalReason += ` | Note: ${customValue}`;
-                    }
-                } else {
-                    finalReason = customValue;
-                }
-            }
-            
-            const userId = document.getElementById('rejectUserId').value;
-            const docId = document.getElementById('rejectDocId').value;
-            
-            let redirectUrl = `update_status.php?user_id=${userId}&status=Rejected&type=${rejectType}&reason=${encodeURIComponent(finalReason)}&<?= htmlspecialchars($queryString) ?>&page=<?= $current_page ?>`;
-            
-            if (rejectType === 'document' && docId) {
-                redirectUrl += `&doc_id=${docId}`;
-            }
-
-            window.location.href = redirectUrl;
-        });
-    }
-    
-    // Event listener for document rejection form (for side panel)
-    const docCustomReason = document.getElementById('docCustomReason');
-    if (docCustomReason) {
-        docCustomReason.addEventListener('input', function(e) {
-            const otherRadio = document.getElementById('docReasonCustom');
-            if (otherRadio && this.value.trim() !== '') {
-                otherRadio.checked = true;
-            }
-        });
+// Event listeners for closing modals
+document.addEventListener('click', e => {
+    if (e.target.id === 'unifiedDocumentModal' || e.target.id === 'bulkRejectionModal' || e.target.id === 'individualActionModal') {
+        if (e.target.id === 'unifiedDocumentModal') closeUnifiedDocumentModal();
+        if (e.target.id === 'bulkRejectionModal') closeBulkRejectionModal();
+        if (e.target.id === 'individualActionModal') closeIndividualActionModal();
     }
 });
 
-/** Hover Details Modal Logic (Unchanged) **/
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+        if (!document.getElementById('unifiedDocumentModal').classList.contains('hidden')) {
+            closeUnifiedDocumentModal();
+        } else if (!document.getElementById('bulkRejectionModal').classList.contains('hidden')) {
+            closeBulkRejectionModal();
+        } else if (!document.getElementById('individualActionModal').classList.contains('hidden')) {
+            closeIndividualActionModal();
+        }
+    }
+});
+
+// Hover modal functions (keep existing)
+let hoverTimeout = null;
+let isModalHovered = false;
+
 document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.alumni-name-hover').forEach(el => {
         el.addEventListener('mouseenter', () => { 
@@ -1225,39 +1250,6 @@ function showAlumniDetails(id) {
 function closeAlumniModal() { 
     document.getElementById('alumniModal').classList.add('hidden'); 
 }
-
-// Close on outside click / ESC for primary modals
-document.addEventListener('click', e => { 
-    if (e.target.classList.contains('fixed') && e.target.id !== 'alumniModal') { 
-        closeApproveModal(); 
-        closeRejectModal(); 
-        closeRevertModal(); 
-        // Only close document modal if not clicking on rejection panel
-        if (!e.target.closest('#rejectionPanel')) {
-            closeDocumentModal();
-        }
-    } 
-});
-
-document.addEventListener('keydown', e => { 
-    if (e.key === 'Escape') { 
-        // Check if rejection panel is open
-        const rejectionPanel = document.getElementById('rejectionPanel');
-        if (!rejectionPanel.classList.contains('hidden')) {
-            closeRejectionPanel();
-        } else if (!document.getElementById('documentModal').classList.contains('hidden')) {
-            closeDocumentModal();
-        } else if (!document.getElementById('rejectModal').classList.contains('hidden')) {
-            closeRejectModal();
-        } else if (!document.getElementById('approveModal').classList.contains('hidden')) {
-            closeApproveModal();
-        } else if (!document.getElementById('revertModal').classList.contains('hidden')) {
-            closeRevertModal();
-        } else {
-            closeAlumniModal();
-        }
-    } 
-});
 </script>
 
 <?php
