@@ -452,7 +452,7 @@ ob_start();
                     <div class="stats-card bg-gray-50 rounded-xl border border-gray-200 p-4">
                         <div class="flex items-center justify-between mb-4">
                             <h3 class="text-lg font-bold text-gray-800 flex items-center">
-                                Graduation Trends
+                                Graduates per Batch Year
                             </h3>
                             <div class="flex items-center space-x-2">
                                 <span class="text-xs font-semibold bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
@@ -465,10 +465,7 @@ ob_start();
                         </div>
                         <?php if (!empty($gradYears)): ?>
                             <div class="h-72"><canvas id="graduationChart"></canvas></div>
-                            <div class="mt-3 flex justify-between text-xs text-gray-600">
-                                <span>Peak: <?php echo max($gradCounts); ?> graduates</span>
-                                <span>Average: <?php echo round(array_sum($gradCounts) / count($gradCounts), 1); ?>/year</span>
-                            </div>
+                          
                         <?php else: ?>
                             <div class="flex flex-col items-center justify-center h-72 text-gray-400">
                                 <i class="fas fa-chart-line text-5xl mb-3"></i>
