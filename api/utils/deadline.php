@@ -97,15 +97,20 @@ function isEmploymentSubmissionOpen($conn) {
         return false; // No schedule configured at all
     }
     
+    // First check if column exists (for backward compatibility)
+    if (!isset($config['employment_submission_open'])) {
+        // Column doesn't exist yet, default to false
+        return false;
+    }
+    
     // Check if employment submission is specifically enabled
     $employment_open = (bool)($config['employment_submission_open'] ?? 0);
     
-    // Employment submissions require both general submissions to be open AND employment specifically open
     if (!$employment_open) {
         return false;
     }
     
-    // Also check general submission status
+    // Employment submissions require both general submissions to be open AND employment specifically open
     return isSubmissionPeriodOpen($conn);
 }
 
@@ -178,13 +183,13 @@ function getAllDeadlineInfo($conn) {
         'formatted_date' => getFormattedDeadline($conn),
         'days_remaining' => $daysLeft,
         'is_open' => isSubmissionPeriodOpen($conn),
-        'is_employment_open' => isEmploymentSubmissionOpen($conn), // NEW
+        'is_employment_open' => isEmploymentSubmissionOpen($conn),
         'is_approaching' => isDeadlineApproaching($conn),
         'urgency_level' => getDeadlineUrgency($conn),
         'open_date' => $config ? $config['open_date'] : null,
         'close_date' => $config ? $config['close_date'] : null,
         'has_manual_override' => $config ? ($config['manual_override'] == 1) : false,
-        'employment_submission_open' => $config ? ($config['employment_submission_open'] == 1) : false // NEW
+        'employment_submission_open' => $config ? ($config['employment_submission_open'] ?? 0) : 0
     ];
 }
 
