@@ -230,8 +230,9 @@ if ($deadline_info['has_manual_override']) {
 
 ob_start();
 ?>
-    <?php if (isset($_SESSION['profile_submission_success'])): ?>
-            <div id="successCard" class="bg-gradient-to-r from-emerald-500 to-green-600 p-4 text-white flex items-center justify-between shadow-xl animate-fade-in rounded-xl border border-emerald-400/30 backdrop-blur-sm">
+    <div class="dashboard-scroll-container pb-8">
+        <?php if (isset($_SESSION['profile_submission_success'])): ?>
+            <div id="successCard" class="bg-gradient-to-r from-emerald-500 to-green-600 p-4 text-white flex items-center justify-between shadow-xl animate-fade-in rounded-xl border border-emerald-400/30 backdrop-blur-sm mb-4">
                 <div class="flex items-center space-x-3">
                     <div class="w-10 h-10 bg-white bg-opacity-20 flex items-center justify-center rounded-lg backdrop-blur-sm">
                         <i class="fas fa-check text-lg"></i>
@@ -247,7 +248,7 @@ ob_start();
         <?php endif; ?>
 
         <?php if (isset($_SESSION['show_welcome'])): ?>
-            <div id="welcomeCard" class="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-700 p-6 text-white shadow-xl rounded-xl border border-indigo-400/30 backdrop-blur-sm relative overflow-hidden">
+            <div id="welcomeCard" class="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-700 p-6 text-white shadow-xl rounded-xl border border-indigo-400/30 backdrop-blur-sm relative overflow-hidden mb-4">
                 <div class="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -translate-y-12 translate-x-12"></div>
                 <div class="absolute bottom-0 left-0 w-16 h-16 bg-white/5 rounded-full -translate-x-8 translate-y-8"></div>
                 
@@ -264,7 +265,6 @@ ob_start();
             <?php unset($_SESSION['show_welcome']); ?>
         <?php endif; ?>
 
-        <!-- Rejection Notice -->
         <?php if ($document_status === 'Rejected' && !empty($rejected_docs)): ?>
             <div id="rejectionNotice" class="bg-gradient-to-r from-red-500 to-rose-600 p-4 text-white flex items-center justify-between shadow-xl animate-fade-in rounded-xl border border-red-400/30 backdrop-blur-sm mb-4">
                 <div class="flex items-center space-x-3">
@@ -403,7 +403,6 @@ ob_start();
                                 </p>
                             </div>
 
-                            <!-- Document Status Card -->
                             <div class="p-4 rounded-xl shadow-md transition duration-300 hover:shadow-lg 
                                 <?php 
                                     if ($document_status === 'Approved') {
@@ -677,8 +676,8 @@ ob_start();
                     </div>
                 </div>
             </div>
-
-<div id="helpModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        </div>
+    </div> <div id="helpModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
     <div class="bg-white border border-gray-200 max-w-md w-full mx-4 transform transition-all duration-300 scale-95 opacity-0 rounded-xl shadow-xl overflow-hidden">
         <div class="bg-gradient-to-r from-emerald-500 to-green-600 p-5 text-white">
             <div class="flex items-center justify-between">
@@ -691,15 +690,15 @@ ob_start();
                 </button>
             </div>
         </div>
-<div class="space-y-6 min-h-0 p-6 bg-white rounded-2xl shadow-xl">
-    <div class="grid grid-cols-2 gap-4">
-        <div class="flex flex-col items-center p-3 bg-green-50 rounded-lg text-center border border-green-200 hover:shadow-md transition-shadow duration-300">
-            <div class="bg-green-100 p-2 rounded-full mb-1">
-                <i class="fas fa-envelope text-green-600 text-lg"></i>
-            </div>
-            <h4 class="font-semibold text-gray-800 text-sm whitespace-nowrap">Email Support</h4>
-            <p class="text-xs text-gray-600 truncate max-w-full">alumtrak@gmail.com</p>
-        </div>
+        <div class="space-y-6 min-h-0 p-6 bg-white rounded-2xl shadow-xl">
+            <div class="grid grid-cols-2 gap-4">
+                <div class="flex flex-col items-center p-3 bg-green-50 rounded-lg text-center border border-green-200 hover:shadow-md transition-shadow duration-300">
+                    <div class="bg-green-100 p-2 rounded-full mb-1">
+                        <i class="fas fa-envelope text-green-600 text-lg"></i>
+                    </div>
+                    <h4 class="font-semibold text-gray-800 text-sm whitespace-nowrap">Email Support</h4>
+                    <p class="text-xs text-gray-600 truncate max-w-full">alumtrak@gmail.com</p>
+                </div>
 
                 <div class="flex flex-col items-center p-3 bg-blue-50 text-center border-2 border-blue-100 rounded-lg hover:shadow-sm transition-all duration-300">
                     <div class="bg-blue-100 p-2 mb-2 rounded-md">
@@ -725,9 +724,6 @@ ob_start();
                     <p class="text-xs text-gray-600 mt-1">Visit our knowledge base</p>
                 </div>
             </div>
-
-            
-            </div>
         </div>
     </div>
 </div>
@@ -749,7 +745,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeSuccessBtn = document.getElementById('closeSuccessCard');
 
     if (successCard) {
-        // Auto-hide after 4 seconds
         const autoHide = setTimeout(() => {
             successCard.style.transition = 'opacity 0.6s ease-out, transform 0.6s ease-out';
             successCard.style.opacity = '0';
@@ -757,7 +752,6 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => successCard.remove(), 600);
         }, 4000);
 
-        // Manual close cancels auto-hide
         if (closeSuccessBtn) {
             closeSuccessBtn.addEventListener('click', () => {
                 clearTimeout(autoHide);
@@ -774,7 +768,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeRejectionNotice = document.getElementById('closeRejectionNotice');
 
     if (rejectionNotice) {
-        // Auto-hide after 10 seconds
         const autoHideRejection = setTimeout(() => {
             rejectionNotice.style.transition = 'opacity 0.6s ease-out, transform 0.6s ease-out';
             rejectionNotice.style.opacity = '0';
@@ -782,7 +775,6 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => rejectionNotice.remove(), 600);
         }, 10000);
 
-        // Manual close
         if (closeRejectionNotice) {
             closeRejectionNotice.addEventListener('click', () => {
                 clearTimeout(autoHideRejection);
@@ -817,31 +809,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 300);
     }
 
-    if (helpButton) {
-        helpButton.addEventListener('click', showHelpModal);
-    }
-    if (closeHelpModal) {
-        closeHelpModal.addEventListener('click', hideHelpModal);
-    }
-    if (cancelHelp) {
-        cancelHelp.addEventListener('click', hideHelpModal);
-    }
+    if (helpButton) helpButton.addEventListener('click', showHelpModal);
+    if (closeHelpModal) closeHelpModal.addEventListener('click', hideHelpModal);
+    if (cancelHelp) cancelHelp.addEventListener('click', hideHelpModal);
 
-    // Close modal when clicking outside
     helpModal.addEventListener('click', (e) => {
-        if (e.target === helpModal) {
-            hideHelpModal();
-        }
+        if (e.target === helpModal) hideHelpModal();
     });
 
-    // Close modal with Escape key
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && !helpModal.classList.contains('hidden')) {
-            hideHelpModal();
-        }
+        if (e.key === 'Escape' && !helpModal.classList.contains('hidden')) hideHelpModal();
     });
 
-    // Existing notification functionality (preserved)
+    // Existing notification functionality
     const notifButton = document.getElementById('notificationBtn');
     const notifPopup = document.getElementById('notifPopup');
     if (notifButton && notifPopup) {
@@ -862,6 +842,31 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 
 <style>
+/* New Dashboard Scroll Logic */
+.dashboard-scroll-container {
+    height: 100%;
+    max-height: calc(100vh - 100px); /* Adjusts for header space */
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 5px; /* Space for scrollbar */
+}
+
+/* Custom Scrollbar Styling */
+.dashboard-scroll-container::-webkit-scrollbar {
+    width: 8px;
+}
+.dashboard-scroll-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+.dashboard-scroll-container::-webkit-scrollbar-thumb {
+    background: #c7d2fe; /* Indigo-200 */
+    border-radius: 10px;
+}
+.dashboard-scroll-container::-webkit-scrollbar-thumb:hover {
+    background: #818cf8; /* Indigo-400 */
+}
+
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(20px); }
     to { opacity: 1; transform: translateY(0); }
@@ -869,17 +874,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 .animate-fade-in {
     animation: fadeIn 0.6s ease-out;
-}
-
-/* Hide scrollbar for Chrome, Safari and Opera */
-.no-scrollbar::-webkit-scrollbar {
-    display: none;
-}
-
-/* Hide scrollbar for IE, Edge and Firefox */
-.no-scrollbar {
-    -ms-overflow-style: none;  
-    scrollbar-width: none;  
 }
 
 * {
@@ -891,14 +885,6 @@ document.addEventListener('DOMContentLoaded', () => {
 button:focus, a:focus {
     outline: 2px solid #3b82f6;
     outline-offset: 2px;
-}
-
-.min-h-screen {
-    overflow-x: hidden;
-}
-
-.bg-gray-50 {
-    overflow: hidden;
 }
 </style>
 

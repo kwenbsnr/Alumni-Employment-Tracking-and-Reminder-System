@@ -38,11 +38,74 @@ if (!empty($profile['official_name'])) {
 $user_email = $profile['email'] ?? '';
 $photo_path = $profile['photo_path'] ?? null;
 
-// Fetch notifications data
+// Fetch notifications from alumni_notifications table
 $notif_count = 0;
 $notifications = [];
 
-// Get document status counts for notifications
+// Get unread notification count
+$stmt_unread = $conn->prepare("
+    SELECT COUNT(*) as unread_count 
+    FROM alumni_notifications 
+    WHERE user_id = ? AND is_read = FALSE
+    ORDER BY created_at DESC
+");
+$stmt_unread->bind_param("i", $user_id);
+$stmt_unread->execute();
+$unread_result = $stmt_unread->get_result();
+$unread_data = $unread_result->fetch_assoc();
+$notif_count = $unread_data['unread_count'] ?? 0;
+$stmt_unread->close();
+
+// Get latest notifications (last 10)
+$stmt_notif = $conn->prepare("
+    SELECT 
+        notification_id,
+        title,
+        message,
+        type,
+        is_read,
+        related_type,
+        related_id,
+        created_at,
+        TIMESTAMPDIFF(MINUTE, created_at, NOW()) as minutes_ago
+    FROM alumni_notifications 
+    WHERE user_id = ?
+    ORDER BY created_at DESC, is_read ASC
+    LIMIT 10
+");
+$stmt_notif->bind_param("i", $user_id);
+$stmt_notif->execute();
+$notif_result = $stmt_notif->get_result();
+
+while ($row = $notif_result->fetch_assoc()) {
+    // Format timestamp display
+    $timestamp_display = '';
+    if ($row['minutes_ago'] < 1) {
+        $timestamp_display = 'Just now';
+    } elseif ($row['minutes_ago'] < 60) {
+        $timestamp_display = $row['minutes_ago'] . ' minutes ago';
+    } elseif ($row['minutes_ago'] < 1440) {
+        $hours = floor($row['minutes_ago'] / 60);
+        $timestamp_display = $hours . ' hour' . ($hours > 1 ? 's' : '') . ' ago';
+    } else {
+        $timestamp_display = date('M j, Y g:i A', strtotime($row['created_at']));
+    }
+    
+    $notifications[] = [
+        'id' => $row['notification_id'],
+        'title' => $row['title'],
+        'message' => $row['message'],
+        'type' => $row['type'],
+        'is_read' => $row['is_read'],
+        'related_type' => $row['related_type'],
+        'related_id' => $row['related_id'],
+        'timestamp' => $row['created_at'],
+        'timestamp_display' => $timestamp_display
+    ];
+}
+$stmt_notif->close();
+
+// Get document status counts for legacy notifications (keep for backward compatibility)
 $stmt_docs = $conn->prepare("
     SELECT 
         COUNT(*) as total,
@@ -63,61 +126,74 @@ $pending_docs_count = $doc_data['pending'] ?? 0;
 $rejected_docs_count = $doc_data['rejected'] ?? 0;
 $approved_docs_count = $doc_data['approved'] ?? 0;
 
-// Document rejection notifications
+// Legacy document rejection notifications (only if no system notification exists for this)
 if ($rejected_docs_count > 0) {
-    // Get latest rejected document timestamp
-    $stmt_rejected = $conn->prepare("
-        SELECT MAX(rejected_at) as latest_rejected 
-        FROM alumni_documents 
-        WHERE user_id = ? AND document_status = 'Rejected'
-    ");
-    $stmt_rejected->bind_param("i", $user_id);
-    $stmt_rejected->execute();
-    $rejected_result = $stmt_rejected->get_result();
-    $rejected_data = $rejected_result->fetch_assoc();
-    $stmt_rejected->close();
+    // Check if we already have a system notification for rejected docs
+    $has_rejection_notif = false;
+    foreach ($notifications as $notif) {
+        if (strpos($notif['title'], 'Rejected') !== false && $notif['related_type'] === 'document') {
+            $has_rejection_notif = true;
+            break;
+        }
+    }
     
-    $latest_rejected = $rejected_data['latest_rejected'] ?? null;
-    
-    $notifications[] = [
-        'title' => 'Documents Rejected',
-        'message' => $rejected_docs_count . ' document(s) were rejected. Please review and resubmit.',
-        'timestamp' => $latest_rejected,
-        'type' => 'error'
-    ];
-    $notif_count++;
+    if (!$has_rejection_notif) {
+        // Get latest rejected document timestamp
+        $stmt_rejected = $conn->prepare("
+            SELECT MAX(rejected_at) as latest_rejected 
+            FROM alumni_documents 
+            WHERE user_id = ? AND document_status = 'Rejected'
+        ");
+        $stmt_rejected->bind_param("i", $user_id);
+        $stmt_rejected->execute();
+        $rejected_result = $stmt_rejected->get_result();
+        $rejected_data = $rejected_result->fetch_assoc();
+        $stmt_rejected->close();
+        
+        $latest_rejected = $rejected_data['latest_rejected'] ?? null;
+        
+        // Add as a system notification
+        $stmt_insert = $conn->prepare("
+            INSERT INTO alumni_notifications (user_id, title, message, type, related_type, related_id, created_at)
+            VALUES (?, 'Documents Rejected', ?, 'error', 'document', ?, ?)
+        ");
+        $message = $rejected_docs_count . ' document(s) were rejected. Please review and resubmit.';
+        $stmt_insert->bind_param("isss", $user_id, $message, $user_id, $latest_rejected);
+        $stmt_insert->execute();
+        $stmt_insert->close();
+        
+        // Refresh notifications
+        $notif_count++;
+        $notifications = array_merge([[
+            'title' => 'Documents Rejected',
+            'message' => $message,
+            'type' => 'error',
+            'timestamp' => $latest_rejected,
+            'timestamp_display' => $latest_rejected ? date('M j, Y g:i A', strtotime($latest_rejected)) : 'Recently'
+        ]], $notifications);
+    }
 }
 
-// Pending documents notification
-if ($pending_docs_count > 0) {
-    $notifications[] = [
-        'title' => 'Documents Under Review',
-        'message' => 'Your uploaded documents are being reviewed by administrators.',
-        'timestamp' => null,
-        'type' => 'warning'
-    ];
-    $notif_count++;
-}
-
-// Approved documents notification (only if all documents are approved)
-if ($total_docs_count > 0 && $approved_docs_count === $total_docs_count) {
-    $notifications[] = [
-        'title' => 'Documents Approved',
-        'message' => 'All your documents have been approved!',
-        'timestamp' => null,
-        'type' => 'success'
-    ];
-}
-
-// Check if profile is incomplete
+// Check if profile is incomplete (only if no similar notification exists)
 if (empty($profile['contact_number']) || empty($profile['employment_status'])) {
-    $notifications[] = [
-        'title' => 'Complete Your Profile',
-        'message' => 'Please fill in your contact number and employment status.',
-        'timestamp' => null,
-        'type' => 'info'
-    ];
-    $notif_count++;
+    $has_profile_notif = false;
+    foreach ($notifications as $notif) {
+        if (strpos($notif['title'], 'Complete Your Profile') !== false) {
+            $has_profile_notif = true;
+            break;
+        }
+    }
+    
+    if (!$has_profile_notif) {
+        $notifications[] = [
+            'title' => 'Complete Your Profile',
+            'message' => 'Please fill in your contact number and employment status.',
+            'type' => 'info',
+            'timestamp' => null,
+            'timestamp_display' => 'Pending'
+        ];
+        if ($notif_count < 10) $notif_count++;
+    }
 }
 
 // Check if address is incomplete
@@ -133,25 +209,54 @@ $address_data = $address_result->fetch_assoc();
 $stmt_address->close();
 
 if (($address_data['has_address'] ?? 0) === 0) {
-    $notifications[] = [
-        'title' => 'Address Information',
-        'message' => 'Please complete your address information.',
-        'timestamp' => null,
-        'type' => 'info'
-    ];
-    $notif_count++;
+    $has_address_notif = false;
+    foreach ($notifications as $notif) {
+        if (strpos($notif['title'], 'Address Information') !== false) {
+            $has_address_notif = true;
+            break;
+        }
+    }
+    
+    if (!$has_address_notif) {
+        $notifications[] = [
+            'title' => 'Address Information',
+            'message' => 'Please complete your address information.',
+            'type' => 'info',
+            'timestamp' => null,
+            'timestamp_display' => 'Pending'
+        ];
+        if ($notif_count < 10) $notif_count++;
+    }
 }
 
 // Check if profile photo is missing
 if (empty($photo_path)) {
-    $notifications[] = [
-        'title' => 'Profile Photo',
-        'message' => 'Please upload your profile photo.',
-        'timestamp' => null,
-        'type' => 'info'
-    ];
-    $notif_count++;
+    $has_photo_notif = false;
+    foreach ($notifications as $notif) {
+        if (strpos($notif['title'], 'Profile Photo') !== false) {
+            $has_photo_notif = true;
+            break;
+        }
+    }
+    
+    if (!$has_photo_notif) {
+        $notifications[] = [
+            'title' => 'Profile Photo',
+            'message' => 'Please upload your profile photo.',
+            'type' => 'info',
+            'timestamp' => null,
+            'timestamp_display' => 'Pending'
+        ];
+        if ($notif_count < 10) $notif_count++;
+    }
 }
+
+// Sort notifications by timestamp (newest first) and limit to 10
+usort($notifications, function($a, $b) {
+    if ($a['timestamp'] == $b['timestamp']) return 0;
+    return ($a['timestamp'] > $b['timestamp']) ? -1 : 1;
+});
+$notifications = array_slice($notifications, 0, 10);
 
 $page_title = $page_title ?? "Alumni Page";
 ?>
@@ -284,21 +389,49 @@ $page_title = $page_title ?? "Alumni Page";
         .notification-info {
             border-left: 4px solid #3B82F6;
         }
+        
+        .notification-unread {
+            background-color: #f0f9ff;
+            border-left: 4px solid #3B82F6;
+        }
+        
+        .notification-read {
+            background-color: #f9fafb;
+            opacity: 0.8;
+        }
+        
         #notifPopup.open {
-    display: block !important;
-    animation: fadeIn 0.2s ease-out;
-}
+            display: block !important;
+            animation: fadeIn 0.2s ease-out;
+        }
 
-@keyframes fadeIn {
-    from { 
-        opacity: 0; 
-        transform: translateY(-10px); 
-    }
-    to { 
-        opacity: 1; 
-        transform: translateY(0); 
-    }
-}
+        @keyframes fadeIn {
+            from { 
+                opacity: 0; 
+                transform: translateY(-10px); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0); 
+            }
+        }
+        
+        /* Notification timestamp */
+        .notification-time {
+            font-size: 11px;
+            color: #6b7280;
+            margin-top: 2px;
+        }
+        
+        /* Auto-refresh indicator */
+        .refreshing {
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen flex">
@@ -401,14 +534,17 @@ $page_title = $page_title ?? "Alumni Page";
                             </span>
                         <?php endif; ?>
                     </button>
-<div id="notifPopup" class="absolute right-0 mt-2 w-96 bg-white rounded-xl shadow-xl border border-gray-200 hidden z-50">
+                    <div id="notifPopup" class="absolute right-0 mt-2 w-96 bg-white rounded-xl shadow-xl border border-gray-200 hidden z-50">
                         <div class="p-4 border-b border-gray-200 font-semibold text-gray-800 flex justify-between items-center text-sm bg-gray-50 rounded-t-xl">
                             <span>Notifications</span>
-                            <?php if ($notif_count > 0): ?>
-                                <button id="markReadBtn" class="text-xs text-blue-600 hover:text-blue-800 hover:underline font-medium">Mark all as read</button>
-                            <?php endif; ?>
+                            <div class="flex items-center gap-2">
+                                
+                                <?php if ($notif_count > 0): ?>
+                                    <button id="markReadBtn" class="text-xs text-blue-600 hover:text-blue-800 hover:underline font-medium">Mark all as read</button>
+                                <?php endif; ?>
+                            </div>
                         </div>
-                        <div class="max-h-96 overflow-y-auto text-sm">
+                        <div id="notificationsContainer" class="max-h-96 overflow-y-auto text-sm">
                             <?php if (empty($notifications)): ?>
                                 <div class="p-6 text-center text-gray-500">
                                     <i class="fas fa-bell-slash text-2xl mb-3 text-gray-400"></i>
@@ -416,8 +552,9 @@ $page_title = $page_title ?? "Alumni Page";
                                     <p class="text-xs text-gray-500 mt-1">You're all caught up!</p>
                                 </div>
                             <?php else: ?>
-                                <?php foreach ($notifications as $index => $notification): ?>
-                                    <div class="p-4 hover:bg-gray-50 border-b border-gray-100 notification-item notification-<?php echo $notification['type']; ?>">
+                                <?php foreach ($notifications as $notification): ?>
+                                    <div class="notification-item p-4 hover:bg-gray-50 border-b border-gray-100 notification-<?php echo $notification['type']; ?> <?php echo empty($notification['is_read']) || $notification['is_read'] === false ? 'notification-unread' : 'notification-read'; ?>" 
+                                         data-notification-id="<?php echo $notification['id'] ?? ''; ?>">
                                         <div class="flex items-start space-x-3">
                                             <div class="flex-shrink-0 mt-1">
                                                 <?php if ($notification['type'] === 'success'): ?>
@@ -433,13 +570,18 @@ $page_title = $page_title ?? "Alumni Page";
                                             <div class="flex-1">
                                                 <p class="font-medium text-gray-800"><?php echo htmlspecialchars($notification['title']); ?></p>
                                                 <p class="text-gray-600 mt-1 text-sm"><?php echo htmlspecialchars($notification['message']); ?></p>
-                                                <?php if ($notification['timestamp']): ?>
-                                                    <p class="text-xs text-gray-500 mt-2">
+                                                <?php if (!empty($notification['timestamp_display'])): ?>
+                                                    <p class="notification-time">
                                                         <i class="fas fa-clock mr-1"></i>
-                                                        <?php echo date('M j, Y g:i A', strtotime($notification['timestamp'])); ?>
+                                                        <?php echo htmlspecialchars($notification['timestamp_display']); ?>
                                                     </p>
                                                 <?php endif; ?>
                                             </div>
+                                            <?php if (empty($notification['is_read']) || $notification['is_read'] === false): ?>
+                                                <div class="flex-shrink-0">
+                                                    <span class="inline-block w-2 h-2 bg-blue-500 rounded-full" title="Unread"></span>
+                                                </div>
+                                            <?php endif; ?>
                                         </div>
                                     </div>
                                 <?php endforeach; ?>
@@ -469,141 +611,360 @@ $page_title = $page_title ?? "Alumni Page";
             <?php echo $page_content ?? ''; ?>
         </main>
     </div>
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Notification functionality
-        const notifButton = document.getElementById('notificationBtn');
-        const notifPopup = document.getElementById('notifPopup');
-        const notifBadge = document.getElementById('notificationBadge');
-        
-        let isPopupOpen = false;
-        
-        console.log('Notification system initialized');
-        
-        // Function to show popup
-        function showPopup() {
-            console.log('showPopup called');
-            if (notifPopup) {
-                notifPopup.classList.remove('hidden');
-                notifPopup.style.display = 'block';
-                // Force reflow for animation
-                notifPopup.offsetHeight;
-                notifPopup.classList.add('open');
-                isPopupOpen = true;
-                console.log('Popup shown, isPopupOpen:', isPopupOpen);
-            }
+    
+    <!-- Notification Update Script -->
+   <script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Notification functionality
+    const notifButton = document.getElementById('notificationBtn');
+    const notifPopup = document.getElementById('notifPopup');
+    const notifBadge = document.getElementById('notificationBadge');
+    const notificationsContainer = document.getElementById('notificationsContainer');
+    const refreshBtn = document.getElementById('refreshNotifications');
+    
+    let isPopupOpen = false;
+    let refreshInterval = null;
+    
+    console.log('Notification system initialized');
+    
+    // Function to show popup
+    function showPopup() {
+        console.log('showPopup called');
+        if (notifPopup) {
+            notifPopup.classList.remove('hidden');
+            notifPopup.style.display = 'block';
+            // Force reflow for animation
+            notifPopup.offsetHeight;
+            notifPopup.classList.add('open');
+            isPopupOpen = true;
+            console.log('Popup shown, isPopupOpen:', isPopupOpen);
+            
+            // Start auto-refresh when popup is open
+            startAutoRefresh();
         }
-        
-        // Function to hide popup
-        function hidePopup() {
-            console.log('hidePopup called');
-            if (notifPopup) {
-                notifPopup.classList.remove('open');
-                setTimeout(() => {
-                    notifPopup.classList.add('hidden');
-                    notifPopup.style.display = 'none';
-                    isPopupOpen = false;
-                    console.log('Popup hidden, isPopupOpen:', isPopupOpen);
-                }, 200); // Match CSS transition duration
-            }
-        }
-        
-        // Function to toggle popup
-        function togglePopup() {
-            console.log('togglePopup called, isPopupOpen:', isPopupOpen);
-            if (isPopupOpen) {
-                hidePopup();
-            } else {
-                showPopup();
-            }
-        }
-        
-        // Notification button click handler - FIXED
-        if (notifButton) {
-            console.log('Adding click listener to notification button');
-            notifButton.addEventListener('click', function(e) {
-                console.log('Notification button CLICKED');
-                e.stopPropagation(); // Prevent event from bubbling up
-                e.preventDefault();
-                togglePopup();
-            });
-        }
-        
-        // Close popup when clicking outside - FIXED with delayed check
-        document.addEventListener('click', function(e) {
-            // Small delay to ensure click event on button has been processed
+    }
+    
+    // Function to hide popup
+    function hidePopup() {
+        console.log('hidePopup called');
+        if (notifPopup) {
+            notifPopup.classList.remove('open');
             setTimeout(() => {
-                if (isPopupOpen && notifPopup) {
-                    // Check if click was NOT on popup or button
-                    const clickedOnPopup = notifPopup.contains(e.target);
-                    const clickedOnButton = notifButton.contains(e.target);
-                    
-                    if (!clickedOnPopup && !clickedOnButton) {
-                        console.log('Click outside detected, closing popup');
-                        hidePopup();
+                notifPopup.classList.add('hidden');
+                notifPopup.style.display = 'none';
+                isPopupOpen = false;
+                console.log('Popup hidden, isPopupOpen:', isPopupOpen);
+                
+                // Stop auto-refresh when popup is closed
+                stopAutoRefresh();
+            }, 200); // Match CSS transition duration
+        }
+    }
+    
+    // Function to toggle popup
+    function togglePopup() {
+        console.log('togglePopup called, isPopupOpen:', isPopupOpen);
+        if (isPopupOpen) {
+            hidePopup();
+        } else {
+            showPopup();
+        }
+    }
+    
+    // Start auto-refresh for notifications
+    function startAutoRefresh() {
+        // Clear any existing interval
+        stopAutoRefresh();
+        
+        // Refresh every 30 seconds when popup is open
+        refreshInterval = setInterval(() => {
+            refreshNotifications();
+        }, 30000); // 30 seconds
+    }
+    
+    // Stop auto-refresh
+    function stopAutoRefresh() {
+        if (refreshInterval) {
+            clearInterval(refreshInterval);
+            refreshInterval = null;
+        }
+    }
+    
+    // Refresh notifications from server
+    function refreshNotifications() {
+        if (!isPopupOpen) return;
+        
+        console.log('Refreshing notifications...');
+        
+        // Show refreshing indicator
+        if (refreshBtn) {
+            refreshBtn.classList.add('refreshing');
+        }
+        
+        // Fetch updated notifications
+        fetch('get_notifications.php?refresh=true&t=' + new Date().getTime())
+            .then(response => response.text())
+            .then(html => {
+                // Update notifications container
+                if (notificationsContainer) {
+                    notificationsContainer.innerHTML = html;
+                }
+                
+                // Update badge count
+                updateNotificationBadge();
+                
+                // Remove refreshing indicator
+                if (refreshBtn) {
+                    setTimeout(() => {
+                        refreshBtn.classList.remove('refreshing');
+                    }, 500);
+                }
+                
+                console.log('Notifications refreshed');
+            })
+            .catch(error => {
+                console.error('Error refreshing notifications:', error);
+                if (refreshBtn) {
+                    refreshBtn.classList.remove('refreshing');
+                }
+            });
+    }
+    
+    // Update notification badge count
+    function updateNotificationBadge() {
+        fetch('get_notification_count.php?t=' + new Date().getTime())
+            .then(response => response.json())
+            .then(data => {
+                if (notifBadge) {
+                    if (data.count > 0) {
+                        notifBadge.textContent = data.count;
+                        notifBadge.style.display = 'flex';
+                        
+                        // Show mark all as read button
+                        const markReadBtn = document.getElementById('markReadBtn');
+                        if (markReadBtn) {
+                            markReadBtn.style.display = 'block';
+                        }
+                    } else {
+                        notifBadge.style.display = 'none';
+                        
+                        // Hide mark all as read button
+                        const markReadBtn = document.getElementById('markReadBtn');
+                        if (markReadBtn) {
+                            markReadBtn.style.display = 'none';
+                        }
                     }
                 }
-            }, 10);
-        });
-        
-        // Close on escape key
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && isPopupOpen) {
-                console.log('Escape key pressed, closing popup');
-                hidePopup();
-            }
-        });
-        
-        // Mark all as read functionality
-        const markReadBtn = document.getElementById('markReadBtn');
-        if (markReadBtn) {
-            markReadBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('Mark all as read clicked');
-                
-                // Hide notification badge
-                if (notifBadge) {
-                    notifBadge.style.display = 'none';
-                }
-                
-                // Hide mark all as read button
-                markReadBtn.style.display = 'none';
-                
-                // Add visual feedback for read notifications
-                const notificationItems = document.querySelectorAll('.notification-item');
-                notificationItems.forEach(item => {
-                    item.style.opacity = '0.6';
-                    item.style.backgroundColor = '#f9fafb';
-                });
-                
-                // Show confirmation
-                const notificationHeader = notifPopup.querySelector('.p-4.border-b');
-                if (notificationHeader) {
-                    const originalContent = notificationHeader.innerHTML;
-                    notificationHeader.innerHTML = '<span class="text-green-600"><i class="fas fa-check mr-2"></i>All notifications marked as read</span>';
+            })
+            .catch(error => {
+                console.error('Error updating notification badge:', error);
+            });
+    }
+    
+    // Mark notification as read when clicked
+    function markNotificationAsRead(notificationId) {
+        fetch('mark_notification_read.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'notification_id=' + notificationId
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update UI
+                const notificationElement = document.querySelector(`[data-notification-id="${notificationId}"]`);
+                if (notificationElement) {
+                    notificationElement.classList.remove('notification-unread');
+                    notificationElement.classList.add('notification-read');
                     
-                    setTimeout(() => {
-                        notificationHeader.innerHTML = originalContent;
-                        // Don't auto-close after marking as read
-                        // hidePopup();
-                    }, 1500);
+                    // Remove unread dot
+                    const unreadDot = notificationElement.querySelector('.flex-shrink-0:last-child');
+                    if (unreadDot) {
+                        unreadDot.remove();
+                    }
+                    
+                    // Update badge count
+                    updateNotificationBadge();
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error marking notification as read:', error);
+        });
+    }
+   // Mark all notifications as read
+function markAllNotificationsAsRead() {
+    console.log('Marking all notifications as read...');
+    
+    // Get user_id from PHP variable - we need to pass this
+    const userId = <?php echo $user_id; ?>;
+    
+    fetch('mark_all_notifications_read.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'user_id=' + userId
+    })
+    .then(response => {
+        console.log('Response status:', response.status);
+        if (!response.ok) {
+            throw new Error('Network response was not ok: ' + response.status);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Mark all as read response:', data);
+        
+        if (data.success) {
+            console.log('All notifications marked as read');
+            
+            // Hide notification badge
+            if (notifBadge) {
+                notifBadge.style.display = 'none';
+            }
+            
+            // Hide mark all as read button
+            const markReadBtn = document.getElementById('markReadBtn');
+            if (markReadBtn) {
+                markReadBtn.style.display = 'none';
+            }
+            
+            // Update all notifications to read state in UI
+            document.querySelectorAll('.notification-item').forEach(item => {
+                item.classList.remove('notification-unread');
+                item.classList.add('notification-read');
+                
+                // Remove unread dots
+                const unreadDot = item.querySelector('.flex-shrink-0:last-child');
+                if (unreadDot) {
+                    const blueDot = unreadDot.querySelector('.bg-blue-500, .w-2.h-2');
+                    if (blueDot) {
+                        unreadDot.remove();
+                    }
                 }
             });
+            
+            // Show confirmation message
+            showConfirmationMessage(data.message || 'All notifications marked as read');
+            
+        } else {
+            console.error('Failed to mark all as read:', data.message);
+            showConfirmationMessage(data.message || 'Failed to mark all as read', 'error');
         }
-        
-        // Prevent popup close when clicking inside popup
-        if (notifPopup) {
-            notifPopup.addEventListener('click', function(e) {
-                e.stopPropagation();
-                console.log('Clicked inside popup, preventing close');
-            });
-        }
-        
-        // Debug: Log current state
-        console.log('Initial state - isPopupOpen:', isPopupOpen);
-        console.log('Popup visibility:', notifPopup?.classList.contains('hidden') ? 'hidden' : 'visible');
+    })
+    .catch(error => {
+        console.error('Error marking all notifications as read:', error);
+        showConfirmationMessage('Error: ' + error.message, 'error');
     });
+}
+    
+    // Show confirmation message
+    function showConfirmationMessage(message, type = 'success') {
+        const notificationHeader = document.querySelector('.p-4.border-b.border-gray-200');
+        if (notificationHeader) {
+            const originalContent = notificationHeader.innerHTML;
+            const colorClass = type === 'success' ? 'text-green-600' : 'text-red-600';
+            const icon = type === 'success' ? 'fa-check' : 'fa-exclamation-triangle';
+            
+            notificationHeader.innerHTML = `<span class="${colorClass}"><i class="fas ${icon} mr-2"></i>${message}</span>`;
+            
+            setTimeout(() => {
+                notificationHeader.innerHTML = originalContent;
+            }, 2000);
+        }
+    }
+    
+    // Notification button click handler
+    if (notifButton) {
+        console.log('Adding click listener to notification button');
+        notifButton.addEventListener('click', function(e) {
+            console.log('Notification button CLICKED');
+            e.stopPropagation(); // Prevent event from bubbling up
+            e.preventDefault();
+            togglePopup();
+        });
+    }
+    
+    // Refresh button click handler
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            refreshNotifications();
+        });
+    }
+    
+    // Mark all as read button click handler - FIXED
+    const markReadBtn = document.getElementById('markReadBtn');
+    if (markReadBtn) {
+        console.log('Adding click listener to mark all as read button');
+        markReadBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Mark all as read button clicked');
+            markAllNotificationsAsRead();
+        });
+    }
+    
+    // Close popup when clicking outside
+    document.addEventListener('click', function(e) {
+        setTimeout(() => {
+            if (isPopupOpen && notifPopup) {
+                const clickedOnPopup = notifPopup.contains(e.target);
+                const clickedOnButton = notifButton.contains(e.target);
+                
+                if (!clickedOnPopup && !clickedOnButton) {
+                    console.log('Click outside detected, closing popup');
+                    hidePopup();
+                }
+            }
+        }, 10);
+    });
+    
+    // Close on escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && isPopupOpen) {
+            console.log('Escape key pressed, closing popup');
+            hidePopup();
+        }
+    });
+    
+    // Mark individual notification as read when clicked
+    document.addEventListener('click', function(e) {
+        const notificationItem = e.target.closest('.notification-item');
+        if (notificationItem && isPopupOpen) {
+            const notificationId = notificationItem.dataset.notificationId;
+            if (notificationId) {
+                markNotificationAsRead(notificationId);
+            }
+        }
+    });
+    
+    // Prevent popup close when clicking inside popup
+    if (notifPopup) {
+        notifPopup.addEventListener('click', function(e) {
+            e.stopPropagation();
+            console.log('Clicked inside popup, preventing close');
+        });
+    }
+    
+    // Auto-refresh notification badge every 60 seconds
+    setInterval(() => {
+        if (!isPopupOpen) {
+            updateNotificationBadge();
+        }
+    }, 60000);
+    
+    // Debug: Log current state
+    console.log('Initial state - isPopupOpen:', isPopupOpen);
+    console.log('Popup visibility:', notifPopup?.classList.contains('hidden') ? 'hidden' : 'visible');
+    
+    // Initial badge update
+    updateNotificationBadge();
+});
 </script>
 </body>
 </html>

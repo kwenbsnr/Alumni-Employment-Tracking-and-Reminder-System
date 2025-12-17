@@ -32,7 +32,69 @@ $statsQuery = "
 $statsResult = $conn->query($statsQuery);
 $stats = $statsResult->fetch_assoc();
 
+// --- START: MODIFIED SECTION FOR EMPLOYMENT TREND (ALL BATCHES - TOTAL ALUMNI AS BASE) ---
+
+// 1. Fetch employment data using a LEFT JOIN to count ALL alumni in a batch
+// and conditionally count employed alumni.
+$employmentTrendQuery = "
+    SELECT 
+        u.batch_year,
+        COUNT(u.user_id) AS total_alumni_in_batch,
+        SUM(CASE 
+            WHEN ap.employment_status IN ('Employed', 'Self-Employed', 'Employed & Student') THEN 1 
+            ELSE 0 
+        END) AS employed_count
+    FROM users u
+    LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id
+    WHERE u.role = 'alumni'
+    AND u.batch_year IS NOT NULL 
+    AND u.batch_year != '' 
+    AND u.batch_year != '0000'
+    GROUP BY u.batch_year
+    ORDER BY u.batch_year ASC
+";
+
+$employmentTrendResult = $conn->query($employmentTrendQuery);
+
+$employmentData = [];
+$batchYears = [];
+$totalAlumniTrendPeriod = 0;
+
+if ($employmentTrendResult && $employmentTrendResult->num_rows > 0) {
+    while ($row = $employmentTrendResult->fetch_assoc()) {
+        $year = (string)$row['batch_year'];
+        $totalAlumni = (int)$row['total_alumni_in_batch'];
+        $employedCount = (int)$row['employed_count'];
+        
+        // Calculate the rate based on TOTAL ALUMNI in the batch
+        $rate = $totalAlumni > 0 ? round(($employedCount / $totalAlumni) * 100, 1) : 0;
+        
+        $employmentData[$year] = [
+            'total_alumni' => $totalAlumni,
+            'employed_count' => $employedCount,
+            'rate' => $rate,
+        ];
+        
+        $batchYears[] = $year;
+        $totalAlumniTrendPeriod += $totalAlumni;
+    }
+}
+
+// Prepare arrays for Chart.js
+$trendYears = array_unique($batchYears);
+sort($trendYears);
+
+$trendEmploymentRates = [];
+foreach($trendYears as $year) {
+    $trendEmploymentRates[] = $employmentData[$year]['rate'] ?? 0;
+}
+
+// --- END: MODIFIED SECTION FOR EMPLOYMENT TREND ---
+
+
 // Fetch graduation trends - include all alumni
+// This is the old Graduates Trend query, kept here to prevent errors in other parts of the code, 
+// but it is no longer used in the chart section.
 $graduatesQuery = "
     SELECT u.batch_year, COUNT(*) as count 
     FROM users u
@@ -222,7 +284,6 @@ ob_start();
 </style>
 
 <div class="dashboard-grid">
-    <!-- Left Column: 7 Cards + Analytics (with scroll) -->
     <div class="main-content">
         <div class="space-y-4">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -284,6 +345,7 @@ ob_start();
                                     <?php 
                                     $total_employed = $stats['employed_count'] ?? 0;
                                     $active_alumni = $stats['approved_profiles'] ?? 0;
+                                    // Use total alumni with profile submissions for this card's rate
                                     $employment_rate = $active_alumni > 0 ? round(($total_employed / $active_alumni) * 100, 1) : 0;
                                     echo $employment_rate; 
                                     ?>%
@@ -356,47 +418,9 @@ ob_start();
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <!--    
-            <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #06b6d4;">
-                    <div class="p-4">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Documents</p>
-                                <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['total_documents'] ?? 0; ?></p>
-                                <p class="text-xs text-gray-500 mt-1">Uploaded & verified</p>
-                            </div>
-                            <div class="p-3 rounded-xl bg-cyan-50">
-                                <i class="fas fa-file-alt text-xl text-cyan-500"></i>
-                            </div>
-                        </div>
-                        <div class="mt-2 flex items-center text-xs text-cyan-600">
-                            <span>Supporting documents</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="stats-card bg-white rounded-xl shadow-sm" style="--card-color: #f97316;">
-                    <div class="p-4">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Graduation Years</p>
-                                <p class="text-2xl font-bold text-gray-900 mt-1"><?php echo $stats['unique_graduation_years'] ?? 0; ?></p>
-                                <p class="text-xs text-gray-500 mt-1">Different batches</p>
-                            </div>
-                            <div class="p-3 rounded-xl bg-orange-50">
-                                <i class="fas fa-calendar-alt text-xl text-orange-500"></i>
-                            </div>
-                        </div>
-                        <div class="mt-2 flex items-center text-xs text-orange-600">
-                            <span>Batch diversity</span>
-                        </div>
-                    </div>
-                </div>
-                -->
             </div>
         </div>
 
-        <!-- Analytics Section -->
         <div class="stats-card bg-white rounded-xl shadow-sm border border-gray-100 mt-4 analytics-section">
             <div class="p-6">
                 <div class="flex items-center justify-between mb-6">
@@ -450,34 +474,31 @@ ob_start();
                     </div>
 
                     <div class="stats-card bg-gray-50 rounded-xl border border-gray-200 p-4">
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-lg font-bold text-gray-800 flex items-center">
-                                Graduation Trends
+                        <div class="mb-2">
+                            <h3 class="text-lg font-bold text-gray-800 flex items-center mb-1">
+                                Employment Trend per Batch Year
                             </h3>
                             <div class="flex items-center space-x-2">
                                 <span class="text-xs font-semibold bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                                    <?php echo count($gradYears); ?> batches
+                                    <?php echo count($trendYears); ?> Total Batches
                                 </span>
                                 <span class="text-xs font-semibold bg-green-100 text-green-700 px-2 py-1 rounded-full">
-                                    <?php echo array_sum($gradCounts); ?> total
+                                    <?php echo $totalAlumniTrendPeriod; ?> Total Alumni Tracked
                                 </span>
                             </div>
                         </div>
-                        <?php if (!empty($gradYears)): ?>
-                            <div class="h-72"><canvas id="graduationChart"></canvas></div>
-                            <div class="mt-3 flex justify-between text-xs text-gray-600">
-                                <span>Peak: <?php echo max($gradCounts); ?> graduates</span>
-                                <span>Average: <?php echo round(array_sum($gradCounts) / count($gradCounts), 1); ?>/year</span>
-                            </div>
+                        <?php if (!empty($trendYears)): ?>
+                            <div class="h-72"><canvas id="employmentTrendChart"></canvas></div>
+                          
                         <?php else: ?>
                             <div class="flex flex-col items-center justify-center h-72 text-gray-400">
                                 <i class="fas fa-chart-line text-5xl mb-3"></i>
-                                <p class="text-sm font-medium">No graduation data available</p>
-                                <p class="text-xs mt-1">Graduation trends will appear here</p>
+                                <p class="text-sm font-medium">No employment trend data available</p>
+                                <p class="text-xs mt-1">Employment trends for all batches will appear here once profiles are submitted</p>
                             </div>
                         <?php endif; ?>
                     </div>
-                </div>
+                    </div>
                 
                 <div class="mt-4 pt-4 border-t border-gray-200">
                     <div class="flex items-center justify-between text-xs text-gray-500">
@@ -657,38 +678,37 @@ new Chart(document.getElementById('employmentChart'), {
 });
 <?php endif; ?>
 
-<?php if (!empty($gradYears)): ?>
-// Graduates per Year Chart
-const gradCtx = document.getElementById('graduationChart').getContext('2d');
+<?php if (!empty($trendYears)): ?>
+// START: Employment Trend Per Batch Year Chart (All Batches)
+const trendCtx = document.getElementById('employmentTrendChart').getContext('2d');
 
-// Create gradient
-const gradient = gradCtx.createLinearGradient(0, 0, 0, 400);
-gradient.addColorStop(0, 'rgba(139, 92, 246, 0.4)');
-gradient.addColorStop(0.7, 'rgba(139, 92, 246, 0.15)');
-gradient.addColorStop(1, 'rgba(139, 92, 246, 0.05)');
+// Create gradient for the line chart area
+const trendGradient = trendCtx.createLinearGradient(0, 0, 0, 400);
+trendGradient.addColorStop(0, 'rgba(16, 185, 129, 0.4)'); // Green start
+trendGradient.addColorStop(0.7, 'rgba(16, 185, 129, 0.15)');
+trendGradient.addColorStop(1, 'rgba(16, 185, 129, 0.05)');
 
-// Calculate statistics
-const gradData = <?php echo json_encode($gradCounts); ?>;
-const totalGrads = gradData.reduce((a, b) => a + b, 0);
-const maxGrads = Math.max(...gradData);
-const avgGrads = Math.round(totalGrads / gradData.length);
+const trendEmploymentData = <?php echo json_encode($trendEmploymentRates); ?>;
+const trendYearsLabels = <?php echo json_encode($trendYears); ?>;
+const trendEmploymentDetails = <?php echo json_encode($employmentData); ?>;
 
-new Chart(gradCtx, {
+new Chart(trendCtx, {
     type: 'line',
     data: {
-        labels: <?php echo json_encode($gradYears); ?>,
+        labels: trendYearsLabels,
         datasets: [{
-            label: 'Graduates',
-            data: gradData,
-            borderColor: '#8b5cf6',
-            backgroundColor: gradient,
+            label: 'Employment Rate (Employed/Total Alumni)',
+            data: trendEmploymentData,
+            borderColor: '#10b981', // Green color
+            backgroundColor: trendGradient,
             borderWidth: 4,
             fill: true,
             tension: 0.3,
-            pointBackgroundColor: '#8b5cf6',
+            pointBackgroundColor: '#10b981',
             pointBorderColor: '#fff',
             pointBorderWidth: 3,
-            pointRadius: 6
+            pointRadius: 6,
+            hoverRadius: 8
         }]
     },
     options: {
@@ -701,7 +721,7 @@ new Chart(gradCtx, {
             tooltip: {
                 enabled: true,
                 backgroundColor: 'rgba(17, 24, 39, 0.95)',
-                borderColor: '#7c3aed',
+                borderColor: '#10b981',
                 borderWidth: 3,
                 cornerRadius: 14,
                 padding: 18,
@@ -729,27 +749,36 @@ new Chart(gradCtx, {
                         return `🎓 Batch ${tooltipItems[0].label}`;
                     },
                     label: function(context) {
-                        const value = context.parsed.y;
-                        const percentage = ((value / totalGrads) * 100).toFixed(1);
-                        return `${value} graduates • ${percentage}% of total alumni`;
+                        const rate = context.parsed.y;
+                        return `Employment Rate: ${rate}%`;
                     },
                     afterLabel: function(context) {
                         const year = context.label;
-                        const index = context.dataIndex;
-                        const prevYear = index > 0 ? gradData[index - 1] : null;
+                        const yearData = trendEmploymentDetails[year];
+                        const totalAlumni = yearData.total_alumni;
+                        const employedCount = yearData.employed_count;
                         
-                        if (prevYear !== null) {
-                            const change = context.parsed.y - prevYear;
-                            const changePercent = ((change / prevYear) * 100).toFixed(1);
-                            if (change > 0) {
-                                return `📈 +${change} from previous year (+${changePercent}%)`;
-                            } else if (change < 0) {
-                                return `📉 ${change} from previous year (${changePercent}%)`;
-                            } else {
-                                return `➡️ No change from previous year`;
-                            }
+                        return [
+                            `Total Alumni in Batch: ${totalAlumni}`,
+                            `Employed Alumni: ${employedCount}`
+                        ];
+                    },
+                    footer: function(tooltipItems) {
+                        const index = tooltipItems[0].dataIndex;
+                        const currentRate = tooltipItems[0].parsed.y;
+                        const prevRate = index > 0 ? trendEmploymentData[index - 1] : null;
+                        
+                        if (prevRate !== null) {
+                            const change = currentRate - prevRate;
+                            const sign = change >= 0 ? '▲' : '▼';
+                            const color = change >= 0 ? '#10b981' : '#ef4444';
+                            return [{
+                                text: `${sign} ${Math.abs(change).toFixed(1)}% vs. Prev. Batch`,
+                                font: { weight: 'bold' },
+                                labelTextColor: color
+                            }];
                         }
-                        return `⭐ First recorded batch`;
+                        return 'First batch recorded';
                     }
                 },
                 displayColors: false,
@@ -760,13 +789,15 @@ new Chart(gradCtx, {
         scales: {
             y: { 
                 beginAtZero: true, 
+                max: 100, // Employment rate is a percentage
                 grid: { 
                     color: 'rgba(0,0,0,0.08)',
                     drawBorder: false,
                     lineWidth: 1
                 }, 
                 ticks: { 
-                    stepSize: Math.ceil(maxGrads / 5),
+                    stepSize: 20,
+                    callback: function(value) { return value + '%'; },
                     font: { 
                         size: 12, 
                         weight: '600',
@@ -804,6 +835,7 @@ new Chart(gradCtx, {
     }
 });
 <?php endif; ?>
+// END: Employment Trend Per Batch Year Chart
 
 // Toast notification
 document.addEventListener("DOMContentLoaded", () => {

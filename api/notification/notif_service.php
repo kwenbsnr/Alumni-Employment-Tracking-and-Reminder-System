@@ -78,6 +78,95 @@ function send_notification($template_id, $recipient_email, $parameters = []) {
     }
 }
 
+// ==================== ADMIN NOTIFICATION DATABASE FUNCTIONS ====================
+
+function create_admin_notification($conn, $user_id, $notification_type) {
+    // Get alumni information
+    $stmt = $conn->prepare("
+        SELECT 
+            u.first_name,
+            u.last_name,
+            u.middle_name,
+            u.suffix,
+            u.batch_year,
+            ap.employment_status
+        FROM users u
+        LEFT JOIN alumni_profile ap ON u.user_id = ap.user_id
+        WHERE u.user_id = ?
+    ");
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($result->num_rows === 0) {
+        $stmt->close();
+        return false;
+    }
+    
+    $alumni_data = $result->fetch_assoc();
+    $stmt->close();
+    
+    // Build full name
+    $name_parts = [];
+    if (!empty($alumni_data['first_name'])) $name_parts[] = $alumni_data['first_name'];
+    if (!empty($alumni_data['middle_name'])) $name_parts[] = $alumni_data['middle_name'];
+    if (!empty($alumni_data['last_name'])) $name_parts[] = $alumni_data['last_name'];
+    if (!empty($alumni_data['suffix'])) $name_parts[] = $alumni_data['suffix'];
+    
+    $alumni_name = implode(' ', $name_parts);
+    $employment_status = $alumni_data['employment_status'] ?? 'Not specified';
+    $batch_year = $alumni_data['batch_year'] ?? date('Y');
+    
+    // Check if notification table exists, create if not
+    $check_table = $conn->query("SHOW TABLES LIKE 'admin_notifications'");
+    if ($check_table->num_rows === 0) {
+        // Create the table
+        $create_table = "
+            CREATE TABLE IF NOT EXISTS admin_notifications (
+                notification_id INT PRIMARY KEY AUTO_INCREMENT,
+                user_id INT NOT NULL,
+                notification_type ENUM('new_submission', 'resubmission', 'update') NOT NULL,
+                alumni_name VARCHAR(255) NOT NULL,
+                employment_status VARCHAR(50) NOT NULL,
+                batch_year YEAR,
+                submission_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                is_read BOOLEAN DEFAULT FALSE,
+                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+            )
+        ";
+        $conn->query($create_table);
+        
+        // Create indexes
+        $conn->query("CREATE INDEX idx_notifications_read ON admin_notifications(is_read)");
+        $conn->query("CREATE INDEX idx_notifications_time ON admin_notifications(submission_time)");
+    }
+    
+    // Insert notification
+    $stmt = $conn->prepare("
+        INSERT INTO admin_notifications 
+        (user_id, notification_type, alumni_name, employment_status, batch_year)
+        VALUES (?, ?, ?, ?, ?)
+    ");
+    $stmt->bind_param("isssi", 
+        $user_id, 
+        $notification_type,
+        $alumni_name,
+        $employment_status,
+        $batch_year
+    );
+    
+    $result = $stmt->execute();
+    $stmt->close();
+    
+    if ($result) {
+        error_log("ADMIN NOTIFICATION CREATED: Type '$notification_type' for user $user_id ($alumni_name)");
+    } else {
+        error_log("ADMIN NOTIFICATION FAILED: Type '$notification_type' for user $user_id");
+    }
+    
+    return $result;
+}
+
 // ==================== DYNAMIC DATA FETCHING FUNCTIONS ====================
 
 // Get complete alumni data for notifications
@@ -471,6 +560,9 @@ function send_resubmission_admin_notification($conn, $user_id) {
         $results[$admin_email] = send_notification('alum_resubmit_admin_notif', $admin_email, $parameters);
     }
     
+    // Create admin notification in database
+    create_admin_notification($conn, $user_id, 'resubmission');
+    
     return $results;
 }
 
@@ -510,6 +602,9 @@ function send_update_admin_notification($conn, $user_id) {
         $results[$admin_email] = send_notification('alum_update_admin_notif', $admin_email, $parameters);
     }
     
+    // Create admin notification in database
+    create_admin_notification($conn, $user_id, 'update');
+    
     return $results;
 }
 
@@ -548,6 +643,9 @@ function send_new_submission_admin_notification($conn, $user_id) {
     foreach ($admin_emails as $admin_email) {
         $results[$admin_email] = send_notification('template_admin_notif', $admin_email, $parameters);
     }
+    
+    // Create admin notification in database
+    create_admin_notification($conn, $user_id, 'new_submission');
     
     return $results;
 }
