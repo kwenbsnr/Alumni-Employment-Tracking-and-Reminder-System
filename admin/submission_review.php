@@ -281,8 +281,8 @@ ob_start();
                             $type_label = getNotificationTypeLabel($sub['notification_type']);
                             $time_ago = getTimeAgo($sub['submission_time']);
                             ?>
-                            <tr class="hover:bg-gray-50 <?php echo $sub['is_read'] ? '' : 'bg-blue-50'; ?> transition-colors"
-                                data-notification-id="<?php echo $sub['notification_id']; ?>">
+                           <tr class="hover:bg-gray-50 <?php echo $sub['is_read'] ? '' : 'bg-blue-50'; ?> transition-colors"
+    data-notification-id="<?php echo $sub['notification_id']; ?>">
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="flex items-center">
                                         <div class="flex-shrink-0 h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
@@ -385,10 +385,10 @@ ob_start();
                                            class="text-blue-600 hover:text-blue-900 px-3 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 transition duration-200">
                                             <i class="fas fa-eye mr-1"></i> View
                                         </a>
-                                        <button class="mark-read-btn text-green-600 hover:text-green-900 px-3 py-1 rounded-lg bg-green-50 hover:bg-green-100 transition duration-200"
-                                                data-id="<?php echo $sub['notification_id']; ?>">
-                                            <i class="fas fa-check mr-1"></i> Mark Read
-                                        </button>
+                                       <button class="mark-read-btn text-green-600 hover:text-green-900 px-3 py-1 rounded-lg bg-green-50 hover:bg-green-100 transition duration-200"
+        data-id="<?php echo $sub['notification_id']; ?>">
+    <i class="fas fa-check mr-1"></i> Mark Read
+</button>
                                     </div>
                                 </td>
                             </tr>
@@ -418,92 +418,171 @@ ob_start();
 <?php endif; ?>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('Submission review page loaded');
+    
+    // Get the base URL for API calls
+    const baseUrl = window.location.origin;
+    const currentPath = window.location.pathname;
+    const isAdminPage = currentPath.includes('admin/');
+    
+    // Build correct API path
+    let apiBasePath = '../api/notification/';
+    if (!isAdminPage) {
+        apiBasePath = 'api/notification/';
+    }
+    
+    console.log('API Base Path:', apiBasePath);
+    
+    // Function to show alert
+    function showAlert(message, type = 'error') {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `fixed top-4 right-4 px-6 py-4 rounded-lg shadow-lg z-50 ${
+            type === 'success' ? 'bg-green-100 text-green-800 border border-green-300' : 
+            'bg-red-100 text-red-800 border border-red-300'
+        }`;
+        alertDiv.innerHTML = `
+            <div class="flex items-center">
+                <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} mr-2"></i>
+                <span>${message}</span>
+                <button class="ml-4 text-gray-500 hover:text-gray-700" onclick="this.parentElement.parentElement.remove()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+        document.body.appendChild(alertDiv);
+        
+        if (type === 'success') {
+            setTimeout(() => alertDiv.remove(), 3000);
+        }
+    }
+    
     // Mark all as read button
     const markAllReadBtn = document.getElementById('markAllReadBtn');
     if (markAllReadBtn) {
         markAllReadBtn.addEventListener('click', async function() {
             if (!confirm('Mark all notifications as read?')) return;
             
+            console.log('Mark all as read clicked');
+            
             try {
-                const response = await fetch('api/mark_all_notifications_read.php', {
+                const response = await fetch(apiBasePath + 'mark_all_notifications_read.php', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                    }
+                    },
+                    credentials: 'include' // Important: sends session cookies
                 });
                 
+                console.log('Response status:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
                 const result = await response.json();
+                console.log('Response data:', result);
                 
                 if (result.success) {
-                    // Reload the page to update the view
-                    window.location.reload();
+                    showAlert(`Successfully marked ${result.marked_read || 0} notifications as read`, 'success');
+                    // Reload after a short delay
+                    setTimeout(() => window.location.reload(), 1500);
                 } else {
-                    alert('Failed to mark all as read');
+                    showAlert('Failed to mark all as read: ' + (result.error || 'Unknown error'));
                 }
             } catch (error) {
                 console.error('Error:', error);
-                alert('Failed to mark all as read');
+                showAlert('Failed to mark all as read: ' + error.message);
             }
         });
     }
     
     // Individual mark as read buttons
     document.querySelectorAll('.mark-read-btn').forEach(button => {
-        button.addEventListener('click', async function() {
+        button.addEventListener('click', async function(e) {
+            e.stopPropagation(); // Prevent row click event
+            
             const notificationId = this.getAttribute('data-id');
+            console.log('Mark as read clicked for ID:', notificationId);
+            
+            if (!notificationId) {
+                showAlert('No notification ID found!');
+                return;
+            }
+            
             const row = this.closest('tr');
             
+            // Show loading state
+            const originalHTML = this.innerHTML;
+            const originalClasses = this.className;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Processing';
+            this.disabled = true;
+            this.classList.remove('hover:bg-green-100', 'hover:text-green-900');
+            
             try {
-                const response = await fetch('api/mark_notification_read.php', {
+                const response = await fetch(apiBasePath + 'mark_notification_read.php', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
+                    credentials: 'include', // Important for session
                     body: JSON.stringify({ notification_id: notificationId })
                 });
                 
+                console.log('Response status:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
                 const result = await response.json();
+                console.log('Response data:', result);
                 
                 if (result.success) {
                     // Update the row appearance
                     row.classList.remove('bg-blue-50');
-                    row.querySelector('.bg-blue-500').classList.add('hidden');
+                    
+                    // Remove blue dot if exists
+                    const blueDot = row.querySelector('.bg-blue-500');
+                    if (blueDot) blueDot.remove();
+                    
+                    // Update button
                     this.innerHTML = '<i class="fas fa-check-circle mr-1"></i> Read';
-                    this.classList.remove('bg-green-50', 'hover:bg-green-100', 'text-green-600');
-                    this.classList.add('bg-gray-100', 'text-gray-500', 'cursor-default');
+                    this.className = originalClasses
+                        .replace('bg-green-50', 'bg-gray-100')
+                        .replace('text-green-600', 'text-gray-500')
+                        .replace('hover:bg-green-100', '')
+                        .replace('hover:text-green-900', '');
                     this.disabled = true;
+                    
+                    // Update unread count in header if exists
+                    const unreadCountEl = document.querySelector('span.font-bold');
+                    if (unreadCountEl && unreadCountEl.textContent) {
+                        const currentCount = parseInt(unreadCountEl.textContent);
+                        if (!isNaN(currentCount) && currentCount > 0) {
+                            unreadCountEl.textContent = currentCount - 1;
+                        }
+                    }
+                    
+                    showAlert('Notification marked as read', 'success');
+                    
+                } else {
+                    showAlert('Failed to mark as read: ' + (result.error || 'Unknown error'));
+                    this.innerHTML = originalHTML;
+                    this.disabled = false;
+                    this.className = originalClasses;
                 }
             } catch (error) {
-                console.error('Error:', error);
-                alert('Failed to mark as read');
+                console.error('Error details:', error);
+                showAlert('Failed to mark as read: ' + error.message);
+                this.innerHTML = originalHTML;
+                this.disabled = false;
+                this.className = originalClasses;
             }
         });
     });
     
-    // Click row to view alumni profile
-    document.querySelectorAll('tbody tr').forEach(row => {
-        if (!row.querySelector('.mark-read-btn')) return;
-        
-        row.addEventListener('click', function(e) {
-            // Don't trigger if clicking on buttons
-            if (e.target.closest('a') || e.target.closest('button')) {
-                return;
-            }
-            
-            const userId = this.getAttribute('data-user-id') || 
-                          this.querySelector('a[href*="view="]')?.getAttribute('href')?.split('view=')[1];
-            
-            if (userId) {
-                window.location.href = `alumni_management.php?view=${userId}`;
-            }
-        });
-        
-        // Add hover effect
-        row.style.cursor = 'pointer';
-    });
 });
 </script>
-
 <?php
 $page_content = ob_get_clean();
 include("admin_format.php");
