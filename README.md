@@ -29,3 +29,7 @@
 │  └─ update_profile.php             # Backend logic for Profile management page
 ```
 ____________________
+
+here nga main rami mag update, for a very trivial reason...
+para d matabunan amung recent PR title hahalol
+<img width="728" height="259" alt="image" src="https://github.com/user-attachments/assets/833b5689-df5d-44ba-abd8-d838f5f9bb4a" />
