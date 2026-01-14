@@ -4,6 +4,8 @@ The **Alumni Employment Tracking and Reminder System** is a web-based platform d
 
 It supports **Admins** and **Alumni**, providing structured management of profiles, employment records, and document submissions. The system includes **automated notifications**, including **Gmail notifications**, for approvals, rejections, resubmissions, and scheduled reminders. The current implementation is designed exclusively for BSIT alumni.
 
+However, the current implementation is designed exclusively for BSIT alumni of JHCSC.
+
 ---
 
 ## Key Features
