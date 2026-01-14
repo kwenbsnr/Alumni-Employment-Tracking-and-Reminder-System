@@ -4,7 +4,7 @@ The **Alumni Employment Tracking and Reminder System** is a web-based platform d
 
 It supports **Admins** and **Alumni**, providing structured management of profiles, employment records, and document submissions. The system includes **automated notifications**, including **Gmail notifications**, for approvals, rejections, resubmissions, and scheduled reminders. The current implementation is designed exclusively for BSIT alumni.
 
-However, the current implementation is designed exclusively for BSIT alumni of JHCSC.
+The current implementation is designed for BSIT alumni of JHCSC institution; however, the system can be modified or extended to support other academic programs.
 
 ---
 
@@ -71,7 +71,7 @@ C:\xampp\htdocs\
 2. Create a database (`alumni_tracking`)
 3. Import the provided SQL file (`config/sql/alumni_tracking(6).sql`)
 
-### 4. Install Dependencies
+### 4. Install Dependencies 
 
 ```bash
 composer install
