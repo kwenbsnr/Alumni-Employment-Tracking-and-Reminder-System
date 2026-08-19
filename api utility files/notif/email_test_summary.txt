@@ -1,6 +1,0 @@
-Email Test Summary
-================
-Time: 2025-11-27 13:55:29
-Email: bisnar.quien18@gmail.com
-Tests Run: 3
-Check Gmail inbox for delivery.

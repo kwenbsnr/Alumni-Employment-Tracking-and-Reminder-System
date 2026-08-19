@@ -1,5 +1,5 @@
 <?php
-// cleanup_old_notifications.php
+
 include("connect.php");
 
 // Delete notifications older than 90 days
