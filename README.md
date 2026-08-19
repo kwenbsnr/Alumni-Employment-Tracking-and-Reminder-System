@@ -4,8 +4,6 @@ The **Alumni Employment Tracking and Reminder System** is a web-based platform d
 
 It supports **Admins** and **Alumni**, providing structured management of profiles, employment records, and document submissions. The system includes **automated notifications**, including **Gmail notifications**, for approvals, rejections, resubmissions, and scheduled reminders. The current implementation is designed exclusively for BSIT alumni.
 
-The current implementation is designed for BSIT alumni of JHCSC institution; however, the system can be modified or extended to support other academic programs.
-
 ---
 
 ## Key Features
@@ -34,18 +32,6 @@ The current implementation is designed for BSIT alumni of JHCSC institution; how
 * Gmail notifications for submissions and reminders (includes dynamic alumni name and rejection reason)
 * Semi-annual automated reminders
 * Manual overrides for submission schedules
-
----
-
-## Technology Stack
-
-* **Backend:** PHP
-* **Frontend:** HTML, CSS, JavaScript
-* **Database:** MariaDB (via XAMPP, compatible with MySQL)
-* **Server Environment:** XAMPP (Apache + MariaDB)
-* **PDF Generation:** TCPDF
-* **Dependency Management:** Composer
-* **Styling:** Custom CSS + Tailwind
 
 ---
 
@@ -101,11 +87,9 @@ http://localhost/Alumni-Employment-Tracking-and-Reminder-System/login/login.php
 
 Alumni-Employment-Tracking-and-Reminder-System/
 │  
-├─ .vscode/                                   # VS Code workspace settings
+├─ .vscode/                                   
 │
 ├─ SRS/
-│  ├─ Beta Test Responses.xlsx
-│  ├─ Software Requirements Specification.docx
 │  └─ Software Requirements Specification.pdf
 │
 ├─ admin/                                     # Admin module
@@ -136,13 +120,15 @@ Alumni-Employment-Tracking-and-Reminder-System/
 │  └─ update_profile.php                 # Backend logic for Profile management
 │
 ├─ api/                                       # API endpoints
-│  └─ notif_temps/                       # Gmail notif templates
+│  └─ notif_temps/                       
 │  └─ notification/
 │  └─ utils/
+
+├─ config/
+│  └─ assets/
 │
 ├─ config/
-│  ├─ assets/
-│  ├─ sql/                                    # SQL dump files for DB setup
+│  ├─ sql/                                    # SQL dump 
 │  ├─ paths.php
 │  ├─ pop_alumn.php
 │  └─ notification_config.php
@@ -173,11 +159,9 @@ Alumni-Employment-Tracking-and-Reminder-System/
 └─ send_semiannual_updates.bat
 ```
 
-## Security Notes
+## Notes
 
-* **Passwords are hashed, but for demonstration purposes the hash is simply the user's first name.** Should not be used in production.
-* Role-based access control enforced
+* **Passwords are hashed, but for demonstration purposes the hash is simply the user's first name.** 
 * File uploads are organized by document type
-* Activity logs ensure traceability
 
 ---
